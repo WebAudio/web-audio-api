@@ -1,0 +1,469 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Stream Processing API</title>
+<link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<div class="head">
+  <h1>Stream Processing API</h1>
+  <h2>Draft Proposal</h2>
+  <dl><dt>Editor:</dt><dd>Robert O'Callahan, Mozilla Corporation &lt;robert@ocallahan.org&gt;</dd>
+</div>
+
+<h2>Status of this Document</h2> 
+<p>This document is a draft specification proposal with no official status. Send comments to the <a href="mailto:public-audio@w3.org">W3C audio mailing list</a>, or <a href="mailto:robert@ocallahan.org">Robert O'Callahan</a>. It is inappropriate to cite this document except as a work in progress.
+
+<h2>Abstract</h2>
+
+<p>A number of existing or proposed features for the Web platform deal with continuous real-time media:
+<ul>
+<li>HTML media elements
+<li>Synchronization of multiple HTML media elements (e.g. proposed HTML MediaController)
+<li>Capture and recording of local audio and video input (e.g. proposed HTML Streams)
+<li>Peer-to-peer streaming of audio and video streams (e.g. proposed WebRTC and HTML Streams) 
+<li>Advanced audio APIs that allow complex mixing and effects processing (e.g. Mozilla's AudioData, Chrome's AudioNode)
+</ul>
+Many use-cases require these features to work together. This proposal makes HTML Streams the foundation for integrated Web media processing by creating a mixing and effects processing API for HTML Streams.
+
+<h2>Table of Contents</h2>
+
+<ol id="toc">
+  <li><a href="#introduction">1. Introduction</a>
+  <ol>
+    <li><a href="#scenarios">1.1. Scenarios</a>
+  </ol>
+  <li><a href="#streams">2. Streams</a>
+  <li><a href="#media-element-extensions">3. Media Element Extensions</a>
+</ol>
+
+<h2 id="introduction">1. Introduction</h2>
+
+<p>The ideas here build on <a href="http://www.whatwg.org/specs/web-apps/current-work/complete/video-conferencing-and-peer-to-peer-communication.html">Ian Hickson's proposal for HTML Streams</a>, adding features partly inspired by <a href="https://wiki.mozilla.org/Audio_Data_API"> the Mozilla audio API</a> and <a href="http://chromium.googlecode.com/svn/trunk/samples/audio/specification/specification.html">the Chrome audio API</a>. Unlike previous audio API proposals, the API presented here integrates with proposed API for media capture from local devices, integrates with proposed API for peer-to-peer media streaming, handles audio and video in a unified framework, incorporates Worker-based Javascript audio processing, and specifies synchronization across multiple media sources and effects. The API presented here does not include a library of "native" effects; those should be added as a clean extension to StreamProcessor, perhaps as a "level 2" spec.
+
+<p>The work here is nascent. Until a prototype implementation exists, this proposal is likely to be incomplete and possibly not even implementable.
+
+<h3 id="scenarios">1.1. Scenarios</h3>
+
+<p>These are concrete usage scenarios that have helped guide the design of the API. They are higher-level than use-cases.
+
+<ol>
+<li>Play video with processing effect applied to the audio track (e.g. high-pass filter)
+<li>Play video with processing effects mixing in out-of-band audio tracks (in sync) (e.g. mixing in an audio commentary with audio ducking)
+<li>Capture microphone input and stream it out to a peer with a processing effect applied to the audio (e.g. XBox 360 chat with voice distortion)
+<li>Capture microphone input and visualize it as it is being streamed out to a peer and recorded (e.g. Internet radio broadcast)
+<li>Capture microphone input, visualize it, mix in another audio track and stream the result to a peer and record (e.g. Internet radio broadcast)
+<li>Receive audio streams from peers, mix them with spatialization effects, and play (e.g. live chat with spatial feature)
+<li>Seamlessly chain from the end of one input stream to another (e.g. playlists, audio/video editing)
+<li>Seamlessly switch from one input stream to another (e.g. adaptive streaming)
+<li>Synthesize samples from JS data (e.g. game emulators or MIDI synthesizer)
+<li>Trigger a sound sample to be played through the effects graph ASAP but without causing any blocking (e.g. game sound effects)
+<li>Trigger a sound sample to be played through the effects graph at a given time (e.g. game sound effects)
+<li>Capture video from a camera and analyze it (e.g. face recognition)
+<li>Capture video and audio, record it to a file and upload the file (e.g. Youtube upload)
+<li>Capture video from a canvas element, record it and upload (e.g. Screencast/"Webcast", or composite multiple video sources with effects into a single canvas then record)
+<li>Synchronized MIDI + Audio capture
+<li>Synchronized MIDI + Audio playback
+</ol>
+
+<h2 id="streams">2. Streams</h2>
+
+<h3 id="stream-semantics">2.1. The Semantics Of Streams</h3>
+
+<ul>
+<li>A window of timecoded video and audio data. 
+<li>The timecodes are in the stream's own internal timeline. The internal timeline can have any base offset but always advances at the same rate as real time, if it's advancing at all. 
+<li>Not seekable, resettable etc. The window moves forward automatically in real time (or close to it). 
+<li>A stream can be "blocked". While it's blocked, its timeline and data window does not advance.
+<li>A stream can be "ended". While it's ended, it must also be blocked. An ended stream will not normally produce data in the future (although it might if the source is reset somehow).
+</ul>
+
+<p>We do not allow streams to have independent timelines (e.g. no adjustable playback rate or seeking within an arbitrary Stream), because that leads to a single Stream being consumed at multiple different offsets at the same time, which requires either unbounded buffering or multiple internal decoders and streams for a single Stream. It seems simpler and more predictable in performance to require authors to create multiple streams (if necessary) and change the playback rate in the original stream sources.
+
+<p>A particularly hard case that helps determine the design:
+<ul>
+<li>Three media element input streams: http://slow, http://fast, and http://fast2
+<li>http://slow is mixed with http://fast
+<li>http://fast is mixed with http://fast2
+</ul>
+Question: does the http://fast stream have to provide data at two different offsets? This spec's answer: no, because that would be too complicated to implement and lead to surprising resource consumption issues. This means that if a stream feeds into a blocked mixer, then it itself gets blocked. Since obviously a mixer with a blocked input must also be blocked, the entire graph of connected streams block as a unit. This means that the mixing of http://fast and http://fast2 will be blocked by delays in http://slow in the above scenario.
+
+<p>Authors can avoid this by explicitly splitting streams that may need to progress at different rates --- in the above case, by using two separate media elements each loading http://fast. The HTML spec encourages implementations to share cached media data between media elements loading the same URI.
+
+<h3 id="stream-extensions">2.2 Stream Extensions</h3>
+
+<p>Streams can have attributes that transform their output: 
+
+<pre><code>interface Stream {
+  ...
+
+  attribute double volume;
+
+  void setVolume(volume, [optional] double atTime);
+
+  // When set, destinations treat the stream as not blocking. While the stream is
+  // blocked, its data are replaced with silence.
+  attribute boolean live;
+  // When set, the stream is blocked while it is not an input to any StreamProcessor.
+  attribute boolean waitForUse;
+ 
+  // When the stream enters the "ended" state, an HTML task is queued to run this callback.
+  attribute Function onended;
+ 
+  // Create a new StreamProcessor with this Stream as the input.
+  StreamProcessor createProcessor();
+  // Create a new StreamProcessor with this Stream as the input,
+  // initializing worker.
+  StreamProcessor createProcessor(Worker worker);
+};</code></pre>
+
+<h2 id="media-element-extensions">3. Media Element Extensions</h2>
+
+<pre><code>interface HTMLMediaElement {
+  ...
+
+  readonly attribute Stream stream;
+ 
+  // Returns the same stream as 'stream', but also sets the captureAudio attribute.
+  Stream captureStream();
+ 
+  // This attribute is NOT reflected into the DOM. It's initially false.
+  attribute boolean captureAudio;
+ 
+  attribute any src;
+ };</pre></code>
+
+<p>'stream' returns the stream of "what the element is playing" --- whatever the element is currently playing, after its volume and playbackrate are taken into account. While the element is not playing (e.g. because it's paused, seeking, or buffering), the stream is blocked. When the element is in the ended state, the stream is in the ended state. When something else causes this stream to be blocked, we block the output of the media element.
+
+<p>When 'captureAudio' is set, the element does not produce direct audio output. Audio output is still sent to 'stream'.
+
+<p>'src' can be set to a Stream. Blocked streams play silence and show the last video frame.
+
+<h2 id="stream-mixing-and-processing">4. Stream Mixing And Processing</h2>
+
+<pre><code>[Constructor]
+interface StreamProcessor : Stream {
+  readonly attribute Stream[] inputs;
+  void addStream(Stream input, [optional] double atTime);
+  void setInputParams(Stream input, any params, [optional] double atTime);
+  void removeStream(Stream input, [optional] double atTime);
+ 
+  attribute Worker worker;
+};</pre></code>
+
+<p>This object combines multiple streams with synchronization to create a new stream. While any input stream is blocked and not live, the StreamProcessor is blocked. While the StreamProcessor is blocked, all its input streams are forced to be blocked. (Note that this can cause other StreamProcessors using the same input stream(s) to block, etc.) A StreamProcessor is ended if all its inputs are ended (including if there are no inputs).
+
+<p>'inputs' returns the current set of input streams. A stream can be used as multiple inputs to the same StreamProcessor, so 'inputs' can contain multiple references to the same stream.
+
+<p>'setInputParams' sets the parameters object for the given input stream. All inputs using that stream must share the same parameters object. These parameters are only for this ProccesorStream; if the input stream is used by other ProcessorStreams, they will have separate input parameters.
+
+<p>When 'atTime' is specified, the operation happens instantaneously at the given media time, and all changes with the same atTime happen atomically. Media times are on the same timeline as "animation time" (window.mozAnimationStartTime or whatever the standardized version of that turns out to be). If atTime is in the past or omitted, the change happens as soon as possible, and all such immediate changes issued by a given HTML5 task happen atomically.
+
+<p>While 'worker' is null, the output is produced simply by adding the streams together. Video frames are composited with the last-added stream on top, everything letterboxed to the size of the last-added stream that has video. While there is no input stream, the StreamProcessor produces silence and no video. 
+
+<p>While 'worker' is non-null, input stream data is fed into the worker by dispatching onprocessstream callbacks. Each onprocessstream callback takes a StreamEvent as a parameter. A StreamEvent provides audio sample buffers for each input stream; the event callback can write audio output buffers and a list of output video frames. If the callback does not output audio, default audio output is automatically generated as above. Each StreamEvent contains the parameters associated with each input stream contributing to the StreamEvent.
+
+<p>Currently the StreamEvent API does not offer access to video data. This should be added later.
+
+<p>Note that 'worker' cannot be a SharedWorker. This ensures that the worker can run in the same process as the page in multiprocess browsers, so media streams can be confined to a single process.
+
+<p>An ended stream is treated as producing silence and no video. (Alternative: automatically remove the stream as an input. But this might confuse scripts.)
+
+<pre><code>interface DedicatedWorkerGlobalScope {
+  attribute Function onprocessstream;
+  attribute float streamRewindMax;
+  attribute boolean variableAudioFormats;
+};</pre></code>
+
+<p>'onprocessstream' stores the callback function to be called whenever stream data needs to be processed.
+ 
+<pre><code>interface StreamEvent {
+  readonly attribute float rewind;
+ 
+  readonly attribute StreamBuffer inputs[];
+  void writeAudio(long sampleRate, short channels, Float32Array data);
+};</pre></code>
+
+<p>To support graph changes with low latency, we might need to throw out processed samples that have already been buffered and reprocess them. The 'rewind' attribute indicates how far back in the stream's history we have moved before the current inputs start. It is a non-negative value less than or equal to the value of streamRewindMax on entry to the event handler. The default value of streamRewindMax is zero so by default 'rewind' is always zero; filters that support rewinding need to opt into it.
+
+<p>'inputs' provides access to a StreamBuffer representing data produced by each input stream.
+
+<pre><code>interface StreamBuffer {
+  readonly attribute any parameters;
+  readonly attribute long audioSampleRate;
+  readonly attribute short audioChannels;
+  reaodnly attribute long audioLength;
+  readonly attribute Float32Array audioSamples;
+  // TODO something for video frames.
+};</pre></code>
+
+<p>'parameters' returns a structured clone of the latest parameters set for each input stream.
+
+<p>'audioSampleRate' and 'audioChannels' represent the format of the samples. 'audioSampleRate' is the number of samples per second. 'audioChannels' is the number of channels; the channel mapping is as defined in the Vorbis specification.
+
+<p>'audioLength' is the number of samples per channel.
+
+<p>If 'variableAudioFormats' is false (the default) when the event handler fires, the UA will convert all the input audio to a single common format before presenting them to the event handler. Typically the UA would choose the highest-fidelity format to avoid lossy conversion. If variableAudioFormats was false for the previous invocation of the event handler, the UA also ensures that the format stays the same as the format used by the previous invocation of the handler.
+
+<p>'audioSamples' gives access to the audio samples for each input stream. The array length will be 'audioLength' multiplied by 'audioChannels'. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of 'audioLength' samples each. The durations of the input buffers for the input streams will be equal (or as equal as possible given varying sample rates).
+
+<p>Streams not containing audio will have audioChannels set to zero, and the audioSamples array will be empty --- unless variableAudioFormats is false and some input stream has audio.
+
+<p>'writeAudio' writes audio data to the stream output. If 'writeAudio' is not called before the event handler returns, the inputs are automatically mixed and written to the output. The 'data' array length must be a multiple of 'channels'. 'writeAudio' can be called more than once during an event handler; the data will be appended to the output stream.
+
+<p>There is no requirement that the amount of data output match the input buffer duration. A filter with a delay will output less data than the duration of the input buffer, at least during the first event; the UA will compensate by trying to buffer up more input data and firing the event again to get more output. A synthesizer with no inputs can output as much data as it wants; the UA will buffer data and fire events as necessary. Filters that misbehave, e.g. by continuously writing zero-length buffers, will cause the stream to block.
+
+<h2 id="media-graph-considerations">5. Media Graph Considerations</h2>
+
+<h3 id="cycles">5.1. Cycles</h3>
+
+<p>If a cycle is formed in the graph, the streams involved block until the cycle is removed. 
+
+<h3 id="graph-changes">5.2 Dynamic Changes</h3>
+
+<p>Dynamic graph changes performed by a script take effect atomically after the script has run to completion. Effectively we post a task to the HTML event loop that makes all the pending changes. The exact timing is up to the implementation but the implementation should try to minimize the latency of changes.
+
+<h2>6. Canvas Recording</h2>
+
+<p>To enable video synthesis and some easy kinds of video effects we can record the contents of a canvas:
+
+<pre><code>interface HTMLCanvasElement {
+  ...
+
+  readonly attribute Stream stream;
+};</pre></code>
+
+<p>'stream' is a stream containing the "live" contents of the canvas as video frames, and no audio.
+
+<h2>7. Examples</h2>
+
+<ol>
+<li>Play video with processing effect applied to the audio track 
+
+<pre><code>&lt;video src="foo.webm" id="v" controls&gt;&lt;/video&gt;
+&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
+&lt;script&gt;
+document.getElementById("out").src =
+   document.getElementById("v").captureStream().createProcessor(new Worker("effect.js"));
+&lt;/script&gt;</pre></code>
+
+<li>Play video with processing effects mixing in out-of-band audio tracks (in sync)
+
+<pre><code>&lt;video src="foo.webm" id="v"&gt;&lt;/video&gt;
+&lt;audio src="back.webm" id="back"&gt;&lt;/audio&gt;
+&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
+&lt;script&gt;
+  var mixer = document.getElementById("v").captureStream().createProcessor(new Worker("audio-ducking.js"));
+  mixer.addStream(document.getElementById("back").captureStream());
+  document.getElementById("out").src = mixer;
+  function startPlaying() {
+    document.getElementById("v").play();
+    document.getElementById("back").play();
+  }
+  // We probably need additional API to more conveniently tie together
+  // the controls for multiple media elements.
+&lt;/script&gt;</pre></code>
+
+<li>Capture microphone input and stream it out to a peer with a processing effect applied to the audio 
+
+<pre><code>&lt;script&gt;
+  navigator.getUserMedia('audio', gotAudio);
+  function gotAudio(stream) {
+    peerConnection.addStream(stream.createProcessor(new Worker("effect.js")));
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Capture microphone input and visualize it as it is being streamed out to a peer and recorded 
+
+<pre><code>&lt;canvas id="c"&gt;&lt;/canvas&gt;
+&lt;script&gt;
+  navigator.getUserMedia('audio', gotAudio);
+  var streamRecorder;
+  function gotAudio(stream) {
+    var worker = new Worker("visualizer.js");
+    var processed = stream.createProcessor(worker);
+    worker.onmessage = function(event) {
+      drawSpectrumToCanvas(event.data, document.getElementById("c"));
+    }
+    streamRecorder = processed.record();
+    peerConnection.addStream(processed);
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Capture microphone input, visualize it, mix in another audio track and stream the result to a peer and record 
+
+<pre><code>&lt;canvas id="c"&gt;&lt;/canvas&gt;
+&lt;audio src="back.webm" id="back"&gt;&lt;/audio&gt;
+&lt;script&gt;
+  navigator.getUserMedia('audio', gotAudio);
+  var streamRecorder;
+  function gotAudio(stream) {
+    var worker = new Worker("visualizer.js");
+    var processed = stream.createProcessor(worker);
+    worker.onmessage = function(event) {
+      drawSpectrumToCanvas(event.data, document.getElementById("c"));
+    }
+    var mixer = processed.createProcessor();
+    mixer.addStream(document.getElementById("back").captureStream());
+    streamRecorder = mixer.record();
+    peerConnection.addStream(mixer);
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Receive audio streams from peers, mix them with spatialization effects, and play 
+
+<pre><code>&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
+&lt;script&gt;
+  var worker = new Worker("spatializer.js");
+  var spatialized = stream.createProcessor(worker);
+  peerConnection.onaddstream = function (event) {
+    spatialized.addStream(event.stream);
+    spatialized.setInputParams(event.stream, {x:..., y:..., z:...});
+  };
+  document.getElementById("out").src = spatialized;   
+&lt;/script&gt;</pre></code>
+
+<li>Seamlessly chain from the end of one input stream to another 
+
+<pre><code>&lt;audio src="in1.webm" id="in1" preload&gt;&lt;/audio&gt;
+&lt;audio src="in2.webm" id="in2"&gt;&lt;/audio&gt;
+&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
+&lt;script&gt;
+  var in1 = document.getElementById("in1");
+  in1.onloadeddata = function() {
+    var mixer = in1.captureStream().createProcessor();
+    var in2 = document.getElementById("in2");
+    mixer.addStream(in2.captureStream(), window.currentTime + in1.duration);
+    document.getElementById("out").src = mixer;
+    in1.play();
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Seamlessly switch from one input stream to another, e.g. to implement adaptive streaming 
+
+<pre><code>&lt;audio src="in1.webm" id="in1" preload&gt;&lt;/audio&gt;
+&lt;audio src="in2.webm" id="in2"&gt;&lt;/audio&gt;
+&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
+&lt;script&gt;
+  var stream1 = document.getElementById("in1").captureStream();
+  var mixer = stream1.createProcessor();
+  document.getElementById("out").src = mixer;
+  function switchStreams() {
+    var in2 = document.getElementById("in2");
+    in2.currentTime = in1.currentTime;
+    var stream2 = in2.captureStream();
+    stream2.volume = 0;
+    stream2.live = true; // don't block while this stream is blocked, just play silence
+    mixer.addStream(stream2);
+    stream2.onplaying = function() {
+      if (mixer.inputs[0] == stream1) {
+        stream2.volume = 1.0;
+        stream2.live = false; // allow output to block while this stream is playing
+        mixer.removeStream(stream1);
+      }
+    }
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Synthesize samples from JS data 
+
+<pre><code>&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
+&lt;script&gt;
+  document.getElementById("out").src =
+    new StreamProcessor(new Worker("synthesizer.js"));
+&lt;/script&gt;</pre></code>
+
+<li>Trigger a sound sample to be played through the effects graph ASAP but without causing any blocking 
+
+<pre><code>&lt;script&gt;
+  var effectsMixer = ...;
+  function playSound(src) {
+    var audio = new Audio(src);
+    audio.oncanplaythrough = new function() {
+      var stream = audio.captureStream();
+      stream.live = true;
+      effectsMixer.addStream(stream);
+      stream.onended = function() { effectsMixer.removeStream(stream); }
+      audio.play();
+    }
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Trigger a sound sample to be played through the effects graph in five seconds
+
+<pre><code>&lt;script&gt;
+  var effectsMixer = ...;
+  var audio = new Audio(...);
+  function triggerSound() {
+    var audio = new Audio(...);
+    var stream = audio.captureStream();
+    stream.waitForUse = true;
+    audio.play();
+    effectsMixer.addStream(stream, window.currentTime + 5);
+    stream.onended = function() { effectsMixer.removeStream(stream); }
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Capture video from a camera and analyze it (e.g. face recognition)
+
+<pre><code>&lt;script&gt;
+  navigator.getUserMedia('video', gotVideo);
+  function gotVideo(stream) {
+    stream.createProcessor(new Worker("face-recognizer.js"));
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Capture video, record it to a file and upload the file (e.g. Youtube)
+
+<pre><code>&lt;script&gt;
+  navigator.getUserMedia('video', gotVideo);
+  var streamRecorder;
+  function gotVideo(stream) {
+    streamRecorder = stream.record();
+  }
+  function stopRecording() {
+    streamRecorder.getRecordedData(gotData);
+  }
+  function gotData(blob) {
+    var x = new XMLHttpRequest();
+    x.open('POST', 'uploadMessage');
+    x.send(blob);
+  }
+&lt;/script&gt;</pre></code>
+
+<li>Capture video from a canvas, record it to a file then upload
+
+<pre><code>&lt;canvas width="640" height="480" id="c"&gt;&lt;/canvas&gt;
+&lt;script&gt;
+  var canvas = document.getElementById("c");  
+  var streamRecorder = canvas.stream.record();
+  function stopRecording() {
+    streamRecorder.getRecordedData(gotData);
+  }
+  function gotData(blob) {
+    var x = new XMLHttpRequest();
+    x.open('POST', 'uploadMessage');
+    x.send(blob);
+  }
+  var frame = 0;
+  function updateCanvas() {
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 640, 480);
+    ctx.fillText("Frame " + frame, 0, 200);
+    ++frame;
+  }
+  setInterval(updateCanvas, 30);
+&lt;/script&gt;</pre></code>
+</ol>
+
+<h1>Related Work</h1>
+
+<ul>
+<li><a href="https://wiki.mozilla.org/RTCStreamAPI">W3C-RTC charter</a> (Harald et. al.)
+<li><a href="http://www.whatwg.org/specs/web-apps/current-work/complete/video-conferencing-and-peer-to-peer-communication.html">WhatWG proposal (Ian Hickson et. al.)</a>
+<li><a href="http://chromium.googlecode.com/svn/trunk/samples/audio/specification/specification.html">Chrome audio API</a>
+<li><a href="https://wiki.mozilla.org/Audio_Data_API">Mozilla audio API</a>
+<li><a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/video.html#mediacontroller">WhatWG MediaController API</a>
+</body>
+</html>

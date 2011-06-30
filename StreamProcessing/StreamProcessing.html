@@ -317,7 +317,7 @@ time is V1 + V2. This attribute is initially 1.0.
 
 <p>The <code>enabled</code> attribute and <code>setEnabled</code> timed setter method control whether this
 input is used for processing. When false, the input is completely ignored and is not presented to the processing
-Worker, and the input stream is blocked. This attribute is initially true.
+Worker. This attribute is initially true.
 
 <p>An input is <em>active</em> if it is enabled and not blocked.
 
@@ -325,9 +325,9 @@ Worker, and the input stream is blocked. This attribute is initially true.
 how the blocking status of the input stream is related to the blocking status of the output stream.
 When <code>blockOutput</code> is true, if the input stream is blocked then the output stream must be blocked.
 When false, while the input is blocked and the output is not, the input will be treated as
-having no tracks. When <code>blockInput</code> is true, if the output is blocked then the input stream must
-be blocked. When false, while the output is blocked and the input is not, the input will simply be discarded.
-These attributes are initially true.
+having no tracks. When <code>blockInput</code> is true, if the output is blocked or the input is disabled,
+then the input stream must be blocked. When false, while the output is blocked and the input is not, the input will simply be discarded.
+These attributes are initially true.ao
 
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this input. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
 the <code>worker</code> during media processing. On getting, a fresh clone is returned.
@@ -551,6 +551,10 @@ document.getElementById("out").src =
 
 <li>Seamlessly chain from the end of one input stream to another 
 
+<p class="note">This method requires that you know each stream's duration, which is a bit unfortunate.
+To get around that we'd need new API, perhaps a new kind of ProcessedMediaStream that plays streams in
+serial.
+
 <pre><code>&lt;audio src="in1.webm" id="in1" preload&gt;&lt;/audio&gt;
 &lt;audio src="in2.webm" id="in2"&gt;&lt;/audio&gt;
 &lt;audio id="out" autoplay&gt;&lt;/audio&gt;
@@ -559,7 +563,10 @@ document.getElementById("out").src =
   in1.onloadeddata = function() {
     var mixer = in1.captureStream().createProcessor();
     var in2 = document.getElementById("in2");
-    mixer.addStream(in2.captureStream(), in1.duration);
+    var input2 = mixer.addInput(in2.captureStream());
+    input2.enabled = false;
+    input2.setEnabled(true, in1.duration);
+    in1.onended = function() { mixer.inputs[0].remove(); };
     document.getElementById("out").src = mixer;
     in1.play();
   }
@@ -567,7 +574,14 @@ document.getElementById("out").src =
 
 <li>Seamlessly switch from one input stream to another, e.g. to implement adaptive streaming 
 
-<pre class="XXX"><code>&lt;audio src="in1.webm" id="in1" preload&gt;&lt;/audio&gt;
+<p class="note">There are two ways to implement seamless switching: seek the second resource to before the
+current time and then run the decoder faster than real-time to catch up to the first resource's play point, or
+seek the second resource to after the current time and enable it when the first resource catches up to the seek
+point. The first is more robust if the seek takes unexpectedly long, but the second is less demanding on the
+decoder. Only the second method is currently implementable with this API (since by design there is no way to drive MediaStreams faster than real-time). If we want to support the first method as well, the right way would be to
+add API to media elements to let them seek to synchronize with a given MediaStream.
+
+<pre><code>&lt;audio src="in1.webm" id="in1" preload&gt;&lt;/audio&gt;
 &lt;audio src="in2.webm" id="in2"&gt;&lt;/audio&gt;
 &lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
@@ -576,18 +590,13 @@ document.getElementById("out").src =
   document.getElementById("out").src = mixer;
   function switchStreams() {
     var in2 = document.getElementById("in2");
-    in2.currentTime = in1.currentTime; // XXX THIS DOESN'T WORK
-    var stream2 = in2.captureStream();
-    stream2.volume = 0;
-    stream2.live = true; // don't block while this stream is blocked, just play silence
-    mixer.addStream(stream2);
-    stream2.onplaying = function() {
-      if (mixer.inputs[0] == stream1) {
-        stream2.volume = 1.0;
-        stream2.live = false; // allow output to block while this stream is playing
-        mixer.removeStream(stream1);
-      }
-    }
+    in2.currentTime = in1.currentTime + 10; // arbitrary, but we should be able to complete the seek within this
+    var input2 = mixer.addInput(in2.captureStream());
+    // in2 will be blocked until the input port is enabled
+    input2.enabled = false;
+    input2.setEnabled(true, mixer.currentTime + 10);
+    mixer.inputs[0].setEnabled(false, mixer.currentTime + 10);
+    in2.onplaying = function() { mixer.inputs[0].remove(); };
   }
 &lt;/script&gt;</pre></code>
 
@@ -603,7 +612,6 @@ document.getElementById("out").src =
 
 <pre><code>&lt;script&gt;
   var effectsMixer = ...;
-  effectsMixer.ending = "all";
   function playSound(src) {
     var audio = new Audio(src);
     audio.oncanplaythrough = new function() {

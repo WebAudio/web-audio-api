@@ -82,25 +82,42 @@ Many use-cases require these features to work together. This proposal makes HTML
 <p>The description of MediaStreams here extends and must remain compatible with
 <a href="http://www.whatwg.org/specs/web-apps/current-work/complete/video-conferencing-and-peer-to-peer-communication.html#stream-api">HTML MediaStreams</a>.
 
-<p>A MediaStream contains video and audio tracks. Tracks can start and end at any time. Each track
-contains a stream of audio or video data.
+<p>Each MediaStream DOM object has an underlying media stream. The underlying media streams form a graph;
+some streams (represented by ProcessedMediaStream DOM objects) can take other streams as inputs and compute an output
+stream.
 
-<p>Each MediaStream has an implicit "current time" identifying the point in the track(s) which is
-currently playing. Normally current time advances in real time, but a MediaStream can be in a "blocked" state.
-While blocked, the "current time" of the stream does not advance. MediaStreams and their tracks are not
-seekable and their playback rate cannot be changed, so a group of MediaStreams that are all not blocked (or are
-all blocked) will progress at the same rate. Blocking is used to maintain synchronization across
-multiple streams when a stream needs to pause playback, e.g. because of a resource buffer underrun, or
-because script explicitly paused playback.
+<p>To avoid interruptions due to script execution, script execution can overlap with media stream processing;
+media streams continue to play and change state during script execution. However, to simplify the DOM programming model,
+we limit the interaction of MediaStream DOM objects with their underlying media streams. Specifically:
+<ul>
+<li>Changes to the MediaStream DOM objects are batched together between <em>stable states</em> (as defined by the HTML spec, while script is not running), and propagate as an atomic change to the media stream graph to take effect
+after some delay.
+This ensures that incomplete changes to the media stream graph during script execution do not result in transient glitches in the output, and that scripted graph changes do not interfere with concurrent media processing. 
+<div class="example">Thus the following script would never cause an interruption in audio output, since no stable state occurs between the two volume changes:
+<pre><code>  stream.inputs[0].volume = 0;
+  if (needToPlay()) {
+    stream.inputs[0].volume = 1.0;
+  }</code></pre>
+</div>
 
-<p>A MediaStream can be "ended". While it is ended, it is also blocked. An ended stream will not
+<p class="todo">Specify exactly which attributes (and methods) are subject to this regime, including
+attributes and methods already defined in HTML for media elements etc.
+<li>State changes from the media stream graph are only propagated back to the MediaStream DOM objects during a <em>stable state</em>. This ensures that between stable states (usually, during the execution of a script event handler), MediaStream DOM APIs always reflect a consistent snapshot of the state of the media stream graph.
+</ul>
+In this spec, references to <code>MediaStream</code>s refer to the DOM-visible state, and references to <em>media streams</em> refer to the underlying real-time media stream graph.
+
+<p>A stream is an abstraction of a time-varying video and/or audio signal. At a given point in time, a media stream can be <em>blocked</em>, that is, not playing for some reason. All non-blocked streams play at the same constant rate --- real time. Streams cannot be seeked or played at a rate other than real time. For convenience we define a stream's "current time" as the duration it has played since it was created, but (unless blocking is involved) streams do not have independent timelines; they are synchronized.
+
+<p>At the implementation level, and when processing media data with Workers, we assume that each stream has a buffered window of media data available, containing the sample it is currently playing (or that it will play the next time it unblocks). This buffer defines the stream's contents into the future.
+
+<p>A stream can be <em>ended</em>. While it is ended, it is also blocked. An ended stream will not
 normally produce data in the future (although it can if conditions change, e.g. if the source is reset somehow).
 
 <div class="note">
 <p>We do not allow streams to have independent timelines (e.g. no adjustable playback
-rate or seeking within an arbitrary MediaStream), because that can lead to a single MediaStream being
+rate or seeking within an arbitrary stream), because that can lead to a single stream being
 consumed at multiple different "current times" simultaneously, which requires either unbounded buffering
-or multiple internal decoders and buffers for a single MediaStream. It seems simpler and more
+or multiple internal decoders and buffers for a single stream. It seems simpler and more
 predictable for performance to require authors to create multiple streams (if necessary) and change
 the playback rate in the original stream sources to handle such situations.
 <p>For example, consider this hard case:
@@ -109,7 +126,7 @@ the playback rate in the original stream sources to handle such situations.
 <li>http://slow is mixed with http://fast
 <li>http://fast is mixed with http://fast2
 </ul>
-Does the http://fast stream have to provide data at two different offsets? This spec's answer: no.
+Does the http://fast stream have to provide data at two different offsets? This spec's answer is no.
 This leads us to the conclusion that if a stream feeds into a blocked mixer, then it itself must be
 blocked. Since obviously a mixer with a blocked input must also be blocked, the entire graph of
 connected streams block as a unit. This means that the mixing of http://fast and http://fast2 will
@@ -120,22 +137,22 @@ http://fast. The HTML spec encourages implementations to share cached media data
 media elements loading the same URI.
 </div>
 
+<p>A media stream contains video and audio tracks. Tracks can start and end at any time. Each track
+contains a stream of audio or video data.
+
 <h3 id="media-formats">2.2 Media Formats</h3>
 
 <p>This spec mostly treats the formats used for stream audio and video data
 as an implementation detail. In particular, whether stream buffers are compressed or uncompressed, what compression
 formats might be used, or what uncompressed formats might be used (e.g. audio sample rates, channels, and sample
 representation)
-are not specified, are not directly observable, and are even allowed to change from moment to moment within a
-MediaStream. Media data is
-implicitly resampled as necessary, e.g. when mixing streams with different formats. Non-normative suggestions
-for resampling algorithms will be provided in section 7.
+are not specified, and are not directly observable. An implementation might even support changing formats over
+time within a single stream. Media data is implicitly resampled as necessary, e.g. when mixing streams with different formats. Non-normative suggestions for resampling algorithms will be provided in section 7.
 
 <p>Built-in audio processing filters guarantee that if all the audio inputs constantly have the same uncompressed format
 (same audio sample rate and channel configuration), the audio output will have the same format and there will be no unnecessary resampling.
 
-<p>When samples are exposed to Workers for processing, the format is exposed. The Worker has limited control
-over the format; see section 4.4.
+<p>When samples are exposed to a Worker for processing, the user-agent chooses a fixed uncompressed audio format (sample rate and channel configuration) for its inputs and outputs; see section 4.4.
 
 <p class="todo">However, suggested resampling algorithms will be provided in an appendix.
 
@@ -148,12 +165,12 @@ over the format; see section 4.4.
   ProcessedMediaStream createProcessor(in Worker worker);
 };</code></pre>
 
-<p>The <code>currentTime</code> attribute returns the amount of time that the stream has played since it was created.
+<p>The <code>currentTime</code> attribute returns the amount of time that this MediaStream has played since it was created.
 
-<p>The <code>createProcessor()</code> method returns a new ProcessedMediaStream with this stream as its sole input.
+<p>The <code>createProcessor()</code> method returns a new ProcessedMediaStream with this MediaStream as its sole input.
 The ProcessedMediaStream is configured with the default processing engine (see below).
 
-<p>The <code>createProcessor(worker)</code> method returns a new ProcessedMediaStream with this stream as its sole input.
+<p>The <code>createProcessor(worker)</code> method returns a new ProcessedMediaStream with this MediaStream as its sole input.
 The ProcessedMediaStream is configured with <code>worker</code> as its processing engine.
 
 <p class="todo">Add event handlers or callback functions for all ended and blocking state changes?
@@ -203,18 +220,6 @@ used as a source for a media element.
 
 <h3 id="time-varying-attributes">4.1 Time-varying Attributes</h3>
 
-<p>Attributes controlling media stream processing can be set directly. Attribute changes take effect immediately insofar as they are reflected by attribute getters and other DOM methods. However, to avoid race conditions and unexpected glitches, attribute changes that affect stream output do not immediately cause changes in stream data processing. Instead, the attribute changes that occur between one <em>stable state</em> and the next (as defined in HTML) must be batched together and made to take effect on media processing <em>simultaneously</em> at some point in the future; user-agents should apply the changes as early as possible (but without causing underruns in buffered media data being consumed by output devices, of course).
-
-<div class="example">Thus the following script would never cause an interruption in audio output, since no stable state occurs between the two volume changes:
-<pre><code>  stream.inputs[0].volume = 0;
-  if (needToPlay()) {
-    stream.inputs[0].volume = 1.0;
-  }</code></pre>
-</div>
-
-<p class="todo">Specify exactly which attributes (and methods) are subject to this regime, including
-attributes and methods already defined in HTML for media elements etc.
-
 <p>To enable precise control over the timing of attribute changes, many attributes can be set using a
 "timed setter" method taking a <code>startTime</code> parameter. The user-agent will attempt to make the change take
 effect at the given <code>startTime</code> --- certainly no earlier, but possibly later if <code>startTime</code> is too close to the stream's current time. <code>startTime</code> is always specified in the same
@@ -236,7 +241,8 @@ out any pending setter method requests.
 <p>A <code>ProcessedMediaStream</code> combines zero or more input streams and applies some processing to
 combine them into a single output stream.
 
-<pre><code>[Constructor]
+<pre><code>[Constructor(),
+ Constructor(in Worker worker, in optional long audioSampleRate, in optional short audioChannels)]
 interface ProcessedMediaStream : MediaStream {
   readonly attribute MediaInput[] inputs;
   MediaInput addInput(in MediaStream input);
@@ -246,6 +252,15 @@ interface ProcessedMediaStream : MediaStream {
   attribute any params;
   void setParams(in any params, in optional double startTime);
 };</pre></code>
+
+<p>The constructors create a new <code>ProcessedMediaStream</code> with no inputs.
+The second constructor creates a new <code>ProcessedMediaStream</code> with a Worker
+processing engine, setting the
+audio sample rate to <code>audioSampleRate</code> (defaulting to 44100), and setting the number of
+audio channels to <code>audioChannels</code> (defaulting to 2). These parameters control the audio sample
+format used by the Worker (see below).
+
+<p class="todo">Specify valid values for <code>audioChannels</code> and <code>audioSampleRate</code>.
 
 <p>The <code>inputs</code> attribute returns an array of <code>MediaInput</code>s, one for
 each stream currently configured as an input to the <code>ProcessedMediaStream</code>. (A stream can be used as multiple inputs to the same <code>ProcessedMediaStream</code>.) It is
@@ -401,9 +416,10 @@ the worker.
 <p><code>audioSampleRate</code> and <code>audioChannels</code> represent the format of the input and
 output audio sample buffers. <code>audioSampleRate</code> is the number of samples per second.
 <code>audioChannels</code> is the number of channels; the channel mapping is as defined in the Vorbis specification.
-These values are constant for a given <code>ProcessedMediaStream</code>. They are chosen by the user-agent, typically
-based on the characteristics of the input stream(s). If there are no inputs, <code>audioSampleRate</code> will default to
-44100 and <code>audioChannels</code> will default to 2.
+These values are constant for a given <code>ProcessedMediaStream</code>. When the <code>ProcessedMediaStream</code>
+was constructed using the Worker constructor, these values are the values passed as parameters there. When the
+<code>ProcessedMediaStream<code> was constructed via <code>MediaStream.createProcessor</code>, the values are
+chosen to match that first input stream.
 
 <p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate.
 

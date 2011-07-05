@@ -37,7 +37,7 @@ Many use-cases require these features to work together. This proposal makes HTML
   <li><a href="#mediastreams">2. MediaStreams</a>
   <ol>
     <li><a href="#scenarios">2.1. The Semantics Of MediaStreams</a>
-    <li><a href="#buffer-formats">2.2. Buffer Formats</a>
+    <li><a href="#media-formats">2.2. Media Formats</a>
     <li><a href="#mediastream-extensions">2.3. MediaStream Extensions</a>
   </ol>
   <li><a href="#media-elements">3. Media Elements</a>
@@ -120,12 +120,22 @@ http://fast. The HTML spec encourages implementations to share cached media data
 media elements loading the same URI.
 </div>
 
-<h3 id="buffer-formats">2.2 Buffer Formats</h3>
+<h3 id="media-formats">2.2 Media Formats</h3>
 
-<p>This spec treats buffer formats for stream audio and video (e.g. sample rates and channels)
-as an implementation detail, except where buffers are exposed to Workers for processing. Buffers are
-implicitly resampled as necessary, e.g. when mixing streams with different formats. Authors can avoid
-this resampling by ensuring their media resources and processing filters all use consistent buffer formats.
+<p>This spec mostly treats the formats used for stream audio and video data
+as an implementation detail. In particular, whether stream buffers are compressed or uncompressed, what compression
+formats might be used, or what uncompressed formats might be used (e.g. audio sample rates, channels, and sample
+representation)
+are not specified, are not directly observable, and are even allowed to change from moment to moment within a
+MediaStream. Media data is
+implicitly resampled as necessary, e.g. when mixing streams with different formats. Non-normative suggestions
+for resampling algorithms will be provided in section 7.
+
+<p>Built-in audio processing filters guarantee that if all the audio inputs constantly have the same uncompressed format
+(same audio sample rate and channel configuration), the audio output will have the same format and there will be no unnecessary resampling.
+
+<p>When samples are exposed to Workers for processing, the format is exposed. The Worker has limited control
+over the format; see section 4.4.
 
 <p class="todo">However, suggested resampling algorithms will be provided in an appendix.
 
@@ -143,7 +153,7 @@ this resampling by ensuring their media resources and processing filters all use
 <p>The <code>createProcessor()</code> method returns a new ProcessedMediaStream with this stream as its sole input.
 The ProcessedMediaStream is configured with the default processing engine (see below).
 
-<p>The <code>createProcessor(worker)</code> method returns a new MediaStreamProcessor with this stream as its sole input.
+<p>The <code>createProcessor(worker)</code> method returns a new ProcessedMediaStream with this stream as its sole input.
 The ProcessedMediaStream is configured with <code>worker</code> as its processing engine.
 
 <p class="todo">Add event handlers or callback functions for all ended and blocking state changes?
@@ -216,7 +226,7 @@ state such as a <code>MediaStream</code>'s <code>currentTime</code> also take ef
 of <code>MediaStream</code> state.
 
 <p>Multiple pending changes to an attribute are allowed. Calling the setter method with
-<code>startTime</code> T sets the value of the attribute for all times T' >= T to the desired value. Therefore
+<code>startTime</code> T sets the value of the attribute for all times T' >= T to the desired value (wiping out the effects of previous calls to the setter method with a time greater than or equal to <code>startTime</code>). Therefore
 by calling the setter method multiple times with increasing <code>startTime</code>, a series of change requests
 can be built up. Setting the attribute directly sets the value of the attribute for all future times, wiping
 out any pending setter method requests.
@@ -235,9 +245,6 @@ interface ProcessedMediaStream : MediaStream {
 
   attribute any params;
   void setParams(in any params, in optional double startTime);
-
-  attribute Worker worker;
-  void setWorker(in Worker worker, in optional double startTime);
 };</pre></code>
 
 <p>The <code>inputs</code> attribute returns an array of <code>MediaInput</code>s, one for
@@ -254,12 +261,9 @@ the stream is in the ended state when any active input is ended, or if there are
 stream is never ended. The initial value is "all".
 
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this stream. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
-the <code>worker</code> during media processing. On getting, a fresh clone is returned.
+the worker (if there is one) during media processing. On getting, a fresh clone is returned.
 
-<p>The <code>worker</code> attribute and <code>setWorker</code> timed setter method set the current worker
-for the <code>ProcessedMediaStream</code> (see below).
-
-<p>While <code>worker</code> is null, a <code>ProcessedMediaStream</code> produces output as follows:
+<p>A <code>ProcessedMediaStream</code> with no worker produces output as follows:
 <ul>
 <li>If no active input has an audio track, the output has no audio track. Otherwise, the output has a single
 audio track whose metadata (<code>id</code>, <code>kind</code>, <code>label</code>, and <code>language</code>)
@@ -313,7 +317,7 @@ the new value over the given duration. The transition function is chosen so that
 and another stream changes from V2 to V1 over the same interval, the sum of the volumes at each point in
 time is V1 + V2. This attribute is initially 1.0.
 
-<p class="todo">Specify the exact transition function.
+<p class="todo">Specify the exact transition function. Tim says "w=cos((pi/2)*t)^2 for t=0...1".
 
 <p>The <code>enabled</code> attribute and <code>setEnabled</code> timed setter method control whether this
 input is used for processing. When false, the input is completely ignored and is not presented to the processing
@@ -327,10 +331,10 @@ When <code>blockOutput</code> is true, if the input stream is blocked then the o
 When false, while the input is blocked and the output is not, the input will be treated as
 having no tracks. When <code>blockInput</code> is true, if the output is blocked or the input is disabled,
 then the input stream must be blocked. When false, while the output is blocked and the input is not, the input will simply be discarded.
-These attributes are initially true.ao
+These attributes are initially true.
 
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this input. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
-the <code>worker</code> during media processing. On getting, a fresh clone is returned.
+the worker (if there is one) during media processing. On getting, a fresh clone is returned.
 
 <p>The <code>remove()</code> method removes this <code>MediaInput</code> from the inputs array of its owning
 <code>ProcessedMediaStream</code>. The <code>MediaInput</code> object is no longer used; its attributes retain their
@@ -338,31 +342,29 @@ current values and do not change unless explicitly set. All method calls are ign
 
 <h3 id="worker-processing">4.4 Worker Processing</h3>
 
-<p>While a <code>ProcessedMediaStream</code>'s <code>worker</code> is non-null, input stream data is fed into
-the worker by dispatching <code>onmediastream</code> callbacks. Each <code>onmediastream</code> callback
+<p>While a <code>ProcessedMediaStream</code>'s has a worker, input stream data is fed into
+the worker by dispatching a sequence of <code>onmediastream</code> callbacks. Each <code>onmediastream</code> callback
 takes a <code>MediaStreamEvent</code> parameter. A <code>MediaStreamEvent</code> provides audio sample
-buffers for each input stream; the event callback can write audio output buffers and a list of output video frames.
+buffers for each input stream. Each sample buffer for a given <code>MediaStreamEvent</code> has the same duration, so the inputs presented to the worker are always in sync. The event callback can write audio output buffers and a list of output video frames.
 If the callback does not output audio, default audio output is automatically generated by adding together the input
 audio buffers. The <code>MediaStreamEvent</code> gives access to the parameters object for each input stream
 and the parameters object for the output stream.
+
+<p>Note that <code>Worker</code>s do not have access to most DOM API objects. In particular, <code>Worker</code>s have no direct access to <code>MediaStream</code>s.
 
 <p class="todo">Currently <code>MediaStreamEvent</code> does not offer access to video data. This should be added later.
 
 <pre><code>partial interface DedicatedWorkerGlobalScope {
   attribute Function onmediastream;
-  attribute boolean streamVariableAudioFormats;
-  attribute double streamRewindMax;
+  attribute double mediaStreamRewindMax;
 };</pre></code>
 
-<p>Note that a <code>ProcessedMediaStream</code>'s <code>worker</code> cannot be a
+<p>Note that a <code>ProcessedMediaStream</code>'s worker cannot be a
 <code>SharedWorker</code>. This ensures that the worker can run in the same process as the page in multiprocess browsers, so media streams can be confined to a single process.
 
 <p>The <code>onmediastream</code> attribute is the function to be called whenever stream data needs to be processed.
  
-<p>While <code>streamVariableAudioFormats</code> is false (the default), when the event handler fires, the UA will convert all the input audio buffers to a single common format before presenting them to the event handler. Typically the UA would choose the highest-fidelity format from among the inputs, to avoid lossy conversion. If 
-<code>streamVariableAudioFormats</code> was false for the previous invocation of the event handler, the UA also ensures that the format stays the same as the format used by the previous invocation of the handler.
-
-<p>To support graph changes with low latency, we might need to throw out processed samples that have already been buffered and reprocess them. The <code>streamRewindMax</code> attribute indicates how far back, in seconds, the worker supports rewinding. The default value of <code>streamRewindMax</code> is zero; workers that support rewinding need to opt into it.
+<p>To support graph changes with low latency, we might need to throw out processed samples that have already been buffered and reprocess them. The <code>mediaStreamRewindMax</code> attribute indicates how far back, in seconds, the worker supports rewinding. The default value of <code>mediaStreamRewindMax</code> is zero; workers that support rewinding need to opt into it.
 
 <pre><code>interface MediaStreamEvent {
   readonly attribute double rewind;
@@ -372,15 +374,18 @@ and the parameters object for the output stream.
   readonly attribute double paramsStartTime;
 
   readonly attribute MediaInputBuffer inputs[];
+  readonly attribute long audioSampleRate;
+  readonly attribute short audioChannels;
+  reaodnly attribute long audioLength;
 
-  void writeAudio(in long sampleRate, in short channels, in Float32Array data);
+  void writeAudio(in Float32Array data);
 };</pre></code>
 
 <p>The <code>rewind</code> attribute indicates how far back in the stream's history we have moved between the
 previous event and this event (normally zero). It is a non-negative value less than or equal to the value of <code>streamRewindMax</code>on entry to the event handler.
 
-<p>The <code>inputTime</code> attribute returns the duration of the input that has been consumed since this worker
-was set as the worker for the <code>ProcessedMediaStream</code>.
+<p>The <code>inputTime</code> attribute returns the duration of the input that has been consumed by the
+<code>ProcessedMediaStream</code> for this worker.
 
 <p>The <code>params</code> attribute provides a structured clone of the parameters object set by
 <code>ProcessedMediaStream.setParams</code>. The same object is returned in each event, except when the object has
@@ -393,11 +398,21 @@ the worker.
 <p><code>inputs</code> provides access to <code>MediaStreamBuffers</code> for each active input stream
 (in the same order as those streams appear in the <code>ProcessedMediaStream.inputs</code> array).
 
-<p><code>writeAudio(sampleRate, channels, data)</code> writes audio data to the stream output.
-The output has a single audio track. If there is an active input with an audio track, then the metadata for the output audio track is set to the metadata for the audio track of the last active input that has an audio track, otherwise the output audio track's <code>kind</code> is "main" and the other metadata attriutes are the empty string. The data for the output audio track is the concatenation of the
-inputs to each <code>writeAudio</code> call before the event handler returns. <code>sampleRate</code> is samples per second; <code>data</code> contains one float per channel per sample, so the <code>data</code> array length must be a multiple of <code>channels</code>. The channel mapping is as defined in the Vorbis specification.
+<p><code>audioSampleRate</code> and <code>audioChannels</code> represent the format of the input and
+output audio sample buffers. <code>audioSampleRate</code> is the number of samples per second.
+<code>audioChannels</code> is the number of channels; the channel mapping is as defined in the Vorbis specification.
+These values are constant for a given <code>ProcessedMediaStream</code>. They are chosen by the user-agent, typically
+based on the characteristics of the input stream(s). If there are no inputs, <code>audioSampleRate</code> will default to
+44100 and <code>audioChannels</code> will default to 2.
 
-<p>It is permitted to write less audio than the duration of the inputs (including none). This indicates latency in the filter. Normally the user-agent will dispath another event to provide
+<p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate.
+
+<p><code>writeAudio(data)</code> writes audio data to the stream output.
+The output has a single audio track. If there is an active input with an audio track, then the metadata for the output audio track is set to the metadata for the audio track of the last active input that has an audio track, otherwise the output audio track's <code>kind</code> is "main" and the other metadata attriutes are the empty string. The data for the output audio track is the concatenation of the
+inputs to each <code>writeAudio</code> call before the event handler returns. The data buffer is laid out
+with the channels non-interleaved, as for the input buffers (see below).
+
+<p>It is permitted to write less audio than the duration of the inputs (including none). This indicates latency in the filter. Normally the user-agent will dispatch another event to provide
 more input until the worker starts producing output. It is also permitted to write more audio than the duration of the inputs, for example if there are no inputs.
 Filters with latency should respond to an event with no inputs by writing out some of their buffered data; the user-agent
 is draining them.
@@ -415,9 +430,6 @@ there was no worker (see above).
   readonly attribute any params;
   readonly attribute double paramsStartTime;
 
-  readonly attribute long audioSampleRate;
-  readonly attribute short audioChannels;
-  reaodnly attribute long audioLength;
   readonly attribute Float32Array audioSamples;
 };</pre></code>
 
@@ -425,16 +437,7 @@ there was no worker (see above).
 <code>MediaInput.setParams</code>. The same object is returned in each event, except when the object has
 been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed) that this <code>params</code> object was set.
 
-<p><code>audioSampleRate</code> and <code>audioChannels</code> represent the format of the samples.
-<code>audioSampleRate</code> is the number of samples per second. <code>audioChannels</code> is the number of channels; the channel mapping is as defined in the Vorbis specification.
-
-<p><code>audioLength</code> is the number of samples per channel.
-
-<p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>audioLength</code> multiplied by <code>audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal (or as equal as possible if there are varying sample rates). The <code>audioSamples</code> object will be a fresh object in each event.
-
-<p>For inputs with no audio track, <code>audioChannels</code> will be zero, and the <code>audioSamples</code> array will be empty, unless <code>streamVariableAudioFormats</code> is false and some input stream has an audio track; in that case
-<code>audioChannels</code>, <code>audioLength</code> and <code>audioSampleRate</code> will match the input stream that
-has an audio track, and the <code>audioSamples</code> array will be all zeroes.
+<p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>event.audioLength</code> multiplied by <code>event.audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal (or as equal as possible if there are varying sample rates). The <code>audioSamples</code> object will be a fresh object in each event. For inputs with no audio track, <code>audioSamples</code> will be all zeroes.
 
 <h2 id="media-graph-considerations">5. Media Graph Considerations</h2>
 

@@ -41,7 +41,16 @@ Many use-cases require these features to work together. This proposal makes HTML
     <li><a href="#mediastream-extensions">2.3. MediaStream Extensions</a>
   </ol>
   <li><a href="#media-elements">3. Media Elements</a>
+  <ol>
+    <li><a href="#media-element-extensions">3.1. Media Element Extensions</a>
+  </ol>
   <li><a href="#stream-mixing-and-processing">4. Stream Mixing And Processing</a>
+  <ol>
+    <li><a href="#time-varying-attributes">4.1. Time-varying Attributes</a>
+    <li><a href="#processedmediastream">4.2. ProcessedMediaStream</a>
+    <li><a href="#mediainput">4.3. MediaInput</a>
+    <li><a href="#worker-processing">4.4. Worker Processing</a>
+  </ol>
   <li><a href="#media-graph-considerations">5. Media Graph Considerations</a>
   <li><a href="#canvas-recording">6. Canvas Recording</a>
   <li><a href="#implementation-considerations">7. Implementation Considerations</a>
@@ -90,7 +99,7 @@ stream.
 media streams continue to play and change state during script execution. However, to simplify the DOM programming model,
 we limit the interaction of MediaStream DOM objects with their underlying media streams. Specifically:
 <ul>
-<li>Changes to the MediaStream DOM objects are batched together between <em>stable states</em> (as defined by the HTML spec, while script is not running), and propagate as an atomic change to the media stream graph to take effect
+<li>Changes to the MediaStream and MediaInput DOM objects are batched together between <em>stable states</em> (as defined by the HTML spec, while script is not running), and propagate as an atomic change to the media stream graph to take effect
 after some delay.
 This ensures that incomplete changes to the media stream graph during script execution do not result in transient glitches in the output, and that scripted graph changes do not interfere with concurrent media processing. 
 <div class="example">Thus the following script would never cause an interruption in audio output, since no stable state occurs between the two volume changes:
@@ -100,11 +109,11 @@ This ensures that incomplete changes to the media stream graph during script exe
   }</code></pre>
 </div>
 
-<p class="todo">Specify exactly which attributes (and methods) are subject to this regime, including
+<p class="todo">Specify exactly which attributes (and methods) are subject to this regime, possibly extending to
 attributes and methods already defined in HTML for media elements etc.
 <li>State changes from the media stream graph are only propagated back to the MediaStream DOM objects during a <em>stable state</em>. This ensures that between stable states (usually, during the execution of a script event handler), MediaStream DOM APIs always reflect a consistent snapshot of the state of the media stream graph.
 </ul>
-In this spec, references to <code>MediaStream</code>s refer to the DOM-visible state, and references to <em>media streams</em> refer to the underlying real-time media stream graph.
+In this spec, references to <code>MediaStream</code>s and <code>MediaInput</code>s refer to the DOM-visible state, and references to <em>media streams</em> and <em>input ports</em> refer to the underlying real-time media stream graph.
 
 <p>A stream is an abstraction of a time-varying video and/or audio signal. At a given point in time, a media stream can be <em>blocked</em>, that is, not playing for some reason. All non-blocked streams play at the same constant rate --- real time. Streams cannot be seeked or played at a rate other than real time. For convenience we define a stream's "current time" as the duration it has played since it was created, but (unless blocking is involved) streams do not have independent timelines; they are synchronized.
 
@@ -161,17 +170,20 @@ time within a single stream. Media data is implicitly resampled as necessary, e.
 <pre><code>partial interface MediaStream {
   readonly attribute double currentTime;
 
-  ProcessedMediaStream createProcessor();
-  ProcessedMediaStream createProcessor(in Worker worker);
+  ProcessedMediaStream createProcessor(optional in DOMString namedEffect);
+  ProcessedMediaStream createWorkerProcessor(in Worker worker);
 };</code></pre>
 
-<p>The <code>currentTime</code> attribute returns the amount of time that this MediaStream has played since it was created.
+<p>The <code>currentTime</code> attribute returns the amount of time that this <code>MediaStream</code> has played since it was created.
 
-<p>The <code>createProcessor()</code> method returns a new ProcessedMediaStream with this MediaStream as its sole input.
-The ProcessedMediaStream is configured with the default processing engine (see below).
+<p>The <code>createProcessor(namedEffect)</code> method returns a new <code>ProcessedMediaStream</code> with this <code>MediaStream</code> as its sole input.
+The <code>ProcessedMediaStream</code> is configured with a built-in processing engine named by <code>namedEffect</code>,
+or the default processing engine if <code>namedEffect</code> is omitted. If <code>namedEffect</code> is not supported
+by this user-agent, <code>createProcessor</code> returns null. User-agents adding nonstandard named effects should use
+vendor prefixing, e.g. "MozUnderwaterBubbles".
 
-<p>The <code>createProcessor(worker)</code> method returns a new ProcessedMediaStream with this MediaStream as its sole input.
-The ProcessedMediaStream is configured with <code>worker</code> as its processing engine.
+<p>The <code>createWorkerProcessor(worker)</code> method returns a new <code>ProcessedMediaStream</code> with this <code>MediaStream</code> as its sole input.
+The stream is configured with <code>worker</code> as its processing engine.
 
 <p class="todo">Add event handlers or callback functions for all ended and blocking state changes?
 
@@ -222,13 +234,10 @@ used as a source for a media element.
 
 <p>To enable precise control over the timing of attribute changes, many attributes can be set using a
 "timed setter" method taking a <code>startTime</code> parameter. The user-agent will attempt to make the change take
-effect at the given <code>startTime</code> --- certainly no earlier, but possibly later if <code>startTime</code> is too close to the stream's current time. <code>startTime</code> is always specified in the same
-timeline as the stream's current time, i.e., the amount of time the stream has played since it was created. <code>startTime</code>
-is optional; if ommitted, the stream's current time is used.
+effect when the subject stream's "current time" is exactly the given <code>startTime</code> --- certainly no earlier, but possibly later if the change request is processed after the stream's current time has reached <code>startTime</code>. <code>startTime</code> is optional; if ommitted, the change takes effect as soon as possible.
 
-<p>Using the setter method never changes the observed attribute value immediately. The delayed changes always take effect, from a script's point of view, during a <em>stable state</em>. Changes to other script-observable
-state such as a <code>MediaStream</code>'s <code>currentTime</code> also take effect during a <em>stable state</em>, and all these changes are kept in sync, so that as a script runs it always sees a consistent snapshot
-of <code>MediaStream</code> state.
+<p>Using a timed setter method never changes the observed attribute value immediately. Setter method changes always take effect after the next <em>stable state</em>, as described in section 2.1. Setting the attribute value changes the observed attribute value immediately, but the change to the underlying media stream will still not take effect until after
+the next stable state.
 
 <p>Multiple pending changes to an attribute are allowed. Calling the setter method with
 <code>startTime</code> T sets the value of the attribute for all times T' >= T to the desired value (wiping out the effects of previous calls to the setter method with a time greater than or equal to <code>startTime</code>). Therefore
@@ -270,6 +279,8 @@ contains a single element if constructed via <code>MediaStream.createProcessor</
 <p>The <code>addInput(input)</code> method adds a new <code>MediaInput</code> to the end of the
 <code>inputs</code> array, whose input stream is <code>input</code>.
 
+<p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and its input stream is not blocked.
+
 <p>The <code>ending</code> attribute controls when the stream ends. When the value is "all", the stream is in the ended
 state when all active inputs are ended (including if there are no active inputs). When the value is "any",
 the stream is in the ended state when any active input is ended, or if there are no active inputs. Otherwise the
@@ -278,7 +289,7 @@ stream is never ended. The initial value is "all".
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this stream. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
 the worker (if there is one) during media processing. On getting, a fresh clone is returned.
 
-<p>A <code>ProcessedMediaStream</code> with no worker produces output as follows:
+<p>A <code>ProcessedMediaStream</code> with the default processing engine produces output as follows:
 <ul>
 <li>If no active input has an audio track, the output has no audio track. Otherwise, the output has a single
 audio track whose metadata (<code>id</code>, <code>kind</code>, <code>label</code>, and <code>language</code>)
@@ -293,27 +304,26 @@ video frame is letterboxed to the size of the video frame for the last active in
 <p class="note">This means if the last input's video track is opaque, the video output is simply the video track of the last input.
 </ul>
 
-<p class="todo">Need to add an additional attribute to configure "built-in" processing effects.
+<p>A <code>ProcessedMediaStream</code> with the "LastInput" processing engine simply produces the last input stream as
+output. If there are no input streams it produces the same output as the default processing engine.
 
 <h3 id="mediainput">4.3 MediaInput</h3>
 
 <p>A <code>MediaInput</code> object controls how an input stream contributes to the combined stream. 
 
-<pre><code>[Constructor]
-interface MediaInput {
+<pre><code>interface MediaInput {
   readonly attribute MediaStream stream;
 
   attribute double volume;
-  void setVolume(in double volume, in optional double startTime, in optional double duration);
-
-  attribute boolean enabled;
-  void setEnabled(in boolean enabled, in optional double startTime);
-
-  attribute boolean blockInput;
-  attribute boolean blockOutput;
+  void setVolume(in double volume, in optional double startTime, in optional double fadeTime);
 
   attribute any params;
   void setParams(in any params, in optional double startTime);
+
+  void enableAt(in double outputStartTime, in optional double inputStartTime);
+
+  attribute boolean blockInput;
+  attribute boolean blockOutput;
 
   void remove();
 };</pre></code>
@@ -326,62 +336,73 @@ together and the rest are dropped, and all video tracks other than the selected 
 
 <p>The <code>volume</code> volume attribute and the <code>setVolume</code> timed setter method
 control the input volume; the input stream's audio is multiplied by this volume before
-being processed. The <code>setVolume</code> method takes an additional <code>duration</code> parameter; when greater
+being processed. The <code>setVolume</code> method takes an additional <code>fadeTime</code> parameter; when greater
 than zero, the volume is changed gradually from the value just before <code>startTime</code> to
-the new value over the given duration. The transition function is chosen so that if one stream changes from V1 to V2
+the new value over the given fade time. The transition function is chosen so that if one stream changes from V1 to V2
 and another stream changes from V2 to V1 over the same interval, the sum of the volumes at each point in
 time is V1 + V2. This attribute is initially 1.0.
 
 <p class="todo">Specify the exact transition function. Tim says "w=cos((pi/2)*t)^2 for t=0...1".
 
-<p>The <code>enabled</code> attribute and <code>setEnabled</code> timed setter method control whether this
-input is used for processing. When false, the input is completely ignored and is not presented to the processing
-Worker. This attribute is initially true.
+<p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this input. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
+the worker (if there is one) during media processing. On getting, a fresh clone is returned.
 
-<p>An input is <em>active</em> if it is enabled and not blocked.
+<p>For the timed setter methods of <code>MediaInput</code>, the subject stream is the output stream, so changes take effect when the output stream's current time is equal to <code>startTime</code>.
+
+<p>The <code>enableAt</code> method controls when an input port is enabled. Input ports are initially enabled.  Calling <code>enableAt</code> disables the input port and reenables it when the input stream's current time is <code>inputStartTime</code> and the output stream's current time is <code>outputStartTime</code>. More precisely, when the <code>enableAt</code> call takes effect (see section 2.1), the user-agent runs the following steps:
+<ol>
+<li>If the <code>inputStartTime</code> was omitted, set it to the input stream's current time.
+<li>Compute the <em>deadline miss delay</em>: the maximum of
+  <ul>
+  <li>The input stream's curent time minus <code>inputStartTime</code>
+  <li>The output stream's current time minus <code>outputStartTime</code>
+  </ul>
+<li>If the deadline miss delay is greater than zero, add it to the <code>inputStartTime</code> and <code>outputStartTime</code>. (This would be a good place for user-agents to emit a developer-accessible warning.)
+<li>While the input stream's current time is less than <code>inputStartTime</code>, or the output stream's current time is less than <code>outputStartTime</code>:
+  <ul>
+  <li>Whenever the input stream's current time is equal to <code>inputStartTime</code>, block the input stream.
+  <li>Whenever the output stream's current time is equal to <code>outputStartTime</code>, block the output stream.
+  </ul>
+<li>Enable the input port.
+</ol>
+If an <code>enableAt</code> takes effect before the previous <code>enableAt</code> has finished, the previous <code>enableAt</code> is abandoned. Note that multiple input ports can be applying their own <code>enableAt</code>
+processing simultaneously.
 
 <p>The <code>blockInput</code> and <code>blockOutput</code> attributes control
 how the blocking status of the input stream is related to the blocking status of the output stream.
-When <code>blockOutput</code> is true, if the input stream is blocked then the output stream must be blocked.
-When false, while the input is blocked and the output is not, the input will be treated as
-having no tracks. When <code>blockInput</code> is true, if the output is blocked or the input is disabled,
-then the input stream must be blocked. When false, while the output is blocked and the input is not, the input will simply be discarded.
-These attributes are initially true.
-
-<p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this input. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
-the worker (if there is one) during media processing. On getting, a fresh clone is returned.
+When <code>blockOutput</code> is true and the input port is enabled, if the input stream is blocked and not ended, then the output stream must be blocked. While an enabled input is blocked and the output is not blocked, the input is treated as having no tracks. When <code>blockInput</code> is true and the input port is enabled, if the output is blocked,
+then the input stream must be blocked. When false, while the output is blocked and an enabled input is not, the input will simply be discarded. These attributes are initially true.
 
 <p>The <code>remove()</code> method removes this <code>MediaInput</code> from the inputs array of its owning
 <code>ProcessedMediaStream</code>. The <code>MediaInput</code> object is no longer used; its attributes retain their
 current values and do not change unless explicitly set. All method calls are ignored.
 
+<p class="XXX">Do we need to worry about authors forgetting to remove ended input streams?
+
 <h3 id="worker-processing">4.4 Worker Processing</h3>
 
-<p>While a <code>ProcessedMediaStream</code>'s has a worker, input stream data is fed into
-the worker by dispatching a sequence of <code>onmediastream</code> callbacks. Each <code>onmediastream</code> callback
-takes a <code>MediaStreamEvent</code> parameter. A <code>MediaStreamEvent</code> provides audio sample
-buffers for each input stream. Each sample buffer for a given <code>MediaStreamEvent</code> has the same duration, so the inputs presented to the worker are always in sync. The event callback can write audio output buffers and a list of output video frames.
-If the callback does not output audio, default audio output is automatically generated by adding together the input
-audio buffers. The <code>MediaStreamEvent</code> gives access to the parameters object for each input stream
-and the parameters object for the output stream.
+<p>A <code>ProcessedMediaStream</code> with a worker computes its output by dispatching a sequence of <code>onprocessmedia</code> callbacks to the worker, passing each a <code>ProcessMediaEvent</code> parameter. A <code>ProcessMediaEvent</code> provides audio sample buffers for each input stream. Each sample buffer for a given <code>ProcessMediaEvent</code> has the same duration, so the inputs presented to the worker are always in sync. (Inputs may be added or removed between <code>ProcessMediaEvent</code>s, however.) Unless rewinding
+occurs (see below), the sequence of buffers provided for an input stream is the audio data to be played by that input stream. The user-agent will precompute data for the input streams as necessary.
 
-<p>Note that <code>Worker</code>s do not have access to most DOM API objects. In particular, <code>Worker</code>s have no direct access to <code>MediaStream</code>s.
+<p>For example, if a Worker computes the output sample for time T as a function of the [T - 1s, T + 1s] interval of an input stream, then initially the Worker would simply refuse to output anything until it has received at least 1s of input stream data, forcing the user-agent to precompute the input stream at least 1s ahead of the current time. (Note that large Worker latencies will increase the latency of changes to the media graph, unless rewinding is supported (see below).)
 
-<p class="todo">Currently <code>MediaStreamEvent</code> does not offer access to video data. This should be added later.
+<p class="note">Note that <code>Worker</code>s do not have access to most DOM API objects. In particular, <code>Worker</code>s have no direct access to <code>MediaStream</code>s.
+
+<p class="note">Note that a <code>ProcessedMediaStream</code>'s worker cannot be a
+<code>SharedWorker</code>. This ensures that the worker can run in the same process as the page in multiprocess browsers, so media streams can be confined to a single process.
+
+<p class="todo">Currently <code>ProcessMediaEvent</code> does not offer access to video data. This should be added later.
 
 <pre><code>partial interface DedicatedWorkerGlobalScope {
-  attribute Function onmediastream;
+  attribute Function onprocessmedia;
   attribute double mediaStreamRewindMax;
 };</pre></code>
 
-<p>Note that a <code>ProcessedMediaStream</code>'s worker cannot be a
-<code>SharedWorker</code>. This ensures that the worker can run in the same process as the page in multiprocess browsers, so media streams can be confined to a single process.
-
-<p>The <code>onmediastream</code> attribute is the function to be called whenever stream data needs to be processed.
+<p>The <code>onprocessmedia</code> attribute is the function to be called whenever stream data needs to be processed.
  
-<p>To support graph changes with low latency, we might need to throw out processed samples that have already been buffered and reprocess them. The <code>mediaStreamRewindMax</code> attribute indicates how far back, in seconds, the worker supports rewinding. The default value of <code>mediaStreamRewindMax</code> is zero; workers that support rewinding need to opt into it.
+<p>To support graph changes with low latency, the user-agent might want to throw out processed samples that have already been buffered and reprocess them. The <code>mediaStreamRewindMax</code> attribute indicates how far back, in seconds, the worker supports rewinding. The default value of <code>mediaStreamRewindMax</code> is zero; workers that support rewinding need to opt into it.
 
-<pre><code>interface MediaStreamEvent {
+<pre><code>interface ProcessMediaEvent {
   readonly attribute double rewind;
   readonly attribute double inputTime;
 
@@ -418,22 +439,24 @@ output audio sample buffers. <code>audioSampleRate</code> is the number of sampl
 <code>audioChannels</code> is the number of channels; the channel mapping is as defined in the Vorbis specification.
 These values are constant for a given <code>ProcessedMediaStream</code>. When the <code>ProcessedMediaStream</code>
 was constructed using the Worker constructor, these values are the values passed as parameters there. When the
-<code>ProcessedMediaStream<code> was constructed via <code>MediaStream.createProcessor</code>, the values are
+<code>ProcessedMediaStream</code> was constructed via <code>MediaStream.createProcessor</code>, the values are
 chosen to match that first input stream.
 
-<p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate.
+<p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate. If there are no inputs,
+the user-agent will choose a value representing the suggested amount of audio that the worker should produce.
 
 <p><code>writeAudio(data)</code> writes audio data to the stream output.
 The output has a single audio track. If there is an active input with an audio track, then the metadata for the output audio track is set to the metadata for the audio track of the last active input that has an audio track, otherwise the output audio track's <code>kind</code> is "main" and the other metadata attriutes are the empty string. The data for the output audio track is the concatenation of the
 inputs to each <code>writeAudio</code> call before the event handler returns. The data buffer is laid out
-with the channels non-interleaved, as for the input buffers (see below).
+with the channels non-interleaved, as for the input buffers (see below). The length of <code>data</code> must be
+a multiple of <code>audioChannels</code>; if not, then only the sample values up to the largest multiple of <code>audioChannels</code> less than the data length are used.
 
 <p>It is permitted to write less audio than the duration of the inputs (including none). This indicates latency in the filter. Normally the user-agent will dispatch another event to provide
 more input until the worker starts producing output. It is also permitted to write more audio than the duration of the inputs, for example if there are no inputs.
 Filters with latency should respond to an event with no inputs by writing out some of their buffered data; the user-agent
 is draining them.
 
-<p class="note">A synthesizer with no inputs can output as much data as it wants; the UA will buffer data and fire events as necessary. Filters that misbehave, e.g. by continuously writing zero-length buffers, will cause the stream to block due to an underrun.
+<p class="note">A synthesizer with no inputs can output as much data as it wants; the UA will buffer data and fire events as necessary. Filters that misbehave, e.g. by always writing zero-length buffers, will cause the stream to block due to an underrun.
 
 <p>If <code>writeAudio</code> is not called during the event handler, then the output audio track is computed as if
 there was no worker (see above).
@@ -490,7 +513,7 @@ been changed by <code>setParams</code> between events. <p>The <code>paramsStartT
 &lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
 document.getElementById("out").src =
-   document.getElementById("v").captureStream().createProcessor(new Worker("effect.js"));
+   document.getElementById("v").captureStream().createWorkerProcessor(new Worker("effect.js"));
 &lt;/script&gt;</pre></code>
 
 <li>Play video with processing effects mixing in out-of-band audio tracks (in sync)
@@ -499,7 +522,7 @@ document.getElementById("out").src =
 &lt;audio src="back.webm" id="back"&gt;&lt;/audio&gt;
 &lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
-  var mixer = document.getElementById("v").captureStream().createProcessor(new Worker("audio-ducking.js"));
+  var mixer = document.getElementById("v").captureStream().createWorkerProcessor(new Worker("audio-ducking.js"));
   mixer.addInput(document.getElementById("back").captureStream());
   document.getElementById("out").src = mixer;
   function startPlaying() {
@@ -515,7 +538,7 @@ document.getElementById("out").src =
 <pre><code>&lt;script&gt;
   navigator.getUserMedia('audio', gotAudio);
   function gotAudio(stream) {
-    peerConnection.addStream(stream.createProcessor(new Worker("effect.js")));
+    peerConnection.addStream(stream.createWorkerProcessor(new Worker("effect.js")));
   }
 &lt;/script&gt;</pre></code>
 
@@ -527,7 +550,7 @@ document.getElementById("out").src =
   var streamRecorder;
   function gotAudio(stream) {
     var worker = new Worker("visualizer.js");
-    var processed = stream.createProcessor(worker);
+    var processed = stream.createWorkerProcessor(worker);
     worker.onmessage = function(event) {
       drawSpectrumToCanvas(event.data, document.getElementById("c"));
     }
@@ -545,7 +568,7 @@ document.getElementById("out").src =
   var streamRecorder;
   function gotAudio(stream) {
     var worker = new Worker("visualizer.js");
-    var processed = stream.createProcessor(worker);
+    var processed = stream.createWorkerProcessor(worker);
     worker.onmessage = function(event) {
       drawSpectrumToCanvas(event.data, document.getElementById("c"));
     }
@@ -561,7 +584,7 @@ document.getElementById("out").src =
 <pre><code>&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
   var worker = new Worker("spatializer.js");
-  var spatialized = stream.createProcessor(worker);
+  var spatialized = stream.createWorkerProcessor(worker);
   peerConnection.onaddstream = function (event) {
     spatialized.addInput(event.stream).params = {x:..., y:..., z:...};
   };
@@ -582,9 +605,7 @@ serial.
   in1.onloadeddata = function() {
     var mixer = in1.captureStream().createProcessor();
     var in2 = document.getElementById("in2");
-    var input2 = mixer.addInput(in2.captureStream());
-    input2.enabled = false;
-    input2.setEnabled(true, in1.duration);
+    mixer.addInput(in2.captureStream()).enableAt(in1.duration);
     in1.onended = function() { mixer.inputs[0].remove(); };
     document.getElementById("out").src = mixer;
     in1.play();
@@ -605,15 +626,15 @@ add API to media elements to let them seek to synchronize with a given MediaStre
 &lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
   var stream1 = document.getElementById("in1").captureStream();
-  var mixer = stream1.createProcessor();
+  var mixer = stream1.createProcessor("LastInput");
   document.getElementById("out").src = mixer;
   function switchStreams() {
     var in2 = document.getElementById("in2");
-    in2.currentTime = in1.currentTime + 10; // arbitrary, but we should be able to complete the seek within this
-    var input2 = mixer.addInput(in2.captureStream());
+    in2.currentTime = in1.currentTime + 10; // arbitrary, but we should be able to complete the seek within this time
+    mixer.addInput(in2.captureStream()).enableAt(mixer.currentTime + 10);
+    in2.play();
     // in2 will be blocked until the input port is enabled
-    input2.enabled = false;
-    input2.setEnabled(true, mixer.currentTime + 10);
+
     mixer.inputs[0].setEnabled(false, mixer.currentTime + 10);
     in2.onplaying = function() { mixer.inputs[0].remove(); };
   }
@@ -651,9 +672,7 @@ add API to media elements to let them seek to synchronize with a given MediaStre
     var audio = new Audio(...);
     var stream = audio.captureStream();
     audio.play();
-    var input = effectsMixer.addInput(stream);
-    input.enabled = false;
-    input.setEnabled(true, effectsMixer.currentTime + 5);
+    effectsMixer.addInput(stream).enableAt(effectsMixer.currentTime + 5);
     stream.onended = function() { effectsMixer.removeStream(stream); }
   }
 &lt;/script&gt;</pre></code>
@@ -663,7 +682,7 @@ add API to media elements to let them seek to synchronize with a given MediaStre
 <pre><code>&lt;script&gt;
   navigator.getUserMedia('video', gotVideo);
   function gotVideo(stream) {
-    stream.createProcessor(new Worker("face-recognizer.js"));
+    stream.createWorkerProcessor(new Worker("face-recognizer.js"));
   }
 &lt;/script&gt;</pre></code>
 

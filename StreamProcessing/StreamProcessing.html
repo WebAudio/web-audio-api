@@ -348,7 +348,7 @@ the worker (if there is one) during media processing. On getting, a fresh clone 
 
 <p>For the timed setter methods of <code>MediaInput</code>, the subject stream is the output stream, so changes take effect when the output stream's current time is equal to <code>startTime</code>.
 
-<p>The <code>enableAt</code> method controls when an input port is enabled. Input ports are initially enabled.  Calling <code>enableAt</code> disables the input port and reenables it when the input stream's current time is <code>inputStartTime</code> and the output stream's current time is <code>outputStartTime</code>. More precisely, when the <code>enableAt</code> call takes effect (see section 2.1), the user-agent runs the following steps:
+<p>The <code>enableAt</code> method controls when an input port is enabled and helps synchronize inputs with outputs. Input ports are initially enabled.  Calling <code>enableAt</code> disables the input port and reenables it when the input stream's current time is <code>inputStartTime</code> and the output stream's current time is <code>outputStartTime</code>. More precisely, when the <code>enableAt</code> call takes effect (see section 2.1), the user-agent runs the following steps:
 <ol>
 <li>If the <code>inputStartTime</code> was omitted, set it to the input stream's current time.
 <li>Compute the <em>deadline miss delay</em>: the maximum of
@@ -366,6 +366,11 @@ the worker (if there is one) during media processing. On getting, a fresh clone 
 </ol>
 If an <code>enableAt</code> takes effect before the previous <code>enableAt</code> has finished, the previous <code>enableAt</code> is abandoned. Note that multiple input ports can be applying their own <code>enableAt</code>
 processing simultaneously.
+
+<div class="note">It is easy to (mis)use <code>enableAt</code> to cause deadlocks in media processing, i.e. a graph configuration that will continually block until it is modified. For example,
+<pre><code>  var p = inputStream.createProcessor();
+  p.addInput(inputStream).enableAt(5);</pre></code>
+In this example, <code>inputStream</code> is used as an input to <code>p</code> twice. <code>inputStream</code> must block until <code>p</code> has played 5s of output, but also <code>p</code> cannot play anything until <code>inputStream</code> unblocks. It seems hard to design an API that's hard to deadlock; even creating a cycle will cause deadlock.</div>
 
 <p>The <code>blockInput</code> and <code>blockOutput</code> attributes control
 how the blocking status of the input stream is related to the blocking status of the output stream.

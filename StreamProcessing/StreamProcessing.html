@@ -254,7 +254,7 @@ combine them into a single output stream.
  Constructor(in Worker worker, in optional long audioSampleRate, in optional short audioChannels)]
 interface ProcessedMediaStream : MediaStream {
   readonly attribute MediaInput[] inputs;
-  MediaInput addInput(in MediaStream input);
+  MediaInput addInput(in MediaStream input, in optional double outputStartTime, in optional double inputStartTime);
 
   attribute DOMString ending;
 
@@ -276,8 +276,36 @@ each stream currently configured as an input to the <code>ProcessedMediaStream</
 initially empty if constructed via the <code>ProcessedMediaStream()</code> constructor, or
 contains a single element if constructed via <code>MediaStream.createProcessor</code>.
 
-<p>The <code>addInput(input)</code> method adds a new <code>MediaInput</code> to the end of the
-<code>inputs</code> array, whose input stream is <code>input</code>.
+<p>The <code>addInput(input, outputStartTime, inputStartTime)</code> method adds a new <code>MediaInput</code> to the end of the
+<code>inputs</code> array, whose input stream is <code>input</code>. The <code>outputStartTime</code>
+and <code>inputStartTime</code> attributes control when an input port is enabled and helps
+synchronize inputs with outputs. The input port is enabled when the input stream's current time is
+<code>inputStartTime</code> and the output stream's current time is <code>outputStartTime</code>.
+
+<p>More precisely, when the <code>addInput</code> call takes effect (see section 2.1),
+the user-agent runs the following steps:
+<ol>
+<li>If the <code>outputStartTime</code> was omitted, set it to the output stream's current time.
+<li>If the <code>inputStartTime</code> was omitted, set it to the input stream's current time.
+<li>Compute the <em>deadline miss delay</em>: the maximum of
+  <ul>
+  <li>The input stream's curent time minus <code>inputStartTime</code>
+  <li>The output stream's current time minus <code>outputStartTime</code>
+  </ul>
+<li>If the deadline miss delay is greater than zero, add it to the <code>inputStartTime</code> and <code>outputStartTime</code>. (This would be a good place for user-agents to emit a developer-accessible warning.)
+<li>While the input stream's current time is less than <code>inputStartTime</code>, or the output stream's current time is less than <code>outputStartTime</code>:
+  <ul>
+  <li>Whenever the input stream's current time is equal to <code>inputStartTime</code>, block the input stream.
+  <li>Whenever the output stream's current time is equal to <code>outputStartTime</code>, block the output stream.
+  </ul>
+<li>Enable the input port.
+</ol>
+
+<div class="note">It is easy to (mis)use start times to cause deadlocks in media processing, i.e. a
+graph configuration that will continually block until it is modified. For example,
+<pre><code>  var p = inputStream.createProcessor();
+  p.addInput(inputStream, 5);</pre></code>
+In this example, <code>inputStream</code> is used as an input to <code>p</code> twice. <code>inputStream</code> must block until <code>p</code> has played 5s of output, but also <code>p</code> cannot play anything until <code>inputStream</code> unblocks. It seems hard to design an API that's hard to deadlock; even creating a cycle will cause deadlock.</div>
 
 <p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and its input stream is not blocked.
 
@@ -319,8 +347,6 @@ video frame is letterboxed to the size of the video frame for the last active in
   attribute any params;
   void setParams(in any params, in optional double startTime);
 
-  void enableAt(in double outputStartTime, in optional double inputStartTime);
-
   attribute boolean blockInput;
   attribute boolean blockOutput;
 
@@ -347,30 +373,6 @@ time is V1 + V2. This attribute is initially 1.0.
 the worker (if there is one) during media processing. On getting, a fresh clone is returned.
 
 <p>For the timed setter methods of <code>MediaInput</code>, the subject stream is the output stream, so changes take effect when the output stream's current time is equal to <code>startTime</code>.
-
-<p>The <code>enableAt</code> method controls when an input port is enabled and helps synchronize inputs with outputs. Input ports are initially enabled.  Calling <code>enableAt</code> disables the input port and reenables it when the input stream's current time is <code>inputStartTime</code> and the output stream's current time is <code>outputStartTime</code>. More precisely, when the <code>enableAt</code> call takes effect (see section 2.1), the user-agent runs the following steps:
-<ol>
-<li>If the <code>inputStartTime</code> was omitted, set it to the input stream's current time.
-<li>Compute the <em>deadline miss delay</em>: the maximum of
-  <ul>
-  <li>The input stream's curent time minus <code>inputStartTime</code>
-  <li>The output stream's current time minus <code>outputStartTime</code>
-  </ul>
-<li>If the deadline miss delay is greater than zero, add it to the <code>inputStartTime</code> and <code>outputStartTime</code>. (This would be a good place for user-agents to emit a developer-accessible warning.)
-<li>While the input stream's current time is less than <code>inputStartTime</code>, or the output stream's current time is less than <code>outputStartTime</code>:
-  <ul>
-  <li>Whenever the input stream's current time is equal to <code>inputStartTime</code>, block the input stream.
-  <li>Whenever the output stream's current time is equal to <code>outputStartTime</code>, block the output stream.
-  </ul>
-<li>Enable the input port.
-</ol>
-If an <code>enableAt</code> takes effect before the previous <code>enableAt</code> has finished, the previous <code>enableAt</code> is abandoned. Note that multiple input ports can be applying their own <code>enableAt</code>
-processing simultaneously.
-
-<div class="note">It is easy to (mis)use <code>enableAt</code> to cause deadlocks in media processing, i.e. a graph configuration that will continually block until it is modified. For example,
-<pre><code>  var p = inputStream.createProcessor();
-  p.addInput(inputStream).enableAt(5);</pre></code>
-In this example, <code>inputStream</code> is used as an input to <code>p</code> twice. <code>inputStream</code> must block until <code>p</code> has played 5s of output, but also <code>p</code> cannot play anything until <code>inputStream</code> unblocks. It seems hard to design an API that's hard to deadlock; even creating a cycle will cause deadlock.</div>
 
 <p>The <code>blockInput</code> and <code>blockOutput</code> attributes control
 how the blocking status of the input stream is related to the blocking status of the output stream.
@@ -480,7 +482,7 @@ there was no worker (see above).
 <code>MediaInput.setParams</code>. The same object is returned in each event, except when the object has
 been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed) that this <code>params</code> object was set.
 
-<p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>event.audioLength</code> multiplied by <code>event.audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal (or as equal as possible if there are varying sample rates). The <code>audioSamples</code> object will be a fresh object in each event. For inputs with no audio track, <code>audioSamples</code> will be all zeroes.
+<p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>event.audioLength</code> multiplied by <code>event.audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal. The <code>audioSamples</code> object will be a fresh object in each event. For inputs with no audio track, <code>audioSamples</code> will be all zeroes.
 
 <h2 id="media-graph-considerations">5. Media Graph Considerations</h2>
 
@@ -609,7 +611,7 @@ serial.
   in1.onloadeddata = function() {
     var mixer = in1.captureStream().createProcessor();
     var in2 = document.getElementById("in2");
-    mixer.addInput(in2.captureStream()).enableAt(in1.duration);
+    mixer.addInput(in2.captureStream(), in1.duration);
     in1.onended = function() { mixer.inputs[0].remove(); };
     document.getElementById("out").src = mixer;
     in1.play();
@@ -635,7 +637,7 @@ add API to media elements to let them seek to synchronize with a given MediaStre
   function switchStreams() {
     var in2 = document.getElementById("in2");
     in2.currentTime = in1.currentTime + 10; // arbitrary, but we should be able to complete the seek within this time
-    mixer.addInput(in2.captureStream()).enableAt(mixer.currentTime + 10);
+    mixer.addInput(in2.captureStream(), mixer.currentTime + 10);
     in2.play();
     // in2 will be blocked until the input port is enabled
     in2.onplaying = function() { mixer.inputs[0].remove(); };
@@ -674,7 +676,7 @@ add API to media elements to let them seek to synchronize with a given MediaStre
     var audio = new Audio(...);
     var stream = audio.captureStream();
     audio.play();
-    effectsMixer.addInput(stream).enableAt(effectsMixer.currentTime + 5);
+    effectsMixer.addInput(stream, effectsMixer.currentTime + 5);
     stream.onended = function() { effectsMixer.removeStream(stream); }
   }
 &lt;/script&gt;</pre></code>

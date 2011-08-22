@@ -1267,7 +1267,7 @@
     </code></pre></div></div> 
 
 
-    <div id="attributes-MediaElementAudioSourceNode" class="section"> 
+    <div id="attributes-JavaScriptAudioNode" class="section"> 
     <h3>4.12.1. Attributes</h3> 
     <dl><dt id="dfn-onaudioprocess"><code>onaudioprocess</code></dt><dd><p>An event listener which is called periodically for audio processing.
     An event of type <a href="#AudioProcessingEvent-section"><code>AudioProcessingEvent</code></a> will be passed to the event handler. </p></dd></dl> 
@@ -1855,38 +1855,13 @@
     <div id="AudioElementIntegration-section" class="section"> 
     <h2>5. Integration with the <code>audio</code> and <code>video</code> elements</h2> 
 
-  <p>
-  It requires some thought to integrate cleanly with the existing media elements because they do not seem to have been designed with the idea of multiple
-  types of audio sources, and its API is currently heavily oriented toward streaming.
-  </p>
-
-
-
-  <h3>Approach 1:</h3>
-
-
-  One approach is to add a new attribute to the media elements <code>audio</code> and <code>video</code>, which for now can be called <code>audioSource</code>.
-  It would be an <a href="#AudioNode-section"><code>AudioNode</code></a> of type <a href="#MediaElementAudioSourceNode"><code>MediaElementAudioSourceNode</code></a> which could be directly wired into an audio routing graph for processing streaming audio.
-
-  The other types of AudioSourceNodes (such as AudioBufferSourceNode) can operate independently from any <code>audio</code> or <code>video</code> element:
-  <br><br>
-
-<div class="block"><div class="blockTitleDiv"><span class="blockTitle">ECMAScript</span></div><div class="blockContent"><pre class="code"><code class="es-code">
-var mediaElement = document.getElementById('mediaElementID');
-mediaElement.audioSource.connect(filterNode);
-</code></pre></div></div> 
-</p>
-
-
-  <h3>Approach 2:</h3>
-
-Here an <a href="#MediaElementAudioSourceNode"><code>MediaElementAudioSourceNode</code></a> can be "adopted" from an HTMLMediaElement using an AudioContext method.  The advantage of this
-approach is that is does not require any API changes to HTMLMediaElement.
+<p>
+A <a href="#MediaElementAudioSourceNode"><code>MediaElementAudioSourceNode</code></a> can be "adopted" from an HTMLMediaElement using an AudioContext method.
 <br><br>
 
 <div class="block"><div class="blockTitleDiv"><span class="blockTitle">ECMAScript</span></div><div class="blockContent"><pre class="code"><code class="es-code"> 
 var mediaElement = document.getElementById('mediaElementID');
-var sourceNode = context.createMediaElementSourceNode(mediaElement);
+var sourceNode = context.createMediaElementSource(mediaElement);
 sourceNode.connect(filterNode);
 </code></pre></div></div> 
 </p>
@@ -2090,7 +2065,7 @@ function setupRoutingGraph() {
 	var context = 0;
 	var compressor = 0;
 	var gainNode1 = 0;
-	var streamingAudio = 0;
+	var streamingAudioSource = 0;
 
 	<span class="comment">// Initial setup of the "long-lived" part of the routing graph </span> 
 	function setupAudioContext() {
@@ -2099,8 +2074,10 @@ function setupRoutingGraph() {
 	    compressor = context.createDynamicsCompressor();
 	    gainNode1 = context.createGainNode();
 
-	    streamingAudio = document.getElementById('audioTagID');
-	    streamingAudio.audioSource.connect(gainNode1);
+        // Create a streaming audio source.
+	    var audioElement = document.getElementById('audioTagID');
+	    streamingAudioSource = context.createMediaElementSource(audioElement);
+	    streamingAudioSource.connect(gainNode1);
 
 	    gainNode1.connect(compressor);
 	    compressor.connect(context.destination);

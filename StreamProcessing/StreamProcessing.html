@@ -51,10 +51,15 @@ Many use-cases require these features to work together. This proposal makes HTML
     <li><a href="#mediainput">4.3. MediaInput</a>
     <li><a href="#worker-processing">4.4. Worker Processing</a>
   </ol>
-  <li><a href="#media-graph-considerations">5. Media Graph Considerations</a>
-  <li><a href="#canvas-recording">6. Canvas Recording</a>
-  <li><a href="#implementation-considerations">7. Implementation Considerations</a>
-  <li><a href="#examples">8. Examples</a>
+  <li><a href="#built-in-processing-engines">5. Built-In Processing Engines</a>
+  <ol>
+    <li><a href="#default-processing-engine">5.1. Default Processing Engine</a>
+    <li><a href="#lastinput-processing-engine">5.2. "LastInput" Processing Engine</a>
+  </ol>
+  <li><a href="#media-graph-considerations">6. Media Graph Considerations</a>
+  <li><a href="#canvas-recording">7. Canvas Recording</a>
+  <li><a href="#implementation-considerations">8. Implementation Considerations</a>
+  <li><a href="#examples">9. Examples</a>
 </ol>
 
 <h2 id="introduction">1. Introduction</h2>
@@ -119,8 +124,8 @@ In this spec, references to <code>MediaStream</code>s and <code>MediaInput</code
 
 <p>At the implementation level, and when processing media data with Workers, we assume that each stream has a buffered window of media data available, containing the sample it is currently playing (or that it will play the next time it unblocks). This buffer defines the stream's contents into the future.
 
-<p>A stream can be <em>ended</em>. While it is ended, it is also blocked. An ended stream will not
-normally produce data in the future (although it can if conditions change, e.g. if the source is reset somehow).
+<p>A stream can be in the <em>ended</em> state. A stream continually produces silence and no video while it is in the ended state.
+A stream can leave the ended state, e.g. if the source is reset somehow. The ended state is orthogonal to the blocked state.
 
 <div class="note">
 <p>We do not allow streams to have independent timelines (e.g. no adjustable playback
@@ -206,10 +211,11 @@ mechanism for the stream.
 };</pre></code>
 
 <p>The <code>stream</code> attribute returns a stream which always plays whatever the element is playing. The
-stream is blocked while the media element is not playing, and conversly whenever the stream is blocked the
+stream is blocked while the media element is not playing and not ended, and conversly whenever the stream is blocked the
 element's playback is also blocked. The <code>stream</code> attribute for a given element always returns
 the same stream. When the stream changes to blocked, we fire the <code>waiting</code> event for the media element,
-and when it changes to unblocked we fire the <code>playing</code> event for the media element.
+and when it changes to unblocked we fire the <code>playing</code> event for the media element. The stream is ended while
+(and only while) the media element is ended.
 
 <p class="XXX">Currently the HTML media element spec says that <code>playing</code> would fire on an element
 that is able to play except that a downstream <code>MediaController</code> is blocked. This is incompatible
@@ -255,8 +261,6 @@ combine them into a single output stream.
 interface ProcessedMediaStream : MediaStream {
   readonly attribute MediaInput[] inputs;
   MediaInput addInput(in MediaStream input, in optional double outputStartTime, in optional double inputStartTime);
-
-  attribute DOMString ending;
 
   attribute any params;
   void setParams(in any params, in optional double startTime);
@@ -309,30 +313,8 @@ In this example, <code>inputStream</code> is used as an input to <code>p</code> 
 
 <p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and its input stream is not blocked.
 
-<p>The <code>ending</code> attribute controls when the stream ends. When the value is "all", the stream is in the ended
-state when all active inputs are ended (including if there are no active inputs). When the value is "any",
-the stream is in the ended state when any active input is ended, or if there are no active inputs. Otherwise the
-stream is never ended. The initial value is "all".
-
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this stream. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
 the worker (if there is one) during media processing. On getting, a fresh clone is returned.
-
-<p>A <code>ProcessedMediaStream</code> with the default processing engine produces output as follows:
-<ul>
-<li>If no active input has an audio track, the output has no audio track. Otherwise, the output has a single
-audio track whose metadata (<code>id</code>, <code>kind</code>, <code>label</code>, and <code>language</code>)
-is equal to that of the audio track for the last active input that has an audio track. The output audio track
-is produced by adding the samples of the audio tracks of the active inputs together.
-<li>If no active input has a video track, the output has no video track. Otherwise, the output has a single
-video track whose metadata (<code>id</code>, <code>kind</code>, <code>label</code>, and <code>language</code>)
-is equal to that of the video track for the last active input that has a video track. The output video track
-is produced by compositing together all the video frames from the video tracks of the active inputs, with the video
-frames from higher-numbered inputs on top of the video frames from lower-numbered inputs; each
-video frame is letterboxed to the size of the video frame for the last active input that has a video track.
-<p class="note">This means if the last input's video track is opaque, the video output is simply the video track of the last input.
-</ul>
-
-<p>A <code>ProcessedMediaStream</code> with the "LastInput" processing engine simply produces the last enabled input stream as output. If there are no enabled input streams, it produces the same output as the default processing engine.
 
 <h3 id="mediainput">4.3 MediaInput</h3>
 
@@ -387,10 +369,9 @@ current values and do not change unless explicitly set. All method calls are ign
 
 <h3 id="worker-processing">4.4 Worker Processing</h3>
 
-<p>A <code>ProcessedMediaStream</code> with a worker computes its output by dispatching a sequence of <code>onprocessmedia</code> callbacks to the worker, passing each a <code>ProcessMediaEvent</code> parameter. A <code>ProcessMediaEvent</code> provides audio sample buffers for each input stream. Each sample buffer for a given <code>ProcessMediaEvent</code> has the same duration, so the inputs presented to the worker are always in sync. (Inputs may be added or removed between <code>ProcessMediaEvent</code>s, however.) Unless rewinding
-occurs (see below), the sequence of buffers provided for an input stream is the audio data to be played by that input stream. The user-agent will precompute data for the input streams as necessary.
+<p>A <code>ProcessedMediaStream</code> with a worker computes its output by dispatching a sequence of <code>onprocessmedia</code> callbacks to the worker, passing each a <code>ProcessMediaEvent</code> parameter. A <code>ProcessMediaEvent</code> provides audio sample buffers for each input stream. Each sample buffer for a given <code>ProcessMediaEvent</code> has the same duration, so the inputs presented to the worker are always in sync. (Inputs may be added or removed between <code>ProcessMediaEvent</code>s, however.) The sequence of buffers provided for an input stream is the audio data to be played by that input stream. The user-agent will precompute data for the input streams as necessary.
 
-<p>For example, if a Worker computes the output sample for time T as a function of the [T - 1s, T + 1s] interval of an input stream, then initially the Worker would simply refuse to output anything until it has received at least 1s of input stream data, forcing the user-agent to precompute the input stream at least 1s ahead of the current time. (Note that large Worker latencies will increase the latency of changes to the media graph, unless rewinding is supported (see below).)
+<p>For example, if a Worker computes the output sample for time T as a function of the [T - 1s, T + 1s] interval of an input stream, then initially the Worker would simply refuse to output anything until it has received at least 1s of input stream data, forcing the user-agent to precompute the input stream at least 1s ahead of the current time. (Note that large Worker latencies will increase the latency of changes to the media graph.)
 
 <p class="note">Note that <code>Worker</code>s do not have access to most DOM API objects. In particular, <code>Worker</code>s have no direct access to <code>MediaStream</code>s.
 
@@ -401,15 +382,14 @@ occurs (see below), the sequence of buffers provided for an input stream is the 
 
 <pre><code>partial interface DedicatedWorkerGlobalScope {
   attribute Function onprocessmedia;
-  attribute double mediaStreamRewindMax;
 };</pre></code>
 
 <p>The <code>onprocessmedia</code> attribute is the function to be called whenever stream data needs to be processed.
+A <code>ProcessMediaEvent</code> is passed as the single parameter to each call to the <code>onprocessmedia</code> callback.
+For a given <code>ProcessedMediaStream</code>, the same <code>ProcessMediaEvent</code> is passed in every call to the
+<code>onprocessmedia</code> callback. This allows the callback function to maintain per-stream state.
  
-<p>To support graph changes with low latency, the user-agent might want to throw out processed samples that have already been buffered and reprocess them. The <code>mediaStreamRewindMax</code> attribute indicates how far back, in seconds, the worker supports rewinding. The default value of <code>mediaStreamRewindMax</code> is zero; workers that support rewinding need to opt into it.
-
 <pre><code>interface ProcessMediaEvent {
-  readonly attribute double rewind;
   readonly attribute double inputTime;
 
   readonly attribute any params;
@@ -421,10 +401,9 @@ occurs (see below), the sequence of buffers provided for an input stream is the 
   reaodnly attribute long audioLength;
 
   void writeAudio(in Float32Array data);
-};</pre></code>
 
-<p>The <code>rewind</code> attribute indicates how far back in the stream's history we have moved between the
-previous event and this event (normally zero). It is a non-negative value less than or equal to the value of <code>streamRewindMax</code>on entry to the event handler.
+           attribute boolean ended;
+};</pre></code>
 
 <p>The <code>inputTime</code> attribute returns the duration of the input that has been consumed by the
 <code>ProcessedMediaStream</code> for this worker.
@@ -467,6 +446,10 @@ is draining them.
 <p>If <code>writeAudio</code> is not called during the event handler, then the output audio track is computed as if
 there was no worker (see above).
 
+<p>If <code>writeAudio</code> is called outside the event handler, the call is ignored.
+
+<p>Setting the <code>ended</code> attribute to true puts the stream into the ended state (once any previously buffered output has been consumed). The event callback will not be called again until the stream is restarted. In the meantime, the stream will produce silence and no video like any other ended stream. Setting <code>ended</code> to false takes the stream out of the ended state. The event callback will be called again. The <code>ended</code> attribute can be set at any time, including outside the event handler.
+
 <p>The output video track is computed as if there was no worker (see above).
 
 <p class="todo">This will change when we add video processing.
@@ -476,6 +459,7 @@ there was no worker (see above).
   readonly attribute double paramsStartTime;
 
   readonly attribute Float32Array audioSamples;
+  readonly attribute boolean ended;
 };</pre></code>
 
 <p>The <code>params</code> attribute provides a structured clone of the parameters object set by
@@ -484,17 +468,46 @@ been changed by <code>setParams</code> between events. <p>The <code>paramsStartT
 
 <p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>event.audioLength</code> multiplied by <code>event.audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal. The <code>audioSamples</code> object will be a fresh object in each event. For inputs with no audio track, <code>audioSamples</code> will be all zeroes.
 
-<h2 id="media-graph-considerations">5. Media Graph Considerations</h2>
+<p><code>ended</code> is true when this input data is silence generated for an input stream that has ended.
 
-<h3 id="cycles">5.1. Cycles</h3>
+<h2 id="built-in-processing-engine">5. Built-In Processing Engines</h2>
+
+<h3 id="default-processing-engine">5.1. Default Processing Engine</h2>
+
+<p>A <code>ProcessedMediaStream</code> with the default processing engine produces output as follows:
+<ul>
+<li>If no active input has an audio track, the output has no audio track. Otherwise, the output has a single
+audio track whose metadata (<code>id</code>, <code>kind</code>, <code>label</code>, and <code>language</code>)
+is equal to that of the audio track for the last active input that has an audio track. The output audio track
+is produced by adding the samples of the audio tracks of the active inputs together.
+<li>If no active input has a video track, the output has no video track. Otherwise, the output has a single
+video track whose metadata (<code>id</code>, <code>kind</code>, <code>label</code>, and <code>language</code>)
+is equal to that of the video track for the last active input that has a video track. The output video track
+is produced by compositing together all the video frames from the video tracks of the active inputs, with the video
+frames from higher-numbered inputs on top of the video frames from lower-numbered inputs; each
+video frame is letterboxed to the size of the video frame for the last active input that has a video track.
+<p class="note">This means if the last input's video track is opaque, the video output is simply the video track of the last input.
+</ul>
+
+<p>A stream produced by the default processing engine is in the ended state when all enabled input streams have ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended).
+
+<h3 id="lastinput-processing-engine">5.2. "LastInput" Processing Engine</h2>
+
+<p>A <code>ProcessedMediaStream</code> with the "LastInput" processing engine simply produces the last enabled input stream as output. If there are no enabled input streams, it produces the same output as the default processing engine.
+
+<p>A stream produced by the "LastInput" processing engine is in the ended state when the last enabled input stream has ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended).
+
+<h2 id="media-graph-considerations">6. Media Graph Considerations</h2>
+
+<h3 id="cycles">6.1. Cycles</h3>
 
 <p>While a <code>ProcessedMediaStream</code> has itself as a direct or indirect input stream (considering only enabled inputs), it is blocked.
 
-<h3 id="blocking">5.2. Blocking</h2>
+<h3 id="blocking">6.2. Blocking</h2>
 
 <p>At each moment, every stream should not be blocked except as explicitly required by this specification.
 
-<h2 id="canvas-recording">6. Canvas Recording</h2>
+<h2 id="canvas-recording">7. Canvas Recording</h2>
 
 <p>To enable video synthesis and some easy kinds of video effects we can record the contents of a canvas:
 
@@ -504,11 +517,11 @@ been changed by <code>setParams</code> between events. <p>The <code>paramsStartT
 
 <p>The <code>stream</code> attribute is a stream containing a video track with the "live" contents of the canvas as video frames whose size is the size of the canvas, and no audio track. It always returns the same stream for a given element.
 
-<h2 id="implementation-considerations">7. Implementation Considerations</h2>
+<h2 id="implementation-considerations">8. Implementation Considerations</h2>
 
 <p class="todo">Here will be some non-normative implementation suggestions.
 
-<h2 id="examples">8. Examples</h2>
+<h2 id="examples">9. Examples</h2>
 
 <p class="todo">Add Worker scripts for these examples.
 

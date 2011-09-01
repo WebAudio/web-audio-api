@@ -124,8 +124,8 @@ In this spec, references to <code>MediaStream</code>s and <code>MediaInput</code
 
 <p>At the implementation level, and when processing media data with Workers, we assume that each stream has a buffered window of media data available, containing the sample it is currently playing (or that it will play the next time it unblocks). This buffer defines the stream's contents into the future.
 
-<p>A stream can be in the <em>ended</em> state. A stream continually produces silence and no video while it is in the ended state.
-A stream can leave the ended state, e.g. if the source is reset somehow. The ended state is orthogonal to the blocked state.
+<p>A stream can be in the <em>ended</em> state. An ended stream continually produces silence and the last video frame from before
+it ended. A stream can leave the ended state, e.g. if the source is reset somehow. The ended state is orthogonal to the blocked state.
 
 <div class="note">
 <p>We do not allow streams to have independent timelines (e.g. no adjustable playback
@@ -489,13 +489,14 @@ video frame is letterboxed to the size of the video frame for the last active in
 <p class="note">This means if the last input's video track is opaque, the video output is simply the video track of the last input.
 </ul>
 
-<p>A stream produced by the default processing engine is in the ended state when all enabled input streams have ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended).
+<p>A stream produced by the default processing engine is in the ended state when all enabled input streams have ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended). Thus,
+if there are no inputs, the stream will be in the ended state.
 
 <h3 id="lastinput-processing-engine">5.2. "LastInput" Processing Engine</h2>
 
 <p>A <code>ProcessedMediaStream</code> with the "LastInput" processing engine simply produces the last enabled input stream as output. If there are no enabled input streams, it produces the same output as the default processing engine.
 
-<p>A stream produced by the "LastInput" processing engine is in the ended state when the last enabled input stream has ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended).
+<p>A stream produced by the "LastInput" processing engine is in the ended state when there are no enabled inputs, or the last enabled input stream has ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended).
 
 <h2 id="media-graph-considerations">6. Media Graph Considerations</h2>
 

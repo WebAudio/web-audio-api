@@ -229,10 +229,13 @@ is initially false.
 <p>The <code>captureStream()</code> method returns the same stream as <code>stream</code>, but also
 sets the <code>captureAudio</code> attribute to true.
 
-<p>The <code>src</code> attribute is extended to allow it to be set to a <code>MediaStream</code>.
+<p>The <code>src</code> attribute is extended to allow it to be set to a <code>MediaStream</code>. The element
+will play the contents of the given stream. This is treated as a live stream; seeking and <code>playbackRate</code>
+are not supported. While a stream used as input to a media element is ended, the media element forces it to block.
 
 <p>The <code>URL.createObjectURL(stream)</code> method defined for HTML MediaStreams can create a URL to be
-used as a source for a media element.
+used as a source for a media element. Setting a media element to use this source URL is equivalent to setting
+the media element <code>src</code> to the given stream.
 
 <h2 id="stream-mixing-and-processing">4. Stream Mixing And Processing</h2>
 
@@ -269,7 +272,7 @@ interface ProcessedMediaStream : MediaStream {
 <p>The constructors create a new <code>ProcessedMediaStream</code> with no inputs.
 The second constructor creates a new <code>ProcessedMediaStream</code> with a Worker
 processing engine, setting the
-audio sample rate to <code>audioSampleRate</code> (defaulting to 44100), and setting the number of
+audio sample rate to <code>audioSampleRate</code> and setting the number of
 audio channels to <code>audioChannels</code> (defaulting to 2). These parameters control the audio sample
 format used by the Worker (see below).
 
@@ -332,7 +335,7 @@ the worker (if there is one) during media processing. On getting, a fresh clone 
   attribute boolean blockInput;
   attribute boolean blockOutput;
 
-  void remove();
+  void remove(in optional double time);
 };</pre></code>
 
 <p>The <code>stream</code> attribute returns the <code>MediaStream</code> connected to this input.
@@ -361,9 +364,13 @@ how the blocking status of the input stream is related to the blocking status of
 When <code>blockOutput</code> is true and the input port is enabled, if the input stream is blocked and not ended, then the output stream must be blocked. While an enabled input is blocked and the output is not blocked, the input is treated as having no tracks. When <code>blockInput</code> is true and the input port is enabled, if the output is blocked,
 then the input stream must be blocked. When false, while the output is blocked and an enabled input is not, the input will simply be discarded. These attributes are initially true.
 
-<p>The <code>remove()</code> method removes this <code>MediaInput</code> from the inputs array of its owning
-<code>ProcessedMediaStream</code>. The <code>MediaInput</code> object is no longer used; its attributes retain their
-current values and do not change unless explicitly set. All method calls are ignored.
+<p>The <code>remove(time)</code> method removes this <code>MediaInput</code> from the inputs array of its owning
+<code>ProcessedMediaStream</code> at the given time relative to the output stream (or later, if it cannot be removed in time).
+If <code>time</code> is omitted, the input is removed as soon as possible and the <code>MediaInput</code> is removed from
+the destionation stream's <code>input</code> array immediately.
+After removal, the <code>MediaInput</code> object is no longer used; its attributes retain their current values
+and do not change unless explicitly set. All method calls are ignored. Additional calls to <code>remove</code> with an earlier time
+can advance the removal time, but once removal is scheduled it cannot be stopped or delayed.
 
 <p class="XXX">Do we need to worry about authors forgetting to remove ended input streams?
 
@@ -425,7 +432,7 @@ output audio sample buffers. <code>audioSampleRate</code> is the number of sampl
 These values are constant for a given <code>ProcessedMediaStream</code>. When the <code>ProcessedMediaStream</code>
 was constructed using the Worker constructor, these values are the values passed as parameters there. When the
 <code>ProcessedMediaStream</code> was constructed via <code>MediaStream.createProcessor</code>, the values are
-chosen to match that first input stream.
+chosen to match that first enabled input stream (or 44.1KHz, 2 channels if there is no enabled input stream).
 
 <p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate. If there are no inputs,
 the user-agent will choose a value representing the suggested amount of audio that the worker should produce.
@@ -674,8 +681,9 @@ add API to media elements to let them seek to synchronize with a given MediaStre
     var audio = new Audio(src);
     audio.oncanplaythrough = new function() {
       var stream = audio.captureStream();
-      effectsMixer.addInput(stream).blockOutput = false;
-      stream.onended = function() { effectsMixer.removeStream(stream); }
+      var port = effectsMixer.addInput(stream);
+      port.blockOutput = false;
+      stream.onended = function() { port.remove(); }
       audio.play();
     }
   }
@@ -690,8 +698,8 @@ add API to media elements to let them seek to synchronize with a given MediaStre
     var audio = new Audio(...);
     var stream = audio.captureStream();
     audio.play();
-    effectsMixer.addInput(stream, effectsMixer.currentTime + 5);
-    stream.onended = function() { effectsMixer.removeStream(stream); }
+    var port = effectsMixer.addInput(stream, effectsMixer.currentTime + 5);
+    stream.onended = function() { port.remove(); }
   }
 &lt;/script&gt;</pre></code>
 

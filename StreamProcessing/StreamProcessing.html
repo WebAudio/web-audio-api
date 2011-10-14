@@ -64,7 +64,7 @@ Many use-cases require these features to work together. This proposal makes HTML
 
 <h2 id="introduction">1. Introduction</h2>
 
-<p>The ideas here build on <a href="http://www.whatwg.org/specs/web-apps/current-work/complete/video-conferencing-and-peer-to-peer-communication.html">Ian Hickson's proposal for HTML Streams</a>, adding features partly inspired by <a href="https://wiki.mozilla.org/Audio_Data_API"> the Mozilla audio API</a> and <a href="http://chromium.googlecode.com/svn/trunk/samples/audio/specification/specification.html">the Chrome audio API</a>. Unlike previous audio API proposals, the API presented here integrates with proposed API for media capture from local devices, integrates with proposed API for peer-to-peer media streaming, handles audio and video in a unified framework, incorporates Worker-based Javascript audio processing, and specifies synchronization across multiple media sources and effects. The API presented here does not include a library of "native" effects; those should be added as a clean extension to StreamProcessor, perhaps as a "level 2" spec.
+<p>The ideas here build on <a href="http://www.whatwg.org/specs/web-apps/current-work/complete/video-conferencing-and-peer-to-peer-communication.html">Ian Hickson's proposal for HTML Streams</a>, adding features partly inspired by <a href="https://wiki.mozilla.org/Audio_Data_API"> the Mozilla audio API</a> and <a href="http://chromium.googlecode.com/svn/trunk/samples/audio/specification/specification.html">the Chrome audio API</a>. Unlike previous audio API proposals, the API presented here integrates with proposed API for media capture from local devices, integrates with proposed API for peer-to-peer media streaming, handles audio and video in a unified framework, incorporates Worker-based Javascript audio processing, and specifies synchronization across multiple media sources and effects. The API presented here does not include a library of "native" effects; those should be added as new "named effects" (described below), perhaps as a "level 2" spec.
 
 <p>The work here is nascent. Until a prototype implementation exists, this proposal is likely to be incomplete and possibly not even implementable.
 
@@ -396,7 +396,7 @@ A <code>ProcessMediaEvent</code> is passed as the single parameter to each call 
 For a given <code>ProcessedMediaStream</code>, the same <code>ProcessMediaEvent</code> is passed in every call to the
 <code>onprocessmedia</code> callback. This allows the callback function to maintain per-stream state.
  
-<pre><code>interface ProcessMediaEvent {
+<pre><code>interface ProcessMediaEvent : Event {
   readonly attribute double inputTime;
 
   readonly attribute any params;
@@ -417,7 +417,7 @@ For a given <code>ProcessedMediaStream</code>, the same <code>ProcessMediaEvent<
 
 <p>The <code>params</code> attribute provides a structured clone of the parameters object set by
 <code>ProcessedMediaStream.setParams</code>. The same object is returned in each event, except when the object has
-been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed) that this <code>params</code> object was set.
+been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed for this stream) that this <code>params</code> object was set.
 
 <p class="note">Note that the parameters objects are constant over the duration of the inputs presented in the
 event. Frequent changes to parameters will reduce the length of the input buffers that can be presented to
@@ -450,8 +450,7 @@ is draining them.
 
 <p class="note">A synthesizer with no inputs can output as much data as it wants; the UA will buffer data and fire events as necessary. Filters that misbehave, e.g. by always writing zero-length buffers, will cause the stream to block due to an underrun.
 
-<p>If <code>writeAudio</code> is not called during the event handler, then the output audio track is computed as if
-there was no worker (see above).
+<p>If <code>writeAudio</code> is not called during the event handler, then the input audio buffers are added together and written to the output.
 
 <p>If <code>writeAudio</code> is called outside the event handler, the call is ignored.
 
@@ -471,7 +470,7 @@ there was no worker (see above).
 
 <p>The <code>params</code> attribute provides a structured clone of the parameters object set by
 <code>MediaInput.setParams</code>. The same object is returned in each event, except when the object has
-been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed) that this <code>params</code> object was set.
+been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed for this stream) that this <code>params</code> object was set.
 
 <p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>event.audioLength</code> multiplied by <code>event.audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal. The <code>audioSamples</code> object will be a fresh object in each event. For inputs with no audio track, <code>audioSamples</code> will be all zeroes.
 

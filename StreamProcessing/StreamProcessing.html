@@ -237,6 +237,15 @@ are not supported. While a stream used as input to a media element is ended, the
 used as a source for a media element. Setting a media element to use this source URL is equivalent to setting
 the media element <code>src</code> to the given stream.
 
+<h3>3.2 Audio Element Extensions</h3>
+
+<p>We add an <code>Audio</code> constructor taking a <code>MediaStream</code> as a parameter.
+This sets the initial <code>src</code> to the stream.
+
+<pre><code>[NamedConstructor=Audio(MediaStream src)]
+partial interface HTMLAudioElement {
+}</pre>
+
 <h2 id="stream-mixing-and-processing">4. Stream Mixing And Processing</h2>
 
 <h3 id="time-varying-attributes">4.1 Time-varying Attributes</h3>
@@ -432,7 +441,7 @@ output audio sample buffers. <code>audioSampleRate</code> is the number of sampl
 These values are constant for a given <code>ProcessedMediaStream</code>. When the <code>ProcessedMediaStream</code>
 was constructed using the Worker constructor, these values are the values passed as parameters there. When the
 <code>ProcessedMediaStream</code> was constructed via <code>MediaStream.createProcessor</code>, the values are
-chosen to match that first enabled input stream (or 44.1KHz, 2 channels if there is no enabled input stream).
+chosen to match the first enabled input stream (or 44.1KHz, 2 channels if there is no enabled input stream).
 
 <p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate. If there are no inputs,
 the user-agent will choose a value representing the suggested amount of audio that the worker should produce.
@@ -607,14 +616,13 @@ document.getElementById("out").src =
 
 <li>Receive audio streams from peers, mix them with spatialization effects, and play 
 
-<pre><code>&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
-&lt;script&gt;
+<pre><code>&lt;script&gt;
   var worker = new Worker("spatializer.js");
   var spatialized = stream.createWorkerProcessor(worker);
   peerConnection.onaddstream = function (event) {
     spatialized.addInput(event.stream).params = {x:..., y:..., z:...};
   };
-  document.getElementById("out").src = spatialized;
+  (new Audio(spatialized)).play();
 &lt;/script&gt;</pre></code>
 
 <li>Seamlessly chain from the end of one input stream to another 
@@ -625,7 +633,6 @@ serial.
 
 <pre><code>&lt;audio src="in1.webm" id="in1" preload&gt;&lt;/audio&gt;
 &lt;audio src="in2.webm" id="in2"&gt;&lt;/audio&gt;
-&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
   var in1 = document.getElementById("in1");
   in1.onloadeddata = function() {
@@ -633,7 +640,7 @@ serial.
     var in2 = document.getElementById("in2");
     mixer.addInput(in2.captureStream(), in1.duration);
     in1.onended = function() { mixer.inputs[0].remove(); };
-    document.getElementById("out").src = mixer;
+    (new Audio(mixer)).play();
     in1.play();
   }
 &lt;/script&gt;</pre></code>

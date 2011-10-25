@@ -125,8 +125,8 @@ In this spec, references to <code>MediaStream</code>s and <code>MediaInput</code
 
 <p>At the implementation level, and when processing media data with Workers, we assume that each stream has a buffered window of media data available, containing the sample it is currently playing (or that it will play the next time it unblocks). This buffer defines the stream's contents into the future.
 
-<p>A stream can be in the <em>ended</em> state. An ended stream continually produces silence and the last video frame from before
-it ended. A stream can leave the ended state, e.g. if the source is reset somehow. The ended state is orthogonal to the blocked state.
+<p>A stream can be in the <em>finished</em> state. A finished stream is always blocked and can
+never leave the finished state --- it will never produce any more content.
 
 <div class="note">
 <p>We do not allow streams to have independent timelines (e.g. no adjustable playback
@@ -186,12 +186,14 @@ time within a single stream. Media data is implicitly resampled as necessary, e.
 The <code>ProcessedMediaStream</code> is configured with a built-in processing engine named by <code>namedEffect</code>,
 or the default processing engine if <code>namedEffect</code> is omitted. If <code>namedEffect</code> is not supported
 by this user-agent, <code>createProcessor</code> returns null. User-agents adding nonstandard named effects should use
-vendor prefixing, e.g. "MozUnderwaterBubbles".
+vendor prefixing, e.g. "MozUnderwaterBubbles". The stream's <code>autofinish</code> attribute
+is set to true.
 
 <p>The <code>createWorkerProcessor(worker)</code> method returns a new <code>ProcessedMediaStream</code> with this <code>MediaStream</code> as its sole input.
 The stream is configured with <code>worker</code> as its processing engine.
+The stream's <code>autofinish</code> flag is set to true.
 
-<p class="todo">Add event handlers or callback functions for all ended and blocking state changes?
+<p class="todo">Add event handlers or callback functions for all finished and blocking state changes?
 
 <h2 id="media-elements">3. Media Elements</h2>
 
@@ -206,33 +208,36 @@ mechanism for the stream.
   readonly attribute MediaStream stream;
  
   MediaStream captureStream();
+  MediaStream captureStreamUntilEnded();
   attribute boolean captureAudio;
 
   attribute any src;
 };</pre></code>
 
-<p>The <code>stream</code> attribute returns a stream which always plays whatever the element is playing. The
-stream is blocked while the media element is not playing and not ended, and conversly whenever the stream is blocked the
-element's playback is also blocked. The <code>stream</code> attribute for a given element always returns
+<p>The <code>stream</code> attribute returns a stream which always plays whatever the element is playing. The stream is blocked while the media element is not playing. It is never finished, even when playback ends
+(since the element might load a new resource or seek within the current resource). The <code>stream</code> attribute for a given element always returns
 the same stream. When the stream changes to blocked, we fire the <code>waiting</code> event for the media element,
-and when it changes to unblocked we fire the <code>playing</code> event for the media element. The stream is ended while
-(and only while) the media element is ended.
+and when it changes to unblocked we fire the <code>playing</code> event for the media element.
 
 <p class="XXX">Currently the HTML media element spec says that <code>playing</code> would fire on an element
 that is able to play except that a downstream <code>MediaController</code> is blocked. This is incompatible
 with the above. I think that part of the HTML media spec should be changed so that only elements that are actually
 going to play fire <code>playing</code>.
 
-<p>While the <code>captureAudio</code> attribute is true, the element does not produce direct audio output.
-Audio output is still sent to <code>stream</code>. This attribute is NOT reflected into the DOM. It
-is initially false.
+<p>The <code>captureStream()</code> method returns a new <code>MediaStream</code> that plays the same audio and video as <code>stream</code>.
+<code>captureStream()</code> sets the <code>captureAudio</code> attribute to true.
 
-<p>The <code>captureStream()</code> method returns the same stream as <code>stream</code>, but also
-sets the <code>captureAudio</code> attribute to true.
+<p>The <code>captureStreamUntilEnded()</code> method returns a new <code>MediaStream</code> that plays the same audio and video as <code>stream</code>, until the element next reaches
+the "ended playback" state, at which point this stream will enter the finished state.
+<code>captureStreamUntilEnded()</code> sets the <code>captureAudio</code> attribute to true.
+
+<p>While the <code>captureAudio</code> attribute is true, the element does not produce direct audio output.
+Audio output is still sent to <code>stream</code> and the resource stream. This attribute is NOT reflected into the DOM. It
+is initially false.
 
 <p>The <code>src</code> attribute is extended to allow it to be set to a <code>MediaStream</code>. The element
 will play the contents of the given stream. This is treated as a live stream; seeking and <code>playbackRate</code>
-are not supported. While a stream used as input to a media element is ended, the media element forces it to block.
+are not supported.
 
 <p>The <code>URL.createObjectURL(stream)</code> method defined for HTML MediaStreams can create a URL to be
 used as a source for a media element. Setting a media element to use this source URL is equivalent to setting
@@ -277,6 +282,8 @@ interface ProcessedMediaStream : MediaStream {
 
   attribute any params;
   void setParams(in any params, in optional double startTime);
+
+  attribute boolean autofinish;
 };</pre></code>
 
 <p>The constructors create a new <code>ProcessedMediaStream</code> with no inputs.
@@ -284,7 +291,7 @@ The second constructor creates a new <code>ProcessedMediaStream</code> with a Wo
 processing engine, setting the
 audio sample rate to <code>audioSampleRate</code> and setting the number of
 audio channels to <code>audioChannels</code> (defaulting to 2). These parameters control the audio sample
-format used by the Worker (see below).
+format used by the Worker (see below). Both constructors initialize <code>autofinish</code> to false.
 
 <p class="todo">Specify valid values for <code>audioChannels</code> and <code>audioSampleRate</code>.
 
@@ -324,10 +331,15 @@ graph configuration that will continually block until it is modified. For exampl
   p.addInput(inputStream, 5);</pre></code>
 In this example, <code>inputStream</code> is used as an input to <code>p</code> twice. <code>inputStream</code> must block until <code>p</code> has played 5s of output, but also <code>p</code> cannot play anything until <code>inputStream</code> unblocks. It seems hard to design an API that's hard to deadlock; even creating a cycle will cause deadlock.</div>
 
-<p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and its input stream is not blocked.
+<p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and the input stream is not finished.
 
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this stream. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
 the worker (if there is one) during media processing. On getting, a fresh clone is returned.
+
+<p>When an input stream finishes, at the next stable state any <code>MediaInput</code>s for that
+stream are automatically removed.
+
+<p>When the <code>autofinish</code> attribute is true, the HTML event loop reaches a stable state and the stream has no inputs, the stream will automatically enter the finished state and never produce any more output (even if new inputs are attached).
 
 <h3 id="mediainput">4.3 MediaInput</h3>
 
@@ -371,8 +383,10 @@ the worker (if there is one) during media processing. On getting, a fresh clone 
 
 <p>The <code>blockInput</code> and <code>blockOutput</code> attributes control
 how the blocking status of the input stream is related to the blocking status of the output stream.
-When <code>blockOutput</code> is true and the input port is enabled, if the input stream is blocked and not ended, then the output stream must be blocked. While an enabled input is blocked and the output is not blocked, the input is treated as having no tracks. When <code>blockInput</code> is true and the input port is enabled, if the output is blocked,
-then the input stream must be blocked. When false, while the output is blocked and an enabled input is not, the input will simply be discarded. These attributes are initially true.
+When <code>blockOutput</code> is true and the input port is active, if the input stream is blocked then the output stream must be blocked. While an active input is blocked and the output is not blocked, the input is treated as having no tracks. When <code>blockInput</code> is true and the input port is active, if the output is blocked,
+then the input stream must be blocked. When false, while the output is blocked and an active input is not, the input will simply be discarded. These attributes are initially true.
+
+<p class="XXX">Need to look again at these. It's not clear we have use cases for both attributes, and I haven't implemented them yet and they could be hard to implement.
 
 <p>The <code>remove(time)</code> method removes this <code>MediaInput</code> from the inputs array of its owning
 <code>ProcessedMediaStream</code> at the given time relative to the output stream (or later, if it cannot be removed in time).
@@ -381,8 +395,6 @@ the destionation stream's <code>input</code> array immediately.
 After removal, the <code>MediaInput</code> object is no longer used; its attributes retain their current values
 and do not change unless explicitly set. All method calls are ignored. Additional calls to <code>remove</code> with an earlier time
 can advance the removal time, but once removal is scheduled it cannot be stopped or delayed.
-
-<p class="XXX">Do we need to worry about authors forgetting to remove ended input streams?
 
 <h3 id="worker-processing">4.4 Worker Processing</h3>
 
@@ -419,7 +431,7 @@ For a given <code>ProcessedMediaStream</code>, the same <code>ProcessMediaEvent<
 
   void writeAudio(in Float32Array data);
 
-           attribute boolean ended;
+  void finish();
 };</pre></code>
 
 <p>The <code>inputTime</code> attribute returns the duration of the input that has been consumed by the
@@ -442,7 +454,7 @@ output audio sample buffers. <code>audioSampleRate</code> is the number of sampl
 These values are constant for a given <code>ProcessedMediaStream</code>. When the <code>ProcessedMediaStream</code>
 was constructed using the Worker constructor, these values are the values passed as parameters there. When the
 <code>ProcessedMediaStream</code> was constructed via <code>MediaStream.createProcessor</code>, the values are
-chosen to match the first enabled input stream (or 44.1KHz, 2 channels if there is no enabled input stream).
+chosen to match the first active input stream (or 44.1KHz, 2 channels if there is no active input stream).
 
 <p><code>audioLength</code> is the duration of the input(s) multiplied by the sample rate. If there are no inputs,
 the user-agent will choose a value representing the suggested amount of audio that the worker should produce.
@@ -464,7 +476,7 @@ is draining them.
 
 <p>If <code>writeAudio</code> is called outside the event handler, the call is ignored.
 
-<p>Setting the <code>ended</code> attribute to true puts the stream into the ended state (once any previously buffered output has been consumed). The event callback will not be called again until the stream is restarted. In the meantime, the stream will produce silence and no video like any other ended stream. Setting <code>ended</code> to false takes the stream out of the ended state. The event callback will be called again. The <code>ended</code> attribute can be set at any time, including outside the event handler.
+<p>Calling <code>finish()</code> puts the stream into the finished state (once any previously buffered output has been consumed). The event callback will never be called again. <code>finish()</code> can be called at any time, inside or outside the event handler.
 
 <p>The output video track is computed as if there was no worker (see above).
 
@@ -475,7 +487,6 @@ is draining them.
   readonly attribute double paramsStartTime;
 
   readonly attribute Float32Array audioSamples;
-  readonly attribute boolean ended;
 };</pre></code>
 
 <p>The <code>params</code> attribute provides a structured clone of the parameters object set by
@@ -483,8 +494,6 @@ is draining them.
 been changed by <code>setParams</code> between events. <p>The <code>paramsStartTime</code> attribute returns the first time (measured in duration of input consumed for this stream) that this <code>params</code> object was set.
 
 <p><code>audioSamples</code> gives access to the audio samples for each input stream. The array length will be <code>event.audioLength</code> multiplied by <code>event.audioChannels</code>. The samples are floats ranging from -1 to 1, laid out non-interleaved, i.e. consecutive segments of <code>audioLength</code> samples each. The durations of the input buffers for the input streams will be equal. The <code>audioSamples</code> object will be a fresh object in each event. For inputs with no audio track, <code>audioSamples</code> will be all zeroes.
-
-<p><code>ended</code> is true when this input data is silence generated for an input stream that has ended.
 
 <h2 id="built-in-processing-engine">5. Built-In Processing Engines</h2>
 
@@ -505,20 +514,15 @@ video frame is letterboxed to the size of the video frame for the last active in
 <p class="note">This means if the last input's video track is opaque, the video output is simply the video track of the last input.
 </ul>
 
-<p>A stream produced by the default processing engine is in the ended state when all enabled input streams have ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended). Thus,
-if there are no inputs, the stream will be in the ended state.
-
 <h3 id="lastinput-processing-engine">5.2. "LastInput" Processing Engine</h2>
 
-<p>A <code>ProcessedMediaStream</code> with the "LastInput" processing engine simply produces the last enabled input stream as output. If there are no enabled input streams, it produces the same output as the default processing engine.
-
-<p>A stream produced by the "LastInput" processing engine is in the ended state when there are no enabled inputs, or the last enabled input stream has ended and there is no buffered output left to consume (resampling can cause there to be buffered output even after input streams have ended).
+<p>A <code>ProcessedMediaStream</code> with the "LastInput" processing engine simply produces the last active input stream as output. If there are no active input streams, it produces the same output as the default processing engine.
 
 <h2 id="media-graph-considerations">6. Media Graph Considerations</h2>
 
 <h3 id="cycles">6.1. Cycles</h3>
 
-<p>While a <code>ProcessedMediaStream</code> has itself as a direct or indirect input stream (considering only enabled inputs), it is blocked.
+<p>While a <code>ProcessedMediaStream</code> has itself as a direct or indirect input stream (considering only active inputs), it is blocked.
 
 <h3 id="blocking">6.2. Blocking</h2>
 
@@ -628,7 +632,7 @@ document.getElementById("out").src =
 
 <li>Seamlessly chain from the end of one input stream to another 
 
-<p class="note">This method requires that you know each stream's duration, which is a bit unfortunate.
+<p class="note">This method requires that you know each stream's duration, which is a bit suboptimal.
 To get around that we'd need new API, perhaps a new kind of ProcessedMediaStream that plays streams in
 serial.
 
@@ -636,11 +640,10 @@ serial.
 &lt;audio src="in2.webm" id="in2"&gt;&lt;/audio&gt;
 &lt;script&gt;
   var in1 = document.getElementById("in1");
-  in1.onloadeddata = function() {
-    var mixer = in1.captureStream().createProcessor();
+  in1.onloadedmetadata = function() {
+    var mixer = in1.captureStreamUntilEnded().createProcessor();
     var in2 = document.getElementById("in2");
-    mixer.addInput(in2.captureStream(), in1.duration);
-    in1.onended = function() { mixer.inputs[0].remove(); };
+    mixer.addInput(in2.captureStreamUntilEnded(), in1.duration);
     (new Audio(mixer)).play();
     in1.play();
   }
@@ -672,7 +675,7 @@ add API to media elements to let them seek to synchronize with a given MediaStre
   }
 &lt;/script&gt;</pre></code>
 
-<li>Synthesize samples from JS data 
+<li>Synthesize samples from JS data
 
 <pre><code>&lt;audio id="out" autoplay&gt;&lt;/audio&gt;
 &lt;script&gt;
@@ -686,11 +689,10 @@ add API to media elements to let them seek to synchronize with a given MediaStre
   var effectsMixer = ...;
   function playSound(src) {
     var audio = new Audio(src);
-    audio.oncanplaythrough = new function() {
-      var stream = audio.captureStream();
+    audio.oncanplaythrough = function() {
+      var stream = audio.captureStreamUntilEnded();
       var port = effectsMixer.addInput(stream);
       port.blockOutput = false;
-      stream.onended = function() { port.remove(); }
       audio.play();
     }
   }
@@ -702,11 +704,10 @@ add API to media elements to let them seek to synchronize with a given MediaStre
   var effectsMixer = ...;
   var audio = new Audio(...);
   function triggerSound() {
-    var audio = new Audio(...);
-    var stream = audio.captureStream();
-    audio.play();
-    var port = effectsMixer.addInput(stream, effectsMixer.currentTime + 5);
-    stream.onended = function() { port.remove(); }
+    var sound = audio.clone();
+    var stream = sound.captureStreamUntilEnded();
+    sound.play();
+    effectsMixer.addInput(stream, effectsMixer.currentTime + 5);
   }
 &lt;/script&gt;</pre></code>
 

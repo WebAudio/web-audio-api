@@ -128,6 +128,9 @@ In this spec, references to <code>MediaStream</code>s and <code>MediaInput</code
 <p>A stream can be in the <em>finished</em> state. A finished stream is always blocked and can
 never leave the finished state --- it will never produce any more content.
 
+<p>A stream that has no consumers must block. Stream consumers defined in this specification are media elements and <code>ProcessedMediaStream</code>s (see below). This avoids situations where streams that aren't connected
+to anything and could be garbage-collected have to be kept running because their stopping could possibly be observed (e.g. because a Worker is being used to generate data for the stream and the Worker can observe whether the <code>ProcessMediaEvent</code> is being sent). A muted audio element can be used as a dummy sink if necessary.
+
 <div class="note">
 <p>We do not allow streams to have independent timelines (e.g. no adjustable playback
 rate or seeking within an arbitrary stream), because that can lead to a single stream being
@@ -250,7 +253,7 @@ This sets the initial <code>src</code> to the stream.
 
 <pre><code>[NamedConstructor=Audio(MediaStream src)]
 partial interface HTMLAudioElement {
-}</pre>
+}</code></pre>
 
 <h2 id="stream-mixing-and-processing">4. Stream Mixing And Processing</h2>
 
@@ -283,7 +286,7 @@ interface ProcessedMediaStream : MediaStream {
   attribute any params;
   void setParams(in any params, in optional double startTime);
 
-  attribute boolean autofinish;
+  readonly attribute boolean autofinish;
 };</pre></code>
 
 <p>The constructors create a new <code>ProcessedMediaStream</code> with no inputs.
@@ -339,7 +342,7 @@ the worker (if there is one) during media processing. On getting, a fresh clone 
 <p>When an input stream finishes, at the next stable state any <code>MediaInput</code>s for that
 stream are automatically removed.
 
-<p>When the <code>autofinish</code> attribute is true, the HTML event loop reaches a stable state and the stream has no inputs, the stream will automatically enter the finished state and never produce any more output (even if new inputs are attached).
+<p>When the <code>autofinish</code> attribute is true, then when all stream inputs are finished (including if there are no inputs), the stream will automatically enter the finished state and never produce any more output (even if new inputs are attached).
 
 <h3 id="mediainput">4.3 MediaInput</h3>
 

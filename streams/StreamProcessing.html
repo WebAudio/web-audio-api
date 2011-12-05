@@ -212,7 +212,7 @@ mechanism for the stream.
  
   MediaStream captureStream();
   MediaStream captureStreamUntilEnded();
-  attribute boolean captureAudio;
+  readonly attribute boolean audioCaptured;
 
   attribute any src;
 };</pre></code>
@@ -228,15 +228,20 @@ with the above. I think that part of the HTML media spec should be changed so th
 going to play fire <code>playing</code>.
 
 <p>The <code>captureStream()</code> method returns a new <code>MediaStream</code> that plays the same audio and video as <code>stream</code>.
-<code>captureStream()</code> sets the <code>captureAudio</code> attribute to true.
+<code>captureStream()</code> sets the <code>audioCaptured</code> attribute to true.
 
 <p>The <code>captureStreamUntilEnded()</code> method returns a new <code>MediaStream</code> that plays the same audio and video as <code>stream</code>, until the element next reaches
 the "ended playback" state, at which point this stream will enter the finished state.
-<code>captureStreamUntilEnded()</code> sets the <code>captureAudio</code> attribute to true.
+<code>captureStreamUntilEnded()</code> sets the <code>audioCaptured</code> attribute to true.
 
-<p>While the <code>captureAudio</code> attribute is true, the element does not produce direct audio output.
+<p>While the media element is playing a resource whose origin is not the same as the media element itself, <code>MediaStream</code>s for the element do not play the content; they block.
+
+<p class="note">This prevents leaking of media contents to scripts in the page. In the future we could relax this and allow the streams to play as long as there's no scripted processing of the data downstream,
+but that's trickier.
+
+<p>While the <code>audioCaptured</code> attribute is true, the element does not produce direct audio output.
 Audio output is still sent to <code>stream</code> and the resource stream. This attribute is NOT reflected into the DOM. It
-is initially false.
+is initially false. It's readonly to script and nothing ever sets it to true.
 
 <p>The <code>src</code> attribute is extended to allow it to be set to a <code>MediaStream</code>. The element
 will play the contents of the given stream. This is treated as a live stream; seeking and <code>playbackRate</code>

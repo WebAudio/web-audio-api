@@ -286,7 +286,7 @@ combine them into a single output stream.
  Constructor(in Worker worker, in optional long audioSampleRate, in optional short audioChannels)]
 interface ProcessedMediaStream : MediaStream {
   readonly attribute MediaInput[] inputs;
-  MediaInput addInput(in MediaStream input, in optional double outputStartTime, in optional double inputStartTime);
+  MediaInput addInput(in MediaStream inputStream, in optional double outputStartTime, in optional double inputStartTime);
 
   attribute any params;
   void setParams(in any params, in optional double startTime);
@@ -308,9 +308,11 @@ each stream currently configured as an input to the <code>ProcessedMediaStream</
 initially empty if constructed via the <code>ProcessedMediaStream()</code> constructor, or
 contains a single element if constructed via <code>MediaStream.createProcessor</code>.
 
-<p>The <code>addInput(input, outputStartTime, inputStartTime)</code> method adds a new <code>MediaInput</code> to the end of the
-<code>inputs</code> array, whose input stream is <code>input</code>. The <code>outputStartTime</code>
-and <code>inputStartTime</code> attributes control when an input port is enabled and helps
+<p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and the input stream is not finished.
+
+<p>The <code>addInput(inputStream, outputStartTime, inputStartTime)</code> method adds a new <code>MediaInput</code> to the end of the
+<code>inputs</code> array, whose input stream is <code>inputStream</code>. The <code>outputStartTime</code>
+and <code>inputStartTime</code> parameters control when an input port is enabled and helps
 synchronize inputs with outputs. The input port is enabled when the input stream's current time is
 <code>inputStartTime</code> and the output stream's current time is <code>outputStartTime</code>.
 
@@ -339,8 +341,6 @@ graph configuration that will continually block until it is modified. For exampl
   p.addInput(inputStream, 5);</pre></code>
 In this example, <code>inputStream</code> is used as an input to <code>p</code> twice. <code>inputStream</code> must block until <code>p</code> has played 5s of output, but also <code>p</code> cannot play anything until <code>inputStream</code> unblocks. It seems hard to design an API that's hard to deadlock; even creating a cycle will cause deadlock.</div>
 
-<p>A <code>MediaInput</code> represents an input port. An input port is <em>active</em> while it is enabled (see below) and the input stream is not finished.
-
 <p>The <code>params</code> attribute and the <code>setParams(params, startTime)</code> timed setter method set the paramters for this stream. On setting, a <em>structured clone</em> of this object is made. The clone is sent to
 the worker (if there is one) during media processing. On getting, a fresh clone is returned.
 
@@ -355,6 +355,8 @@ stream are automatically removed.
 
 <pre><code>interface MediaInput {
   readonly attribute MediaStream stream;
+
+  MediaInput addFollowing(MediaStream inputStream);
 
   attribute double volume;
   void setVolume(in double volume, in optional double startTime, in optional double fadeTime);
@@ -371,6 +373,20 @@ stream are automatically removed.
 <p>The <code>stream</code> attribute returns the <code>MediaStream</code> connected to this input.
 The input stream is treated as having at most one audio and/or video track; all enabled audio tracks are mixed
 together and the rest are dropped, and all video tracks other than the selected video track are dropped.
+
+<p>The <code>addFollowing(inputStream)</code> method adds a new <code>MediaInput</code> to
+the end of the <code>inputs</code> array for the <code>ProcessedMediaStream</code> this <code>MediaInput</code>
+belongs to. The new <code>MediaInput</code>'s input stream is <code>inputStream</code>. The new input port is enabled when
+this input port's audio tracks all end, or the this input port is removed. Implementations should extrapolate and
+blend the ends of audio tracks if necessary to ensure a seamless transition between streams.
+
+<p class="note">Sequencing media resources using media element durations is possible, e.g.
+<code>processor.addInput(video1.captureStreamUntilEnded());
+processor.addInput(video2.captureStreamUntilEnded(),video1.duration);</code>.
+However, media element durations may not be perfectly reliable due to limitations of resource formats or
+commonly-used encoders. For example, WebM resources often have a slight mismatch between the number of audio samples
+and the duration metadata. For other resources, such as live streaming sources, the duration may not
+be knowable in advance. Thus, using the duration is often unreliable and additional API is warranted.
 
 <p class="todo">Add additional API to select particular tracks.
 

@@ -1251,14 +1251,11 @@
     <h2>4.12. The JavaScriptAudioNode Interface</h2> 
     <p> 
       This interface is an AudioNode which can generate, process, or analyse audio directly using JavaScript.
-      It can have a variable number of inputs and outputs, although it must have at least one input or output.
-      A basic implementation may choose not to support more than one input or output.
     </p>
     
     <pre>
-    numberOfInputs  : N >= 0
-    numberOfOutputs : M >= 0
-    (either N or M must be greater than zero)
+    numberOfInputs  : 1
+    numberOfOutputs : 1
     </pre>
 
     <p>
@@ -1270,12 +1267,12 @@
 </p>
 
 <p>
-    <code>numberOfInputs</code> and <code>numberOfOutputs</code> determine the number of inputs and number of outputs.  It is invalid for both 
-    <code>numberOfInputs</code> and <code>numberOfOutputs</code> to be zero.
+    <code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> determine the number of input and output channels.  It is invalid for both 
+    <code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> to be zero.
     </p>
     
     <pre>
-    var node = context.createJavaScriptNode(bufferSize, numberOfInputs, numberOfOutputs);
+    var node = context.createJavaScriptNode(bufferSize, numberOfInputChannels, numberOfOutputChannels);
     </pre>
     
     <div class="block"><div class="blockTitleDiv"><span class="blockTitle">IDL</span></div><div class="blockContent"><pre class="code"><code class="idl-code"> 
@@ -1312,7 +1309,7 @@
     </p>
     
 		<p>
-			The event handler processes audio from the inputs (if any) by accessing the audio data from the <code>inputBuffer</code> attribute.
+			The event handler processes audio from the input (if any) by accessing the audio data from the <code>inputBuffer</code> attribute.
 			The audio data which is the result of the processing (or the synthesized data if there are no inputs) is then placed into the 
 			<code>outputBuffer</code>.
 		</p>
@@ -1323,8 +1320,8 @@
 
         JavaScriptAudioNode node;
         readonly attribute float playbackTime;
-        readonly attribute sequence< AudioBuffer> inputBuffer;
-        readonly attribute sequence< AudioBuffer> outputBuffer; 
+        readonly attribute AudioBuffer inputBuffer;
+        readonly attribute AudioBuffer outputBuffer; 
 
     }
     </code></pre></div></div> 
@@ -1341,10 +1338,8 @@
         </p></dd></dl> 
 
 
-    <dl><dt id="dfn-inputBuffer"><code>inputBuffer</code></dt><dd><p>An array of AudioBuffers (one per input) containing the input audio data.
-    The length of this array is equal to the number of inputs of the associated <code>JavaScriptAudioNode</code>.  </p></dd></dl> 
-    <dl><dt id="dfn-outputBuffer"><code>outputBuffer</code></dt><dd><p>An array of AudioBuffers (one per output) where the output audio data should be written.
-    The length of this array is equal to the number of outputs of the associated <code>JavaScriptAudioNode</code>. </p></dd></dl> 
+    <dl><dt id="dfn-inputBuffer"><code>inputBuffer</code></dt><dd><p>An AudioBuffer containing the input audio data.  </p></dd></dl> 
+    <dl><dt id="dfn-outputBuffer"><code>outputBuffer</code></dt><dd><p>An AudioBuffer where the output audio data should be written. </p></dd></dl> 
     </div> 
 
   </div> 
@@ -1373,6 +1368,11 @@
         const unsigned short EQUALPOWER = 0;
         const unsigned short HRTF = 1;
         const unsigned short SOUNDFIELD = 2;
+        
+        <span class="comment">// Distance model </span>
+        const unsigned short LINEAR_DISTANCE = 0;
+        const unsigned short INVERSE_DISTANCE = 1;
+        const unsigned short EXPONENTIAL_DISTANCE = 2;
 
         <span class="comment">// Default for stereo is HRTF </span>
         attribute unsigned short panningModel;
@@ -1411,8 +1411,11 @@
   This panning method renders stereo output. </p></dd></dl> 
   <dl><dt id="dfn-SOUNDFIELD"><code>SOUNDFIELD</code></dt><dd><p>An algorithm which spatializes multi-channel audio using sound field algorithms. </p></dd></dl> 
 
-  </div> 
+  <dl><dt id="dfn-LINEAR_DISTANCE"><code>LINEAR_DISTANCE</code></dt><dd><p>A linear distance model as defined in the OpenAL specification. </p></dd></dl> 
+  <dl><dt id="dfn-INVERSE_DISTANCE"><code>INVERSE_DISTANCE</code></dt><dd><p>An inverse distance model as defined in the OpenAL specification. </p></dd></dl> 
+  <dl><dt id="dfn-EXPONENTIAL_DISTANCE"><code>EXPONENTIAL_DISTANCE</code></dt><dd><p>An exponential distance model as defined in the OpenAL specification. </p></dd></dl> 
 
+  </div> 
 
 
   <div id="attributes-AudioPannerNode" class="section"> 
@@ -1563,6 +1566,7 @@
 
         <span class="comment">// Contains the (possibly multi-channel) impulse response </span>
         attribute AudioBuffer buffer;
+        attribute boolean normalize;
 
         // attribute ImpulseResponse response;
 
@@ -1576,6 +1580,10 @@
   <div id="attributes-ConvolverNode" class="section"> 
   <h3>4.16.1. Attributes</h3> 
   <dl><dt id="dfn-buffer"><code>buffer</code></dt><dd><p>A mono or multi-channel audio buffer containing the impulse response used by the convolver. </p></dd></dl> 
+
+  <dl><dt id="dfn-normalize"><code>normalize</code></dt><dd><p>Controls whether the impulse response from the buffer will be scaled by an equal-power normalization when
+  the <code>buffer</code> atttribute is set.  Its default value is <code>true</code> in order to achieve a more uniform output level from the convolver when loaded
+  with diverse impulse responses.  If <code>normalize</code> is set to <code>false</code>, then the convolution will be rendered with no pre-processing/scaling of the impulse response. </p></dd></dl> 
 
   </div> 
 
@@ -1823,6 +1831,10 @@
         readonly attribute AudioParam Q; // Quality factor
         readonly attribute AudioParam gain; // in Decibels
 
+        void getFrequencyResponse(in Float32Array frequencyHz,
+                                  in Float32Array magResponse,
+                                  in Float32Array phaseResponse);
+
     }
     </code></pre></div></div> 
 
@@ -1985,6 +1997,18 @@
       </dl>				    
     </blockquote>
 
+
+    <h3>4.21.9. Methods</h3> 
+    <dl><dt id="dfn-getFrequencyResponse">The <code>getFrequencyResponse</code> method</dt> 
+    <dd>
+    <p>Given the current filter parameter settings, calculates the frequency response for the specified frequencies.
+      .         
+    </p> 
+    <p>The <dfn id="dfn-frequencyHz">frequencyHz</dfn> parameter specifies an array of frequencies at which the response values will be calculated.</p> 
+    <p>The <dfn id="dfn-magResponse">magResponse</dfn> parameter specifies an output array receiving the linear magnitude response values.</p> 
+    <p>The <dfn id="dfn-phaseResponse">phaseResponse</dfn> parameter specifies an output array receiving the phase response values in radians.</p> 
+    </dd>
+
   </div>
 			  
   <div id="WaveShaperNode-section" class="section"> 
@@ -2037,7 +2061,7 @@
     <h2>5. Integration with the <code>audio</code> and <code>video</code> elements</h2> 
 
 <p>
-A <a href="#MediaElementAudioSourceNode-section"><code>MediaElementAudioSourceNode</code></a> can be "adopted" from an HTMLMediaElement using an AudioContext method.
+A <a href="#MediaElementAudioSourceNode-section"><code>MediaElementAudioSourceNode</code></a> can be created from an HTMLMediaElement using an AudioContext method.
 <br><br>
 
 <div class="block"><div class="blockTitleDiv"><span class="blockTitle">ECMAScript</span></div><div class="blockContent"><pre class="code"><code class="es-code"> 
@@ -2349,13 +2373,13 @@ function setupRoutingGraph() {
 <pre>
 Mono up-mix:
     
-    1 -> 2 : equal-power up-mix from mono to stereo
-        output.L = 0.707 * input;
-        output.R = 0.707 * input;
+    1 -> 2 : up-mix from mono to stereo
+        output.L = input;
+        output.R = input;
 
-    1 -> 4 : equal-power up-mix from mono to quad
-        output.L = 0.707 * input;
-        output.R = 0.707 * input;
+    1 -> 4 : up-mix from mono to quad
+        output.L = input;
+        output.R = input;
         output.SL = 0;
         output.SR = 0;
 
@@ -2424,10 +2448,6 @@ Stereo down-mix:
         ???
 
 </pre>
-
-
-
-
 
 
   </div>

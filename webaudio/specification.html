@@ -600,7 +600,7 @@
             JavaScriptAudioNode createJavaScriptNode(in short bufferSize, in short numberOfInputs, in short numberOfOutputs);
             RealtimeAnalyserNode createAnalyser();
             AudioGainNode createGainNode();
-            DelayNode createDelayNode();
+            DelayNode createDelayNode(in [Optional] double maxDelayTime);
             BiquadFilterNode createBiquadFilter();
             AudioPannerNode createPanner();
             ConvolverNode createConvolver();
@@ -707,7 +707,14 @@
 
         <dl><dt id="dfn-createDelayNode">The <code>createDelayNode</code> method</dt> 
         <dd>
-        <p>Creates a <a href="#DelayNode-section"><code>DelayNode</code></a> representing a variable delay line.  The initial default delay time will be 0 seconds.</p> 
+        <p>Creates a <a href="#DelayNode-section"><code>DelayNode</code></a> representing a variable delay line.
+          The initial default delay time will be 0 seconds.</p>        
+        <p>
+        The <dfn id="dfn-maxDelayTime">maxDelayTime</dfn> parameter is optional and
+        specifies the maximum delay time allowed for the delay line.  If not specified, the maximum
+        delay time defaults to 1 second.
+        </p>
+          
         </dd>
 
         <dl><dt id="dfn-createBiquadFilter">The <code>createBiquadFilter</code> method</dt> 
@@ -1101,7 +1108,7 @@
         attribute AudioGain gain;
         
         readonly attribute float sampleRate;
-        readonly attribute float length;
+        readonly attribute long length;
 
         <span class="comment">// in seconds </span>         
         readonly attribute float duration;  
@@ -1145,7 +1152,13 @@
     <h2>4.10. The AudioBufferSourceNode Interface</h2> 
     <p> 
       This interface represents an audio source from an in-memory audio asset in an <code>AudioBuffer</code>.  It generally will be used for short audio assets 
-      which require a high degree of scheduling flexibility (can playback in rhythmically perfect ways).      
+      which require a high degree of scheduling flexibility (can playback in rhythmically perfect ways).  The playback state of an AudioBufferSourceNode
+      goes through distinct stages during its lifetime in this order: UNSCHEDULED, SCHEDULED, PLAYING, FINISHED.  The noteOn() method causes a transition from
+      the UNSCHEDULED to SCHEDULED state.  Depending on the time argument passed to noteOn(), a transition is made from the SCHEDULED to PLAYING state, at which
+      time sound is first generated.  Following this, a transition from the PLAYING to FINISHED state happens when either the buffer's audio data has been completely played
+      (if the <code>loop</code> attribute is false), or when the noteOff() method has been called and the specified time has been reached.  Please see more details in the noteOn() and noteOff() description.  Once an
+      AudioBufferSourceNode has reached the FINISHED state it will no longer emit any sound.  Thus noteOn() and noteOff() may not be issued multiple times for a given
+      AudioBufferSourceNode.
     </p>
     
     <pre>
@@ -1165,9 +1178,9 @@
         attribute AudioParam playbackRate; 
         attribute boolean loop;
 
-        void noteOn(in float when);
-        void noteGrainOn(in float when, in float grainOffset, in float grainDuration);
-        void noteOff(in float when);
+        void noteOn(in double when);
+        void noteGrainOn(in double when, in double grainOffset, in double grainDuration);
+        void noteOff(in double when);
 
     }
     </code></pre></div></div>

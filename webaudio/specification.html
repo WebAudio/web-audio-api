@@ -697,9 +697,13 @@ constructed as follows: </p>
             readonly attribute float sampleRate;
             readonly attribute float currentTime;
             readonly attribute AudioListener listener;
+            readonly attribute unsigned long activeSourceCount;
 
-            AudioBuffer createBuffer(in unsigned long numberOfChannels, in unsigned long length, in float sampleRate);
-            AudioBuffer createBuffer(in ArrayBuffer buffer, in boolean mixToMono);
+            AudioBuffer createBuffer(in unsigned long numberOfChannels, in unsigned long length, in float sampleRate)
+                raises(DOMException);
+
+            AudioBuffer createBuffer(in ArrayBuffer buffer, in boolean mixToMono)
+                raises(DOMException);
             
             void decodeAudioData(in ArrayBuffer audioData,
                                  in [Callback] AudioBufferCallback successCallback,
@@ -709,15 +713,28 @@ constructed as follows: </p>
 
             <span class="comment">// AudioNode creation </span>         
             AudioBufferSourceNode createBufferSource();
-            JavaScriptAudioNode createJavaScriptNode(in short bufferSize, in short numberOfInputs, in short numberOfOutputs);
+
+            MediaElementAudioSourceNode createMediaElementSource(in HTMLMediaElement mediaElement)
+                raises(DOMException);
+
+            JavaScriptAudioNode createJavaScriptNode(in unsigned long bufferSize,
+                                                     in [Optional] unsigned long numberOfInputChannels,
+                                                     in [Optional] unsigned long numberOfOutputChannels)
+                raises(DOMException);
+
             RealtimeAnalyserNode createAnalyser();
             AudioGainNode createGainNode();
             DelayNode createDelayNode(in [Optional] double maxDelayTime);
             BiquadFilterNode createBiquadFilter();
             AudioPannerNode createPanner();
             ConvolverNode createConvolver();
-            AudioChannelSplitter createChannelSplitter();
-            AudioChannelMerger createChannelMerger();
+
+            AudioChannelSplitter createChannelSplitter(in [Optional] unsigned long numberOfOutputs)
+                raises(DOMException);
+
+            AudioChannelMerger createChannelMerger(in [Optional] unsigned long numberOfInputs);
+                raises(DOMException);
+
             DynamicsCompressorNode createDynamicsCompressor();
 
         }
@@ -762,6 +779,12 @@ constructed as follows: </p>
       href="#Spatialization-section">spatialization</a>.</p>
     </dd>
 </dl>
+<dl>
+  <dt id="dfn-activeSourceCount"><code>activeSourceCount</code></dt>
+    <dd><p>The number of <a
+      href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNodes</code></a> that are currently playing.</p>
+    </dd>
+</dl>
 </div>
 
 <div id="methodsandparams-AudioContext-section" class="section">
@@ -769,14 +792,15 @@ constructed as follows: </p>
 <dl>
   <dt id="dfn-createBuffer">The <code>createBuffer</code> method</dt>
     <dd><p>Creates an AudioBuffer of the given size. The audio data in the
-      buffer will be zero-initialized (silent).</p>
+      buffer will be zero-initialized (silent).  An exception will be thrown if
+      the <code>numberOfChannels</code> or <code>sampleRate</code> are out-of-bounds.</p>
       <p>The <dfn id="dfn-numberOfChannels">numberOfChannels</dfn> parameter
-      determines how many channels the buffer will have. </p>
+      determines how many channels the buffer will have.  An implementation must support at least 32 channels. </p>
       <p>The <dfn id="dfn-length">length</dfn> parameter determines the size of
       the buffer in sample-frames. </p>
       <p>The <dfn id="dfn-sampleRate_2">sampleRate</dfn> parameter describes
       the sample-rate of the linear PCM audio data in the buffer in
-      sample-frames per second. </p>
+      sample-frames per second.  An implementation must support sample-rates in at least the range 22050 to 96000.</p>
     </dd>
 </dl>
 <dl>
@@ -821,11 +845,21 @@ constructed as follows: </p>
     </dd>
 </dl>
 <dl>
+  <dt id="dfn-createMediaElementSource">The <code>createMediaElementSource</code>
+  method</dt>
+    <dd><p>Creates a <a
+      href="#MediaElementAudioSourceNode-section"><code>MediaElementAudioSourceNode</code></a> given an HTMLMediaElement.
+      As a consequence of calling this method, audio playback from the HTMLMediaElement will be re-routed
+      into the processing graph of the AudioContext.</p>
+    </dd>
+</dl>
+<dl>
   <dt id="dfn-createJavaScriptNode">The <code>createJavaScriptNode</code>
   method</dt>
     <dd><p>Creates a <a
       href="#JavaScriptAudioNode"><code>JavaScriptAudioNode</code></a> for
-      direct audio processing using JavaScript.</p>
+      direct audio processing using JavaScript.  An exception will be thrown if <code>bufferSize</code> or <code>numberOfInputChannels</code> or <code>numberOfOutputChannels</code>
+      are outside the valid range. </p>
       <p>The <dfn id="dfn-bufferSize">bufferSize</dfn> parameter determines the
       buffer size in units of sample-frames. It must be one of the following
       values: 256, 512, 1024, 2048, 4096, 8192, 16384. This value controls how
@@ -836,12 +870,12 @@ constructed as follows: </p>
       avoid audio breakup and <a href="#Glitching-section">glitches</a>. The
       value chosen must carefully balance between latency and audio quality.
       </p>
-      <p>The <dfn id="dfn-numberOfInputs">numberOfInputs</dfn> parameter
-      determines the number of inputs. </p>
-      <p>The <dfn id="dfn-numberOfOutputs">numberOfOutputs</dfn> parameter
-      determines the number of outputs. </p>
-      <p>It is invalid for both <code>numberOfInputs</code> and
-      <code>numberOfOutputs</code> to be zero. </p>
+      <p>The <dfn id="dfn-numberOfInputChannels">numberOfInputChannels</dfn> parameter
+      determines the number of channels for this node's input.  Values of up to 32 must be supported. </p>
+      <p>The <dfn id="dfn-numberOfOutputChannels">numberOfOutputChannels</dfn> parameter
+      determines the number of output channels for this node's output.  Values of up to 32 must be supported.</p>
+      <p>It is invalid for both <code>numberOfInputChannels</code> and
+      <code>numberOfOutputChannels</code> to be zero. </p>
     </dd>
 </dl>
 <dl>
@@ -892,7 +926,9 @@ constructed as follows: </p>
   method</dt>
     <dd><p>Creates an <a
       href="#AudioChannelSplitter-section"><code>AudioChannelSplitter</code></a>
-      representing a channel splitter.</p>
+      representing a channel splitter.  An exception will be thrown for invalid parameter values.</p>
+      <p>The <dfn id="dfn-numberOfOutputs">numberOfOutputs</dfn> parameter
+      determines the number of outputs.  Values of up to 32 must be supported.  If not specified, then 6 will be used. </p>
     </dd>
 </dl>
 <dl>
@@ -900,7 +936,9 @@ constructed as follows: </p>
   method</dt>
     <dd><p>Creates an <a
       href="#AudioChannelMerger-section"><code>AudioChannelMerger</code></a>
-      representing a channel merger.</p>
+      representing a channel merger.  An exception will be thrown for invalid parameter values.</p>
+      <p>The <dfn id="dfn-numberOfInputs">numberOfInputs</dfn> parameter
+      determines the number of inputs.  Values of up to 32 must be supported.  If not specified, then 6 will be used. </p>
     </dd>
 </dl>
 <dl>
@@ -1127,19 +1165,19 @@ set on any AudioParam. </p>
   <dt id="dfn-value"><code>value</code></dt>
     <dd><p>The parameter's floating-point value. If a value is set outside the
       allowable range described by <code>minValue</code> and
-      <code>maxValue</code> an exception is thrown. </p>
+      <code>maxValue</code> no exception is thrown, because these limits are just nominal and may be
+      exceeded. </p>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-minValue"><code>minValue</code></dt>
-    <dd><p>Minimum value. The <code>value</code> attribute must not be set
+    <dd><p>Nominal minimum value. The <code>value</code> attribute may be set
       lower than this value.</p>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-maxValue"><code>maxValue</code></dt>
-    <dd><p>Maximum value. The <code>value</code> attribute must be set lower
-      than this value. </p>
+    <dd><p>Nominal maximum value. The <code>value</code> attribute may be set higher than this value. </p>
     </dd>
 </dl>
 <dl>
@@ -1248,8 +1286,8 @@ set on any AudioParam. </p>
 
 <p>This interface is a particular type of <code>AudioParam</code> which
 specifically controls the gain (volume) of some aspect of the audio processing.
-The unit type is "linear gain". The <code>minValue</code> is 0.0, and although
-the nominal <code>maxValue</code> is 1.0, higher values are allowed (no
+The unit type is "linear gain". The nominal <code>minValue</code> is 0, but may be
+set negative for phase inversion.  The nominal <code>maxValue</code> is 1, but higher values are allowed (no
 exception thrown). </p>
 
 <div class="block">
@@ -1279,7 +1317,7 @@ output: </p>
     </pre>
 
 <p>which changes the gain of (scales) the incoming audio signal by a certain
-amount. The default amount is 1.0 (no gain change). The
+amount. The default amount is 1 (no gain change). The
 <code>AudioGainNode</code> is one of the building blocks for creating <a
 href="#MixerGainStructure-section">mixers</a>. The implementation must make
 gain changes to the audio stream smoothly, without introducing noticeable
@@ -1307,7 +1345,7 @@ clicks or glitches. This process is called "de-zippering". </p>
 <dl>
   <dt id="dfn-gain"><code>gain</code></dt>
     <dd><p>An AudioGain object representing the amount of gain to apply. The
-      default value (<code>gain.value</code>) is 1.0 (no gain change). See <a
+      default value (<code>gain.value</code>) is 1 (no gain change). See <a
       href="#AudioGain-section"><code>AudioGain</code></a> for more
       information. </p>
     </dd>
@@ -1325,7 +1363,7 @@ interface is an AudioNode with a single input and single output: </p>
     </pre>
 
 <p>which delays the incoming audio signal by a certain amount. The default
-amount is 0.0 seconds (no delay). When the delay time is changed, the
+amount is 0 seconds (no delay). When the delay time is changed, the
 implementation must make the transition smoothly, without introducing
 noticeable clicks or glitches to the audio stream. </p>
 
@@ -1351,8 +1389,8 @@ noticeable clicks or glitches to the audio stream. </p>
 <dl>
   <dt id="dfn-delayTime_2"><code>delayTime</code></dt>
     <dd><p>An AudioParam object representing the amount of delay (in seconds)
-      to apply. The default value (<code>delayTime.value</code>) is 0.0 (no
-      delay). The minimum value is 0.0 and the maximum value is currently 1.0
+      to apply. The default value (<code>delayTime.value</code>) is 0 (no
+      delay). The minimum value is 0 and the maximum value is currently 1
       (but this is arbitrary and could be increased).</p>
     </dd>
 </dl>
@@ -1364,7 +1402,7 @@ noticeable clicks or glitches to the audio stream. </p>
 
 <p>This interface represents a memory-resident audio asset (for one-shot sounds
 and other short audio clips). Its format is non-interleaved linear PCM with a
-nominal range of -1.0 -&gt; +1.0. It can contain one or more channels. It is
+nominal range of -1 -&gt; +1. It can contain one or more channels. It is
 analogous to a WebGL texture. Typically, it would be expected that the length
 of the PCM data would be fairly short (usually somewhat less than a minute).
 For longer sounds, such as music soundtracks, streaming should be used with the
@@ -1380,9 +1418,6 @@ For longer sounds, such as music soundtracks, streaming should be used with the
 
     interface <dfn id="dfn-AudioBuffer">AudioBuffer</dfn> {
 
-        <span class="comment">// linear gain (default 1.0) </span>         
-        attribute AudioGain gain;
-        
         readonly attribute float sampleRate;
         readonly attribute long length;
 
@@ -1400,12 +1435,6 @@ For longer sounds, such as music soundtracks, streaming should be used with the
 
 <div id="attributes-AudioBuffer-section" class="section">
 <h3 id="attributes-AudioBuffer">4.9.1. Attributes</h3>
-<dl>
-  <dt id="dfn-gain_AudioBuffer"><code>gain</code></dt>
-    <dd><p>The amount of gain to apply when using this buffer in any
-      <code>AudioBufferSourceNode</code>. The default value is 1.0. </p>
-    </dd>
-</dl>
 <dl>
   <dt id="dfn-sampleRate_AudioBuffer"><code>sampleRate</code></dt>
     <dd><p>The sample-rate for the PCM audio data in samples per second.</p>
@@ -1447,12 +1476,12 @@ For longer sounds, such as music soundtracks, streaming should be used with the
 an <code>AudioBuffer</code>. It generally will be used for short audio assets
 which require a high degree of scheduling flexibility (can playback in
 rhythmically perfect ways). The playback state of an AudioBufferSourceNode goes
-through distinct stages during its lifetime in this order: UNSCHEDULED,
-SCHEDULED, PLAYING, FINISHED. The noteOn() method causes a transition from the
-UNSCHEDULED to SCHEDULED state. Depending on the time argument passed to
-noteOn(), a transition is made from the SCHEDULED to PLAYING state, at which
-time sound is first generated. Following this, a transition from the PLAYING to
-FINISHED state happens when either the buffer's audio data has been completely
+through distinct stages during its lifetime in this order: UNSCHEDULED_STATE,
+SCHEDULED_STATE, PLAYING_STATE, FINISHED_STATE. The noteOn() method causes a transition from the
+UNSCHEDULED_STATE to SCHEDULED_STATE. Depending on the time argument passed to
+noteOn(), a transition is made from the SCHEDULED_STATE to PLAYING_STATE, at which
+time sound is first generated. Following this, a transition from the PLAYING_STATE to
+FINISHED_STATE happens when either the buffer's audio data has been completely
 played (if the <code>loop</code> attribute is false), or when the noteOff()
 method has been called and the specified time has been reached. Please see more
 details in the noteOn() and noteOff() description. Once an
@@ -1473,11 +1502,17 @@ AudioBufferSourceNode. </p>
 
     interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : AudioSourceNode {
 
+        const unsigned short UNSCHEDULED_STATE = 0;
+        const unsigned short SCHEDULED_STATE = 1;
+        const unsigned short PLAYING_STATE = 2;
+        const unsigned short FINISHED_STATE = 3;
+
+        readonly attribute unsigned short playbackState;
+
         <span class="comment">// Playback this in-memory audio asset  </span>   
         <span class="comment">// Many sources can share the same buffer  </span>   
         attribute AudioBuffer buffer;
 
-        readonly attribute AudioGain gain;
         attribute AudioParam playbackRate; 
         attribute boolean loop;
 
@@ -1493,20 +1528,19 @@ AudioBufferSourceNode. </p>
 <div id="attributes-AudioBufferSourceNode-section" class="section">
 <h3 id="attributes-AudioBufferSourceNode">4.10.1. Attributes</h3>
 <dl>
+  <dt id="dfn-playbackState_AudioBufferSourceNode"><code>playbackState</code></dt>
+    <dd><p>The playback state, initialized to UNSCHEDULED_STATE. </p>
+    </dd>
+</dl>
+<dl>
   <dt id="dfn-buffer_AudioBufferSourceNode"><code>buffer</code></dt>
     <dd><p>Represents the audio asset to be played. </p>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-gain_AudioBufferSourceNode"><code>gain</code></dt>
-    <dd><p>The default gain at which to play back the buffer. The default
-      gain.value is 1.0. </p>
-    </dd>
-</dl>
-<dl>
   <dt id="dfn-playbackRate_AudioBufferSourceNode"><code>playbackRate</code></dt>
     <dd><p>The speed at which to render the audio stream. The default
-      playbackRate.value is 1.0. </p>
+      playbackRate.value is 1. </p>
     </dd>
 </dl>
 <dl>
@@ -1698,12 +1732,14 @@ is then placed into the <code>outputBuffer</code>. </p>
 </dl>
 <dl>
   <dt id="dfn-inputBuffer"><code>inputBuffer</code></dt>
-    <dd><p>An AudioBuffer containing the input audio data. </p>
+    <dd><p>An AudioBuffer containing the input audio data.  It will have a number of channels equal to the <code>numberOfInputChannels</code> parameter
+    of the createJavaScriptNode() method. </p>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-outputBuffer"><code>outputBuffer</code></dt>
-    <dd><p>An AudioBuffer where the output audio data should be written. </p>
+    <dd><p>An AudioBuffer where the output audio data should be written.  It will have a number of channels equal to the
+    <code>numberOfOutputChannels</code> parameter of the createJavaScriptNode() method. </p>
     </dd>
 </dl>
 </div>
@@ -1923,10 +1959,7 @@ spatialization. </p>
 
     interface <dfn id="dfn-AudioListener">AudioListener</dfn> {
 
-        <span class="comment">// linear gain (default 1.0) </span>         
-        attribute float gain;
-
-        <span class="comment">// same as OpenAL (default 1.0) </span>         
+        <span class="comment">// same as OpenAL (default 1) </span>         
         attribute float dopplerFactor;
 
         <span class="comment">// in meters / second (default 343.3) </span>         
@@ -1945,13 +1978,6 @@ spatialization. </p>
 
 <div id="attributes-AudioListener-section" class="section">
 <h3 id="attributes-AudioListener">4.15.1. Attributes</h3>
-<dl>
-  <dt id="dfn-gain_2"><code>gain</code></dt>
-    <dd><p>A linear gain used in conjunction with <a
-      href="#AudioPannerNode-section"><code>AudioPannerNode</code></a> objects
-      when spatializing. </p>
-    </dd>
-</dl>
 <dl>
   <dt id="dfn-dopplerFactor"><code>dopplerFactor</code></dt>
     <dd><p>A constant used to determine the amount of pitch shift to use when
@@ -2059,7 +2085,7 @@ frequency and time-domain <a href="#RealtimeAnalysis-section">analysis</a>
 information. The audio stream will be passed un-processed from input to output.
 </p>
 <pre>    numberOfInputs  : 1
-    numberOfOutputs : 1    <span class="ednote">Note: it has been suggested to have no outputs here - waiting for people's opinions</span>
+    numberOfOutputs : 1    <em>Note that this output may be left unconnected.</em>
     </pre>
 
 <div class="block">
@@ -2120,7 +2146,7 @@ information. The audio stream will be passed un-processed from input to output.
 </dl>
 <dl>
   <dt id="dfn-smoothingTimeConstant"><code>smoothingTimeConstant</code></dt>
-    <dd><p>A value from 0.0 -&gt; 1.0 where 0.0 represents no time averaging
+    <dd><p>A value from 0 -&gt; 1 where 0 represents no time averaging
       with the last analysis frame. </p>
     </dd>
 </dl>
@@ -2165,7 +2191,7 @@ information. The audio stream will be passed un-processed from input to output.
 applications and would often be used in conjunction with <a
 href="#AudioChannelMerger-section"><code>AudioChannelMerger</code></a>. </p>
 <pre>    numberOfInputs  : 1
-    numberOfOutputs : 6 // number of "active" (non-silent) outputs is determined by number of channels in the input
+    numberOfOutputs : Variable N (defaults is 6) // number of "active" (non-silent) outputs is determined by number of channels in the input
     </pre>
 
 <p>This interface represents an AudioNode for accessing the individual channels
@@ -2174,8 +2200,8 @@ of an audio stream in the routing graph. It has a single input, and a number of
 For example, if a stereo input is connected to an
 <code>AudioChannelSplitter</code> then the number of active outputs will be two
 (one from the left channel and one from the right). There are always a total
-number of 6 outputs, supporting up to 5.1 output (note: this upper limit of 6
-is arbitrary and could be increased to support 7.2, and higher). Any outputs
+number of N outputs (determined by the <code>numberOfOutputs</code> parameter to the AudioContext method <code>createChannelSplitter()</code>),
+ The default number is 6 if this value is not provided. Any outputs
 which are not "active" will output silence and would typically not be connected
 to anything. </p>
 
@@ -2207,7 +2233,7 @@ mixing" where individual gain control of each channel is desired. </p>
 <p>The <code>AudioChannelMerger</code> is for use in more advanced applications
 and would often be used in conjunction with <a
 href="#AudioChannelSplitter-section"><code>AudioChannelSplitter</code></a>. </p>
-<pre>    numberOfInputs  : 6  // number of connected inputs may be less than this
+<pre>    numberOfInputs  : Variable N (defaults is 6)  // number of connected inputs may be less than this
     numberOfOutputs : 1
     </pre>
 
@@ -2227,11 +2253,10 @@ channel coming from the second input. </p>
 
 <p>Be aware that it is possible to connect an <code>AudioChannelMerger</code>
 in such a way that it outputs an audio stream with a large number of channels
-greater than the maximum supported by the system (currently 6 channels for
-5.1). In this case, if the output is connected to anything else then an
-exception will be thrown indicating an error condition. Thus, the
-<code>AudioChannelMerger</code> should be used in situations where the numbers
-of input channels is well understood. </p>
+greater than the maximum supported by the audio hardware. In this case where such an output is connected
+to the AudioContext .destination (the audio hardware), then the extra channels will be ignored.
+Thus, the <code>AudioChannelMerger</code> should be used in situations where the number
+of channels is well understood. </p>
 
 <div class="block">
 
@@ -2305,8 +2330,7 @@ the speakers. </p>
 </dl>
 <dl>
   <dt id="dfn-ratio"><code>ratio</code></dt>
-    <dd><p>the decibel value above which the compression will start taking
-      effect. </p>
+    <dd><p>The amount of dB change in input for a 1 dB change in output. </p>
     </dd>
 </dl>
 <dl>
@@ -2844,48 +2868,48 @@ disconnected. Here's how it might look in JavaScript: </p>
 <div class="blockContent">
 <pre class="code"><code class="es-code"> 
 
-	var context = 0;
-	var compressor = 0;
-	var gainNode1 = 0;
-	var streamingAudioSource = 0;
+var context = 0;
+var compressor = 0;
+var gainNode1 = 0;
+var streamingAudioSource = 0;
 
-	<span class="comment">// Initial setup of the "long-lived" part of the routing graph </span> 
-	function setupAudioContext() {
-	    context = new AudioContext();
+<span class="comment">// Initial setup of the "long-lived" part of the routing graph </span> 
+function setupAudioContext() {
+    context = new AudioContext();
 
-	    compressor = context.createDynamicsCompressor();
-	    gainNode1 = context.createGainNode();
+    compressor = context.createDynamicsCompressor();
+    gainNode1 = context.createGainNode();
 
-        // Create a streaming audio source.
-	    var audioElement = document.getElementById('audioTagID');
-	    streamingAudioSource = context.createMediaElementSource(audioElement);
-	    streamingAudioSource.connect(gainNode1);
+    // Create a streaming audio source.
+    var audioElement = document.getElementById('audioTagID');
+    streamingAudioSource = context.createMediaElementSource(audioElement);
+    streamingAudioSource.connect(gainNode1);
 
-	    gainNode1.connect(compressor);
-	    compressor.connect(context.destination);
-	}
+    gainNode1.connect(compressor);
+    compressor.connect(context.destination);
+}
 
-	<span class="comment">// Later in response to some user action (typically mouse or key event) </span>
-	<span class="comment">// a one-shot sound can be played. </span>
-	function playSound() {
-	    var oneShotSound = context.createBufferSource();
-	    oneShotSound.buffer = dogBarkingBuffer;
+<span class="comment">// Later in response to some user action (typically mouse or key event) </span>
+<span class="comment">// a one-shot sound can be played. </span>
+function playSound() {
+    var oneShotSound = context.createBufferSource();
+    oneShotSound.buffer = dogBarkingBuffer;
 
-	    <span class="comment">// Create a filter, panner, and gain node. </span>
-	    var lowpass = context.createLowPass2Filter();
-	    var panner = context.createPanner();
-	    var gainNode2 = context.createGainNode();
+    <span class="comment">// Create a filter, panner, and gain node. </span>
+    var lowpass = context.createBiquadFilter();
+    var panner = context.createPanner();
+    var gainNode2 = context.createGainNode();
 
-	    <span class="comment">// Make connections </span>
-	    oneShotSound.connect(lowpass);
-	    lowpass.connect(panner);
-	    panner.connect(gainNode2);
-	    gainNode2.connect(compressor);
+    <span class="comment">// Make connections </span>
+    oneShotSound.connect(lowpass);
+    lowpass.connect(panner);
+    panner.connect(gainNode2);
+    gainNode2.connect(compressor);
 
-	    <span class="comment">// Play 0.75 seconds from now (to play immediately pass in 0.0)</span>
-	    oneShotSound.noteOn(context.currentTime + 0.75);
-	}
-	        </code></pre>
+    <span class="comment">// Play 0.75 seconds from now (to play immediately pass in 0)</span>
+    oneShotSound.noteOn(context.currentTime + 0.75);
+}
+</code></pre>
 </div>
 </div>
 </div>
@@ -3073,11 +3097,6 @@ doppler shift effect which changes the pitch. </p>
     convolution function. It is somewhat more costly than "equal-power", but
     provides a more spatialized sound. </p>
     <img alt="HRTF panner" src="images/HRTF_panner.png" /></li>
-  <li>Pass-through 
-    <p>This is mostly useful for stereo sources to pass the left/right channels
-    unpanned to the left/right speakers. Similarly for 5.0 sources, the
-    channels can be passed unchanged. </p>
-  </li>
 </ul>
 
 <h3 id="Spatialization-distance-effects">Distance Effects</h3>
@@ -3159,7 +3178,8 @@ system has M output channels. Thus it's a matter of how to matrix these
 channels to achieve the final result. The following diagram, illustrates the
 common cases for stereo playback where N, K, and M are all less than or equal
 to 2. Similarly, the matrixing for 5.1 and other playback configurations can be
-defined. </p>
+defined.  Or multiple <code>ConvolverNode</code> objects may be used in conjunction
+with an <code>AudioChannelMerger</code> for arbitrary matrixing. </p>
 <img alt="reverb matrixing" src="images/reverb-matrixing.png" /> 
 
 <h3 id="recording-impulse-responses">Recording Impulse Responses</h3>
@@ -3579,7 +3599,7 @@ create a fingerprint of the client. </p>
 
 <p>Currently audio input is not specified in this document, but it will involve
 gaining access to the client machine's audio input or microphone. This will
-require asking the user for permission in an appropriate way, perhaps via the
+require asking the user for permission in an appropriate way, probably via the
 <a href="http://developers.whatwg.org/">getUserMedia()
 API</a>. </p>
 </div>
@@ -3637,6 +3657,23 @@ Inc.); </p>
 <div class="section" id="ChangeLog-section">
 <h2 id="ChangeLog">C. Web Audio API Change Log</h2>
 <pre>
+
+date:        Tue Apr 11 2012
+* add AudioContext .activeSourceCount attribute
+* createBuffer() methods can throw exceptions
+* add AudioContext method createMediaElementSource()
+* update AudioContext methods createJavaScriptNode() (clean up description of parameters)
+* update AudioContext method createChannelSplitter() (add numberOfOutputs parameter)
+* update AudioContext method createChannelMerger() (add numberOfInputs parameter)
+* update description of out-of-bounds AudioParam values (exception will not be thrown)
+* remove AudioBuffer .gain attribute
+* remove AudioBufferSourceNode .gain attribute
+* remove AudioListener .gain attribute
+* add AudioBufferSourceNode .playbackState attribute and state constants
+* RealtimeAnalyserNode no longer requires its output be connected to anything
+* update AudioChannelMerger section describing numberOfOutputs (defaults to 6 but settable in constructor)
+* update AudioChannelSplitter section describing numberOfInputs (defaults to 6 but settable in constructor)
+* add note in Spatialization sections about potential to get arbitrary convolution matrixing
 
 date:        Tue Apr 10 2012
 * Rebased editor's draft document based on edits from Thierry Michel (from 2nd public working draft).

@@ -271,9 +271,19 @@ other than work in progress.</p>
       </li>
       <li><a href="#WaveShaperNode">4.22. The WaveShaperNode Interface</a> 
         <ul>
-          <li><a href="#attributes-ConvolverNode_WaveShaperNode">4.22.1.
+          <li><a href="#attributes-WaveShaperNode">4.22.1.
             Attributes</a></li>
         </ul>
+      </li>
+      <li><a href="#Oscillator">4.23. The Oscillator Interface</a> 
+        <ul>
+          <li><a href="#attributes-Oscillator">4.23.1.
+            Attributes</a></li>
+            <li><a href="#methodsandparams-Oscillator-section">4.23.2. Methods and
+            Parameters</a></li>
+        </ul>
+      </li>
+      <li><a href="#WaveTable">4.24. The WaveTable Interface</a> 
       </li>
     </ul>
   <li><a href="#AudioElementIntegration">5. Integration with the
@@ -718,8 +728,8 @@ constructed as follows: </p>
                 raises(DOMException);
 
             JavaScriptAudioNode createJavaScriptNode(in unsigned long bufferSize,
-                                                     in [Optional] unsigned long numberOfInputChannels,
-                                                     in [Optional] unsigned long numberOfOutputChannels)
+                                                     in [Optional] unsigned long numberOfInputChannels = 2,
+                                                     in [Optional] unsigned long numberOfOutputChannels = 2)
                 raises(DOMException);
 
             RealtimeAnalyserNode createAnalyser();
@@ -729,13 +739,17 @@ constructed as follows: </p>
             AudioPannerNode createPanner();
             ConvolverNode createConvolver();
 
-            AudioChannelSplitter createChannelSplitter(in [Optional] unsigned long numberOfOutputs)
+            AudioChannelSplitter createChannelSplitter(in [Optional] unsigned long numberOfOutputs = 6)
                 raises(DOMException);
 
-            AudioChannelMerger createChannelMerger(in [Optional] unsigned long numberOfInputs);
+            AudioChannelMerger createChannelMerger(in [Optional] unsigned long numberOfInputs = 6);
                 raises(DOMException);
 
             DynamicsCompressorNode createDynamicsCompressor();
+
+            Oscillator createOscillator();
+            WaveTable createWaveTable(in Float32Array real, in Float32Array imag)
+                raises(DOMException);
 
         }
         </code></pre>
@@ -870,10 +884,10 @@ constructed as follows: </p>
       avoid audio breakup and <a href="#Glitching-section">glitches</a>. The
       value chosen must carefully balance between latency and audio quality.
       </p>
-      <p>The <dfn id="dfn-numberOfInputChannels">numberOfInputChannels</dfn> parameter
+      <p>The <dfn id="dfn-numberOfInputChannels">numberOfInputChannels</dfn> parameter (defaults to 2) and
       determines the number of channels for this node's input.  Values of up to 32 must be supported. </p>
-      <p>The <dfn id="dfn-numberOfOutputChannels">numberOfOutputChannels</dfn> parameter
-      determines the number of output channels for this node's output.  Values of up to 32 must be supported.</p>
+      <p>The <dfn id="dfn-numberOfOutputChannels">numberOfOutputChannels</dfn> parameter (defaults to 2) and
+      determines the number of channels for this node's output.  Values of up to 32 must be supported.</p>
       <p>It is invalid for both <code>numberOfInputChannels</code> and
       <code>numberOfOutputChannels</code> to be zero. </p>
     </dd>
@@ -946,6 +960,37 @@ constructed as follows: </p>
   <code>createDynamicsCompressor</code> method</dt>
     <dd><p>Creates a <a
       href="#DynamicsCompressorNode-section"><code>DynamicsCompressorNode</code></a>.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-createOscillator">The
+  <code>createOscillator</code> method</dt>
+    <dd><p>Creates an <a
+      href="#Oscillator-section"><code>Oscillator</code></a>.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-createWaveTable">The
+  <code>createWaveTable</code> method</dt>
+    <dd><p>Creates a <a
+      href="#WaveTable-section"><code>WaveTable</code></a> representing a waveform containing arbitrary harmonic content.
+      The <code>real</code> and <code>imag</code> parameters must be of type <code>Float32Array</code> of equal
+      lengths greater than zero and less than or equal to 4096 or an exception will be thrown.
+      These parameters specify the Fourier coefficients of a
+      <a href="http://en.wikipedia.org/wiki/Fourier_series">Fourier series</a> representing the partials of a periodic waveform.
+      The created WaveTable will be used with an <a href="#Oscillator-section"><code>Oscillator</code></a>
+      and will represent a <em>normalized</em> time-domain waveform having maximum absolute peak value of 1.
+      Another way of saying this is that the generated waveform of an <a href="#Oscillator-section"><code>Oscillator</code></a>
+      will have maximum peak value at 0dBFS. Conveniently, this corresponds to the full-range of the signal values used by the Web Audio API.
+      Because the WaveTable will be normalized on creation, the <code>real</code> and <code>imag</code> parameters
+      represent <em>relative</em> values.
+      </p>
+      <p>The <dfn id="dfn-real">real</dfn> parameter represents an array of <code>cosine</code> terms (traditionally the A terms).
+      In audio terminology, the first element (index 0) is the DC-offset of the periodic waveform and is usually set to zero.
+      The second element (index 1) represents the fundamental frequency.  The third element represents the first overtone, and so on.</p>
+      <p>The <dfn id="dfn-imag">imag</dfn> parameter represents an array of <code>sine</code> terms (traditionally the B terms).
+      In audio terminology, the first element (index 0) is the Nyquist value of the periodic waveform and is usually set to zero.
+      The second element (index 1) represents the fundamental frequency.  The third element represents the first overtone, and so on.</p>
     </dd>
 </dl>
 </div>
@@ -2048,8 +2093,6 @@ response. </p>
         attribute AudioBuffer buffer;
         attribute boolean normalize;
 
-        // attribute ImpulseResponse response;
-
     };
     </code></pre>
 </div>
@@ -2191,7 +2234,7 @@ information. The audio stream will be passed un-processed from input to output.
 applications and would often be used in conjunction with <a
 href="#AudioChannelMerger-section"><code>AudioChannelMerger</code></a>. </p>
 <pre>    numberOfInputs  : 1
-    numberOfOutputs : Variable N (defaults is 6) // number of "active" (non-silent) outputs is determined by number of channels in the input
+    numberOfOutputs : Variable N (defaults to 6) // number of "active" (non-silent) outputs is determined by number of channels in the input
     </pre>
 
 <p>This interface represents an AudioNode for accessing the individual channels
@@ -2233,7 +2276,7 @@ mixing" where individual gain control of each channel is desired. </p>
 <p>The <code>AudioChannelMerger</code> is for use in more advanced applications
 and would often be used in conjunction with <a
 href="#AudioChannelSplitter-section"><code>AudioChannelSplitter</code></a>. </p>
-<pre>    numberOfInputs  : Variable N (defaults is 6)  // number of connected inputs may be less than this
+<pre>    numberOfInputs  : Variable N (default to 6)  // number of connected inputs may be less than this
     numberOfOutputs : 1
     </pre>
 
@@ -2364,7 +2407,8 @@ treble), graphic equalizers, and more advanced filters. Multiple
 BiquadFilterNode filters can be combined to form more complex filters. The
 filter parameters such as "frequency" can be changed over time for filter
 sweeps, etc. Each BiquadFilterNode can be configured as one of a number of
-common filter types as shown in the IDL below. </p>
+common filter types as shown in the IDL below.  The default filter type
+is LOWPASS </p>
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 1
     </pre>
@@ -2614,8 +2658,8 @@ shaping curves may be specified. </p>
 </div>
 </div>
 
-<div id="attributes-ConvolverNode_WaveShaperNode-section" class="section">
-<h3 id="attributes-ConvolverNode_WaveShaperNode">4.22.1. Attributes</h3>
+<div id="attributes-WaveShaperNode-section" class="section">
+<h3 id="attributes-WaveShaperNode">4.22.1. Attributes</h3>
 <dl>
   <dt id="dfn-curve"><code>curve</code></dt>
     <dd><p>The shaping curve used for the waveshaping effect. The input signal
@@ -2627,6 +2671,129 @@ shaping curves may be specified. </p>
       the curve array. </p>
     </dd>
 </dl>
+</div>
+</div>
+
+<div id="Oscillator-section" class="section">
+<h2 id="Oscillator">4.23. The Oscillator Interface</h2>
+
+<p>Oscillator represents an audio source generating a periodic waveform. It can be set to
+a few commonly used waveforms. Additionally, it can be set to an arbitrary periodic
+waveform through the use of a <a href="#WaveTable-section"><code>WaveTable</code></a> object. </p>
+
+<p>Oscillators are common foundational building blocks in audio synthesis.  An Oscillator will start emitting sound at the time
+specified by the <code>noteOn()</code> method. </p>
+<pre>    numberOfInputs  : 0
+    numberOfOutputs : 1
+    </pre>
+
+<div class="block">
+
+<div class="blockTitleDiv">
+<span class="blockTitle">IDL</span></div>
+
+<div class="blockContent">
+<pre class="code"><code class="idl-code"> 
+
+    interface <dfn id="dfn-Oscillator">Oscillator</dfn> : AudioSourceNode {
+
+        // Type constants.
+        const unsigned short SINE = 0;
+        const unsigned short SQUARE = 1;
+        const unsigned short SAWTOOTH = 2;
+        const unsigned short TRIANGLE = 3;
+        const unsigned short CUSTOM = 4;
+
+        attribute unsigned short type;
+        
+        const unsigned short UNSCHEDULED_STATE = 0;
+        const unsigned short SCHEDULED_STATE = 1;
+        const unsigned short PLAYING_STATE = 2;
+        const unsigned short FINISHED_STATE = 3;
+
+        readonly attribute unsigned short playbackState;
+
+        readonly attribute AudioParam frequency; // in Hertz
+        readonly attribute AudioParam detune; // in Cents
+
+        void noteOn(in double when);
+        void noteOff(in double when);
+        void setWaveTable(in WaveTable waveTable);
+
+    }
+    </code></pre>
+</div>
+</div>
+
+<div id="attributes-Oscillator-section" class="section">
+<h3 id="attributes-Oscillator">4.23.1. Attributes</h3>
+<dl>
+  <dt id="dfn-type"><code>type</code></dt>
+    <dd><p>The shape of the periodic waveform.  It may directly be set to any of the type constant values except for CUSTOM.
+    The <a href="#dfn-setWaveTable"><code>setWaveTable()</code></a> method can be used to set a custom waveform, which results in this attribute
+    being set to CUSTOM. </p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-playbackState"><code>playbackState</code></dt>
+    <dd><p>defined as in <a href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code></a>. </p>
+    </dd>
+</dl>
+
+<dl>
+  <dt id="dfn-frequency"><code>frequency</code></dt>
+    <dd><p>The frequency (in Hertz) of the periodic waveform. </p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-detune"><code>detune</code></dt>
+    <dd><p>A detuning value (in Cents) which will offset the <code>frequency</code> by the given amount. </p>
+    </dd>
+</dl>
+</div>
+</div>
+
+<div id="methodsandparams-Oscillator-section" class="section">
+<h3 id="methodsandparams-Oscillator">4.23.2. Methods and Parameters</h3>
+<dl>
+  <dt id="dfn-setWaveTable">The <code>setWaveTable</code>
+  method</dt>
+    <dd><p>Sets an arbitrary custom periodic waveform given a <a href="#WaveTable-section"><code>WaveTable</code></a>.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-noteOn">The <code>noteOn</code>
+  method</dt>
+    <dd><p>defined as in <a href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code></a>. </p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-noteOff">The <code>noteOff</code>
+  method</dt>
+    <dd><p>defined as in <a href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code></a>. </p>
+    </dd>
+</dl>
+</div>
+
+
+<div id="WaveTable-section" class="section">
+<h2 id="WaveTable">4.24. The WaveTable Interface</h2>
+
+<p>WaveTable represents an arbitrary periodic waveform to be used with an <a href="#Oscillator-section"><code>Oscillator</code></a>.
+Please see <a href="#dfn-createWaveTable">createWaveTable()</a> and <a href="#dfn-setWaveTable">setWaveTable()</a> and for more details. </p>
+
+<div class="block">
+
+<div class="blockTitleDiv">
+<span class="blockTitle">IDL</span></div>
+
+<div class="blockContent">
+<pre class="code"><code class="idl-code"> 
+
+    interface <dfn id="dfn-WaveTable">WaveTable</dfn> {
+
+    }
+    </code></pre>
 </div>
 </div>
 
@@ -3657,6 +3824,11 @@ Inc.); </p>
 <div class="section" id="ChangeLog-section">
 <h2 id="ChangeLog">C. Web Audio API Change Log</h2>
 <pre>
+
+date:        Tue Apr 13 2012
+* Add Oscillator and WaveTable
+* Define default values for optional arguments in createJavaScriptNode(), createChannelSplitter(), createChannelMerger()
+* Define default filter type for BiquadFilterNode as LOWPASS
 
 date:        Tue Apr 11 2012
 * add AudioContext .activeSourceCount attribute

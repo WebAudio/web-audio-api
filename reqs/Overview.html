@@ -1,0 +1,983 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Web Audio Processing: Use Cases and Requirements</title>
+    <meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>
+    <style type="text/css" media="all">
+      table {border-collapse: collapse; border: 1px solid #000; font: normal 80%/140% arial, helvetica, sans-serif; color: #555; background: #fff;}
+      td, th {border: 1px dotted #bbb; padding:.5em 1em; font-size: x-small; width: 10em; }
+      caption {padding: 0 0 .5em 0; text-align: left; font-size: 1; font-weight: 500; text-align: center; color: #666; background: transparent;}
+      table a {padding: 1px; text-decoration: none; font-weight: bold; background: transparent;}
+      table a:link {border-bottom: 1px dashed #ddd; color: #000;}
+      table a:visited {border-bottom: 1px dashed #ccc; text-decoration: line-through; color: #808080;}
+      table a:hover {border-bottom: 1px dashed #bbb; color: #666;}
+      thead th, tfoot th {white-space: nowrap; border: 1px solid #000; text-align: center; color: black; background: #ddd;}
+      tfoot td {border: 2px solid #000;}
+      tbody { height: 300px; overflow: auto; }
+      tbody th {color: #060606; }
+      tbody th, tbody td {vertical-align: middle; text-align: center; }
+    </style>
+    <!-- 
+      === NOTA BENE ===
+      For the three scripts below, if your spec resides on dev.w3 you can check them
+      out in the same tree and use relative links so that they'll work offline,
+     -->
+    <script src='http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js' class='remove'></script>
+    <script class='remove'>
+      var respecConfig = {
+          // specification status (e.g. WD, LCWD, NOTE, etc.). If in doubt use ED.
+          specStatus:           "ED",
+          
+          // the specification's short name, as in http://www.w3.org/TR/short-name/
+          shortName:            "audioproc-reqs",
+
+          // if your specification has a subtitle that goes below the main
+          // formal title, define it here
+          //subtitle   :  "an excellent document",
+
+          // if you wish the publication date to be other than today, set this
+          // publishDate:  "2009-08-06",
+
+          // if the specification's copyright date is a range of years, specify
+          // the start date here:
+          copyrightStart: "2011",
+
+          // if there is a previously published draft, uncomment this and set its YYYY-MM-DD date
+          // and its maturity status
+          // previousPublishDate:  "1977-03-15",
+          // previousMaturity:  "WD",
+
+          // if there a publicly available Editor's Draft, this is the link
+          edDraftURI:           "https://dvcs.w3.org/hg/audio/raw-file/tip/ucr/Overview.html",
+
+          // if this is a LCWD, uncomment and set the end of its review period
+          // lcEnd: "2009-08-05",
+
+          // if you want to have extra CSS, append them to this list
+          // it is recommended that the respec.css stylesheet be kept
+          extraCSS:             ["http://dev.w3.org/2009/dap/ReSpec.js/css/respec.css"],
+
+          // editors, add as many as you like
+          // only "name" is required
+          editors:  [
+              { name: "Olivier Thereaux", url: "mailto:olivier.thereaux@bbc.co.uk",
+                company: "BBC", companyURL: "http://bbc.co.uk/" },
+          ],
+
+          // authors, add as many as you like. 
+          // This is optional, uncomment if you have authors as well as editors.
+          // only "name" is required. Same format as editors.
+
+          //authors:  [
+          //    { name: "Your Name", url: "http://example.org/",
+          //      company: "Your Company", companyURL: "http://example.com/" },
+          //],
+          
+          // name of the WG
+          wg:           "Audio Working Group",
+          
+          // URI of the public WG page
+          wgURI:        "http://www.w3.org/2011/audio/",
+          
+          // name (without the @w3c.org) of the public mailing to which comments are due
+          wgPublicList: "public-audio",
+          
+          // URI of the patent status for this WG, for Rec-track documents
+          // !!!! IMPORTANT !!!!
+          // This is important for Rec-track documents, do not copy a patent URI from a random
+          // document unless you know what you're doing. If in doubt ask your friendly neighbourhood
+          // Team Contact.
+          wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46884/status",
+      };
+    </script>
+  </head>
+  <body>
+    <section id='abstract'>
+      <p>This document introduces a series of scenarios and a list of requirements guiding the work of the W3C Audio Working Group in its development of a web API for processing and synthesis of audio on the web. </p>
+      
+    </section>
+    <section>
+    <h2>Introduction</h2>
+    <p>TBA</p>
+    </section>  
+    <section>
+      <h2>Use Cases and Scenarios</h2>
+      
+    
+      <section>
+      <h3>UC 1: Video Chat</h3>
+      <p>Two or more users have loaded a video communication web application into their browsers, provided by the same service provider, and logged into the service it provides. When one online user selects a peer online user, a 1-1 video communication session between the browsers of the two peers is initiated.  If there are more than two participants, and if the participants are using adequate hardware, binaural processing is used to position remote participants.</p>
+      
+      <p>In one version of the service, an option allows users to distort (pitch, speed, other effects) their voice for fun. Such a feature could also be used to protect one participants' privacy in some applications.</p>
+      
+      <p>During the session, each user can also pause sending of media (audio, video, or both) and mute incoming media. An interface gives each user control over the incoming sound volume from each participant - with an option to have the software do it automatically. Another interface offers user-triggered settings (EQ, filtering) for voice enhancement, a feature which can be useful between people with hearing difficulties, in imperfect listening environments, or to compensate for poor transmission environments.</p>
+      
+      <h4>UC1 — Notes</h4>
+      <ol>
+        <li> This scenario is heavily inspired from <a href="http://tools.ietf.org/html/draft-ietf-rtcweb-use-cases-and-requirements-06#section-4.2.1" title="http://tools.ietf.org/html/draft-ietf-rtcweb-use-cases-and-requirements-06#section-4.2.1">the first scenario in WebRTC's Use Cases and Requirements document</a>
+      </li>
+      <li> One aspect of the scenario has participants using a "voice changing" feature on the way out (input device to server). This would mean that processing should be possible both for incoming and outgoing audio streams.
+      </li>
+      </ol>
+      <h4>UC1 — Priority</h4>
+      <pre> <i>Priority: <b>HIGH</b></i></pre>
+      
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p>
+      
+      <p>This use case is based on the needs of the Real-Time Web working group, and thus a high priority.
+      </p>
+      
+
+      </section>
+      
+      <section>
+      <h3>UC 2: HTML5 game with audio effects, music</h3>
+      <p>A user is playing a 3D first-person adventure game in a web browser on their mobile device. 
+      </p><p>The game includes a musical background which loops seamlessly, and transitions smoothly from one music track to another as the player enters a house. 
+      </p><p>While walking in a corridor, the player can hear the muffled sound of a ticking grandfather's clock. Following the direction of the sound and entering a large hall, the sound of the clock becomes clear, reverberating in the large hall. At any time, the sound of the clock spatialized in real-time based on the position of the player's character in the room (relative to the clock) and the current camera angle. 
+      </p><p>As the soundscape changes, bringing a more somber, scary atmosphere to the scene, the player equips a firearm. Suddenly,  a giant snake springs from behind a corner, its hissing becoming a little louder as the snake turns its head towards the player. The weapon fires at the touch of a key, and the player can hear the sound of bullets in near-perfect synchronization with the firing, as well as the sound of bullets ricocheting against walls. The sounds are played immediately after the player presses the key, but the action and video frame rate can remain smooth even when a lot of sounds (bullets being fired, echoing and ricocheting, sound of the impacts, etc) are played at the same time. The snake is now dead, and many flies gather around it, and around the player, their fast buzz around the head sounding like racing cars on a circuit.
+      </p>
+      <h4>UC2 — Priority </h4>
+      <pre> <i>Priority: <b>HIGH</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>This is something we are getting overwhelming amounts of feedback on - people are trying to build games with convincing, rich audio on the web.
+      </p>
+
+    </section>
+    
+    <section>
+
+      <h3>UC 3: online music production tool</h3>
+      <p>(online audio workstation tool?)
+      </p>
+      
+      <p>A user arranges a musical composition using a non-linear timeline-based DAW (digital audio workstation) application. 
+      Audio "clips" are arranged on a timeline representing multiple tracks of audio.  Each track's volume, panning, and effects
+      may be controlled separately.  Individual tracks may be muted or soloed to preview various combination of tracks at a given moment.
+      Audio effects may be applied per-track as inline (insert) effects.  Additionally, each track can send its signal to one or
+      more global send effects which are shared across tracks.  Submixes of various combinations of tracks can be made, and a final
+      mix bus controls the overall volume of the mix, and may have additional insert effects.
+      </p>
+      
+      <p>Insert and send effects include dynamics compressors (including multi-band), extremely high-quality reverberation, filters such as parametric, low-shelf, high-shelf, graphic EQ, etc.  Also included are various kinds of delay effects such as ping-pong delays, and BPM-synchronized delays with feedback.  Various kinds of time-modulated effects are available such as chorus, phasor, resonant filter sweeps, and BPM-synchronized panners.  Distortion effects include subtle tube simulators, and aggressive bit decimators.  Each effect has its own UI for adjusting its parameters.  Real-time changes to the parameters can be made (e.g. with a mouse) and the audible results heard with no perceptible lag.
+      </p>
+      
+      <p>Audio clips may be arranged on the timeline with a high-degree of precision (with sample accurate playback).  Certain clips may be repeated loops containing beat-based musical material, and are synchronized with other such looped clips according to a certain musical tempo.  These, in turn, can be synchronized with sequences controlling real-time synthesized playback.  The values of volume, panning, send levels, and each parameter of each effect can be changed over time, displayed and controlled through a powerful UI dealing with automation curves.  These curves may be arbitrary and can be used, for example, to control volume fade-ins, filter sweeps, and may be synchronized in time with the music (beat synchronized).
+      </p>
+      
+      <p>Visualizers may be applied for technical analysis of the signal.  These visualizers can be as simple as displaying the signal level in a VU meter, or more complex such as real-time frequency analysis, or L/R phase displays.
+      </p>
+      
+      <p>The actual audio clips to be arranged on the timeline are managed in a library of available clips.  These can be searched and sorted in a variety of ways and with high-efficiency.  Although the clips can be cloud-based, local caching offers nearly instantaneous access and glitch-free playback.
+      </p>
+      
+      <p>The final mix may be rendered at faster than real-time and then uploaded and shared with others.  The session representing the clips, timeline, effects, automation, etc. may also be shared with others for shared-mixing collaboration.
+      </p>
+      
+      <pre>-- Moved from UC7: The webpage provides the user with the ability to control the buffer size of the underlying Audio API: <br /> this allows users with slower machines to pick a larger buffer setting that does not cause clicks and pops in the audio stream. --
+      </pre>
+      
+      <h4>UC3 — Priority</h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.</p>
+      
+
+      <h4>UC3 related demos </h4>
+      <p><a href="http://vimeo.com/37250605" title="http://vimeo.com/37250605">Video of online multi-track sequencer using the Web Audio API</a>.
+      </p>
+
+    </section>
+    
+    <section>
+      <h3>UC 4: Online radio broadcast</h3>
+      
+      <p>This use case concerns the listening to and broadcasting of a live online radio broadcast.</p>
+     
+      <p>The broadcaster interacts with a web-based broadcasting tool which allows her to:</p>
+     
+     
+      <ul><li> control the relative levels of connected microphones and other inputs
+      </li><li> visualise the levels of inputs to give a good mix and prevent clipping
+      </li><li> add noise cancellation and reverberation effects to the individual channels
+      </li><li> fire off one-shot samples, such as jingles
+      </li><li> duck the level of musical beds in response to her voice
+      </li><li> mix multiple channels into a single stereo mix
+      </li><li> provide the mix as a stream for others to connect to
+      </li></ul>
+      <p>As part of the broadcast she would like to be able to interview a guest using voice/video chat (as per UC 1) and mix this into the audio stream.
+      </p><p>She is also able to trigger events that add additional metadata to the stream containing, for example, the name of the currently playing track. This metadata is synchronised with the stream such that it appears at the appropriate time on the listeners' client.
+      </p><p>Note: There is a standard way to access a set of metadata properties for media resources with the following W3C documents:
+      </p>
+      <ul><li> <a href="http://www.w3.org/TR/mediaont-10/" title="http://www.w3.org/TR/mediaont-10/">Ontology for Media Resources 1.0</a>. This document defines a core set of metadata properties for media resources, along with their mappings to elements from a set of existing metadata formats.
+      </li><li> <a href="http://www.w3.org/TR/mediaont-api-1.0/" title="http://www.w3.org/TR/mediaont-api-1.0/">API for Media Resources 1.0</a>. This API provides developers with a convenient access to metadata information stored in different metadata formats. It provides means to access the set of metadata properties defined in the Ontology for Media Resources 1.0 specification. 
+      </li></ul>
+      <p>A listener to this online radio broadcast is able to:
+      </p>
+      <ul><li> control the volume of the live stream
+      </li><li> equalise or apply other frequency filters to suit their listening environment
+      </li><li> pause, rewind and resume playing the live stream
+      </li><li> control the relative level of various parts of the audio - for example to reduce the level of background music to make the speech content more intelligible
+      </li><li> slow down the audio without changing the pitch - to help better understand broadcasts in a language that is unfamiliar to the listener.
+      </li></ul>
+      <h4>UC4 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+      
+      </section>
+      
+      <section>      
+      <h3>UC 5: writing music on the web </h3>
+      <p>A user is employing a web-based application to create and edit a musical score written in conventional Western notation, guitar tablature or a beat grid. The score is complex, several minutes long, and incorporates multiple instrument sounds.
+      </p><p>When the user starts up the application, it initializes quickly. There is no long pause to load large volumes of audio media. In fact, because the user has run this application before and some assets have been preloaded, there is almost no wait at all. The score promptly appears on the screen as a set of interactive objects including measures, notes, clefs, and many other musical symbols.
+      </p><p>In the course of using such an application, the user often selects existing notes and enters new ones.  As they do so, the program provides audio feedback on their actions by providing individual, one-shot playback of the manipulated notes.
+      </p><p>The user occasionally stops editing and wishes to hear playback of some or all of the score they are working on to take stock of their work. At this point the program performs sequenced playback of a portion of the document. The playback is a rich audio realization of the score, as a set of notes and other sonic events performed with a high degree of musical accuracy in terms of rhythm, pitch, dynamics, timbre, articulation, and so on. Some simple effects such as instrument panning and room reverb are applied for a more realistic and satisfying effect.
+      </p><p>During playback a moving cursor indicates the exact point in the music that is being heard at each moment.
+      </p><p>The user decides to add a new part to the score. In doing so, the program plays back samples of various alternative instrumental sounds for feedback purposes, to assist the user in selecting the desired sound for use within the score.
+      </p><p>At some point the user exports an MP3 or WAV file from the program for some other purpose. This file contains the same audio rendition of the score that is played interactively when the user requested it earlier.
+      </p>
+      <h4>UC5 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+      <h4>UC5 — Related Requirements </h4>
+      <ul><li> <i>Sources of audio</i>
+      <ul><li> <b>Support for primary audio file formats</b> (loading of assets in various formats + export)
+      </li><li> <b>One source, many sounds</b>
+      </li><li> <b>Playing / Looping sources of audio</b> (playback)
+      </li><li> <del>Capture of audio from microphone, line in, other inputs</del>
+      </li><li> <del>Adding effects to the audio part of a video stream, and keep it in sync with the video playback</del>
+      </li><li> <b>Sample-accurate scheduling of playback</b>
+      </li><li> <del>Buffering</del>
+      </li><li> <b>Support for basic polyphony</b> (many instruments)
+      </li><li> <b>Rapid scheduling of many independent sources</b>
+      </li><li> <b>Triggering of audio sources</b> (one-shot playback)
+      </li><li> <b>Audio quality</b> (playback needs to be good enough to test the score)
+      </li></ul>
+      </li><li> <i>Transformations of sources of audio</i>
+      <ul><li> <b>Modularity of transformations</b> (instrument pitch)
+      </li><li> <b>Transformation parameter automation</b>
+      </li><li> <b>gain adjustment</b>
+      </li><li> <b>playback rate adjustment</b> (choice of tempo in playback)
+      </li><li> <del>spatialization</del>
+      </li><li> <del>filtering</del>
+      </li><li> <del>Noise gating</del>
+      </li><li> <del>dynamic range compression</del>
+      </li><li> <del>The simulation of acoustic spaces</del>
+      </li><li> <del>The simulation of occlusions and obstructions</del>
+      </li></ul>
+      </li><li> <i>Source Combination and Interaction</i>
+      <ul><li> <b>Mixing Sources</b>
+      </li><li> <del>Ducking</del>
+      </li><li> <del>Echo cancellation</del>
+      </li></ul>
+      </li><li> <i>Analysis of sources</i>
+      <ul><li> <del>Level detection</del>
+      </li><li> <del>Frequency domain analysis</del>
+      </li></ul>
+      </li><li> <i>Synthesis of sources</i>
+      <ul><li> <del>Generation of common signals for synthesis and parameter modulation purposes</del>
+      </li><li> <del>The ability to read in standard definitions of wavetable instruments</del>
+      </li><li> <del>Acceptable performance of synthesis</del>
+      </li></ul>
+      </li></ul>
+      <h4>UC5 — Other Requirements TBA? </h4>
+      <p>The context of a music writing application introduces some additional high level requirements on a sequencing/synthesis subsystem:
+      </p>
+      <ul><li> It is necessary to coordinate visual display with sequenced playback of the document, such as a moving cursor or highlighting effect applied to notes. This implies the need to programmatically determine the exact time offset of the sound being physically rendered through the computer's audio output channel. This time offset must, in turn, have a well-defined relationship to time offsets in prior API requests to schedule various notes at various times.
+      </li></ul>
+      <ul><li> It is necessary to be able to stop and start all types of playback with low latency. To avoid sudden clicks, pops or other artifacts it should be possible to apply a fade out curve of an arbitrary length.  
+      </li></ul>
+      <ul><li> Sequenced playback must make light enough demands on browser processing to support user interaction with the music writing application without degrading the experience.
+      </li></ul>
+      <ul><li> Initialization of resources required for sequenced playback must not impose an unacceptable startup delay on the application. 
+      </li></ul>
+      <ul><li> To export an audio file, it is highly desirable (to allow faster-than-real-time rendering, for example) that the audio rendering pipeline be able to yield buffers of sample frames directly, rather than being forced to an audio device destination. Built-in codecs to translate these buffers to standard audio file output formats are also desirable.
+      </li></ul>
+      
+      </section>
+      
+      <section>
+      
+      
+      <h3>UC 6: wavetable synthesis of a virtual music instrument </h3>
+      <p>Of necessity this use case is a bit more abstract, since it describes a component that can underlie a number of the other use cases in this document including UC 2, UC 3 and UC 5.
+      </p><p>A user is employing an application that requires polyphonic, multi-timbral performance of musical events loosely referred to as "notes", where a note is a synthesized instrument sound. The class of such applications includes examples such as:
+      </p>
+      <ul><li> sheet music editors playing back a score document
+      </li><li> novel music creation environments, e.g. beat grids or "virtual instruments" interpreting touch gestures in real time to control sound generation
+      </li><li> games that generate or stitch together musical sequences to accompany the action (see UC 2)
+      </li><li> applications that include the ability to render standard MIDI files as sound (see UC 3)
+      </li></ul>
+      <p>To make this use case more specific and more useful, we'll stipulate that the synthesizer is implemented using several common data structures and software components:
+      </p>
+      <ul><li> A time-ordered list data structure of some kind, specifying a set of musical events or "notes" in terms of high-level parameters rather than audio samples. This data may be dynamically generated by the application (as in UC 5) or defined in advance by a document such as a MIDI file. A single list entry supplies a tuple of parameters, including:
+      <ul><li> onset time
+      </li><li> duration
+      </li><li> instrument choice
+      </li><li> volume
+      </li><li> pitch
+      </li><li> articulation
+      </li><li> time-varying modulation 
+      </li></ul>
+      </li></ul>
+      <ul><li> A set of "instrument definition" data structures referenced by the above notes. These definitions are data structures that, when coupled with the information in a single note, suffice to generate a sample-accurate rendering of that note alone. 
+      </li></ul>
+      <ul><li> A set of "performance parameters" that govern output at a high level, such as gain or EQ settings affecting the mix of various instruments in the performance.
+      </li></ul>
+      <ul><li> A "music synthesizer" procedure that interprets all of the above structures and employs the HTML5 Audio API to realize a complete musical performance of the notes, the instrument definitions and the performance parameters, in real time.
+      </li></ul>
+      <p>Nailing down the nature of an instrument definition turns is crucial for narrowing the requirements further. This use case therefore that an instrument definition is a "wavetable instrument", which is an approach that uses a small number of short samples in conjunction with looping, frequency shifting, envelopes and modulators. This is a good choice because it is ubiquitous in the software synthesis world and it's a little more demanding in terms of requirements than direct algorithmic generation of waveforms or FM synthesis.
+      </p><p>Our use case's wavetable instrument includes the following elements:
+      </p>
+      <ul><li> A list of audio buffers (commonly called "root samples") containing recorded instrument sounds at specific pitch levels. Each buffer is associated with a  "target pitch/velocity range", meaning that a note whose pitch and velocity fall within the given range will utilize this root sample, with an appropriate gain and sample-rate adjustment, as its sound source.
+      </li><li> Looping parameters providing sample-accurate start and end loop points within a root sample, so that it can generate a note of arbitrary duration even though the root sample is compact. This intra-sample looping ability is absolutely required for most instruments, except for short-duration percussion sounds.
+      </li><li> Parameters that determine a note-relative gain envelope based on the note's parameters. Such an envelope normally follows an exponential trajectory during key intervals in the lifetime of the note known as attack (a short period following onset), decay (an arbitrarily long period following attack), and release (a short period following the end of the note). After the primary sound source, this envelope is the most musically salient attribute of an instrument.
+      </li><li> Parameters that similarly derive an LP filter cutoff-frequency envelope, similarly based on the note parameters. This is often used to enhance the gain envelope, as many physical instruments include more high-frequency components at the start of a note.
+      </li><li> Parameters that supply additional modulation during the course of the note to the pitch-shift or attenuation applied to its sound source. Often the modulation is a low-frequency triangle wave, or a single exponential ramp between points. This technique supplies interpretive and articulatory effects like vibrato or glissando.
+      </li></ul>
+      <h4>UC6 — Priority </h4>
+      <pre> <i>Priority: <b>HIGH</b></i>
+      </pre>
+      <p>… <a href="http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0259.html" title="http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0259.html">Under discussion</a>. 
+      </p><p>From the input gathered so far, there seems to be a reasonable amount of interest in the capabilities detailed in this use case.
+      </p>
+
+    </section>
+    
+    <section>
+
+
+      <h3>UC 7: Audio / Music Visualization </h3>
+      <p>A user is playing back audio or video media from the webpage of their favorite artist or a popular online music streaming service. The visualization responds to the audio in real-time and can be enjoyed by the user(s) in a leisurely setting such as: at home, a bar/restaurant/lobby, or traveling with an HTML5 capable mobile device. The visualization layers can be written using complimentary web technologies such as the WebGL Canvas, where 3D objects are synchronized with the audio and mixed with Video and other web content using JavaScript.
+      </p><p>The webpage can presents a graphic visualization layers such as:
+      </p>
+      <ul><li> Wave-form view of the audio data - such as on SoundCloud: <a href="http://soundcloud.com/skrillex" class="external free" title="http://soundcloud.com/skrillex">http://soundcloud.com/skrillex</a>
+      </li><li> Spectrum analysis or level-meter view - like in iTunes: <a href="http://apptree.net/ledsa.htm" class="external free" title="http://apptree.net/ledsa.htm">http://apptree.net/ledsa.htm</a>
+      </li><li> Abstract music visualizer - example, R4 for Winamp: <a href="http://www.youtube.com/watch?v=en3g-BiTZT0" class="external free" title="http://www.youtube.com/watch?v=en3g-BiTZT0">http://www.youtube.com/watch?v=en3g-BiTZT0</a>
+      </li><li> An HTML5 Music Video - such as WebGL Music Video production: Ro.me: <a href="http://www.ro.me/" class="external free" title="http://www.ro.me/">http://www.ro.me/</a>
+      </li><li> iTunes LP extras interactive content - <a href="http://www.apple.com/itunes/lp-and-extras/" class="external free" title="http://www.apple.com/itunes/lp-and-extras/">http://www.apple.com/itunes/lp-and-extras/</a> (As seen in Deadmau5's 4x4=12 LP: <a href="http://itunes.apple.com/us/album/4x4-12/id406482788" class="external free" title="http://itunes.apple.com/us/album/4x4-12/id406482788">http://itunes.apple.com/us/album/4x4-12/id406482788</a> )
+      </li></ul>
+      <p><br />
+      The user can control elements of the visualization using an interface provided by the webpage developer. The user can change the colors, shapes and tweak other visualization settings to their taste. The user may switch to a new visualization modes: changing from a spectrum-analysis view, to an abstract 2D or 3D visual view, a video overlay, or a mash-up of web-content that could include all of the above.
+      </p>
+      <h4>UC7 — Priority </h4>
+      <pre> <i>Priority: <b>HIGH</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>This appears to be the subject of many demos, and a center of interest.
+      </p>
+      </section>
+      
+      <section>
+      
+      <h3>UC 8: UI/DOM Sounds  </h3>
+      <p>A child is visiting a Kids' website where the playful, colorful HTML interface is accompanied by sound effects played as the child hovers or clicks on some of the elements of the page. For example, when filling a form the sound of a typewriter can be heard as the child types in the form field. Some of the sounds are spatialized and have a different volume depending on where and how the child interacts with the page. When an action triggers a download visualised with a progress bar, a rising pitch sound accompanies the download and another sound (ping!) is played when the download is complete.
+      </p>
+      <h4>UC8 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+    </section>
+    
+    <section>
+
+
+      <h3>UC-9&nbsp;: Language learning </h3>
+      <p>A user is listening to the web-cast of an audio interview available from 
+      the web-page of a radio broadcasting streaming service.
+      The interview is broad casted in Spanish, unfortunately not the native 
+      language of the user.
+      Therefore the user would like to listen to the audio web-cast at a 
+      slower speed (time stretching), allowing a better understanding of the 
+      dialogs of the conversation in this language for which he is not fluent.
+      The user would like listen to the audio broadcast, without any pitch 
+      distortion of the voices.
+      </p><p>The web-page presents a graphic visualization of the speed of the audio 
+      conversation.
+      The web-page also associates an interface provided by the web-page 
+      developer allowing the user to
+      to change the speed, and may allow to tweak other settings like the tone 
+      and timbre to his taste.
+      </p><p>This would be valuable accessibility features for audio listeners who 
+      want to allow more time to better understand web-cast as well as audio 
+      books.
+      </p>
+      <h4>UC9 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+
+    </section>
+    
+    <section>
+
+
+      <h3>UC-10&nbsp;: Podcast on a flight </h3>
+      <p>A user is  subscribed to a podcast, and has downloaded an audio book on 
+      his device.
+      The audio files are stored locally on the user's computer or other 
+      device ready for off line use, giving simple and convenient access to 
+      episodic content, through a web browser.
+      </p><p>The user is sitting in an airplane, for a 2 hours flight. The user opens 
+      his audio book in his HTML browser a sees that the episode he has 
+      selected lasts 3 hours.
+      The user would like to be able to accelerate the speed of the audio 
+      book, without pitch distortion (i.e., voices not sounding like 
+      “chipmunks” when accelerated). He would like to set the audition time to 
+      2 hours in order to finish the audio book before landing.
+      </p><p>The web-page presents a graphic visualization of the speed, the total 
+      duration of the audio on a time line at the corresponding speed.
+      The web-page also associates an audio speed changer interface provided 
+      by the web-page developer allowing the user  to change the tempo of the 
+      speech and speed up audio files without changing the pitch. This lets 
+      the user drastically speed up speech speed without a "chipmunk" effect.
+      </p><p>Another interface allows the user to set the duration of the audio, 
+      regarding its initial duration at normal speed, therefore changing its 
+      speed with pitch lock.
+      The user may also tweak other settings like the tone and timbre to his 
+      taste.
+      </p><p>This would be valuable features for book listeners who want to save time 
+      by accelerating audio books as well as podcasts.
+      </p>
+      <h4>UC10 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+
+    </section>
+    
+    <section>
+
+
+      <h3>UC-11: DJ music at 125 BPM </h3>
+      <p>A disc jockey (DJ) selects and plays recorded music for a discotheque 
+      audience. The DJ uses a radio broadcasting streaming service to play the 
+      music live.
+      The DJ is selecting songs from a playlist available on the web-page of 
+      the streaming service and wants to beatmix and cross fade songs for 
+      smooth dance transitions.
+      He brings the beat of the next song into phase with the current one 
+      playing and fades across.
+      For example, if the song the audience is hearing is 125 Beats Per Minute 
+      (bpm), and the next song he wants to play is 128 bpm, the DJ will slow 
+      the second song down to 125 bpm using pitch control, and cue it up to 
+      the beat. When he is ready to bring the second song into play, he throws 
+      the recording so the beats stay aligned and listen to it in his 
+      headphones. The DJ makes sure both are in sync. Then he uses a  cross 
+      fader to let the new song blend into the old one, and eventually goes 
+      completely across so only the new song is playing. This gives the 
+      illusion that the song never ended.
+      </p><p><br />
+      The web-page presents a graphic visualization of the audio songs 
+      selected and played. It displays the Beats Per Minute (bpm).
+      The web-page also associates an audio interface with pitch control to 
+      change the tempo of a song, very useful for  beat matching.
+      </p><p>For further audio effect, the interface may also integrate a pitch-wheel 
+      allowing to change the pitch of a sound without changing it's length.
+      </p><p>These would be valuable features for DJs who want to beat-sync music on 
+      line, like they are used to do with decks and turntables.
+      </p>
+      <h4>UC11 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+
+    </section>
+    
+    <section>
+
+
+      <h3>UC-12: Soundtrack and sound effects in a video editing tool </h3>
+      <p>A person is using an online video editing tool to modify the soundtrack of a video.  The editor extracts the existing recorded vocals from the video stream, modifies the levels and performs other modifications of the audio stream.  She also adds several songs, including a orchestral background and pop songs, at different parts of the soundtrack.  She also adds several Foley effects (footsteps, doors opening and closing, etc.).  While editing, the audio and video playback are synced to allow the editor to insert audio samples at the right time. As the length of one of the songs is slightly different from the video segment she is matching it with, she can synchronize the two by slightly speeding up or slowing down the audio track. The final soundtrack is mixed down into the final soundtrack, added to the video as a replacement for the original audio track, and synced with the video track.
+      </p>
+      <h4>UC12 — Priority </h4>
+      <pre> <i>Priority: <b>LOW</b></i>
+      </pre>
+      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
+      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
+      </p>
+
+    </section>
+    
+    <section>
+
+
+      <h3>UC-13: Web-based guitar practice service </h3>
+      <p>A serious guitar player uses a web-based tool to practice a new tune. Connecting a  USB microphone and a pair of headphones to their computer, the guitarist is able to tune an acoustic guitar using a graphical interface, set a metronome to keep the tempo then start recording a practice session.
+      </p><p>The audio input from the microphone is automatically analysed to detect whether the musician is keeping a regular beat. The music played during the session is recorded and can be saved to a variety of file formats locally or on the online service where others can replay, comment on the performance and annotate any section to help the musician improve technique and delivery.
+      </p>
+      <h4>UC13 — Priority </h4>
+      <p><i>Priority: <b>Low</b></i>
+      </p><p>The Use case has been created with a Low priority as a default. No objection raised since mid-February 2012.
+      </p>
+      
+      </section>
+      
+      <section>
+      
+  
+      
+      <h3>UC-14: User Control of Audio </h3>
+      <p>A programmer wants to create a browser extension to allow the user to control the volume of audio on a per-tab basis, or to kill any audio playing completely, in a way that takes care of garbage collection.
+      </p>
+      <h4>UC14 — Priority </h4>
+      <p><i>Priority: <b>Low</b></i>
+      </p><p>The Use case has been created with a Low priority as a default. No objection raised since mid-February 2012.
+      </p><p><br />
+      </p>
+
+    </section>
+    
+    <section>
+
+
+      <h3>UC-15: Video commentary </h3>
+      <p>The director of a video wants to add audio commentary to explain his creative process, and invites other people involved in the making of the video to do the same. His production team also prepares an audio description of the scenes to make the work more accessible to people with sight disabilities.
+      </p><p>The video, displayed in a HTML web page, can be played with its original audio track (embedded in the video container) or with any of the audio commentary tracks loaded from a different source and synchronised with the video playback. When there's audio on the commentary track, the main track volume is reduced (ducked) gradually and smoothly brought back to full volume when the commentary / description track is silent. The visitor can switch between audio tracks on the fly, without affecting the video playback. Pausing the video playback also pauses the commentary track, which then remains in sync when playback resumes.
+      </p><p><br />
+      </p>
+      <h4>UC15 — Notes </h4>
+      <p>In discussions about this use case, some people in the group expressed a wish that this use case illustrate a need for the audio processing API to work well with the HTML5 <a href="http://dev.w3.org/html5/spec/media-elements.html#mediacontroller" title="http://dev.w3.org/html5/spec/media-elements.html#mediacontroller">MediaController</a>  interface. As this is an implementation question, this requirement has been kept out of the use case text itself, but the need to work with the HTML5 interface is duly noted.
+      </p><p>A <a href="http://people.mozilla.org/~roc/stream-demos/video-with-extra-track-and-effect.html" title="http://people.mozilla.org/~roc/stream-demos/video-with-extra-track-and-effect.html">demo of this particular use case</a> using the MediaStream processing API is available.
+      </p>
+      <h4>UC15 — Priority </h4>
+      <p><i>Priority: <b>Low</b></i>
+      </p><p>The Use case has been created with a Low priority as a default. To be discussed.
+      </p>
+      
+      </section>
+    
+    </section>
+      
+      <section>
+    
+      <h2>Requirements </h2>
+      <section>
+      <h3>Sources of audio </h3>
+      <p>The Audio Processing API can operate on a number of sources of audio: 
+      </p>
+      <ul><li>  a DOM Element can be a source: HTML &lt;audio&gt; elements (with both remote and local sources)
+      </li><li> memory-resident PCM data can be a source: Individual memory-resident “buffers” of PCM audio data which are not associated with &lt;audio&gt; elements
+      </li><li> programmatically calculated data can be a source: on-the-fly generation of audio data
+      </li><li> devices can act as a source: Audio that has been captured from devices - microphones, instruments etc.  
+      </li><li> remote peer can act as a source: Source from a remote peer (e.g. a WebRTC source) 
+      </li></ul>
+      <h4>Support for primary audio file formats </h4>
+      <p>Sources of audio can be compressed or uncompressed, in typical standard formats found on the Web and in the industry (e.g. MP3 or WAV)
+      </p>
+      <h4>One source, many sounds </h4>
+      <p>It should be possible to load a single source of sound and instantiate it in multiple, overlapping occurrences without reloading that are mixed together.
+      </p>
+      <h4>Playing / Looping  sources of audio </h4>
+      <p>A subrange of a source can be played. It should be possible to start and stop playing a source of audio at any desired offset within the source. This would then allow the source to be used as an audio sprite. 
+      See: <a href="http://remysharp.com/2010/12/23/audio-sprites/" class="external free" title="http://remysharp.com/2010/12/23/audio-sprites/">http://remysharp.com/2010/12/23/audio-sprites/</a>
+      And: <a href="http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0006.html" class="external free" title="http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0006.html">http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0006.html</a>
+      </p><p>A source can be looped. It should be possible to loop memory-resident sources. It should be possible to loop on a whole-source and intra-source basis, or to play the beginning of a sound leading into a looped segment.
+      </p><p><i>Example:</i> 
+      </p>
+      <pre>
+        // load source
+        source.loop = true;
+        source.play();
+
+      </pre>
+      <p><br />
+      </p>
+      <h4>Capture of audio from microphone, line in, other inputs </h4>
+      <p>Audio from a variety of sources, including line in and microphone input, should be made available to the API for processing.
+      </p>
+      <h4>Adding effects to the audio part of a video stream, and keep it in sync with the video playback </h4>
+      <p>The API should have access to the audio part of video streams being played in the browser, and it should be possible to add effects to it and output the result in real time during video playback, keeping audio and video in sync.
+      </p>
+      <h4>Sample-accurate scheduling of playback </h4>
+      <p>In the case of memory-resident sources it should be possible to trigger the playback of the audio in a sample-accurate fashion. 
+      </p>
+      <h4>Buffering </h4>
+      <p>From:  <a href="http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0006.html" class="external free" title="http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0006.html">http://lists.w3.org/Archives/Public/public-audio/2012JanMar/0006.html</a>
+      </p>
+      <dl><dd>It would be nice to have something like AudioNode.onready(123.2, callback)
+      </dd><dd>if the browser is really sure to playback properly.
+      </dd></dl>
+      <h4>Support for basic polyphony </h4>
+      <p>A large number of simultaneous sources must be able to be played back simultaneously. As a guideline, the use-cases have identified that 32 [TODO: validate the number based on FMOD] simultaneous audio sources are required for typical music and gaming applications.
+      </p>
+      <h4>Rapid scheduling of many independent sources </h4>
+      <p>The ability to construct and schedule the playback of approximately 100 notes or sonic events per second across all voices would be required for typical music synthesis and gaming applications. 
+      </p>
+      <h4>Triggering of audio sources </h4>
+      <p>It should be possible to trigger playback of audio sources in response to DOM events (onMouseOver, onKeyPress etc.), in addition it should be possible for the client to ascertain (for example using a callback) when an event has started and finished.
+      </p><p>A conforming specification MUST be able to play pre-loaded sounds back at faster than a rate of 'x' milliseconds from the time the JavaScript code was executed, until the time that sound is heard through the speakers: where the audio path is not running through any external sound devices and the browser is using the default sound driver provided by the operating system.
+      </p><p><i>Examples:</i>
+      </p>
+      <pre>
+      document.addEventListener( 'keypress', function(){
+        source.play();
+      }, false );
+
+      </pre>
+      <h4>Audio quality </h4>
+      <p>As a general requirement audio playback should be free of glitches, jitter and other distortions.
+      </p>
+      
+      </section>
+      <section>
+      <h3>Transformations of sources of audio </h3>
+      <p>Each of the sources of audio described above should be able to be transformed in real time. This processing should, as much as possible, have a low latency on a wide variety of target platforms. 
+      </p>
+      <h4>Modularity of transformations </h4>
+      <p>The Audio Processing API should allow arbitrary combinations of transforms. A number of use-cases have the requirement that the developer has control over the transforms in a “modular” fashion.
+      </p>
+      <h4>Transformation parameter automation </h4>
+      <p>Where there are parameters for these effects, it should be possible to automatically modify these parameters in a programmatic, time-dependent way. Parameter changes must be able to be scheduled relative to a source’s onset time which may be in the future. Primary candidates for automation include gain, playback rate and filter frequency.
+      </p><p>Transformations include:
+      </p>
+      <h4>gain adjustment </h4>
+      <h4>playback rate adjustment </h4>
+      <h4>spatialization </h4>
+      <ul><li> equal power/level panning
+      </li><li> binaural HRTF-based spatialization 
+      </li><li> including the influence of the directivity of acoustic sources
+      </li><li> including the attenuation of acoustic sources by distance
+      </li><li> including the effect of movement on acoustic sources
+      </li></ul>
+      <h4>filtering </h4>
+      <ul><li> graphic EQ
+      </li><li> low/hi/bandpass filters
+      </li><li> impulse response filters
+      </li><li> Pitch shifting
+      </li><li> Time stretching
+      </li></ul>
+      <h4>Noise gating </h4>
+      <p>It is possible to apply a real-time noise gate to a source to automatically mute it when its average power level falls below some arbitrary threshold (is this a reflexive case of ducking?).
+      </p>
+      <h4>dynamic range compression </h4>
+      <p><b>TBA</b>
+      </p>
+      <h4>The simulation of acoustic spaces </h4>
+      <p>it should be possible to give the impression to the listener that a source is in a specific acoustic environment. The simulation of this environment may also be based on real-world measurements.
+      </p>
+      <h4>The simulation of occlusions and obstructions </h4>
+      <p>It should be possible to give the impression to the listener that an acoustic source is occlusions or obstructed by objects in the virtual space
+      </p>
+      </section>
+      <section>
+        <h3>Source Combination and Interaction </h3>
+      <h4>Mixing Sources </h4>
+      <p>many independent sources can be mixed
+      </p>
+      <h4>Ducking </h4>
+      <p>It is possible to mute or attenuate one source based on the average power level of another source, in real time.
+      </p>
+      <h4>Echo cancellation </h4>
+      <p>It is possible to apply echo cancellation to a set of sources based on real-time audio input (say, a microphone).
+      </p>
+      </section>
+      <section>
+        <h3>Analysis of sources </h3>
+      <h4>Level detection </h4>
+      <p>A time-averaged volume or power level can be extracted from a source in real time (for visualisation or conversation-status purposes)
+      </p>
+      <h4>Frequency domain analysis </h4>
+      <p>A frequency spectrum can be extracted from a source in real time (for visualisation purposes).
+      </p>
+      </section>
+      <section>
+        <h3>Synthesis of sources </h3>
+      <h4>Generation of common signals for synthesis and parameter modulation purposes </h4>
+      <p>For example sine, sawtooth, square and white noise. 
+      </p>
+      <h4>The ability to read in standard definitions of wavetable instruments </h4>
+      <p>(e.g. Sound Font, DLS)
+      </p>
+      <h4>Acceptable performance of synthesis </h4>
+      <p>TBD</p>
+
+      <h2>Other Considerations </h2>
+      <h4> Performance and Hardware-acceleration friendliness </h4>
+      <ul><li> From WebRTC WG: audio-processing needs to be doable for real-time communications — this means getting processing, and using hardware-capabilities as much as possible.
+      </li></ul>
+      <ul><li> Improved performance and reliability to play, pause, stop and cache sounds, especially using the HTML5 Appcache offline caching for the HTML audio element.  From Paul Bakaus, Zynga (see <a href="http://lists.w3.org/Archives/Public/public-audio/2011AprJun/0128.html" title="http://lists.w3.org/Archives/Public/public-audio/2011AprJun/0128.html">thread</a>)
+      </li></ul>
+      </section>
+
+
+    </section>
+  <section>
+
+      <h2>Mapping Use Cases and Requirements</h2>
+
+      <table>
+      <tr>
+        <th style="width: 35em">Requirement Family</th>
+        <th style="width: 55em">Requirement</th>
+        <th style="width: 20em">Requirement Priority</th>
+        <th>UC 1: Video Chat</th>
+        <th>UC 2: HTML5 game with audio effects, music</th>
+        <th>UC 3: online music production tool</th>
+        <th>UC 4: Online radio broadcast</th>
+        <th>UC 5: writing music on the web</th>
+        <th>UC 6: wavetable synthesis of a virtual music instrument</th>
+        <th>UC 7: Audio / Music Visualization</th>
+        <th>UC 8: UI/DOM Sounds</th>
+        <th>UC-9 : Language learning</th>
+        <th> UC-10 : Podcast on a flight</th>
+        <th> UC-11: DJ music at 125 BPM</th>
+        <th> UC-12 : Soundtrack and sound effects in a video editing tool</th>
+        <th> UC-13 : Web-based guitar practice service</th>
+        <th>UC-14 : User Control of Audio</th>
+        <th>UC-15 : Video commentary</th>
+      </tr>
+      <tr>
+        <th colspan="2">Use Case Priority</th>
+        <td></td>
+        <th>High</th>
+        <th>High</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>High</th>
+        <th>High</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+        <th>Low</th>
+      </tr>
+      <tr>
+      <th rowspan='11'>Sources of audio</th>
+        <td>Support for primary audio file formats</td>
+        <td>Baseline</td>
+    <!--    1            2            3            4            5            6            7            8            9            10           11          12           13           14         15    -->
+
+        <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>  <td> </td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td> One source, many sounds </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Playing / Looping sources of audio </td>
+        <td>Baseline</td>
+        <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>  <td>✓</td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td>Capture of audio from microphone, line in, other inputs</td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>  <td> </td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td>Adding effects to the audio part of a video stream, and keep it in sync with the video playback</td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td> Sample-accurate scheduling of playback </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Buffering </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Support for basic polyphony </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Rapid scheduling of many independent sources </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Triggering of audio sources </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td> Audio quality </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+
+    <!--    1            2            3            4            5            6            7            8            9            10           11          12           13           14         15    -->
+
+
+      <th rowspan='10'>Transformations of sources of audio </th>
+        <td> Modularity of transformations </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Transformation parameter automation </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Gain adjustment </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>  <td>✓</td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td> Simple playback rate adjustment </td>
+        <td>Baseline</td>
+        <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Spatialization </td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Filtering </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Noise gating </td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Dynamic range compression </td>
+        <td><strong>Minority, but important</strong></td>
+        <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>  <td>✓</td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td> The simulation of acoustic spaces </td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td>The simulation of occlusions and obstructions </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+
+    <!--    1            2            3            4            5            6            7            8            9            10           11          12           13      -->
+
+      <tr>
+      <th rowspan='3'>Source Combination and Interaction </th>
+        <td> Mixing Sources </td>
+        <td>Baseline</td>
+        <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Ducking </td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>  <td> </td>  <td>✓</td>
+      </tr>
+      <tr>
+        <td> Echo cancellation </td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+      <th rowspan='2'>Analysis of sources </th>
+        <td> Level detection </td>
+        <td>Minority, but important</td>
+        <td>✓</td>   <td> </td>   <td>✓</td>   <td>✓</td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Frequency domain analysis </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+      <th rowspan='3'>Synthesis of sources</th>
+        <td> Generation of common signals for synthesis and parameter modulation purposes </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> The ability to read in standard definitions of wavetable instruments </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </tr>
+      <tr>
+        <td> Acceptable performance of synthesis </td>
+        <td>Minority, but important</td>
+        <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td>✓</td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>   <td> </td>  <td> </td>  <td> </td>
+      </table>
+
+    </section>
+
+        <section>
+        <h2>Features out of scope</h2>
+        <p>During its lifetime, the W3C Audio working group also considered a number of features or requirements which were not deemed important enough to be kept in the scope of the first revision of the Web Audio API, but were worth recording for future perusal.</p>
+        
+        <h3>An AudioParam constructor in the context of a JavaScriptAudioNode</h3>
+        <p>TBA: https://www.w3.org/2011/audio/track/issues/6</p>
+
+</section>
+    
+    <section class='appendix'>
+      <h2>Acknowledgements</h2>
+
+      <p>This document is the result of the work of the W3C <a href="http://www.w3.org/2011/audio/">Audio
+      Working Group</a>. Members of the working group, at the time of publication, included: </p>
+      <ul>
+        <li>Berkovitz, Joe (public Invited expert);</li>
+        <li>Cardoso, Gabriel (INRIA);</li>
+        <li>Carlson, Eric (Apple, Inc.);</li>
+        <li>Gregan, Matthew (Mozilla Foundation);</li>
+        <li>Jägenstedt, Philip (Opera Software);</li>
+        <li>Kalliokoski, Jussi (public Invited expert);</li>
+        <li>Lowis, Chris (British Broadcasting Corporation);</li>
+        <li>MacDonald, Alistair (W3C Invited Experts);</li>
+        <li>Michel, Thierry (W3C/ERCIM);</li>
+        <li>Noble, Jer (Apple, Inc.);</li>
+        <li>O'Callahan, Robert (Mozilla Foundation);</li>
+        <li>Paradis, Matthew (British Broadcasting Corporation);</li>
+        <li>Raman, T.V. (Google, Inc.);</li>
+        <li>Rogers, Chris (Google, Inc.);</li>
+        <li>Schepers, Doug (W3C/MIT);</li>
+        <li>Shires, Glen (Google, Inc.);</li>
+        <li>Smith, Michael (W3C/Keio);</li>
+        <li>Thereaux, Olivier (British Broadcasting Corporation);</li>
+        <li>Wei, James (Intel Corporation);</li>
+        <li>Wilson, Chris (Google,Inc.); </li>
+      </ul>
+      
+      <p>The co-chairs of the Working Group are Alistair MacDonald and Olivier Thereaux.</p>
+
+      <p>The people who have contributed to <a href="http://lists.w3.org/Archives/Public/public-audio/">discussions on
+      public-audio@w3.org</a> are also gratefully acknowledged. </p>
+      
+      <p>This document was also heavily influenced by earlier work by the audio working group and others, including:</p>
+      <ul>
+        <li>A list of “<a href="http://www.w3.org/2005/Incubator/audio/wiki/Audio_API_Use_Cases" title="Audio API Use Cases - Audio Incubator">Core Use Cases</a>” authored by the <a href="http://www.w3.org/2005/Incubator/audio/" title="W3C Audio Incubator Group">W3C Audio Incubator Group</a>, which predated the W3C Audio Working Group</li>
+        <li> The <a href="http://tools.ietf.org/html/draft-ietf-rtcweb-use-cases-and-requirements-06#section-4.2" title="http://tools.ietf.org/html/draft-ietf-rtcweb-use-cases-and-requirements-06#section-4.2">use cases requirements from Web RTC</a></li>
+        <li> The <a href="http://www.w3.org/TR/2011/WD-streamproc-20111215/#scenarios" title="http://www.w3.org/TR/2011/WD-streamproc-20111215/#scenarios">Scenarios from the Media Streams Processing</a></li> 
+      </ul>
+      
+      
+      
+    </section>
+  </body>
+</html>
+

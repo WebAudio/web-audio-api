@@ -1192,7 +1192,17 @@ volume. The parameter can be set immediately to a particular value using the
 "value" attribute. Additionally, value changes can be scheduled to happen at
 very precise times, for envelopes, volume fades, LFOs, filter sweeps, grain
 windows, etc. In this way, arbitrary timeline-based automation curves can be
-set on any AudioParam. </p>
+set on any AudioParam.
+ </p>
+
+<p>
+Some synthesis and processing <code>AudioNodes</code> have <code>AudioParams</code> as attributes whose values MUST
+ be taken into account on a per-audio-sample basis.
+For other <code>AudioParams</code>, sample-accuracy is not important and the value changes can be sampled more coursely.
+Each individual <code>AudioParam</code> will specify that it is either an "a-rate" parameter
+which means that its values MUST be taken into account on a per-audio-sample basis, or it is a "k-rate" parameter whose value
+changes MUST be taken into account at least at a 3ms resolution, but can be more precise than this.
+</p>
 
 <div class="block">
 
@@ -1416,7 +1426,7 @@ clicks or glitches. This process is called "de-zippering". </p>
     <dd><p>An AudioGain object representing the amount of gain to apply. The
       default value (<code>gain.value</code>) is 1 (no gain change). See <a
       href="#AudioGain-section"><code>AudioGain</code></a> for more
-      information. </p>
+      information.  This parameter is <em>a-rate</em> </p>
     </dd>
 </dl>
 </div>
@@ -1459,8 +1469,8 @@ noticeable clicks or glitches to the audio stream. </p>
   <dt id="dfn-delayTime_2"><code>delayTime</code></dt>
     <dd><p>An AudioParam object representing the amount of delay (in seconds)
       to apply. The default value (<code>delayTime.value</code>) is 0 (no
-      delay). The minimum value is 0 and the maximum value is currently 1
-      (but this is arbitrary and could be increased).</p>
+      delay). The minimum value is 0 and the maximum value is determined by the <em>maxDelayTime</em>
+      argument to the <code>AudioContext</code> method <code>createDelayNode</code>.  This parameter is <em>k-rate</em></p>
     </dd>
 </dl>
 </div>
@@ -1609,7 +1619,7 @@ AudioBufferSourceNode. </p>
 <dl>
   <dt id="dfn-playbackRate_AudioBufferSourceNode"><code>playbackRate</code></dt>
     <dd><p>The speed at which to render the audio stream. The default
-      playbackRate.value is 1. </p>
+      playbackRate.value is 1.  This parameter is <em>a-rate</em> </p>
     </dd>
 </dl>
 <dl>
@@ -2395,6 +2405,10 @@ the speakers. </p>
 
 <div id="attributes-DynamicsCompressorNode-section" class="section">
 <h3 id="attributes-DynamicsCompressorNode">4.20.1. Attributes</h3>
+<p>
+All parameters are <em>k-rate</em>
+</p>
+
 <dl>
   <dt id="dfn-threshold"><code>threshold</code></dt>
     <dd><p>The decibel value above which the compression will start taking
@@ -2490,6 +2504,10 @@ they have all been derived from standard analog filter prototypes. For more
 technical details, we refer the reader to the excellent <a
 href="http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt">reference</a> by
 Robert Bristow-Johnson.</p>
+
+<p>
+Please note that the <code>frequency</code>, <code>Q</code>, and <code>gain</code> parameters are <em>k-rate</em>
+</p>
 
 <div id="BiquadFilterNode-description-section" class="section">
 <h3 id="BiquadFilterNode-description">4.21.1 LOWPASS</h3>
@@ -2778,12 +2796,13 @@ specified by the <code>noteOn()</code> method. </p>
 
 <dl>
   <dt id="dfn-frequency"><code>frequency</code></dt>
-    <dd><p>The frequency (in Hertz) of the periodic waveform. </p>
+    <dd><p>The frequency (in Hertz) of the periodic waveform. This parameter is <em>a-rate</em> </p>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-detune"><code>detune</code></dt>
-    <dd><p>A detuning value (in Cents) which will offset the <code>frequency</code> by the given amount. </p>
+    <dd><p>A detuning value (in Cents) which will offset the <code>frequency</code> by the given amount.
+     This parameter is <em>a-rate</em> </p>
     </dd>
 </dl>
 </div>

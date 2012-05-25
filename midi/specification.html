@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MIDI API</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+
+    <style media="all">
+      table {border-collapse: collapse; border: 1px solid #000; font: normal 80%/140% arial, helvetica, sans-serif; color: #555; background: #fff;}
+      td, th {border: 1px dotted #bbb; padding:.5em 1em; font-size: x-small; width: 10em; }
+      caption {padding: 0 0 .5em 0; text-align: left; font-size: 1; font-weight: 500; text-align: center; color: #666; background: transparent;}
+      table a {padding: 1px; text-decoration: none; font-weight: bold; background: transparent;}
+      table a:link {border-bottom: 1px dashed #ddd; color: #000;}
+      table a:visited {border-bottom: 1px dashed #ccc; text-decoration: line-through; color: #808080;}
+      table a:hover {border-bottom: 1px dashed #bbb; color: #666;}
+      thead th, tfoot th {white-space: nowrap; border: 1px solid #000; text-align: center; color: black; background: #ddd;}
+      tfoot td {border: 2px solid #000;}
+      tbody { height: 300px; overflow: auto; }
+      tbody th {color: #060606; }
+      tbody th, tbody td {vertical-align: middle; text-align: center; }
+    </style>
+    <!-- 
+      === NOTA BENE ===
+      For the three scripts below, if your spec resides on dev.w3 you can check them
+      out in the same tree and use relative links so that they'll work offline,
+     -->
+    <script src='http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js' class='remove'></script>
+    <script class='remove'>
+      var respecConfig = {
+          specStatus:           "ED",
+          copyrightStart: "2012",
+          edDraftURI:           "https://dvcs.w3.org/hg/audio/raw-file/tip/midi",
+          extraCSS:             ["http://dev.w3.org/2009/dap/ReSpec.js/css/respec.css"],
+          editors:  [
+              { name: "Jussi Kalliokoski", url: "http://avd.io" },
+              { name: "Chris Wilson", url: "mailto:cwilso@google.com",
+                company: "Google", companyURL: "http://google.com" },
+          ],
+          wg:           "Audio Working Group",
+          wgURI:        "http://www.w3.org/2011/audio/",
+          wgPublicList: "public-audio",
+          wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46884/status",
+      };
+    </script>    
+  </head>
+  <body>
+    <section id="abstract">
+      <p>
+        This document introduces an API for accessing and manipulating
+        the MIDI devices available on the users' systems.
+      </p>
+    </section>
+    <section class="informative">
+      <h2>Introduction</h2>
+      <p>
+        The MIDI API specification defines a means for web developers to
+        enumerate, manipulate and access MIDI devices. Having an API for MIDI
+        gives a means to make various applications using existing software and
+        hardware synths, as well as light systems and other mechanical
+        apparatus controlled by MIDI, along with a method of communication with
+        existing DAW (Digital Audio Workstation), trackers and other music
+        software on the user's computer.
+      </p>
+    </section>
+
+    <section id="conformance">
+      <p>
+        This specification defines conformance criteria that apply to a single
+        product: the <dfn>user agent</dfn> that implements the
+        interfaces that it contains.
+      </p>
+      <p>
+        Implementations that use ECMAScript to implement the APIs defined in
+        this specification must implement them in a manner consistent with the
+        ECMAScript Bindings defined in the Web IDL specification [[!WEBIDL]],
+        as this specification uses that specification and terminology.
+      </p>
+    </section>
+
+    <section>
+      <h2>Terminology</h2>
+      <p>
+        The <code><a href="http://dev.w3.org/html5/spec/webappapis.html#function">
+        Function</a></code> interface represents a function in the scripting
+        language being used as defined in [[!HTML5]].
+      </p>
+      <p>
+        The concepts <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#queue-a-task">
+        queue a task</a></dfn> and
+        <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#fire-a-simple-event">
+        fires a simple event</a></dfn> are defined in [[!HTML5]].
+      </p>
+      <p>
+        The terms <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#event-handlers">
+        event handlers</a></dfn> and
+        <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#event-handler-event-type">
+        event handler event types</a></dfn> are defined in [[!HTML5]].
+      </p>
+      <p>
+        The term <dfn><a href="http://www.khronos.org/registry/typedarray/specs/latest/#7">Uint8Array</a></dfn>
+        is defined in the
+        <a href="http://www.khronos.org/registry/typedarray/specs/latest/">Typed Array Specification</a>.
+      </p>
+      <p>
+        The term <dfn><a href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastreamtrack">
+        MediaStreamTrack</a></dfn> is defined in the
+        <a href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html">getUserMedia Specification</a>
+      </p>
+<!-- FIXME: This list is not exhaustive. -->
+    </section>
+
+    <section>
+      <h2>Security and privacy considerations</h2>
+      <p>
+        Allowing the enumeration of the users MIDI devices and access to the
+        information they send is a potential prime target for fingerprinting,
+        and possibly eavesdropping. Therefore implementations SHOULD carefully
+        follow the suggested security model later in the document.
+        <!-- FIXME: We should specify this security model somewhere and link to it -->
+      </p>
+    </section>
+
+    <section>
+      <h2><a>MIDIAccess</a> Interface</h2>
+      <dl title="[NoInterfaceObject]
+                 interface MIDIAccess"
+          class="idl">
+        <dt>sequence&lt;MIDIDevice&gt; enumerateInputs()</dt>
+        <dd>
+          Returns a list of the MIDI input devices available on the system.
+<!-- TODO: Specify the steps the UA is required to take. -->
+        </dd>
+        <dt>sequence&lt;MIDIDevice&gt; enumerateOutputs()</dt>
+        <dd>
+          Returns a list of the MIDI output devices available on the system.
+<!-- TODO: Specify the steps the UA is required to take. -->
+        </dd>
+        <dt><a>MIDIInputDevice</a> getInput(MIDIDevice target)</dt>
+        <dd>
+          Acquires access to the input <code><a>MIDIDevice</a></code> requested
+          as a <code><a>MIDIInputDevice</a></code> instance. 
+
+          <p>
+            When the
+            <dfn id="midiaccess-get-input"><code>getInput()</code></dfn>
+            is invoked, the user agent MUST run the following steps:
+          </p>
+
+          <ol>
+            <li>
+              <p>Let <var>target</var> be the
+              <code><a>MIDIDevice</a></code> argument.
+              If the <var>target</var> is a DOMString,
+              <var>target</var> will be a <code><a>MIDIDevice</a></code>
+              whose <code>deviceFingerprint</code> matches the supplied
+              DOMString.
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not a <code><a>MIDIDevice</a></code>
+                instance, or if the MIDIDevice is not a valid MIDI input
+                device, throw a <code>TYPE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not available for access, throw a
+                <code>REFERENCE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If made necessary by the underlying system APIs, reserve
+                the corresponding device for use within the current process.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Return a <code>MIDIInputDevice</code> corresponding the
+                <var>target</var> argument.
+              </p>
+            </li>
+          </ol>
+        </dd>
+        <dt><a>MIDIOutputDevice</a> getOutput(MIDIDevice target)</dt>
+        <dd>
+          Acquires access to the output <code><a>MIDIDevice</a></code> requested
+          as a <code><a>MIDIOutputDevice</a></code> instance. 
+
+          <p>
+            When the
+            <dfn id="midiaccess-get-output"><code>getInput()</code></dfn>
+            is invoked, the user agent MUST run the following steps:
+          </p>
+
+          <ol>
+            <li>
+              <p>Let <var>target</var> be the
+              <code><a>MIDIDevice</a></code> argument.
+              If the <var>target</var> is a DOMString,
+              <var>target</var> will be a <code><a>MIDIDevice</a></code>
+              whose <code>deviceFingerprint</code> matches the supplied
+              DOMString.
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not a <code><a>MIDIDevice</a></code>
+                instance, or if the MIDIDevice is not a valid MIDI output
+                device, throw a <code>TYPE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not available for access, throw a
+                <code>REFERENCE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If made necessary by the underlying system APIs, reserve
+                the corresponding device for use within the current process.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Return a <code>MIDIOutputDevice</code> corresponding the
+                <var>target</var> argument.
+              </p>
+            </li>
+          </ol>
+        </dd>
+        <dt><a>MIDIMessage</a> createMIDIMessage(short status, Uint8Array
+                                    data, long? timestamp, short? channel)</dt>
+        <dd>
+          <p>
+            Creates and returns a new <code><a>MIDIMessage</a></code> according
+            to the specified parameters.
+          </p>
+
+          <p>
+            When the
+            <dfn id="midiaccess-create-midi-message"><code>createMIDIMessage()</code></dfn>
+            is invoked, the user agent MUST run the following steps:
+          </p>
+
+          <ol>
+            <li>
+              <p>
+                Let <var>status</var> be the <code>short</code> argument.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Let <var>data</var> be the <code>Uint8Array</code> argument.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Let <var>timestamp</var> be the
+                <code>long</code> argument, if not null. Else let
+                <var>timestamp</var> be the current time as the amount of
+                milliseconds from the UNIX Epoch.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Let <var>channel</var> be the <code>short</code> argument,
+                if not null. Else let <var>channel</var> be zero.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Let <var>message</var> be a new <code><a>MIDIMessage</a></code>
+                with <var>status</var>, <var>data</var>, <var>timestamp</var>
+                and <var>channel</var> assigned to their corresponding
+                properties of the <var>message</var>.
+              </p>
+            </li>
+
+            <li>
+              <p>Return <var>message</var></p>
+            </li>
+          </ol>
+        </dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2><a>MIDIDevice</a> Interface</h2>
+
+      <p id="event-mididevice-devicedisconnect">
+        Whenever the MIDI device corresponding the
+        <code><a>MIDIDevice</a></code> is disconnected or becomes unavailable,
+        the UA MUST run the following steps:
+      </p>
+
+      <ol>
+        <li>
+          <p>
+            Fire a simple event named <code><a
+            href="#event-mididevice-devicedisconnect">devicedisconnect</a></code>
+            at the object.
+          </p>
+        </li>
+      </ol>
+
+      <p id="event-mididevice-deviceconnect">
+        Whenever the MIDI device corresponding the
+        <code><a>MIDIDevice</a></code> is connected or reconnected,
+        the UA MUST run the following steps:
+      </p>
+
+      <ol>
+        <li>
+          <p>
+            Fire a simple event named <code><a
+            href="#event-mididevice-deviceconnect">deviceconnect</a></code>
+            at the object.
+          </p>
+        </li>
+      </ol>
+
+      <div class="idl" title="MIDIInputDevice implements MIDIDevice"></div>
+      <div class="idl" title="MIDIOutputDevice implements MIDIDevice"></div>
+      <dl title="[NoInterfaceObject]
+                 interface MIDIDevice : EventTarget"
+          class="idl">
+        <dt>readonly attribute DOMString deviceName</dt>
+        <dd>
+          <p>The system name of the device.</p>
+        </dd>
+        <dt>readonly attribute DOMString deviceManufacturer</dt>
+        <dd>
+          <p>The manufacturer of the device.</p>
+        </dd>
+        <dt>readonly attribute DOMString deviceVersion</dt>
+        <dd>
+          <p>The version of the device.</p>
+        </dd>
+        <dt>readonly attribute DOMString deviceFingerprint</dt>
+        <dd>
+          <p>
+            A unique ID of the device. This can be used by developers to
+            remember devices the user has chosen for different applications.
+            The User Agent SHOULD make sure the
+            <code><a>deviceFingerprint</a></code>
+            is unique to only that device if possible.
+          </p>
+        </dd>
+        <dt class="no-docs">[TreatNonCallableAsNull] attribute
+                            Function? ondevicedisconnect</dt>
+        <dd>
+            <p>
+              This event handler, of type <code><a href=
+              "#event-mididevice-devicedisconnect">devicedisconnect</a></code>,
+              MUST be supported by all objects implementing
+              <code><a>MIDIInputDevice</a></code> interface.
+            </p>
+        </dd>
+        <dt class="no-docs">[TreatNonCallableAsNull] attribute
+                            Function? ondeviceconnect</dt>
+        <dd>
+            <p>
+              This event handler, of type <code><a href=
+              "#event-mididevice-deviceconnect">deviceconnect</a></code>,
+              MUST be supported by all objects implementing
+              <code><a>MIDIInputDevice</a></code> interface.
+            </p>
+        </dd>
+      </dl>
+
+      <section>
+        <h3><a>MIDIInputDevice</a> Interface</h3>
+
+        <p id="event-midiinputdevice-midimessage">
+          Whenever the MIDI device corresponding the
+          <code><a>MIDIInputDevice</a></code> sends a MIDI message, the UA MUST
+          run the following steps:
+        </p>
+
+        <ol>
+          <li>
+            <p>
+              Let <code>device</code> be the <code><a>MIDIInputDevice</a></code>.
+            </p>
+          </li>
+
+          <li>
+            <p>
+              Let <code>messages</code> be a newly constructed
+              <code>sequence&lt;<a>MIDIMessage</a>&gt;</code> corresponding the
+              MIDI messages the device sent.
+            </p>
+          </li>
+
+          <li>
+            <p>
+              Let <code>event</code> be a newly constructed
+              <code><a>MIDIEvent</a></code>, with the <code>MIDIMessages</code>
+              attribute set to <code>messages</code>.
+            </p>
+          </li>
+
+          <li>
+            <p>
+              Fire an event named <code><a
+              href="#event-midiinputdevice-midimessage">midimessage</a></code>
+              at the object, using the <code>event</code> as the event object.
+            </p>
+          </li>
+        </ol>
+
+        <dl title="[NoInterfaceObject]
+                   interface MIDIInputDevice implements EventTarget"
+            class="idl">
+          <dt>readonly attribute DOMString deviceType</dt>
+          <dd>
+            <p>
+              A descriptor property to distinguish whether the device is an
+              input or an output device. For <code><a>MIDIInputDevice</a></code>,
+              this MUST be <code>"INPUT"</code>.
+            </p>
+          </dd>
+          <dt>readonly attribute MediaStreamTrack stream</dt>
+          <dd>
+            <p>
+              A <code>MediaStreamTrack</code> representing the corresponding
+              <code><a>MIDIInputDevice</a></code>.
+            </p>
+          </dd>
+          <dt class="no-docs">[TreatNonCallableAsNull] attribute
+                              Function? onmidimessage</dt>
+          <dd>
+            <p>
+              This event handler, of type <code><a href=
+              "#event-midiinputdevice-midimessage">midimessage</a></code>,
+              MUST be supported by all objects implementing
+              <code><a>MIDIInputDevice</a></code> interface.
+            </p>
+          </dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3><a>MIDIOutputDevice</a> Interface</h3>
+        <dl title="[NoInterfaceObject]
+                   interface MIDIOutputDevice"
+            class="idl">
+          <dt>readonly attribute DOMString deviceType</dt>
+          <dd>
+            <p>
+              A descriptor property to distinguish whether the device is an
+              input or an output device. For <code><a>MIDIOutputDevice</a></code>,
+              this MUST be <code>"OUTPUT"</code>.
+            </p>
+          </dd>
+          <dt>boolean sendMIDIMessage(MIDIMessage message)</dt>
+          <dd>
+            <p>
+              Sends the MIDI message to the device and returns a boolean
+              signifying whether the operation was succesful.
+            </p>
+          </dd>
+          <dt>void addInput(MediaStreamTrack stream)</dt>
+          <dd>
+            <p>
+              Connects a <code>MediaMediaStreamTrack</code> to the
+              <code><a>MIDIOutputDevice</a></code>, piping all the MIDI messages
+              in the track to the output device.
+            </p>
+          </dd>
+          <dt>void removeInput(MediaStreamTrack stream)</dt>
+          <dd>
+            <p>
+              Removes a connection to a <code>MediaMediaStreamTrack</code> from
+              the <code><a>MIDIOutputDevice</a></code>.
+            </p>
+          </dd>
+        </dl>
+      </section>
+    </section>
+
+    <section>
+      <h2><a>MIDIMessage</a> Interface</h2>
+      <dl title="[NoInterfaceObject]
+                 interface MIDIMessage"
+          class="idl">
+        <dt>readonly attribute unsigned long timeStamp</dt>
+        <dd>
+          <p>
+            A Unix epoch timestamp signifying when the event occured, will
+            occur or should occur.
+          </p>
+        </dd>
+        <dt>readonly attribute short status</dt>
+        <dd>
+          <p>
+            The status code of the MIDI message.
+          </p>
+        </dd>
+        <dt>readonly attribute Uint8Array data</dt>
+        <dd>
+          <p>
+            A Uint8Array signifying the data the message contains.
+          </p>
+        </dd>
+        <dt>readonly attribute short channel</dt>
+        <dd>
+          <p>
+            The MIDI channel of the message.
+          </p>
+        </dd>
+      </dl>
+
+      <section>
+        <h3><a>MIDIEvent</a> Interface</h3>
+        
+        <dl title="[NoInterfaceObject]
+                   interface MIDIEvent : Event"
+            class="idl">
+          <dt>readonly attribute sequence&lt;<a>MIDIMessage</a>&gt; MIDIMessages</dt>
+          <dd>
+            <p>
+              A sequence of <code><a>MIDIMessage</a></code>s associated
+              with the event.
+            </p>
+          </dd>
+        </dl>
+      </section>
+    </section>
+  </body>
+</html>

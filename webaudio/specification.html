@@ -1010,6 +1010,12 @@ one input and no outputs and represents the final destination to the audio
 hardware. Most processing nodes such as filters will have one input and one
 output. </p>
 
+<p>
+For performance reasons, practical implementations will need to use block processing, with each <code>AudioNode</code> processing a
+fixed number of sample-frames of size <em>block-size</em>.  In order to get uniform behavior across implementations, we will define this
+value explicitly.  <em>block-size</em> is defined to be 128 sample-frames which corresponds to roughly 3ms at a sample-rate of 44.1KHz.
+</p>
+
 <div class="block">
 
 <div class="blockTitleDiv">
@@ -1204,12 +1210,18 @@ set on any AudioParam.
  </p>
 
 <p>
-Some synthesis and processing <code>AudioNodes</code> have <code>AudioParams</code> as attributes whose values MUST
+Some synthesis and processing <code>AudioNodes</code> have <code>AudioParams</code> as attributes whose values must
  be taken into account on a per-audio-sample basis.
 For other <code>AudioParams</code>, sample-accuracy is not important and the value changes can be sampled more coarsely.
-Each individual <code>AudioParam</code> will specify that it is either an "a-rate" parameter
-which means that its values MUST be taken into account on a per-audio-sample basis, or it is a "k-rate" parameter whose value
-changes MUST be taken into account at least at a 3ms resolution, but can be more precise than this.
+Each individual <code>AudioParam</code> will specify that it is either an <em>a-rate</em> parameter
+which means that its values must be taken into account on a per-audio-sample basis, or it is a <em>k-rate</em> parameter whose value
+changes must be taken into account at least at a 3ms resolution, but can be more precise than this.  
+</p>
+
+<p>
+Because practical implementations will use <em>block</em> processing, and will process a fixed number of sample-frames at a time
+(<em>block-size</em> sample-frames).  For each block, the value of a <em>k-rate</em>
+parameter will be sampled at the time of the very first sample-frame, and that value will be used for the entire block.
 </p>
 
 <div class="block">

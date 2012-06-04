@@ -146,6 +146,7 @@ other than work in progress.</p>
           <li><a href="#attributes-AudioContext">4.1.1. Attributes</a></li>
           <li><a href="#methodsandparams-AudioContext">4.1.2. Methods and
             Parameters</a></li>
+          <li><a href="#lifetime-AudioContext">4.1.3. Lifetime</a></li>
         </ul>
       </li>
       <li><a href="#AudioNode-section">4.2. The AudioNode Interface</a> 
@@ -153,6 +154,7 @@ other than work in progress.</p>
           <li><a href="#attributes-AudioNode">4.2.1. Attributes</a></li>
           <li><a href="#methodsandparams-AudioNode">4.2.2. Methods and
             Parameters</a></li>
+          <li><a href="#lifetime-AudioNode">4.2.3. Lifetime</a></li>
         </ul>
       </li>
       <li><a href="#AudioSourceNode">4.3. The AudioSourceNode Interface</a></li>
@@ -994,6 +996,13 @@ constructed as follows: </p>
 </div>
 </div>
 
+<h3 id="lifetime-AudioContext">4.1.3. Lifetime</h3>
+<p>
+Once created, an <code>AudioContext</code> will not be garbage collected.  It will live until the document goes away.
+</p>
+
+
+
 <div id="AudioNode-section-section" class="section">
 <h2 id="AudioNode-section">4.2. The AudioNode Interface</h2>
 
@@ -1112,6 +1121,38 @@ value explicitly.  <em>block-size</em> is defined to be 128 sample-frames which 
 </dl>
 </div>
 </div>
+
+<h3 id="lifetime-AudioNode">4.2.3. Lifetime</h3>
+<p>
+An <code>AudioNode</code> will live as long as there are any references to it.  There are several types of references:
+</p>
+
+<ol>
+<li>A <em>normal</em> JavaScript reference obeying normal garbage collection rules. </li>
+<li>A <em>playing</em> reference for an <code>AudioSourceNode</code>.  Please see details for each specific
+<code>AudioSourceNode</code> sub-type.  For example, both <code>AudioBufferSourceNodes</code> and <code>OscillatorNodes</code> maintain a <em>playing</em>
+reference to themselves while they are in the SCHEDULED_STATE or PLAYING_STATE.
+<li>A <em>connection</em> reference which occurs if another <code>AudioNode</code> is connected to it.   </li>
+<li>A <em>tail-time</em> reference which an <code>AudioNode</code> maintains on itself as long as it has
+any internal processing state which has not yet been emitted.  For example, a <code>ConvolverNode</code> has
+a tail which continues to play even after receiving silent input (think about clapping your hands in a large concert
+  hall and continuing to hear the sound reverberate throughout the hall).  Some <code>AudioNodes</code> have this
+  property.  Please see details for specific nodes.
+</ol>
+
+<p>
+Any <code>AudioNodes</code> which are connected in a cycle <em>and</em> are directly or indirectly connected to the
+<code>AudioDestinationNode</code> of the <code>AudioContext</code> will stay alive as long as the <code>AudioContext</code> is alive.
+</p>
+
+<p>
+When an <code>AudioNode</code> has no references it will be deleted.  But before it is deleted, the implementation must disconnect the node
+from any other <code>AudioNodes</code> which it is connected to.  In this way it releases all connection references (3) it has to other nodes.
+</p>
+
+<p>
+Regardless of any of the above references, an <code>AudioNode</code> will be deleted when its <code>AudioContext</code> is deleted.
+</p>
 
 <div id="AudioSourceNode-section" class="section">
 <h2 id="AudioSourceNode">4.3. The AudioSourceNode Interface</h2>
@@ -3062,6 +3103,10 @@ function setupRoutingGraph() {
 
 <h3 id="DynamicLifetime-background">Background</h3>
 
+<p class="norm">This section is informative. Please see <a href="#lifetime-AudioContext">AudioContext lifetime</a>
+and <a href="#lifetime-AudioNode">AudioNode lifetime</a>  for normative requirements
+</p>
+
 <p>In addition to allowing the creation of static routing configurations, it
 should also be possible to do custom effect routing on dynamically allocated
 voices which have a limited lifetime. For the purposes of this discussion,
@@ -3162,6 +3207,7 @@ function playSound() {
 </div>
 </div>
 </div>
+
 
 <div id="ChannelLayouts-section" class="section">
 <h2 id="ChannelLayouts">8. Channel Layouts</h2>

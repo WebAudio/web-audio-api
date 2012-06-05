@@ -1453,16 +1453,35 @@ exception thrown). </p>
 <h2 id="AudioGainNode">4.7. The AudioGainNode Interface</h2>
 
 <p>Changing the gain of an audio signal is a fundamental operation in audio
-applications. This interface is an AudioNode with a single input and single
+applications.  The <code>AudioGainNode</code> is one of the building blocks for creating <a
+href="#MixerGainStructure-section">mixers</a>.
+This interface is an AudioNode with a single input and single
 output: </p>
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 1
     </pre>
 
-<p>which changes the gain of (scales) the incoming audio signal by a certain
-amount. The default amount is 1 (no gain change). The
-<code>AudioGainNode</code> is one of the building blocks for creating <a
-href="#MixerGainStructure-section">mixers</a>. The implementation must make
+<p>which multiplies the input audio signal by the (possibly time-varying) <code>gain</code> attribute, copying the result to the output.
+ By default, it will take the input and pass it through to the output unchanged, which represents a constant gain change
+ of 1. 
+</p>
+
+<p>
+As with other <code>AudioParams</code>, the <code>gain</code> parameter represents a mapping from time
+(in the coordinate system of AudioContext.currentTime) to floating-point value.
+
+Every PCM audio sample in the input is multiplied by the <code>gain</code> parameter's value for the specific time
+corresponding to that audio sample.  This multiplied value represents the PCM audio sample for the output.
+</p>
+
+<p>
+The number of channels of the output will always equal the number of channels of the input, with each channel
+of the input being multiplied by the <code>gain</code> values and being copied into the corresponding channel
+of the output.
+</p>
+
+<p>
+ The implementation must make
 gain changes to the audio stream smoothly, without introducing noticeable
 clicks or glitches. This process is called "de-zippering". </p>
 

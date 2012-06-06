@@ -1250,14 +1250,14 @@ href="#AudioContext-section"><code>AudioContext</code></a>. </p>
 <div id="AudioParam-section" class="section">
 <h2 id="AudioParam">4.5. The AudioParam Interface</h2>
 
-<p>AudioParam is a parameter controlling an individual aspect of an <a
+<p>AudioParam controls an individual aspect of an <a
 href="#AudioNode-section"><code>AudioNode</code></a>'s functioning, such as
 volume. The parameter can be set immediately to a particular value using the
 "value" attribute. Additionally, value changes can be scheduled to happen at
-very precise times, for envelopes, volume fades, LFOs, filter sweeps, grain
+very precise times (in the coordinate system of AudioContext.currentTime), for envelopes, volume fades, LFOs, filter sweeps, grain
 windows, etc. In this way, arbitrary timeline-based automation curves can be
 set on any AudioParam.
- </p>
+</p>
 
 <p>
 Some synthesis and processing <code>AudioNodes</code> have <code>AudioParams</code> as attributes whose values must
@@ -1288,10 +1288,6 @@ parameter will be sampled at the time of the very first sample-frame, and that v
         readonly attribute float minValue;
         readonly attribute float maxValue;
         readonly attribute float defaultValue;
-
-        <span class="comment">// Should define units constants here (seconds, decibels, cents, etc.) </span>         
-        
-        readonly attribute short units;
 
         <span class="comment">// Parameter automation. </span>
         void setValueAtTime(in float value, in float time);
@@ -1339,21 +1335,60 @@ parameter will be sampled at the time of the very first sample-frame, and that v
     <dd><p>Initial value for the value attribute</p>
     </dd>
 </dl>
-<dl>
-  <dt id="dfn-units"><code>units</code></dt>
-    <dd><p>Represents the type of value (seconds, decibels, cents, etc.).</p>
-    </dd>
-</dl>
 </div>
 
 <div id="methodsandparams-AudioParam-section" class="section">
 <h3 id="methodsandparams-AudioParam">4.5.2. Methods and Parameters</h3>
+
+<p>
+An <code>AudioParam</code> maintains a time-ordered event list which is initially empty.  The times are in
+the time coordinate system of AudioContext.currentTime.  The events define a mapping from time to value.  The following methods
+can change the event list by adding a new event into the list of a type specific to the method.  Each event
+has a time associated with it, and the events will always be kept in time-order in the list.  These
+methods will be called <em>automation</em> methods:
+<ul>
+<li>setValueAtTime() - <em>SetValue</em></li>
+<li>linearRampToValueAtTime() - <em>LinearRampToValue</em></li>
+<li>exponentialRampToValueAtTime() - <em>ExponentialRampToValue</em></li>
+<li>setTargetValueAtTime() - <em>SetTargetValue</em></li>
+<li>setValueCurveAtTime() - <em>SetValueCurve</em></li>
+</ul>
+</p>
+
+<p>
+The following rules will apply when calling these methods:
+</p>
+<ul>
+<li>If one of these events is added at a time where there is already an event of the exact same type, then the new event will replace the old
+one.</li>
+<li>If one of these events is added at a time where there is already one or more events of a different type, then it will be
+placed in the list after them, but before events whose times are after the event. </li>
+<li>If setValueCurveAtTime() is called for time T and duration D and there are any events having a time greater than T, but less than
+T + D, then an exception will be thrown.  In other words, it's not ok to schedule a value curve during a time period containing other events.</li>
+<li>Similarly an exception will be thrown if any <em>automation</em> method is called at a time which is inside of the time interval
+of a <em>SetValueCurve</em> event at time T and duration D.
+</ul>
+<p>
+</p>
+
 <dl>
   <dt id="dfn-setValueAtTime">The <code>setValueAtTime</code> method</dt>
     <dd><p>Schedules a parameter value change at the given time.</p>
       <p>The <dfn id="dfn-value_2">value</dfn> parameter is the value the
       parameter will change to at the given time.</p>
       <p>The <dfn id="dfn-time_2">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>
+      If there are no more events after this <em>SetValue</em> event, then for t >= time,  v(t) = value.  In other words, the value will remain constant.
+      </p>
+      <p>
+      If the next event (having time T1) after this <em>SetValue</em> event is not of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>,
+      then, for t: time <= t < T1,  v(t) = value.
+      In other words, the value will remain constant during this time interval, allowing the creation of "step" functions.
+      </p>
+      <p>
+      If the next event after this <em>SetValue</em> event is of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em> then please
+      see details below.
+      </p>
     </dd>
 </dl>
 <dl>
@@ -1364,6 +1399,21 @@ parameter will be sampled at the time of the very first sample-frame, and that v
       <p>The <dfn id="dfn-value_3">value</dfn> parameter is the value the
       parameter will linearly ramp to at the given time.</p>
       <p>The <dfn id="dfn-time_3">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+
+      <p>
+      The value during the time interval T0 <= t < T1 (where T0 is the time of the previous event and T1 is the time parameter passed into this method)
+      will be calculated as:
+      </p>
+      <pre>
+      v(t) = V0 + (V1 - V0) * ((t - T0) / (T1 - T0))
+      </pre>
+      <p>
+      Where V0 is the value at the time T0 and V1 is the value parameter passed into this method.
+      </p>
+      <p>
+      If there are no more events after this LinearRampToValue event then for t >= T1, v(t) = V1
+      </p>
+
     </dd>
 </dl>
 <dl>
@@ -1374,8 +1424,22 @@ parameter will be sampled at the time of the very first sample-frame, and that v
       representing filter frequencies and playback rate are best changed
       exponentially because of the way humans perceive sound. </p>
       <p>The <dfn id="dfn-value_4">value</dfn> parameter is the value the
-      parameter will exponentially ramp to at the given time.</p>
+      parameter will exponentially ramp to at the given time.  An exception will be thrown if this value is less than
+      or equal to 0, or if the value at the time of the previous event is less than or equal to 0.</p>
       <p>The <dfn id="dfn-time_4">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>
+      The value during the time interval T0 <= t < T1 (where T0 is the time of the previous event and T1 is the time parameter passed into this method)
+      will be calculated as:
+      </p>
+      <pre>
+      v(t) = V0 * (V1 / V0) ^ ((t - T0) / (T1 - T0))
+      </pre>
+      <p>
+      Where V0 is the value at the time T0 and V1 is the value parameter passed into this method.
+      </p>
+      <p>
+      If there are no more events after this ExponentialRampToValue event then for t >= T1, v(t) = V1
+      </p>
     </dd>
 </dl>
 <dl>
@@ -1423,6 +1487,56 @@ parameter will be sampled at the time of the very first sample-frame, and that v
 </dl>
 </div>
 </div>
+
+
+<div id="example1-AudioParam-section" class="section">
+<h3 id="example1-AudioParam">4.5.3. AudioParam Automation Example</h3>
+
+
+
+<div class="example">
+
+<div class="exampleHeader">
+Example</div>
+<img alt="AudioParam automation" src="images/audioparam-automation1.png" /> 
+
+<div class="block">
+
+<div class="blockTitleDiv">
+<span class="blockTitle">ECMAScript</span></div>
+
+<div class="blockContent">
+<pre class="code"><code class="es-code"> 
+var t0 = 0;
+var t1 = 0.1;
+var t2 = 0.2;
+var t3 = 0.3;
+var t4 = 0.4;
+var t5 = 0.6;
+var t6 = 0.7;
+var t7 = 1.0;
+
+var curveLength = 44100;
+var curve = new Float32Array(curveLength);
+for (var i = 0; i < curveLength; ++i)
+    curve[i] = Math.sin(Math.PI * i / curveLength);
+
+param.setValueAtTime(0.2, t0);
+param.setValueAtTime(0.3, t1);
+param.setValueAtTime(0.4, t2);
+param.linearRampToValueAtTime(1, t3);
+param.linearRampToValueAtTime(0.15, t4);
+param.exponentialRampToValueAtTime(0.75, t5);
+param.exponentialRampToValueAtTime(0.05, t6);
+param.setValueCurveAtTime(curve, t6, t7 - t6);
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
 
 <div id="AudioGain-section-section" class="section">
 <h3 id="AudioGain-section">4.6. AudioGain</h3>

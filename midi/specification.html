@@ -23,7 +23,7 @@
       For the three scripts below, if your spec resides on dev.w3 you can check them
       out in the same tree and use relative links so that they'll work offline,
      -->
-    <script src='http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js' class='remove'></script>
+    <script src='http://www.w3.org/Tools/respec/respec-w3c-common' class='remove'></script>
     <script class='remove'>
       var respecConfig = {
           specStatus:           "ED",
@@ -119,6 +119,201 @@
         follow the suggested security model later in the document.
         <!-- FIXME: We should specify this security model somewhere and link to it -->
       </p>
+    </section>
+
+    <section>
+      <h2>Obtaining access to user's devices</h2>
+
+      <section>
+          <h2><a>NavigatorMIDIAccess</a> Interface</h2>
+
+          <dl class="idl"
+              title="[NoInterfaceObject] interface NavigatorMIDIAccess">
+            <dt>void getMIDIAccess(NavigatorMIDIAccessSuccessCallback
+                                    successCallback,
+                                    NavigatorMIDIAccessErrorCallback?
+                                    errorCallback)</dt>
+            <dd>
+              <p>
+                Prompts user for permission to use their MIDI Devices.
+              </p>
+
+              <p>
+                If the user accepts, <var>successCallback</var> is invoked,
+                with a <code><a>MIDIAccess</a></code> object as its argument.
+              </p>
+
+              <p>
+                If the user declines, the <var>errorCallback</var> (if any)
+                is invoked.
+              </p>
+
+              <p>
+                When the <dfn id="dom-navigator-getmidiaccess">
+                <code>getMIDIAccess()</code></dfn> method is called, the user
+                agent MUST run the following steps:
+              </p>
+
+              <ol>
+                <li><p>
+                  Let <var>successCallback</var> be the callback indicated by
+                  the method's first argument.
+                </p></li>
+
+                <li><p>
+                  Let <var>errorCallback</var> be the callback indicated by
+                  the method's second argument, if any, or null otherwise.
+                </p></li>
+
+                <li><p>
+                  If <var>successCallback</var> is null, abort these steps.
+                </p></li>
+
+                <li><p>
+                  Return, and run the following steps asynchronously.
+                </p></li>
+
+                <li><p>
+                  Optionally, e.g. based on a previously-established user
+                  preference, for security reasons, or due to platform
+                  limitations, jump to the step labeled <em>failure</em>
+                  below.
+                </p></li>
+
+                <li>
+                  <p>
+                    Prompt the user in a user-agent-specific manner for
+                    permission to provide the entry script's origin with a
+                    <code><a>MIDIAccess</a></code> object representing
+                    control over user's MIDI devices.
+                  </p>
+
+                  <p>
+                    If the user denies permission, jump to the step labeled
+                    <em>failure</em> below. If the user never responds, this
+                    algorithm stalls on this step.
+                  </p>
+                </li>
+
+                <li><p>
+                  Let <var>access</var> be the <code><a
+                  >MIDIAccess</a></code> object for which the user granted
+                  access.
+                </p></li>
+
+                <li><p>
+                  Queue a task to invoke <var>successCallback</var> with
+                  <var>access</var> as its argument.
+                </p></li>
+
+                <li><p>
+                  If <var>successCallback</var> is null, abort these steps.
+                </p></li>
+
+                <li><p>
+                  Abort these steps.
+                </p></li>
+
+                <li><p>
+                  <em>Failure</em>: If <var>errorCallback</var> is null,
+                  abort these steps.
+                </p></li>
+
+                <li><p>
+                  Let <var>error</var> be a new <code>
+                  <a
+                    href="#navigatormidiaccesserror">NavigatorMIDIAccessError</a>
+                  </code> object whose <code
+                    title="dom-NavigatorMIDIAccessError-code">
+                  <a href="#dom-navigatormidiaccesserror-code">code</a>
+                  </code> attribute has the numeric value 1 (<code
+                    title="dom-NavigatorMIDIAccessError-PERMISSION_DENIED">
+                  <a
+                    href="#dom-navigatormidiaccesserror-permission_denied">PERMISSION_DENIED</a>
+                  </code>).
+                </p></li>
+
+                <li><p>
+                  Queue a task to invoke <var>errorCallback</var> with
+                  <var>error</var> as its argument.
+                </p></li>
+
+                <li><p>
+                  If <var>successCallback</var> is null, abort these steps.
+                </p></li>
+
+                <li><p>
+                  If <var>successCallback</var> is null, abort these steps.
+                </p></li>
+
+                <li><p>
+                  If <var>successCallback</var> is null, abort these steps.
+                </p></li>
+              </ol>
+
+              <p>
+                The task source for these <span
+                title="concept-task">tasks</span> is the user interaction
+                task source.
+              </p>
+            </dd>
+          </dl>
+
+          <div class="idl" title="Navigator implements NavigatorMIDIAccess"></div>
+      </section>
+
+      <section>
+        <h2>NavigatorMIDIAccessSuccessCallback</h2>
+
+        <dl class="idl"
+            title="callback NavigatorMIDIAccessSuccessCallback = void">
+          <dt>MIDIAccess access</dt>
+
+          <dd>
+            A <code><a>MIDIAccess</a></code> object created to provide
+            script access to the user's MIDI devices.
+          </dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2>
+          NavigatorMIDIAccessError and
+          NavigatorMIDIAccessErrorCallback
+        </h2>
+
+        <dl class="idl"
+            title="[NoInterfaceObject] interface NavigatorMIDIAccessError">
+          <dt>const unsigned short PERMISSION_DENIED = 1</dt>
+
+          <dd>
+            The user denied the page permission to use the user's MIDI
+            devices.
+          </dd>
+
+          <dt>readonly attribute unsigned short code</dt>
+
+          <dd>
+            Returns the current error's error code. At this time, this will
+            always be 1, for which the constant <code
+              title="dom-NavigatorMIDIAccessError-PERMISSION_DENIED">
+              <a
+              href="#dom-navigatormidiaccesserror-permission_denied">PERMISSION_DENIED</a>
+            </code> is defined.
+          </dd>
+        </dl>
+
+        <dl class="idl"
+            title="callback NavigatorMIDIAccessErrorCallback = void">
+          <dt>NavigatorMIDIAccessError error</dt>
+
+          <dd>
+            A <code><a>NavigatorMIDIAccessError</a></code> object representing
+            an explanation of why access to the user's MIDI devices was not
+            granted.
+          </dd>
+        </dl>
+      </section>
     </section>
 
     <section>

@@ -2322,7 +2322,8 @@ spatialization. </p>
 
 <p>This interface represents a processing node which applies a <a
 href="#Convolution-section">linear convolution effect</a> given an impulse
-response. </p>
+response.  Normative requirements for multi-channel convolution matrixing are described
+<a href="#Convolution-reverb-effect">here</a>. </p>
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 1
     </pre>
@@ -2337,7 +2338,6 @@ response. </p>
 
     interface <dfn id="dfn-ConvolverNode">ConvolverNode</dfn> : AudioNode {
 
-        <span class="comment">// Contains the (possibly multi-channel) impulse response </span>
         attribute AudioBuffer buffer;
         attribute boolean normalize;
 
@@ -2351,8 +2351,9 @@ response. </p>
 <h3 id="attributes-ConvolverNode">4.16.1. Attributes</h3>
 <dl>
   <dt id="dfn-buffer_ConvolverNode"><code>buffer</code></dt>
-    <dd><p>A mono or multi-channel audio buffer containing the impulse response
-      used by the convolver. </p>
+    <dd><p>A mono, stereo, or 4-channel <code>AudioBuffer</code> containing the (possibly multi-channel) impulse response
+      used by the ConvolverNode.  At the time when this attribute is set, the <em>buffer</em> and the state of the <em>normalize</em>
+      attribute will used to configure the ConvolverNode with this impulse response having the given normalization.</p>
     </dd>
 </dl>
 <dl>
@@ -2363,9 +2364,89 @@ response. </p>
       uniform output level from the convolver when loaded with diverse impulse
       responses. If <code>normalize</code> is set to <code>false</code>, then
       the convolution will be rendered with no pre-processing/scaling of the
-      impulse response. </p>
+      impulse response.  Changes to this value do not take effect until the next time
+      the <em>buffer</em> attribute is set. </p>
+      
     </dd>
 </dl>
+
+      <p>
+      If the <em>normalize</em> attribute is false when the <em>buffer</em> attribute is set then the
+      ConvolverNode will perform a linear convolution given the exact impulse response contained within the <em>buffer</em>.
+      </p>
+      <p>
+      Otherwise, if the <em>normalize</em> attribute is true when the <em>buffer</em> attribute is set then the
+      ConvolverNode will first perform a scaled RMS-power analysis of the audio data contained within <em>buffer</em> to calculate a
+      <em>normalizationScale</em> given this algorithm:
+      </p>
+
+
+      <div class="block">
+
+      <div class="blockTitleDiv">
+
+      <div class="blockContent">
+      <pre class="code"><code class="idl-code"> 
+
+float calculateNormalizationScale(buffer)
+{
+    const float GainCalibration = 0.00125;
+    const float GainCalibrationSampleRate = 44100;
+    const float MinPower = 0.000125;
+  
+    // Normalize by RMS power.
+    size_t numberOfChannels = buffer->numberOfChannels();
+    size_t length = buffer->length();
+
+    float power = 0;
+
+    for (size_t i = 0; i < numberOfChannels; ++i) {
+        float* sourceP = buffer->channel(i)->data();
+        float channelPower = 0;
+
+        int n = length;
+        while (n--) {
+            float sample = *sourceP++;
+            channelPower += sample * sample;
+        }
+
+        power += channelPower;
+    }
+
+    power = sqrt(power / (numberOfChannels * length));
+
+    // Protect against accidental overload.
+    if (isinf(power) || isnan(power) || power < MinPower)
+        power = MinPower;
+
+    float scale = 1 / power;
+
+    // Calibrate to make perceived volume same as unprocessed.
+    scale *= GainCalibration;
+
+    // Scale depends on sample-rate.
+    if (buffer->sampleRate())
+        scale *= GainCalibrationSampleRate / buffer->sampleRate();
+
+    // True-stereo compensation.
+    if (buffer->numberOfChannels() == 4)
+        scale *= 0.5;
+
+    return scale;
+}
+          </code></pre>
+
+      </div>
+      </div>
+      </div>
+
+<p>
+During processing, the ConvolverNode will then take this calculated <em>normalizationScale</em> value and multiply it by the result of the linear convolution
+resulting from processing the input with the impulse response (represented by the <em>buffer</em>) to produce the
+final output.  Or any mathematically equivalent operation may be used, such as pre-multiplying the
+input by <em>normalizationScale</em>, or pre-multiplying a version of the impulse-response by <em>normalizationScale</em>.
+</p>
+
 </div>
 
 <div id="RealtimeAnalyserNode-section" class="section">
@@ -3634,17 +3715,28 @@ describing how it can be practically implemented.
 
 <h3 id="Convolution-reverb-effect">Reverb Effect (with matrixing)</h3>
 
-<p>Single channel convolution operates on a mono audio source, using a mono
-impulse response. But to achieve a more spacious sound, multi-channel audio
-sources and impulse responses must be considered. Audio sources and playback
-systems can be stereo, 5.1, or more channels. In the general case the source
+<p class="norm">This section is normative.</p>
+
+<p>
+In the general case the source
 has N input channels, the impulse response has K channels, and the playback
 system has M output channels. Thus it's a matter of how to matrix these
-channels to achieve the final result. The following diagram, illustrates the
-common cases for stereo playback where N, K, and M are all less than or equal
-to 2. Similarly, the matrixing for 5.1 and other playback configurations can be
-defined.  Or multiple <code>ConvolverNode</code> objects may be used in conjunction
-with an <code>AudioChannelMerger</code> for arbitrary matrixing. </p>
+channels to achieve the final result.
+</p>
+
+<p>
+The subset of N, M, K below must be implemented (note that the first image in the diagram is just illustrating
+the general case and is not normative, while the following images are normative).
+Without loss of generality, developers desiring more complex and arbitrary matrixing can use multiple <code>ConvolverNode</code>
+objects in conjunction with an <code>AudioChannelMerger</code>.
+</p>
+
+
+<p>Single channel convolution operates on a mono audio input, using a mono
+impulse response, and generating a mono output. But to achieve a more spacious sound, 2 channel audio
+inputs and 1, 2, or 4 channel impulse responses will be considered. The following diagram, illustrates the
+common cases for stereo playback where N and M are 1 or 2 and K is 1, 2, or 4.
+</p>
 <img alt="reverb matrixing" src="images/reverb-matrixing.png" /> 
 
 <h3 id="recording-impulse-responses">Recording Impulse Responses</h3>

@@ -2062,13 +2062,24 @@ is then placed into the <code>outputBuffer</code>. </p>
 
 <p>This interface represents a processing node which <a
 href="#Spatialization-section">positions / spatializes</a> an incoming audio
-stream in three-dimensional space. The spatialization is in relation the the <a
+stream in three-dimensional space. The spatialization is in relation to the <a
 href="#AudioContext-section"><code>AudioContext</code></a>'s <a
 href="#AudioListener-section"><code>AudioListener</code></a>
 (<code>listener</code> attribute). </p>
-<pre>    numberOfInputs  : 1
+
+<pre>
+    numberOfInputs  : 1
     numberOfOutputs : 1
-    </pre>
+</pre>
+
+<p>
+The audio stream from the input will be either mono or stereo, depending on the connection(s) to the input.
+</p>
+
+<p>
+The output of this node is hard-coded to stereo (2 channels) and <em>currently</em> cannot be configured.
+</p>
+
 
 <div class="block">
 
@@ -2142,19 +2153,26 @@ href="#AudioListener-section"><code>AudioListener</code></a>
 </dl>
 <dl>
   <dt id="dfn-LINEAR_DISTANCE"><code>LINEAR_DISTANCE</code></dt>
-    <dd><p>A linear distance model as defined in the OpenAL specification. </p>
+    <dd><p>A linear distance model which calculates <em>distanceGain</em> according to: </p>
+    <pre>
+1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)
+    </pre>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-INVERSE_DISTANCE"><code>INVERSE_DISTANCE</code></dt>
-    <dd><p>An inverse distance model as defined in the OpenAL specification.
-      </p>
+  <dd><p>An inverse distance model which calculates <em>distanceGain</em> according to: </p>
+    <pre>
+refDistance / (refDistance + rolloffFactor * (distance - refDistance))
+    </pre>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-EXPONENTIAL_DISTANCE"><code>EXPONENTIAL_DISTANCE</code></dt>
-    <dd><p>An exponential distance model as defined in the OpenAL
-      specification. </p>
+  <dd><p>An exponential distance model which calculates <em>distanceGain</em> according to: </p>
+  <pre>
+pow(distance / refDistance, -rolloffFactor)
+  </pre>
     </dd>
 </dl>
 </div>
@@ -3621,7 +3639,7 @@ this ability. </p>
 positioned in space relative to an <code>AudioListener</code>. An <a
 href="#AudioContext-section"><code>AudioContext</code></a> will contain a
 single <code>AudioListener</code>. Both panners and listeners have a position
-in 3D space using a cartesian coordinate system. <code>AudioPannerNode</code>
+in 3D space using a right-handed cartesian coordinate system. <code>AudioPannerNode</code>
 objects (representing the source stream) have an <code>orientation</code>
 vector representing in which direction the sound is projecting. Additionally,
 they have a <code>sound cone</code> representing how directional the sound is.
@@ -3658,11 +3676,34 @@ doppler shift effect which changes the pitch. </p>
 </ul>
 
 <h3 id="Spatialization-distance-effects">Distance Effects</h3>
-<ul>
-  <li>Sources farther away are typically quieter than nearer ones.</li>
-  <li>Different rolloff curves are assignable per-source: linear, inverse,
-    exponential.</li>
-</ul>
+<p>
+Sounds which are closer are louder, while sounds further away are quieter.
+Exactly <em>how</em> a sound's volume changes according to distance from the listener
+depends on the <em>distanceModel</em> attribute.
+</p>
+
+
+<p>
+During audio rendering, a <em>distance</em> value will be calculated based on the panner and listener positions according to:
+</p>
+<pre>
+v = panner.position - listener.position
+</pre>
+<pre>
+distance = sqrt(dot(v, v))
+</pre>
+
+<p>
+<em>distance</em> will then be used to calculate <em>distanceGain</em> which depends
+on the <em>distanceModel</em> attribute.  See the <a href="#AudioPannerNode-sub">Constants</a> section for details of
+how this is calculated for each distance model.
+</p>
+<p>As part of its processing, the <code>AudioPannerNode</code> scales/multiplies the input audio signal by <em>distanceGain</em>
+to make distant sounds quieter and nearer ones louder.
+</p>
+
+
+
 
 <h3 id="Spatialization-sound-cones">Sound Cones</h3>
 

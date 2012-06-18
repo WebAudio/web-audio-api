@@ -3653,6 +3653,69 @@ Because both the source stream and the listener can be moving, they both have a
 movement. Taken together, these two velocities can be used to generate a
 doppler shift effect which changes the pitch. </p>
 
+<p>
+During rendering, the <code>AudioPannerNode</code> calculates an <em>azimuth</em>
+and <em>elevation</em>.  These values are used internally by the implementation in
+order to render the spatialization effect.  See the <a href="#Spatialization-panning-algorithm">Panning Algorithm</a> section
+for details of how these values are used.
+</p>
+
+<p>
+The following algorithm must be used to calculate the <em>azimuth</em>
+and <em>elevation</em>:
+</p>
+
+<pre>
+// Calculate the source-listener vector.
+vec3 sourceListener = source.position - listener.position;
+
+if (sourceListener.isZero()) {
+    // Handle degenerate case if source and listener are at the same point.
+    azimuth = 0;
+    elevation = 0;
+    return;
+}
+
+sourceListener.normalize();
+
+// Align axes.
+vec3 listenerFront = listener.orientation;
+vec3 listenerUp = listener.up;
+vec3 listenerRight = listenerFront.cross(listenerUp);
+listenerRight.normalize();
+
+vec3 listenerFrontNorm = listenerFront;
+listenerFrontNorm.normalize();
+
+vec3 up = listenerRight.cross(listenerFrontNorm);
+
+float upProjection = sourceListener.dot(up);
+
+vec3 projectedSource = sourceListener - upProjection * up;
+projectedSource.normalize();
+
+azimuth = 180 * acos(projectedSource.dot(listenerRight)) / PI;
+
+// Source in front or behind the listener.
+double frontBack = projectedSource.dot(listenerFrontNorm);
+if (frontBack < 0)
+    azimuth = 360 - azimuth;
+
+// Make azimuth relative to "front" and not "right" listener vector.
+if ((azimuth >= 0) && (azimuth <= 270))
+    azimuth = 90 - azimuth;
+else
+    azimuth = 450 - azimuth;
+
+elevation = 90 - 180 * acos(sourceListener.dot(up)) / PI;
+
+if (elevation > 90)
+    elevation = 180 - elevation;
+else if (elevation < -90)
+    elevation = -180 - elevation;
+
+</pre>
+
 <h3 id="Spatialization-panning-algorithm">Panning Algorithm</h3>
 
 <p>
@@ -3681,8 +3744,8 @@ Otherwise <em>stereo->stereo</em> processing is used.</p>
     </p>
     <pre>
     // Clamp azimuth to allowed range of -180 -> +180.
-    azimuth = max(-180.0, azimuth);
-    azimuth = min(180.0, azimuth);
+    azimuth = max(-180, azimuth);
+    azimuth = min(180, azimuth);
 
     // Now wrap to range -90 -> +90.
     if (azimuth < -90)

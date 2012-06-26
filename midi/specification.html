@@ -97,8 +97,7 @@
       </p>
       <p>
         The term <dfn><a href="http://www.khronos.org/registry/typedarray/specs/latest/#7">Uint8Array</a></dfn>
-        is defined in the
-        <a href="http://www.khronos.org/registry/typedarray/specs/latest/">Typed Array Specification</a>.
+        is defined in [[!TYPED-ARRAYS]].
       </p>
       <p>
         The term <dfn><a href=
@@ -116,8 +115,7 @@
         Allowing the enumeration of the users MIDI devices and access to the
         information they send is a potential prime target for fingerprinting,
         and possibly eavesdropping. Therefore implementations SHOULD carefully
-        follow the suggested security model later in the document.
-        <!-- FIXME: We should specify this security model somewhere and link to it -->
+        follow the <a href="#idl-def-NavigatorMIDIAccess">suggested security model</a>.
       </p>
     </section>
 
@@ -331,7 +329,7 @@
           Returns a list of the MIDI output devices available on the system.
 <!-- TODO: Specify the steps the UA is required to take. -->
         </dd>
-        <dt><a>MIDIInputDevice</a> getInput(MIDIDevice target)</dt>
+        <dt><a>MIDIInputDevice</a> getInput(MIDIDevice or DOMString target)</dt>
         <dd>
           Acquires access to the input <code><a>MIDIDevice</a></code> requested
           as a <code><a>MIDIInputDevice</a></code> instance. 
@@ -382,7 +380,7 @@
             </li>
           </ol>
         </dd>
-        <dt><a>MIDIOutputDevice</a> getOutput(MIDIDevice target)</dt>
+        <dt><a>MIDIOutputDevice</a> getOutput(MIDIDevice or DOMString target)</dt>
         <dd>
           Acquires access to the output <code><a>MIDIDevice</a></code> requested
           as a <code><a>MIDIOutputDevice</a></code> instance. 
@@ -499,7 +497,7 @@
       <p id="event-mididevice-devicedisconnect">
         Whenever the MIDI device corresponding the
         <code><a>MIDIDevice</a></code> is disconnected or becomes unavailable,
-        the UA MUST run the following steps:
+        the UA SHOULD run the following steps:
       </p>
 
       <ol>
@@ -528,11 +526,33 @@
         </li>
       </ol>
 
+      <dl class="idl" title='enum MIDIDeviceType'>
+        <dt>"input"</dt>
+        <dd>
+          If a MIDIDevice is an input device, this MUST be this value.
+        </dd>
+        <dt>"output"</dt>
+        <dd>
+          If a MIDIDevice is an output device, this MUST be this value.
+        </dd>
+      </dl>
+
       <div class="idl" title="MIDIInputDevice implements MIDIDevice"></div>
       <div class="idl" title="MIDIOutputDevice implements MIDIDevice"></div>
       <dl title="[NoInterfaceObject]
                  interface MIDIDevice : EventTarget"
           class="idl">
+        <dt>readonly attribute MIDIDeviceType deviceType</dt>
+        <dd>
+          <p>
+            A descriptor property to distinguish whether the device is an
+            input or an output device.
+            For <code><a>MIDIOutputDevice</a></code>,
+            this MUST be <code>"output"</code>.
+            For <code><a>MIDIInputDevice</a></code>,
+            this MUST be <code>"input"</code>.
+          </p>
+        </dd>
         <dt>readonly attribute DOMString deviceName</dt>
         <dd>
           <p>The system name of the device.</p>
@@ -561,8 +581,8 @@
             <p>
               This event handler, of type <code><a href=
               "#event-mididevice-devicedisconnect">devicedisconnect</a></code>,
-              MUST be supported by all objects implementing
-              <code><a>MIDIInputDevice</a></code> interface.
+              SHOULD be supported by all objects implementing the
+              <code><a>MIDIDevice</a></code> interface.
             </p>
         </dd>
         <dt class="no-docs">[TreatNonCallableAsNull] attribute
@@ -571,11 +591,22 @@
             <p>
               This event handler, of type <code><a href=
               "#event-mididevice-deviceconnect">deviceconnect</a></code>,
-              MUST be supported by all objects implementing
-              <code><a>MIDIInputDevice</a></code> interface.
+              SHOULD be supported by all objects implementing the
+              <code><a>MIDIDevice</a></code> interface.
             </p>
         </dd>
       </dl>
+
+      <div class="note">
+        <p>
+          The <code><a>devicedisconnect</a></code> and
+          <code><a>deviceconnect</a></code> events may not be applicable to all
+          MIDI devices or OS APIs. For example, an actual MIDI port does not
+          support the notion of disconnect and connect while a USB MIDI Device
+          may be plugged in or out on the fly. Therefore the semantics here is
+          SHOULD, rather than MUST.
+        </p>
+      </div>
 
       <section>
         <h3><a>MIDIInputDevice</a> Interface</h3>
@@ -621,14 +652,6 @@
         <dl title="[NoInterfaceObject]
                    interface MIDIInputDevice implements EventTarget"
             class="idl">
-          <dt>readonly attribute DOMString deviceType</dt>
-          <dd>
-            <p>
-              A descriptor property to distinguish whether the device is an
-              input or an output device. For <code><a>MIDIInputDevice</a></code>,
-              this MUST be <code>"INPUT"</code>.
-            </p>
-          </dd>
           <dt class="no-docs">[TreatNonCallableAsNull] attribute
                               Function? onmidimessage</dt>
           <dd>
@@ -647,14 +670,6 @@
         <dl title="[NoInterfaceObject]
                    interface MIDIOutputDevice"
             class="idl">
-          <dt>readonly attribute DOMString deviceType</dt>
-          <dd>
-            <p>
-              A descriptor property to distinguish whether the device is an
-              input or an output device. For <code><a>MIDIOutputDevice</a></code>,
-              this MUST be <code>"OUTPUT"</code>.
-            </p>
-          </dd>
           <dt>boolean sendMIDIMessage(MIDIMessage message)</dt>
           <dd>
             <p>
@@ -714,10 +729,10 @@
         <dl title="[NoInterfaceObject]
                    interface MIDIEvent : Event"
             class="idl">
-          <dt>readonly attribute sequence&lt;<a>MIDIMessage</a>&gt; MIDIMessages</dt>
+          <dt>readonly attribute <a>MIDIMessage</a>[] MIDIMessages</dt>
           <dd>
             <p>
-              A sequence of <code><a>MIDIMessage</a></code>s associated
+              An array of <code><a>MIDIMessage</a></code>s associated
               with the event.
             </p>
           </dd>

@@ -208,44 +208,43 @@
     </section>
     
     <section>
-      <h3>UC 4: Online radio broadcast</h3>
+      <h3>Scenario 4: Online radio broadcast</h3>
       
-      <p>This use case concerns the listening to and broadcasting of a live online radio broadcast.</p>
-     
-      <p>The broadcaster interacts with a web-based broadcasting tool which allows her to:</p>
-     
-     
-      <ul><li> control the relative levels of connected microphones and other inputs
-      </li><li> visualise the levels of inputs to give a good mix and prevent clipping
-      </li><li> add noise cancellation and reverberation effects to the individual channels
-      </li><li> fire off one-shot samples, such as jingles
-      </li><li> duck the level of musical beds in response to her voice
-      </li><li> mix multiple channels into a single stereo mix
-      </li><li> provide the mix as a stream for others to connect to
-      </li></ul>
-      <p>As part of the broadcast she would like to be able to interview a guest using voice/video chat (as per UC 1) and mix this into the audio stream.
-      </p><p>She is also able to trigger events that add additional metadata to the stream containing, for example, the name of the currently playing track. This metadata is synchronised with the stream such that it appears at the appropriate time on the listeners' client.
-      </p><p>Note: There is a standard way to access a set of metadata properties for media resources with the following W3C documents:
-      </p>
-      <ul><li> <a href="http://www.w3.org/TR/mediaont-10/" title="http://www.w3.org/TR/mediaont-10/">Ontology for Media Resources 1.0</a>. This document defines a core set of metadata properties for media resources, along with their mappings to elements from a set of existing metadata formats.
-      </li><li> <a href="http://www.w3.org/TR/mediaont-api-1.0/" title="http://www.w3.org/TR/mediaont-api-1.0/">API for Media Resources 1.0</a>. This API provides developers with a convenient access to metadata information stored in different metadata formats. It provides means to access the set of metadata properties defined in the Ontology for Media Resources 1.0 specification. 
-      </li></ul>
-      <p>A listener to this online radio broadcast is able to:
-      </p>
-      <ul><li> control the volume of the live stream
-      </li><li> equalise or apply other frequency filters to suit their listening environment
-      </li><li> pause, rewind and resume playing the live stream
-      </li><li> control the relative level of various parts of the audio - for example to reduce the level of background music to make the speech content more intelligible
-      </li><li> slow down the audio without changing the pitch - to help better understand broadcasts in a language that is unfamiliar to the listener.
-      </li></ul>
-      <h4>UC4 — Priority </h4>
-      <pre> <i>Priority: <b>LOW</b></i>
-      </pre>
-      <p>… consensus reached during the teleconference on <a href="http://www.w3.org/2012/02/13-audio-minutes" title="http://www.w3.org/2012/02/13-audio-minutes">13 Feb 2012</a>. 
-      </p><p>General consensus that while this is an interesting use case, there is no clamor to facilitate it entirely and urgently.
-      </p>
-      
-      </section>
+      <p>A web-based online radio application supports one-to-many audio broadcasting on various channels.  For any one broadcast channel it exposes three separate user interfaces on different pages. One interface is used by the broadcaster controlling a radio show on the channel. A second interface allows invited guests to supply live audio to the show. The third interface is for the live online audience listening to the channel.</p>
+
+      <p>The broadcaster interface supports live and recorded audio source selection as well as mixing of those sources.  Audio sources include:</p>
+<ul>
+  <li>any local microphone</li>
+  <li>prerecorded audio such as jingles or tracks from music libraries</li>
+  <li>a remote microphone for a remote guest</li>
+</ul>
+
+      <p>A simple mixer lets the broadcaster control the volume, pan and effects processing for each local or remote audio source, blending them into a single stereo output mix that is broadcast as the show's content.  Indicators track the level of each active source. This mixer also incorporates some automatic features to make the broadcaster's life easier, including ducking of prerecorded audio sources when any local or remote microphone source is active.  Muting(unmuting) of sources causes an automatic fast volume fade-out(in) to avoid audio transients. </p>
+
+      <p>The mixer is not only an audio mixer but a metadata mixer: it is aware of when prerecorded audio is playing, and broadcasts its descriptive metadata on the stream. The broadcaster can hear a live monitor mix through headphones, with an adjustable level for monitoring their local microphone.</p>
+
+      <p>The guest interface supports a single live audio source from a choice of any local microphone.</p>
+
+      <p>The audience interface delivers the channel's broadcast mix, but also offers basic volume and EQ control plus the ability to pause/rewind/resume the live stream. Optionally, the user can slow down the content of the audio without changing its pitch, for example to aid in understanding a foreign language.</p>
+  
+      <h4>Notes and Implementation Considerations</h4>
+      <ol>
+        <li>As with the Video Chat Application scenario, streaming and local device discovery and access within this scenario are handled by the <a href="http://www.w3.org/TR/webrtc/" title="WebRTC 1.0: Real-time Communication Between Browsers">Web Real-Time Communication API</a>. The local audio processing in this scenario highlights the requirement that <em>RTC streams and Web Audio be tightly integrated</em>. Incoming MediaStreams must be able to be exposed as audio sources, and audio destinations must be able to yield an outgoing RTC stream. For example, the broadcaster's browser employs a set of incoming MediaStreams from microphones, remote participants, etc., locally processes their audio through a graph of <code>AudioNodes</code>, and directs the output to an outgoing MediaStream representing the live mix for the show.</li>
+        <li>Building this application requires the application of <em>gain control</em>, <em>panning</em>, <em>audio effects</em> and <em>blending</em> of multiple <em>mono and stereo audio sources</em> to yield a stereo mix. Some relevant features in the API include <code>AudioGainNode</code>, <code>ConvolverNode</code>, <code>AudioPannerNode</code>.</li>
+        
+        <li><em>Noise gating</em> (suppressing output when a source's level falls below some minimum threshold) is highly desirable for microphone inputs to avoid stray room noise being included in the broadcast mix. This could be implemented as a custom algorithm using a <code>JavaScriptAudioNode</code>.</li>
+        <li>To drive the visual feedback to the broadcaster on audio source activity and to control automatic ducking, this scenario needs a way to easily <em>detect the time-averaged signal level</em> on a given audio source.</li>
+        <li>Ducking affects the level of multiple audio sources at once, which implies the ability to associate a single <em>dynamic audio parameter</em> to the gain associated with these sources' signal paths.  The specification's <code>AudioGain</code> interface provides this.</li>
+        <li>Smooth muting requires the ability to <em>smoothly automate gain changes</em> over a time interval, without using browser-unfriendly coding techniques like tight loops or high-frequency callbacks. The <em>parameter automation</em> features associated with <code>AudioParam</code> are useful for this kind of feature.</li>
+        <li>Pausing and resuming the show on the audience side implies the ability to <em>buffer data received from audio sources</em> in the processing graph, and also to <em>send buffered data to audio destinations</em>.</li>
+        <li>The functionality for audio speed changing, a custom algorithm, requires the ability to <em>create custom audio transformations</em> using a browser programming language (e.g. <code>JavaScriptAudioNode</code>).</li>
+        <li>There is a standard way to access a set of <em>metadata properties for media resources</em> with the following W3C documents:
+          <ul><li> <a href="http://www.w3.org/TR/mediaont-10/" title="http://www.w3.org/TR/mediaont-10/">Ontology for Media Resources 1.0</a>. This document defines a core set of metadata properties for media resources, along with their mappings to elements from a set of existing metadata formats.
+          </li><li> <a href="http://www.w3.org/TR/mediaont-api-1.0/" title="http://www.w3.org/TR/mediaont-api-1.0/">API for Media Resources 1.0</a>. This API provides developers with a convenient access to metadata information stored in different metadata formats. It provides means to access the set of metadata properties defined in the Ontology for Media Resources 1.0 specification. 
+          </li></ul>
+        </li>
+      </ol>
+    </section>
       
       <section>      
       <h3>UC 5: writing music on the web </h3>

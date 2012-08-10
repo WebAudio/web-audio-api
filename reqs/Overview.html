@@ -148,7 +148,7 @@
       
       <section>
       <h3>3D game with music and convincing sound effects</h3>
-      <p>A user is playing a 3D first-person adventure game on their mobile device. The game is built entirely using open web technologies.</p>
+      <p>A user is playing a 3D first-person adventure game on their mobile device. The game is built entirely using open web technologies, but includes rich, convincing sound.</p>
       <p>As soon as the user starts the game, a musical background starts, loops seamlessly, and transitions smoothly from one music track to another as the player enters a house.</p>
       <p>While walking in a corridor, the player can hear the muffled sound of a ticking grandfather's clock. Following the direction of the sound and entering a large hall, the sound of the clock becomes clear, reverberating in the large hall. At any time, the sound of the clock spatialized in real-time based on the position of the player's character in the room (relative to the clock) and the current camera angle.</p>
       <p>As the soundscape changes, bringing a more somber, scary atmosphere to the scene, the player equips a firearm. Suddenly,  a giant snake springs from behind a corner, its hissing becoming a little louder as the snake turns its head towards the player. The weapon fires at the touch of a key, and the player can hear the sound of bullets in near-perfect synchronization with the firing, as well as the sound of bullets ricocheting against walls. The sounds are played immediately after the player presses the key, but the action and video frame rate can remain smooth even when a lot of sounds (bullets being fired, echoing and ricocheting, sound of the impacts, etc) are played at the same time. The snake is now dead, and many flies gather around it, and around the player's character, buzzing and zooming in the virtual space of the room.</p>
@@ -156,15 +156,11 @@
       <h4>Notes and Implementation Considerations</h4>
       
       <ol>
-      <li><p>The need for HTML games to include rich, convincing sound has been the subject of much input to the W3C Audio Working Group. The group considers it a very high priority use case.</p></li>
-      <li><p>This scenario encompasses many requirements for the management and processing of audio in the Open Web Platform. We will note the following:</p>
-        <ul>
-          <li><p>The looping music background to the game could possibly be created with the <a href="http://www.w3.org/TR/html5/the-audio-element.html#the-audio-element" title="4.8.7 The audio element &#8212; HTML5">HTML5 &lt;audio&gt; element</a>. The ability to transition smoothly from one music track to another suggests, however, a capability for <em>mixing and filtering multiple sources</em> not already offered by HTML5.</p><p>Developing the soundscape for a game as the one described above can benefit from a modular, node based audio processing API. In our scenario, some of the processing needs to happen for a number of sources at the same time (e.g room effects) while others (e.g spatialization) need to happen on a per-source basis. A graph-based API makes it very easy to envision, construct and control the necessary processing architecture, in ways that would be possible with other kinds of APIs, but more difficult to implement.</li>
-          <li><p>The scenario illustrates many aspects of the creation of a credible soundscape. The game character is evolving in a virtual three-dimensional environment and the soundscape is, at all time, spatialized: a <em>panning model</em> can be used to spatialize sound sources in the game; <em>obstruction / occlusion</em> modelling is used to muffle the sound of the clock going through walls, and the sound of flies buzzing around would need <em>Doppler Shift</em> simulation to sound believable.</p></li>
-          <li><p>As the soundscape changes from small room to large hall, the game benefits from the <em>simulation of acoustic spaces</em>, possibly through the use of a <em>convolution engine</em> for high quality room effects.</p></li> 
-          <li><p>Many sounds in the scenario are triggered by events in the game, and would need to be played with low latency. The sound of the bullets as they are fired and ricochet against the walls, in particular, illustrate a requirement for <em>basic polyphony</em> and <em>high-performance playback and processing of many sounds</em>.</p></li>
-        </ul>
-      </li>
+        <li><p>Developing the soundscape for a game as the one described above can benefit from a <em>modular, node based approach</em> to audio processing. In our scenario, some of the processing needs to happen for a number of sources at the same time (e.g room effects) while others (e.g mixing and spatialization) need to happen on a per-source basis. A graph-based API makes it very easy to envision, construct and control the necessary processing architecture, in ways that would be possible with other kinds of APIs, but more difficult to implement. The fundamental <code>AudioNode</code> construct in the Web Audio API supports this approach.</p></li>
+        <li><p>While a single looping music background can be created today with the <a href="http://www.w3.org/TR/html5/the-audio-element.html#the-audio-element" title="4.8.7 The audio element &#8212; HTML5">HTML5 &lt;audio&gt; element</a>, the ability to transition smoothly from one musical background to another requires additional capabilities that are found in the Web Audio API including <em>sample-accurate playback scheduling</em> and <em>automated cross-fading of multiple sources</em>. Related API features include <code>AudioBufferSourceNode.noteOn()</code> and <code>AudioParam.setValueAtTime()</code>.</p></li>
+        <li><p>The scenario illustrates many aspects of the creation of a credible soundscape. The game character is evolving in a virtual three-dimensional environment and the soundscape is at all times spatialized: a <em>panning model</em> can be used to spatialize sound sources in the game (<code>AudioPanningNode</code>); <em>obstruction / occlusion</em> modelling is used to muffle the sound of the clock going through walls, and the sound of flies buzzing around would need <em>Doppler Shift</em> simulation to sound believable (also supported by <code>AudioPanningNode</code>).  The listener's position is part of this 3D model as well (<code>AudioListener</code>).</p></li>
+        <li><p>As the soundscape changes from small room to large hall, the game benefits from the <em>simulation of acoustic spaces</em>, possibly through the use of a <em>convolution engine</em> for high quality room effects as supported by <code>ConvolverNode</code> in the Web Audio API.</p></li> 
+        <li><p>Many sounds in the scenario are triggered by events in the game, and would need to be played with low latency. The sound of the bullets as they are fired and ricochet against the walls, in particular, illustrate a requirement for <em>basic polyphony</em> and <em>high-performance playback and processing of many sounds</em>. These are supported by the general ability of the Web Audio API to include many sound-generating nodes with independent scheduling and high-throughput native algorithms.</p></li>
       </ol>
 
 
@@ -174,7 +170,7 @@
 
       <h3>Online music production tool</h3>
       
-      <p>A user arranges a musical composition using a web-based Digital Audio Workstation (DAW) application.</p>
+      <p>A user creates a musical composition from audio media clips using a web-based Digital Audio Workstation (DAW) application.</p>
       
       <p>Audio "clips" are arranged on a timeline representing multiple tracks of audio.  Each track's volume, panning, and effects
       may be controlled separately.  Individual tracks may be muted or soloed to preview various combination of tracks at a given moment.
@@ -199,7 +195,12 @@
         
         <li><p>Building such an application may only be reasonably possible if the technology enables the control of audio with acceptable performance, in particular for <em>real-time processing</em> and control of audio parameters and <em>sample accurate scheduling of sound playback</em>. Because performance is such a key aspect of this scenario, it should probably be possible to control the buffer size of the underlying Audio API: this would allow users with slower machines to pick a larger buffer setting that does not cause clicks and pops in the audio stream.</p></li>
         
-        <li><p>The ability to visualise the samples and their processing would highly benefit from <em>real-time time-domain and frequency analysis</em>.</p></li>
+        <li><p>The ability to visualise the samples and their processing benefits from <em>real-time time-domain and frequency analysis</em>, as supplied by the Web Audio API's <code>RealtimeAnalyzerNode</code>.</p></li>
+        <li><p> Clips must be able to be loaded into memory for fast playback. The Web Audio API's <code>AudioBuffer</code> and <code>AudioBufferSourceNode</code> interfaces address this requirement.</p></li>
+        <li><p>The ability to schedule both audio clip playback and effects parameter value changes in advance is essential to support automated mixdown</p></li>
+        <li><p> To export an audio file, the audio rendering pipeline must be able to yield buffers of sample frames directly, rather than being forced to an audio device destination. Built-in codecs to translate these buffers to standard audio file output formats are also desirable.</p></li>
+        <li><p>Typical per-channel effects such as panning, gain control, compression and filtering must be readily available in a native, high-performance implementation.</p></li>
+        <li><p>Typical master bus effects such as room reverb must be readily available. Such effects are applied to the entire mix as a final processing stage. A single <code>ConvolverNode</code> is capable of simulating a wide range of room acoustics.</p></li>
       </ol>
 
 
@@ -285,70 +286,46 @@
       </p>
       </section>
       
-      <section>
+    <section>
       
-      <h3>UI/DOM Sounds</h3>
-      <p>A child is visiting a Kids' website where the playful, colorful HTML interface is accompanied by sound effects played as the child hovers or clicks on some of the elements of the page. For example, when filling a form the sound of a typewriter can be heard as the child types in the form field. Some of the sounds are spatialized and have a different volume depending on where and how the child interacts with the page. When an action triggers a download visualised with a progress bar, a rising pitch sound accompanies the download and another sound (ping!) is played when the download is complete.
-      </p>
+      <h3>Playful sonification of user interfaces</h3>
+
+      <p>A child is visiting a social website designed for kids. The playful, colorful HTML interface is accompanied by sound effects played as the child hovers or clicks on some of the elements of the page. For example, when filling in a form the sound of a typewriter can be heard as the child types in the form field. Some of the sounds are spatialized and have a different volume depending on where and how the child interacts with the page. When an action triggers a download visualised with a progress bar, a gradually rising pitch sound accompanies the download and another sound (ping!) is played when the download is complete.</p>
+
+      <h4>Notes and Implementation Considerations</h4>
+      <ol>
+        <li><p>Although the web UI incorporates many sound effects, its controls are embedded in the site's pages using standard web technology such as HTML form elements and CSS stylesheets. JavaScript event handlers may be attached to these elements, causing graphs of <code>AudioNodes</code> to be constructed and activated to produce sound output.</p></li>
+        <li><p>Modularity, spatialization and mixing play an important role in this scenario, as for the others in this document.</p></li>
+        <li><p>Various effects can be achieved through programmatic variation of these sounds using the Web Audio API. The download progress could smoothly vary the pitch of an <code>AudioBufferSourceNode</code>'s <code>playbackRate</code> using an exponential ramp function, or a more realistic typewriter sound could be achieved by varying an output filter's frequency based on the keypress's character code.</p></li>
+        <li><p>In a future version of CSS, stylesheets may be able to support simple types of sonification, such as attaching a "typewriter key" sound to an HTML <code>textarea</code> element or a "click" sound to an HTML <code>button</code>. These can be thought of as an extension of the visual skinning concepts already embodied by style attributes such as <code>background-image</code>.</p></li>
     </section>
     
     <section>
-
-
-      <h3>Language learning</h3>
-      <p>A user is listening to the web-cast of an audio interview available from 
-      the web-page of a radio broadcasting streaming service.
-      The interview is broad casted in Spanish, unfortunately not the native 
-      language of the user.
-      Therefore the user would like to listen to the audio web-cast at a 
-      slower speed (time stretching), allowing a better understanding of the 
-      dialogs of the conversation in this language for which he is not fluent.
-      The user would like listen to the audio broadcast, without any pitch 
-      distortion of the voices.
-      </p><p>The web-page presents a graphic visualization of the speed of the audio 
-      conversation.
-      The web-page also associates an interface provided by the web-page 
-      developer allowing the user to
-      to change the speed, and may allow to tweak other settings like the tone 
-      and timbre to his taste.
-      </p><p>This would be valuable accessibility features for audio listeners who 
-      want to allow more time to better understand web-cast as well as audio 
-      books.
-      </p>
-
-    </section>
-    
-    <section>
-
-
       <h3>Podcast on a flight</h3>
-      <p>A user is  subscribed to a podcast, and has downloaded an audio book on 
-      his device.
-      The audio files are stored locally on the user's computer or other 
-      device ready for off line use, giving simple and convenient access to 
-      episodic content, through a web browser.
-      </p><p>The user is sitting in an airplane, for a 2 hours flight. The user opens 
-      his audio book in his HTML browser a sees that the episode he has 
-      selected lasts 3 hours.
-      The user would like to be able to accelerate the speed of the audio 
-      book, without pitch distortion (i.e., voices not sounding like 
-      “chipmunks” when accelerated). He would like to set the audition time to 
-      2 hours in order to finish the audio book before landing.
-      </p><p>The web-page presents a graphic visualization of the speed, the total 
-      duration of the audio on a time line at the corresponding speed.
-      The web-page also associates an audio speed changer interface provided 
-      by the web-page developer allowing the user  to change the tempo of the 
-      speech and speed up audio files without changing the pitch. This lets 
-      the user drastically speed up speech speed without a "chipmunk" effect.
-      </p><p>Another interface allows the user to set the duration of the audio, 
-      regarding its initial duration at normal speed, therefore changing its 
-      speed with pitch lock.
-      The user may also tweak other settings like the tone and timbre to his 
-      taste.
-      </p><p>This would be valuable features for book listeners who want to save time 
-      by accelerating audio books as well as podcasts.
-      </p>
 
+      <p>A user is subscribed to a podcast, and has previously
+      downloaded an audio book on his device using the podcast's
+      web-based application.  The audio files are stored locally on
+      the device, giving simple and convenient access to episodic
+      content whenever the user wishes to listen.</p>
+
+      <p>The user is sitting in an airplane for a 2-hour flight. The user opens 
+      the podcast application in his HTML browser and sees that the episode he has 
+      selected lasts 3 hours. The application offers a speed-up feature that allows
+      the speech to be delivered at a faster than normal speed without pitch distortion
+      ("chipmunk voices"). He sets the audition time to 
+      2 hours in order to finish the audio book before landing. He also sets the sound
+      control in the application to "Noisy Environment", causing the sound to be equalized
+        for greatest intelligibility in a noisy setting such as an airplane.</p>
+
+      <h4>Notes and Implementation Considerations</h4>
+      <ol>
+        <li><p>Local audio can be downloaded, stored and retrieved using the <a href="http://www.w3.org/TR/FileAPI/">HTML File API</a>.</p></li>
+        <li><p>This scenario requires a special audio transformation that can compress the duration of speech
+            without affecting overall timbre and intelligibility. In the Web Audio API this could be accomplished through
+            attaching custom processing code to a <code>JavaScriptAudioNode</code>.</p></li>
+        <li><p>The "Noisy Environment" setting could be accomplished through equalization features in the Web Audio API such as <code>BiquadFilterNode</code> or <code>ConvolverNode</code>.</p></li>
+      </ol>
     </section>
     
     <section>

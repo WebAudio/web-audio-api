@@ -1271,11 +1271,36 @@ interface <dfn id="dfn-AudioDestinationNode">AudioDestinationNode</dfn> : AudioN
 <p>AudioParam controls an individual aspect of an <a
 href="#AudioNode-section"><code>AudioNode</code></a>'s functioning, such as
 volume. The parameter can be set immediately to a particular value using the
-"value" attribute. Additionally, value changes can be scheduled to happen at
+"value" attribute. Or, value changes can be scheduled to happen at
 very precise times (in the coordinate system of AudioContext.currentTime), for envelopes, volume fades, LFOs, filter sweeps, grain
 windows, etc. In this way, arbitrary timeline-based automation curves can be
-set on any AudioParam.
+set on any AudioParam.  Additionally, audio signals from the outputs of <code>AudioNodes</code> can be connected
+to an <code>AudioParam</code>, summing with the <em>intrinsic</em> parameter value.
 </p>
+
+<p>
+The <em>final</em> parameter value used to control the audio DSP is calculated as follows:
+</p>
+
+<ol>
+<li>An <em>intrinsic</em> parameter value will be calculated at each time, which is either the value set directly to the .value attribute,
+or, if there are any scheduled parameter changes (automation events), the value as calculated from these events.  If the .value attribute
+is directly set during a time when there are any automation events, then it will be ignored.  When read, the .value attribute
+always returns the <em>intrinsic</em> value for the current time.  If automation events are removed from a given time range, then the
+<em>intrinsic</em> value will remain unchanged and stay at its previous value until either the .value attribute is directly set, or automation events are added
+for the time range.
+</li>
+
+<li>
+An AudioParam will take the rendered audio data from any AudioNode output connected to it and <a href="#down-mix">convert it to mono</a> by down-mixing if it is not
+already mono, then mix it together with other such outputs.
+</li>
+
+<li>
+The <em>final</em> parameter value is the sum of the <em>intrinsic</em> value and the value calculated from (2).
+</li>
+
+</ol>
 
 <p>
 Some synthesis and processing <code>AudioNodes</code> have <code>AudioParams</code> as attributes whose values must

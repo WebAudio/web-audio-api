@@ -347,10 +347,19 @@
 
 
       <h3>Web-based guitar practice service </h3>
-      <p>A serious guitar player uses a web-based tool to practice a new tune. Connecting a  USB microphone and a pair of headphones to their computer, the guitarist is able to tune an acoustic guitar using a graphical interface, set a metronome to keep the tempo then start recording a practice session.
-      </p><p>The audio input from the microphone is automatically analysed to detect whether the musician is keeping a regular beat. The music played during the session is recorded and can be saved to a variety of file formats locally or on the online service where others can replay, comment on the performance and annotate any section to help the musician improve technique and delivery.
-      </p>
-      
+      <p>A serious guitar player uses a web-based tool to practice a new tune. Connecting a USB microphone and a pair of headphones to their computer, the guitarist is able to tune an acoustic guitar using a graphical interface and set a metronome for the practice session. A mix of one or more backing tracks can be optionally selected for the guitarist to play along with, with or without the metronome present.</p>
+      <p>During a practice session, the microphone audio is analyzed to determine whether the guitarist is playing the correct notes in tempo, and visual feedback is provided via a graphical interface of guitar tablature sheet music with superimposed highlighting.</p>
+      <p>The guitarist's performance during each session is recorded, optionally mixed with the audio backing-track mix. At the conclusion of a session, this performance can be saved to various file formats or uploaded to an online social music service for sharing and commentary with other users.</p>
+      <h4>Notes and Implementation Considerations</h4>
+      <ol>
+        <li><p>The audio input reflects the guitarist's performance, which is itself aurally synchronized by the guitarist to the current audio output. The scenario requires that the input be analyzed for correct rhythmic and pitch content. Such an algorithm can be implemented in a <code>JavaScriptAudioNode</code>.</p></li>
+        <li><p>Analysis of the performance in turn requires measurement of the real-time latency in both audio input and output, so that the algorithm analyzing the live performance can know the temporal relationship of a given output sample (reflecting the metronome and/or backing track) to a given input sample (reflecting the guitarist playing along with that output). These latencies are unpredictable from one system to another and cannot be hard-coded. Currently the Web Audio API lacks such support.</p></li>
+        <li><p>This scenario uses a mixture of sound sources including a live microphone input, a synthesized metronome and a set of pre-recorded audio backing tracks (which are synced to a fixed tempo). The mixing of these sources to the browser's audio output can be accomplished by a combination of instances of <code>AudioGainNode</code> and <code>AudioPannerNode</code>.</p></li>
+        <li><p>The live input requires microphone access, which it is anticipated will be available via <a href="http://www.w3.org/TR/html-media-capture/" title="HTML Media Capture">HTML Media Capture</a> bridged through an AudioNode interface.</p></li>
+        <li><p>Pre-recorded backing tracks can be loaded into <code>AudioBuffers</code> and used as sample-accurate synced sources by wrapping these in <code>AudioBufferSourceNode</code> instances.</p></li>
+        <li><p>Metronome synthesis can be accomplished with a variety of means provided by the Web Audio API. In one approach, an implementer could use an <code>Oscillator</code> square-wave source to generate the metronome sound. A timer callback repeatedly runs at a low frequency to maintain a pool of these instances scheduled to occur on future beats in the music (which can be sample-accurately synced to offsets in the backing tracks given the lock-step timing in the Web Audio API).</p></li>
+        <li><p>Programmatic output of a recorded session's audio buffer must be accomplished to files (via the HTML5 File API) or upload streams (via MediaStreams or HTTP). The scenario implies the use of one or more encoders on this buffered data to yield the supported audio file formats. Native audio-to-file encoding is not currently supported by the Web Audio API and thus would need to be implemented in JavaScript.</p></li>
+      </ol>
       </section>
       
       <section>

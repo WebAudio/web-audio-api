@@ -389,6 +389,7 @@ other than work in progress.</p>
   <li><a href="#SecurityConsiderations">17. Security Considerations</a></li>
   <li><a href="#PrivacyConsiderations">18. Privacy Considerations</a></li>
   <li><a href="#requirements">19. Requirements and Use Cases</a></li>
+  <li><a href="#DeprecationNotes">20. Deprecation Notes</a></li>
   <li><a href="#L17310">A.References</a> 
     <ul>
       <li><a href="#Normative-references">A.1 Normative references</a></li>
@@ -535,7 +536,7 @@ sound: </p>
                 var source = context.createBufferSource();
                 source.buffer = dogBarkingBuffer;
                 source.connect(context.destination);
-                source.noteOn(0);
+                source.start(0);
             }
                     </code></pre>
 </div>
@@ -1327,7 +1328,7 @@ interface <dfn id="dfn-AudioParam">AudioParam</dfn> {
     void exponentialRampToValueAtTime(float value, float time);
 
     <span class="comment">// Exponentially approach the target value with a rate having the given time constant. </span>
-    void setTargetValueAtTime(float targetValue, float time, float timeConstant);
+    void setTargetAtTime(float target, float time, float timeConstant);
 
     <span class="comment">// Sets an array of arbitrary parameter values starting at time for the given duration. </span>
     <span class="comment">// The number of values will be scaled to fit into the desired duration. </span>
@@ -1383,7 +1384,7 @@ methods will be called <em>automation</em> methods:</p>
 <li>setValueAtTime() - <em>SetValue</em></li>
 <li>linearRampToValueAtTime() - <em>LinearRampToValue</em></li>
 <li>exponentialRampToValueAtTime() - <em>ExponentialRampToValue</em></li>
-<li>setTargetValueAtTime() - <em>SetTargetValue</em></li>
+<li>setTargetAtTime() - <em>SetTarget</em></li>
 <li>setValueCurveAtTime() - <em>SetValueCurve</em></li>
 </ul>
 
@@ -1475,15 +1476,15 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-setTargetValueAtTime">The <code>setTargetValueAtTime</code>
-  method</dt>
+  <dt id="dfn-setTargetAtTime">The <code>setTargetAtTime</code>
+  method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>Start exponentially approaching the target value at the given time
       with a rate having the given time constant. Among other uses, this is
       useful for implementing the "decay" and "release" portions of an ADSR
       envelope. Please note that the parameter value does not immediately
       change to the target value at the given time, but instead gradually
       changes to the target value.</p>
-      <p>The <dfn id="dfn-targetValue">targetValue</dfn> parameter is the value
+      <p>The <dfn id="dfn-target">target</dfn> parameter is the value
       the parameter will <em>start</em> changing to at the given time.</p>
       <p>The <dfn id="dfn-time">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
       <p>The <dfn id="dfn-timeConstant">timeConstant</dfn> parameter is the
@@ -1502,7 +1503,7 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
       v(t) = V1 + (V0 - V1) * exp(-(t - T0) / <em>timeConstant</em>)
       </pre>
       <p>
-      Where V0 is the initial value (the .value attribute) at T0 (the <em>time</em> parameter) and V1 is equal to the <em>targetValue</em>
+      Where V0 is the initial value (the .value attribute) at T0 (the <em>time</em> parameter) and V1 is equal to the <em>target</em>
       parameter.
       </p>
     </dd>
@@ -1810,16 +1811,16 @@ an <code>AudioBuffer</code>. It generally will be used for short audio assets
 which require a high degree of scheduling flexibility (can playback in
 rhythmically perfect ways). The playback state of an AudioBufferSourceNode goes
 through distinct stages during its lifetime in this order: UNSCHEDULED_STATE,
-SCHEDULED_STATE, PLAYING_STATE, FINISHED_STATE. The noteOn() method causes a transition from the
+SCHEDULED_STATE, PLAYING_STATE, FINISHED_STATE. The start() method causes a transition from the
 UNSCHEDULED_STATE to SCHEDULED_STATE. Depending on the time argument passed to
-noteOn(), a transition is made from the SCHEDULED_STATE to PLAYING_STATE, at which
+start(), a transition is made from the SCHEDULED_STATE to PLAYING_STATE, at which
 time sound is first generated. Following this, a transition from the PLAYING_STATE to
 FINISHED_STATE happens when either the buffer's audio data has been completely
-played (if the <code>loop</code> attribute is false), or when the noteOff()
+played (if the <code>loop</code> attribute is false), or when the stop()
 method has been called and the specified time has been reached. Please see more
-details in the noteOn() and noteOff() description. Once an
+details in the start() and stop() description. Once an
 AudioBufferSourceNode has reached the FINISHED state it will no longer emit any
-sound. Thus noteOn() and noteOff() may not be issued multiple times for a given
+sound. Thus start() and stop() may not be issued multiple times for a given
 AudioBufferSourceNode. </p>
 <pre>    numberOfInputs  : 0
     numberOfOutputs : 1
@@ -1849,9 +1850,9 @@ interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : Audi
     attribute AudioParam playbackRate;
     attribute boolean loop;
 
-    void noteOn(double when);
-    void noteGrainOn(double when, double grainOffset, double grainDuration);
-    void noteOff(double when);
+    void start(double when);
+    void start(double when, double grainOffset, double grainDuration);
+    void stop(double when);
 
 };
 </code></pre>
@@ -1888,18 +1889,18 @@ interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : Audi
 <h3 id="methodsandparams-AudioBufferSourceNode">4.10.2. Methods and
 Parameters</h3>
 <dl>
-  <dt id="dfn-noteOn">The <code>noteOn</code> method</dt>
+  <dt id="dfn-start">The <code>start</code> method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>Schedules a sound to playback at an exact time.</p>
       <p>The <dfn id="dfn-when">when</dfn> parameter describes at what time (in
       seconds) the sound should start playing. It is in the same
       time coordinate system as AudioContext.currentTime. If 0 is passed in for
       this value or if the value is less than <b>currentTime</b>, then the
-      sound will start playing immediately.  Either <code>noteOn</code> or <code>noteGrainOn</code> (but not both) may only be called one time
-      and must be called before <code>noteOff</code> is called or an exception will be thrown.</p>
+      sound will start playing immediately.  <code>start</code> may only be called one time
+      and must be called before <code>stop</code> is called or an exception will be thrown.</p>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-noteGrainOn">The <code>noteGrainOn</code> method</dt>
+  <dt id="dfn-start">The <code>start</code> method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>Schedules a portion of a sound to playback at an exact time.</p>
       <p>The <dfn id="dfn-when_AudioBufferSourceNode">when</dfn> parameter
       describes at what time (in seconds) the sound should start playing.
@@ -1910,19 +1911,19 @@ Parameters</h3>
       the offset in the buffer (in seconds) for the portion to be played.</p>
       <p>The <dfn id="dfn-grainDuration">grainDuration</dfn> parameter
       describes the duration of the portion (in seconds) to be played.
-      Either <code>noteOn</code> or <code>noteGrainOn</code> (but not both) may only be called one time
-      and must be called before <code>noteOff</code> is called or an exception will be thrown. </p>
+      Either <code>start</code> or <code>start</code> (but not both) may only be called one time
+      and must be called before <code>stop</code> is called or an exception will be thrown. </p>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-noteOff">The <code>noteOff</code> method</dt>
-    <dd><p>Schedules a sound to stop playback at an exact time.</p>
+  <dt id="dfn-stop">The <code>stop</code> method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
+    <dd><p>Schedules a sound to stop playback at an exact time.  Please see <a href=#deprecation-section>deprecation section</a> for the old method name.</p>
       <p>The <dfn id="dfn-when_AudioBufferSourceNode_2">when</dfn> parameter
       describes at what time (in seconds) the sound should stop playing.
       It is in the same time coordinate system as AudioContext.currentTime.
       If 0 is passed in for this value or if the value is less than
       <b>currentTime</b>, then the sound will stop playing immediately.
-      <code>noteOff</code> must only be called one time and only after a call to <code>noteOn</code> or <code>noteOff</code>,
+      <code>stop</code> must only be called one time and only after a call to <code>start</code> or <code>stop</code>,
       or an exception will be thrown.</p>
     </dd>
 </dl>
@@ -3091,7 +3092,7 @@ a few commonly used waveforms. Additionally, it can be set to an arbitrary perio
 waveform through the use of a <a href="#WaveTable-section"><code>WaveTable</code></a> object. </p>
 
 <p>Oscillators are common foundational building blocks in audio synthesis.  An Oscillator will start emitting sound at the time
-specified by the <code>noteOn()</code> method. </p>
+specified by the <code>start()</code> method. </p>
 
 <p>
 Mathematically speaking, a <em>continuous-time</em> periodic waveform can have very high (or infinitely high) frequency information when considered
@@ -3147,8 +3148,8 @@ interface <dfn id="dfn-Oscillator">Oscillator</dfn> : AudioSourceNode {
     readonly attribute AudioParam frequency; // in Hertz
     readonly attribute AudioParam detune; // in Cents
 
-    void noteOn(double when);
-    void noteOff(double when);
+    void start(double when);
+    void stop(double when);
     void setWaveTable(WaveTable waveTable);
 
 };
@@ -3194,14 +3195,14 @@ interface <dfn id="dfn-Oscillator">Oscillator</dfn> : AudioSourceNode {
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-noteOn-AudioBufferSourceNode">The <code>noteOn</code>
-  method</dt>
+  <dt id="dfn-start-AudioBufferSourceNode">The <code>start</code>
+  method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>defined as in <a href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code></a>. </p>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-noteOff-AudioBufferSourceNode">The <code>noteOff</code>
-  method</dt>
+  <dt id="dfn-stop-AudioBufferSourceNode">The <code>stop</code>
+  method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>defined as in <a href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code></a>. </p>
     </dd>
 </dl>
@@ -3539,7 +3540,7 @@ function playSound() {
     gainNode2.connect(compressor);
 
     <span class="comment">// Play 0.75 seconds from now (to play immediately pass in 0)</span>
-    oneShotSound.noteOn(context.currentTime + 0.75);
+    oneShotSound.start(context.currentTime + 0.75);
 }
 </code></pre>
 </div>
@@ -4436,6 +4437,25 @@ API</a>. </p>
 <p>Please see <a href="#ExampleApplications-section">Example Applications</a>
 </p>
 </div>
+
+<div id="deprecation-section" class="section">
+<h2 id="DeprecationNotes">20. Deprecation Notes</h2>
+
+<p>Some method and attribute names have changed during API review:
+</p>
+<pre>
+AudioBufferSourceNode.noteOn() has been changed to <b>start()</b>
+AudioBufferSourceNode.noteGrainOn() has been changed to <b>start()</b>
+AudioBufferSourceNode.noteOff() has been changed to <b>stop()</b>
+
+Oscillator.noteOn() has been changed to <b>start()</b>
+Oscillator.noteOff() has been changed to <b>stop()</b>
+
+AudioParam.setTargetValueAtTime() has been changed to <b>setTargetAtTime()</b>
+</pre>
+
+</div>
+
 </div>
 </div>
 

@@ -1026,7 +1026,30 @@ and a single output. An <a
 href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a> has
 one input and no outputs and represents the final destination to the audio
 hardware. Most processing nodes such as filters will have one input and one
-output. </p>
+output.  Each type of <code>AudioNode</code> differs in the details of how it processes or synthesizes audio.  But, in general, <code>AudioNodes</code>
+will process its inputs (if it has any), and generate audio for its outputs (if it has any).
+ </p>
+
+<p>
+An output may connect to one or more <code>AudioNode</code> inputs, thus <em>fanout</em> is supported.  An input may be connected from one
+or more <code>AudioNode</code> outputs, thus <em>fanin</em> is supported. 
+</p>
+
+<p>
+In order to handle this <em>fanin</em>, any <code>AudioNode</code> with inputs performs an up-mixing of all connections <em>for each input</em>:
+</p>
+
+<ol>
+<li>Calculate N: the maximum number of channels of all the connections to the input.  For example, if an input has a mono connection and a stereo connection
+then this number will be 2. </li>
+<li>For each connection to the input, <a href="#UpMix-section">up-mix</a> to N channels.</li>
+<li>Mix together all the up-mixed streams from (2).  This is a straight-forward mixing together of each of the corresponding channels from each
+connection.</li>
+</ol>
+
+<p>
+Please see <a href="#MixerGainStructure-section">Mixer Gain Structure</a> for more informative details.
+</p>
 
 <p>
 For performance reasons, practical implementations will need to use block processing, with each <code>AudioNode</code> processing a
@@ -1045,9 +1068,7 @@ value explicitly.  <em>block-size</em> is defined to be 128 sample-frames which 
 interface <dfn id="dfn-AudioNode">AudioNode</dfn> {
 
     void connect(AudioNode destination, optional unsigned long output = 0, optional unsigned long input = 0);
-
     void connect(AudioParam destination, optional unsigned long output = 0);
-
     void disconnect(optional unsigned long output = 0);
 
     readonly attribute AudioContext context;
@@ -3264,6 +3285,8 @@ sourceNode.connect(filterNode);</code></pre>
 
 <div id="MixerGainStructure-section" class="section">
 <h2 id="MixerGainStructure">6. Mixer Gain Structure</h2>
+
+<p class="norm">This section is informative.</p>
 
 <h3 id="background">Background</h3>
 

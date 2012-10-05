@@ -1322,16 +1322,16 @@ interface <dfn id="dfn-AudioParam">AudioParam</dfn> {
     readonly attribute float defaultValue;
 
     <span class="comment">// Parameter automation. </span>
-    void setValueAtTime(float value, float time);
-    void linearRampToValueAtTime(float value, float time);
-    void exponentialRampToValueAtTime(float value, float time);
+    void setValueAtTime(float value, float startTime);
+    void linearRampToValueAtTime(float value, float endTime);
+    void exponentialRampToValueAtTime(float value, float endTime);
 
     <span class="comment">// Exponentially approach the target value with a rate having the given time constant. </span>
-    void setTargetAtTime(float target, float time, float timeConstant);
+    void setTargetAtTime(float target, float startTime, float timeConstant);
 
     <span class="comment">// Sets an array of arbitrary parameter values starting at time for the given duration. </span>
     <span class="comment">// The number of values will be scaled to fit into the desired duration. </span>
-    void setValueCurveAtTime(Float32Array values, float time, float duration);
+    void setValueCurveAtTime(Float32Array values, float startTime, float duration);
 
     <span class="comment">// Cancels all scheduled parameter changes with times greater than or equal to startTime. </span>
     void cancelScheduledValues(float startTime);
@@ -1408,13 +1408,13 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
     <dd><p>Schedules a parameter value change at the given time.</p>
       <p>The <dfn id="dfn-value_2">value</dfn> parameter is the value the
       parameter will change to at the given time.</p>
-      <p>The <dfn id="dfn-time_2">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>The <dfn id="dfn-startTime_2">startTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
       <p>
-      If there are no more events after this <em>SetValue</em> event, then for t >= time,  v(t) = value.  In other words, the value will remain constant.
+      If there are no more events after this <em>SetValue</em> event, then for t >= startTime,  v(t) = value.  In other words, the value will remain constant.
       </p>
       <p>
       If the next event (having time T1) after this <em>SetValue</em> event is not of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>,
-      then, for t: time &lt;= t &lt; T1,  v(t) = value.
+      then, for t: startTime &lt;= t &lt; T1,  v(t) = value.
       In other words, the value will remain constant during this time interval, allowing the creation of "step" functions.
       </p>
       <p>
@@ -1430,10 +1430,10 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
       previous scheduled parameter value to the given value.</p>
       <p>The <dfn id="dfn-value_3">value</dfn> parameter is the value the
       parameter will linearly ramp to at the given time.</p>
-      <p>The <dfn id="dfn-time_3">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>The <dfn id="dfn-endTime_3">endTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
 
       <p>
-      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time of the previous event and T1 is the time parameter passed into this method)
+      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time of the previous event and T1 is the endTime parameter passed into this method)
       will be calculated as:
       </p>
       <pre>
@@ -1458,9 +1458,9 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
       <p>The <dfn id="dfn-value_4">value</dfn> parameter is the value the
       parameter will exponentially ramp to at the given time.  An exception will be thrown if this value is less than
       or equal to 0, or if the value at the time of the previous event is less than or equal to 0.</p>
-      <p>The <dfn id="dfn-time_4">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>The <dfn id="dfn-endTime_4">endTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
       <p>
-      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time of the previous event and T1 is the time parameter passed into this method)
+      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time of the previous event and T1 is the endTime parameter passed into this method)
       will be calculated as:
       </p>
       <pre>
@@ -1485,7 +1485,7 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
       changes to the target value.</p>
       <p>The <dfn id="dfn-target">target</dfn> parameter is the value
       the parameter will <em>start</em> changing to at the given time.</p>
-      <p>The <dfn id="dfn-time">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>The <dfn id="dfn-startTime">startTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
       <p>The <dfn id="dfn-timeConstant">timeConstant</dfn> parameter is the
       time-constant value of first-order filter (exponential) approach to the
       target value. The larger this value is, the slower the transition will
@@ -1495,14 +1495,14 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
       to reach the value 1 - 1/e (around 63.2%) given a step input response (transition from 0 to 1 value).
       </p>
       <p>
-      During the time interval: <em>T0</em> &lt;= t &lt; <em>T1</em>, where T0 is the <em>time</em> parameter and T1 represents the time of the event following this
+      During the time interval: <em>T0</em> &lt;= t &lt; <em>T1</em>, where T0 is the <em>startTime</em> parameter and T1 represents the time of the event following this
       event (or <em>infinity</em> if there are no following events):
       </p>
       <pre>
       v(t) = V1 + (V0 - V1) * exp(-(t - T0) / <em>timeConstant</em>)
       </pre>
       <p>
-      Where V0 is the initial value (the .value attribute) at T0 (the <em>time</em> parameter) and V1 is equal to the <em>target</em>
+      Where V0 is the initial value (the .value attribute) at T0 (the <em>startTime</em> parameter) and V1 is equal to the <em>target</em>
       parameter.
       </p>
     </dd>
@@ -1516,14 +1516,14 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
       <p>The <dfn id="dfn-values">values</dfn> parameter is a Float32Array
       representing a parameter value curve. These values will apply starting at
       the given time and lasting for the given duration. </p>
-      <p>The <dfn id="dfn-time_5">time</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
+      <p>The <dfn id="dfn-startTime_5">startTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
       <p>The <dfn id="dfn-duration_5">duration</dfn> parameter is the
       amount of time in seconds (after the <em>time</em> parameter) where values will be calculated according to the <em>values</em> parameter..</p>
       <p>
-      During the time interval: <em>time</em> &lt;= t &lt; <em>time</em> + <em>duration</em>, values will be calculated:
+      During the time interval: <em>startTime</em> &lt;= t &lt; <em>startTime</em> + <em>duration</em>, values will be calculated:
       </p>
       <pre>
-      v(t) = values[N * (t - time) / duration], where <em>N</em> is the length of the <em>values</em> array.
+      v(t) = values[N * (t - startTime) / duration], where <em>N</em> is the length of the <em>values</em> array.
       </pre>
     </dd>
 </dl>

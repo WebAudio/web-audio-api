@@ -59,10 +59,13 @@
         such as show control, lighting and special effects control.
       </p>
       <p>
-        This specification defines an API supporting the MIDI protocol, enabling web applications to enumerate and select MIDI input and output devices on the client system and send and receive MIDI messages. It is intended to enable non-music MIDI applications as well as music ones, by providing low-level access to the MIDI devices available on the users' systems.
+        This specification defines an API supporting the MIDI protocol, enabling web applications to enumerate and select MIDI input and output devices on the client system and send and receive MIDI messages. It is intended to enable non-music MIDI applications as well as music ones, by providing low-level access to the MIDI devices available on the users' systems.  At the same time, the Web MIDI API is not intended to become a semantic controller platform; it is designed to expose the mechanics of MIDI input and output interfaces, and the practical aspects of sending and receiving MIDI messages, without identifying what those actions might mean semantically.
       </p>
       <p>
-        This API is designed to be used in conjunction with other APIs and elements of the web platform, notably the Web Audio API and High-Resolution Time.  This API is also intended to be familiar to users of other MIDI APIs.
+        To some users, "MIDI" has become synonymous with Standard MIDI Files and General MIDI.  That is not the intent of this API; the use case of simply playing back a .SMF file is not within the purview of this specification (it could be considered a different format to be supported by the HTML5 <code>&lt;audio&gt;</code> element, for example).  The Web MIDI API is intended to enable direct access to devices that respond to MIDI - external synthesizers or lighting systems, for example, or even the software synthesizers that are built in to many common operating systems.  The Web MIDI API is also explicitly designed to enable a new class of applications on the web that can respond to MIDI controller inputs - using external hardware controllers with physical buttons, knobs and sliders (as well as musical controllers like keyboard, guitar or wind instrument controllers) to control web applications.
+      </p>
+      <p>
+        The Web MIDI API is also expected to be used in conjunction with other APIs and elements of the web platform, notably the Web Audio API and High-Resolution Time.  This API is also intended to be familiar to users of MIDI APIs on other systems, such as Apple's CoreMIDI and Microsoft's Windows MIDI API.
       </p>
     </section>
     <section class="informative">
@@ -73,6 +76,27 @@
         hardware synthesizers, hardware music controllers and light systems and other mechanical
         apparatus controlled by MIDI.
       </p>
+      <p>
+        This API has been defined with a wide variety of use cases in mind.  The approaches taken by this API are similar to those taken in Apple's CoreMIDI API and Microsoft's Windows MIDI API; that is, the API is designed to represent the low-level software protocol of MIDI, in order to enable developers to build powerful MIDI software on top.  The API enables the developer to enumerate input and output interfaces, and send and receive MIDI messages, but (similar to the aforementioned APIs) it does not attempt to semantically define or interpret MIDI messages beyond what is necessary to robustly support current devices.
+      </p>
+      <p>
+        The Web MIDI API is not intended to directly implement high-level concepts such as sequencing; it does not directly support Standard MIDI Files, for example, although a Standard MIDI File player can be built on top of the Web MIDI API.  It is also not intended to semantically capture patches or controller assignments, as General MIDI does; such interpretation is outside the scope of the Web MIDI API (though again, General MIDI can easily be utilized through the Web MIDI API).
+      </p>
+      <p>The Web MIDI API consists of the following set of interfaces and objects, as well as some supporting interfaces:</p>
+      <ul>
+        <li>A <a href="#NavigatorMIDIAccess">NavigatorMIDIAccess</a> interface, which is supported on the window.navigator object in user agents.  This interface has only one method which enables a developer to request access to MIDI on the system.
+        </li>
+        <li>A <a href="#MIDIAccess">MIDIAccess</a> object, which enables enumeration of and access to the MIDI devices available to the user agent.
+        </li>
+        <li>A <a href="#MIDIPort">MIDIPort</a> interface, which represents a MIDI input or output port and exposes information about the interface - its name, manufacturer, type and unique identifier.
+        </li>
+        <li>A <a href="#MIDIInput">MIDIInput</a> interface, which implements MIDIPort but also enables MIDI message handlers to be attached to the device.
+        </li>
+        <li>A <a href="#MIDIOutput">MIDIOutput</a> interface, which implements MIDIPort and additionally exposes methods to send MIDI messages to the output port.
+        </li>
+        <li>A <a href="#MIDIMessage">MIDIMessage</a> interface, which represents a sequence of MIDI data bytes along with a timestamp.  This interface is used for receiving MIDI as well as for some types of sending.
+        </li>
+      </ul>
     </section>
 
     <section id="conformance">
@@ -125,18 +149,20 @@
     <section>
       <h2>Security and privacy considerations</h2>
       <p>
-        Allowing the enumeration of the users MIDI devices and access to the
-        information they send is a potential target for fingerprinting of MIDI 
-        interfaces and connected MIDI devices.  Implementations SHOULD 
-        follow the <a href="#idl-def-NavigatorMIDIAccess">suggested security model</a>.
+        There are two primary security and privacy concerns with adding the Web MIDI API to the web platform:
+        <ol>
+          <li>Allowing the enumeration of the user's MIDI interfaces is a potential target for fingerprinting (that is, uniquely identifying a user by the specific MIDI interfaces they have connected).  Note that in this context, what can be enumerated is the MIDI <i>interfaces</i> - not, for example, an individual sampler or synthesizer plugged into a MIDI interface, as these would not be enumerated, unless those devices are connected to the host computer with USB (USB-MIDI devices typically have their own MIDI interface, and would be enumerated).  The interfaces that could be fingerprinted are equivalent to MIDI "ports".  This potential needs to be further investigated; the vast majority of systems have relatively few MIDI interfaces attached, so it is possible this is of little concern in practice.</li>
+          <li>Additionally, combined access to input and output ports on a given device (the ability to send <b>and</b> receive system exclusive messages, in particular) might allow sophisticated developers to query and test for particular MIDI-connected devices, such as samplers, and either using the presence of those devices for more precise fingerprinting, destroying data (erasing samples or patches on the devices), attempting to capture data from the devices (e.g. downloading samples from samplers, then uploading to the network), or simply initiating malicious action (e.g. sending MIDI commands to a lighting control system to turn lights on and off). </li>
+        </ol>
+        These issues will be further explored prior to this specification becoming a Recommendation.  In the meantime, the <a href="#idl-def-NavigatorMIDIAccess">suggested security model</a> explicitly allows user agents to require the user's approval before giving access to MIDI devices, although it is not currently required to prompt the user for this approval.  It is noted that some web systems (e.g. Java) give access to MIDI interfaces without prompting, although this may not be the security model that this specification eventually uses.
       </p>
     </section>
 
     <section>
-      <h2>Obtaining access to user's devices</h2>
+      <h2>Obtaining Access to MIDI Interfaces Available to the User Agent</h2>
 
       <section>
-          <h2><a>NavigatorMIDIAccess</a> Interface</h2>
+          <h2 id="NavigatorMIDIAccess">The <a>NavigatorMIDIAccess</a> Interface</h2>
 
           <dl class="idl"
               title="[NoInterfaceObject] interface NavigatorMIDIAccess">
@@ -269,7 +295,8 @@
           <dt>MIDIAccess access</dt>
 
           <dd>
-            A <code><a>MIDIAccess</a></code> object created to provide
+            <p>
+              A <code><a>MIDIAccess</a></code> object created to provide
             script access to the user's MIDI devices.  This object is used
             to enumerate and obtain access to individual MIDI devices.
             <p><em>Note</em>: The term "MIDI device" in this specification 
@@ -324,7 +351,7 @@
     </section>
 
     <section>
-      <h2><a>MIDIAccess</a> Interface</h2>
+      <h2 id="MIDIAccess"><a>MIDIAccess</a> Interface</h2>
       <p>This interface provides the methods to enumerate MIDI input and output
         devices, and obtain access to an individual device.</p>
 
@@ -397,6 +424,12 @@
               </p>
             </li>
           </ol>
+          <dl class='parameters'>
+            <dt>MIDIPort or DOMString or short target</dt>
+            <dd>
+              The input port to be requested.
+            </dd>
+          </dl>
         </dd>
         <dt><a>MIDIOutput</a> getOutput(MIDIPort or DOMString or short target)</dt>
         <dd>
@@ -454,12 +487,18 @@
               </p>
             </li>
           </ol>
+          <dl class='parameters'>
+            <dt>MIDIPort or DOMString or short target</dt>
+            <dd>
+              The output port to be requested.
+            </dd>
+          </dl>
         </dd>
       </dl>
     </section>
 
     <section>
-      <h2><a>MIDIPort</a> Interface</h2>
+      <h2 id="MIDIPort"><a>MIDIPort</a> Interface</h2>
 
       <p>This interface represents a MIDI input or output port.</p>
 
@@ -511,13 +550,13 @@
       </div>
 
       <dl class="idl" title='enum MIDIPortType'>
-        <dt>"input"</dt>
+        <dt>input</dt>
         <dd>
-          If a MIDIPort is an input port, this MUST be this value.
+          If a MIDIPort is an input port, the type member MUST be this value.
         </dd>
-        <dt>"output"</dt>
+        <dt>output</dt>
         <dd>
-          If a MIDIPort is an output port, this MUST be this value.
+          If a MIDIPort is an output port, the type member MUST be this value.
         </dd>
       </dl>
 
@@ -580,7 +619,7 @@
       </dl>
 
       <section>
-        <h3><a>MIDIInput</a> Interface</h3>
+        <h3 id="MIDIInput"><a>MIDIInput</a> Interface</h3>
       <div class="idl" title="MIDIInput implements MIDIPort"></div>
 
           <dl title="[NoInterfaceObject]
@@ -638,7 +677,7 @@
       </section>
 
       <section>
-        <h3><a>MIDIOutput</a> Interface</h3>
+        <h3 id="MIDIOutput"><a>MIDIOutput</a> Interface</h3>
 
       <div class="idl" title="MIDIOutput implements MIDIPort"></div>
 
@@ -650,28 +689,46 @@
             <p>
               Enqueues the message to be sent to the corresponding MIDI port.
             </p>
+            <dl class='parameters'>
+              <dt>MIDIMessage message</dt>
+              <dd>
+                The message to be enqueued to be sent at the appropriate time (<code>message.timestamp</code>).  If <code>message.timestamp</code> is zero or null, the message is to be sent as soon as possible.
+              </dd>
+            </dl>
           </dd>
-          <dt>void sendMessage(short status, short... data)</dt>
+          <dt>void sendMessage(short status, optional short? data1, optional short? data2)</dt>
           <dd>
             <p>
-              Creates a new MIDI message of the given arguments and enqueues it
-              to be sent to the corresponding MIDI port.
+              Enqueues a simple MIDI message of three or fewer bytes to be sent to the corresponding MIDI port.  This method of sending does not utilize timestamps - the message will be sent as soon as possible - and also is not to be used for system exclusive messages (i.e. any MIDI messages over three bytes in length).
             </p>
+            <dl class='parameters'>
+              <dt>short status</dt>
+              <dd>
+                The status byte of a simple MIDI message.
+              </dd>
+              <dt>optional short? data1</dt>
+              <dd>
+                The first data byte of a simple MIDI message, if requested.
+              </dd>
+              <dt>optional short? data2</dt>
+              <dd>
+                The second data byte of a simple MIDI message, if requested.
+              </dd>
+            </dl>
           </dd>
         </dl>
       </section>
     </section>
 
     <section>
-      <h2><a>MIDIMessage</a> Interface</h2>
+      <h2 id="MIDIMessage"><a>MIDIMessage</a> Interface</h2>
       <dl title="[NoInterfaceObject]
                  dictionary MIDIMessage"
           class="idl">
         <dt>DOMHighResTimeStamp timestamp</dt>
         <dd>
           <p>
-            A <code>DOMHighResTimeStamp</code> signifying when the event
-            occured, will occur or should occur.
+            A <code>DOMHighResTimeStamp</code> signifying when the event occurred or should occur.  For <code>MIDIMessage</code>s received by a <code>MIDIInput</code>, this is required to be set; for <code>MIDIMessage</code>s that are passed to <code>sendMIDIMessage()</code> on a <code>MIDIOutput</code>, this may explicitly be set to zero or null to represent "as soon as possible".
           </p>
         </dd>
         <dt>Uint8Array data</dt>
@@ -683,7 +740,7 @@
       </dl>
 
       <section>
-        <h3><a>MIDIEvent</a> Interface</h3>
+        <h3 id="MIDIEvent"><a>MIDIEvent</a> Interface</h3>
         
         <dl title="[NoInterfaceObject]
                    interface MIDIEvent : Event"

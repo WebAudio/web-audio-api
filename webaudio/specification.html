@@ -728,13 +728,13 @@ interface <dfn id="dfn-AudioContext">AudioContext</dfn> {
 
     MediaStreamAudioSourceNode createMediaStreamSource(MediaStream mediaStream);
 
-    ScriptProcessorNode createJavaScriptNode(unsigned long bufferSize,
-                                             optional unsigned long numberOfInputChannels = 2,
-                                             optional unsigned long numberOfOutputChannels = 2);
+    ScriptProcessorNode createScriptProcessor(unsigned long bufferSize,
+                                              optional unsigned long numberOfInputChannels = 2,
+                                              optional unsigned long numberOfOutputChannels = 2);
 
     AnalyserNode createAnalyser();
-    GainNode createGainNode();
-    DelayNode createDelayNode(optional double maxDelayTime);
+    GainNode createGain();
+    DelayNode createDelay(optional double maxDelayTime);
     BiquadFilterNode createBiquadFilter();
     WaveShaperNode createWaveShaper();
     PannerNode createPanner();
@@ -874,8 +874,8 @@ interface <dfn id="dfn-AudioContext">AudioContext</dfn> {
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-createJavaScriptNode">The <code>createJavaScriptNode</code>
-  method</dt>
+  <dt id="dfn-createScriptProcessor">The <code>createScriptProcessor</code>
+  method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>Creates a <a
       href="#ScriptProcessorNode"><code>ScriptProcessorNode</code></a> for
       direct audio processing using JavaScript.  An exception will be thrown if <code>bufferSize</code> or <code>numberOfInputChannels</code> or <code>numberOfOutputChannels</code>
@@ -905,13 +905,13 @@ interface <dfn id="dfn-AudioContext">AudioContext</dfn> {
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-createGainNode">The <code>createGainNode</code> method</dt>
-    <dd><p>Creates an <a
+  <dt id="dfn-createGain">The <code>createGain</code> method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
+    <dd><p>Creates a <a
       href="#GainNode-section"><code>GainNode</code></a>.</p>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-createDelayNode">The <code>createDelayNode</code> method</dt>
+  <dt id="dfn-createDelay">The <code>createDelay</code> method (please see the <a href=#deprecation-section>deprecation section</a> about name change)</dt>
     <dd><p>Creates a <a href="#DelayNode-section"><code>DelayNode</code></a>
       representing a variable delay line. The initial default delay time will
       be 0 seconds.</p>
@@ -1760,7 +1760,7 @@ interface <dfn id="dfn-DelayNode">DelayNode</dfn> : AudioNode {
     <dd><p>An AudioParam object representing the amount of delay (in seconds)
       to apply. The default value (<code>delayTime.value</code>) is 0 (no
       delay). The minimum value is 0 and the maximum value is determined by the <em>maxDelayTime</em>
-      argument to the <code>AudioContext</code> method <code>createDelayNode</code>.  This parameter is <em>k-rate</em></p>
+      argument to the <code>AudioContext</code> method <code>createDelay</code>.  This parameter is <em>k-rate</em></p>
     </dd>
 </dl>
 </div>
@@ -2057,7 +2057,7 @@ must carefully balance between latency and audio quality. </p>
 determine the number of input and output channels. It is invalid for both
 <code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> to
 be zero. </p>
-<pre>    var node = context.createJavaScriptNode(bufferSize, numberOfInputChannels, numberOfOutputChannels);
+<pre>    var node = context.createScriptProcessor(bufferSize, numberOfInputChannels, numberOfOutputChannels);
     </pre>
 
 <div class="block">
@@ -2150,14 +2150,14 @@ interface <dfn id="dfn-AudioProcessingEvent">AudioProcessingEvent</dfn> : Event 
 <dl>
   <dt id="dfn-inputBuffer"><code>inputBuffer</code></dt>
     <dd><p>An AudioBuffer containing the input audio data.  It will have a number of channels equal to the <code>numberOfInputChannels</code> parameter
-    of the createJavaScriptNode() method.  This AudioBuffer is only valid while in the scope of the <code>onaudioprocess</code>
+    of the createScriptProcessor() method.  This AudioBuffer is only valid while in the scope of the <code>onaudioprocess</code>
     function.  Its values will be meaningless outside of this scope.</p>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-outputBuffer"><code>outputBuffer</code></dt>
     <dd><p>An AudioBuffer where the output audio data should be written.  It will have a number of channels equal to the
-    <code>numberOfOutputChannels</code> parameter of the createJavaScriptNode() method.
+    <code>numberOfOutputChannels</code> parameter of the createScriptProcessor() method.
       Script code within the scope of the <code>onaudioprocess</code> function is expected to modify the
       <code>Float32Array</code> arrays representing channel data in this AudioBuffer.
       Any script modifications to this AudioBuffer outside of this scope will not produce any audible effects.</p>
@@ -3456,17 +3456,17 @@ function setupRoutingGraph() {
     <span class="comment">// Convolver impulse response may be set here or later </span>
 
     <span class="comment">// Send2 effect </span>
-    delay = context.createDelayNode();
+    delay = context.createDelay();
 
     <span class="comment">// Connect final compressor to final destination </span>
     compressor.connect(context.destination);
 
     <span class="comment">// Connect sends 1 &amp; 2 through effects to main mixer </span>
-    s1 = context.createGainNode();
+    s1 = context.createGain();
     reverb.connect(s1);
     s1.connect(compressor);
     
-    s2 = context.createGainNode();
+    s2 = context.createGain();
     delay.connect(s2);
     s2.connect(compressor);
 
@@ -3477,9 +3477,9 @@ function setupRoutingGraph() {
     source2.buffer = footstepsBuffer;
 
     <span class="comment">// Connect source1 </span>
-    g1_1 = context.createGainNode();
-    g2_1 = context.createGainNode();
-    g3_1 = context.createGainNode();
+    g1_1 = context.createGain();
+    g2_1 = context.createGain();
+    g3_1 = context.createGain();
     source1.connect(g1_1);
     source1.connect(g2_1);
     source1.connect(g3_1);
@@ -3488,9 +3488,9 @@ function setupRoutingGraph() {
     g3_1.connect(delay);
 
     <span class="comment">// Connect source2 </span>
-    g1_2 = context.createGainNode();
-    g2_2 = context.createGainNode();
-    g3_2 = context.createGainNode();
+    g1_2 = context.createGain();
+    g2_2 = context.createGain();
+    g3_2 = context.createGain();
     source2.connect(g1_2);
     source2.connect(g2_2);
     source2.connect(g3_2);
@@ -3587,7 +3587,7 @@ function setupAudioContext() {
     context = new AudioContext();
 
     compressor = context.createDynamicsCompressor();
-    gainNode1 = context.createGainNode();
+    gainNode1 = context.createGain();
 
     // Create a streaming audio source.
     var audioElement = document.getElementById('audioTagID');
@@ -3607,7 +3607,7 @@ function playSound() {
     <span class="comment">// Create a filter, panner, and gain node. </span>
     var lowpass = context.createBiquadFilter();
     var panner = context.createPanner();
-    var gainNode2 = context.createGainNode();
+    var gainNode2 = context.createGain();
 
     <span class="comment">// Make connections </span>
     oneShotSound.connect(lowpass);
@@ -4517,6 +4517,10 @@ AudioBufferSourceNode.noteOn() has been changed to <b>start()</b>
 AudioBufferSourceNode.noteGrainOn() has been changed to <b>start()</b>
 AudioBufferSourceNode.noteOff() has been changed to <b>stop()</b>
 
+AudioContext.createGainNode() has been changed to <b>createGain()</b>
+AudioContext.createDelayNode() has been changed to <b>createDelay()</b>
+AudioContext.createJavaScriptNode() has been changed to <b>createScriptProcessor()</b>
+
 OscillatorNode.noteOn() has been changed to <b>start()</b>
 OscillatorNode.noteOff() has been changed to <b>stop()</b>
 
@@ -4713,7 +4717,7 @@ date:        Tue Mar 13 12:13:41 2012 -0100
 *  added a Web Audio API Change Log 
 
 date:        Fri Mar 09 15:12:42 2012 -0800
-* add optional maxDelayTime argument to createDelayNode()
+* add optional maxDelayTime argument to createDelay()
 * add more detail about playback state to AudioBufferSourceNode
 * upgrade noteOn(), noteGrainOn(), noteOff() times to double from float
 

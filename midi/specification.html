@@ -565,8 +565,8 @@
           </dd>
         </dl>
       <p id="event-midiinput-message">
-          Whenever the MIDI port corresponding the
-          <code><a>MIDIInput</a></code> sends a MIDI message, the UA MUST
+          Whenever the MIDI port corresponding to the
+          <code><a>MIDIInput</a></code> sends one or more MIDI messages, the UA MUST
           run the following steps:
         </p>
 
@@ -612,35 +612,19 @@
         <dl title="[NoInterfaceObject]
                    interface MIDIOutput"
             class="idl">
-          <dt>void sendMIDIMessage(MIDIMessage message)</dt>
+          <dt>void send( Array data, optional DOMHighResTimeStamp? timestamp )</dt>
           <dd>
             <p>
-              Enqueues the message to be sent to the corresponding MIDI port.
+              Enqueues the message to be sent to the corresponding MIDI port.  The underlying implementation will (if necessary) coerce each member of the sequence to an unsigned 8-bit integer.  The use of sequence rather than a UInt8Array enables developers to use the convenience of <code>output.send( [ 0x90, 0x45, 0x7f ] );</code> rather than having to create a UInt8Array, e.g. <code>output.send( new UInt8Array( [ 0x90, 0x45, 0x7f ] ) );</code> - while still enabling use of UInt8Arrays for efficiency in large MIDI data scenarios (e.g. reading Standard MIDI Files and sending sysex messages).
             </p>
             <dl class='parameters'>
-              <dt>MIDIMessage message</dt>
+              <dt>sequence&lt;short&gt; data</dt>
               <dd>
-                The message to be enqueued to be sent at the appropriate time (<code>message.timestamp</code>).  If <code>message.timestamp</code> is zero or null, the message is to be sent as soon as possible.
+                The data to be enqueued, with each sequence entry representing a single byte of data.
               </dd>
-            </dl>
-          </dd>
-          <dt>void sendMessage(short status, optional short? data1, optional short? data2)</dt>
-          <dd>
-            <p>
-              Enqueues a simple MIDI message of three or fewer bytes to be sent to the corresponding MIDI port.  This method of sending does not utilize timestamps - the message will be sent as soon as possible - and also is not to be used for system exclusive messages (i.e. any MIDI messages over three bytes in length).
-            </p>
-            <dl class='parameters'>
-              <dt>short status</dt>
+              <dt>optional DOMHighResTimeStamp? timestamp</dt>
               <dd>
-                The status byte of a simple MIDI message.
-              </dd>
-              <dt>optional short? data1</dt>
-              <dd>
-                The first data byte of a simple MIDI message, if requested.
-              </dd>
-              <dt>optional short? data2</dt>
-              <dd>
-                The second data byte of a simple MIDI message, if requested.
+                The time at which to begin sending the data to the port.  If <code>timestamp</code> is not present, zero or null, the data is to be sent as soon as possible.
               </dd>
             </dl>
           </dd>

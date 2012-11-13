@@ -1994,7 +1994,10 @@ interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : Audi
     attribute AudioBuffer? buffer;
 
     attribute AudioParam playbackRate;
+
     attribute boolean loop;
+    attribute double loopStart;
+    attribute double loopEnd;
 
     void start(double when, optional double offset = 0, optional double duration);
     void stop(double when);
@@ -2024,9 +2027,24 @@ interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : Audi
 </dl>
 <dl>
   <dt id="dfn-loop_AudioBufferSourceNode"><code>loop</code></dt>
-    <dd><p>Indicates if the audio data should play in a loop. </p>
+    <dd><p>Indicates if the audio data should play in a loop.  The default value is false. </p>
     </dd>
 </dl>
+
+<dl>
+  <dt id="dfn-loopStart_AudioBufferSourceNode"><code>loopStart</code></dt>
+    <dd><p>An optional value in seconds where looping should begin if the <code>loop</code> attribute is true.
+    Its default value is 0, and it may usefully be set to any value between 0 and the duration of the buffer.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-loopEnd_AudioBufferSourceNode"><code>loopEnd</code></dt>
+    <dd><p>An optional value in seconds where looping should end if the <code>loop</code> attribute is true.
+    Its default value is 0, and it may usefully be set to any value between 0 and the duration of the buffer.</p>
+    </dd>
+</dl>
+
+
 </div>
 </div>
 
@@ -2066,6 +2084,44 @@ Parameters</h3>
       or an exception will be thrown.</p>
     </dd>
 </dl>
+</div>
+
+<div id="looping-AudioBufferSourceNode-section" class="section">
+<h3 id="looping-AudioBufferSourceNode">4.10.3. Looping</h3>
+<p>
+If the <code>loop</code> attribute is true when <code>start()</code> is called, then playback will continue indefinitely
+until <code>stop()</code> is called and the stop time is reached.  We'll call this "loop" mode.  Playback always starts at the point in the buffer indicated
+by the <code>offset</code> argument of <code>start()</code>, and in <em>loop</em> mode will continue playing until it reaches the <em>actualLoopEnd</em> position
+in the buffer (or the end of the buffer), at which point it will wrap back around to the <em>actualLoopStart</em> position in the buffer, and continue
+playing according to this pattern.
+</p>
+
+<p>
+In <em>loop</em> mode then the <em>actual</em> loop points are calculated as follows from the <code>loopStart</code> and <code>loopEnd</code> attributes:
+</p>
+
+<blockquote>
+<pre>
+    if ((loopStart || loopEnd) && loopStart >= 0 && loopEnd > 0 && loopStart < loopEnd) {
+        actualLoopStart = loopStart;
+        actualLoopEnd = min(loopEnd, buffer.length);
+    } else {
+        actualLoopStart = 0;
+        actualLoopEnd = buffer.length;
+    }
+</pre>
+</blockquote>
+
+<p>
+Note that the default values for <code>loopStart</code> and <code>loopEnd</code> are both 0, which indicates that looping should occur from the very start
+to the very end of the buffer.
+</p>
+
+<p>
+Please note that as a low-level implementation detail, the AudioBuffer is at a specific sample-rate (usually the same as the AudioContext sample-rate), and
+that the loop times (in seconds) must be converted to the appropriate sample-frame positions in the buffer according to this sample-rate.
+</p>
+
 </div>
 
 <div id="MediaElementAudioSourceNode-section" class="section">

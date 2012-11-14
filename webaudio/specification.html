@@ -4176,6 +4176,54 @@ function of the source/listener angle from the source's orientation vector.
 Thus, a sound source pointing directly at the listener will be louder than if
 it is pointed off-axis. Sound sources can also be omni-directional. </p>
 
+<p>
+The following algorithm must be used to calculate the gain contribution due
+to the cone effect, given the source (the <code>PannerNode</code>) and the listener:
+</p>
+
+<div class="block">
+<div class="blockTitleDiv">
+<div class="blockContent">
+<pre class="code"><code class="idl-code"> 
+if (source.orientation.isZero() || ((source.coneInnerAngle == 360) && (source.coneOuterAngle == 360)))
+    return 1; // no cone specified - unity gain
+
+// Normalized source-listener vector
+vec3 sourceToListener = listener.position - source.position;
+sourceToListener.normalize();
+
+vec3 normalizedSourceOrientation = source.orientation;
+normalizedSourceOrientation.normalize();
+
+// Angle between the source orientation vector and the source-listener vector
+double dotProduct = sourceToListener.dot(normalizedSourceOrientation);
+double angle = 180 * acos(dotProduct) / PI;
+double absAngle = fabs(angle);
+
+// Divide by 2 here since API is entire angle (not half-angle)
+double absInnerAngle = fabs(source.coneInnerAngle) / 2;
+double absOuterAngle = fabs(source.coneOuterAngle) / 2;
+double gain = 1;
+
+if (absAngle <= absInnerAngle)
+    // No attenuation
+    gain = 1;
+else if (absAngle >= absOuterAngle)
+    // Max attenuation
+    gain = source.coneOuterGain;
+else {
+    // Between inner and outer cones
+    // inner -> outer, x goes from 0 -> 1
+    double x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+    gain = (1 - x) + source.coneOuterGain * x;
+}
+
+return gain;
+</code></pre>
+</div>
+</div>
+</div>
+
 <h3 id="Spatialization-doppler-shift">Doppler Shift</h3>
 <ul>
   <li>Introduces a pitch shift which can realistically simulate moving

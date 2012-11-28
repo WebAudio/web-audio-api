@@ -1,0 +1,628 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Web MIDI API</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+
+    <style type="text/css" media="all">
+      table {border-collapse: collapse; border: 1px solid #000; font: normal 80%/140% arial, helvetica, sans-serif; color: #555; background: #fff;}
+      td, th {border: 1px dotted #bbb; padding:.5em 1em; font-size: x-small; width: 10em; }
+      caption {padding: 0 0 .5em 0; text-align: left; font-size: 100%; font-weight: 500; text-align: center; color: #666; background: transparent;}
+      table a {padding: 1px; text-decoration: none; font-weight: bold; background: transparent;}
+      table a:link {border-bottom: 1px dashed #ddd; color: #000;}
+      table a:visited {border-bottom: 1px dashed #ccc; text-decoration: line-through; color: #808080;}
+      table a:hover {border-bottom: 1px dashed #bbb; color: #666;}
+      thead th, tfoot th {white-space: nowrap; border: 1px solid #000; text-align: center; color: black; background: #ddd;}
+      tfoot td {border: 2px solid #000;}
+      tbody th {color: #060606; }
+      tbody th, tbody td {vertical-align: middle; text-align: center; }
+    </style>
+    <!-- 
+      === NOTA BENE ===
+      For the three scripts below, if your spec resides on dev.w3 you can check them
+      out in the same tree and use relative links so that they'll work offline,
+     -->
+    <script src='https://www.w3.org/Tools/respec/respec-w3c-common' class='remove'></script>
+    <script class='remove'>
+      var respecConfig = {
+          specStatus: "ED",
+          copyrightStart: "2012",
+          edDraftURI: "https://dvcs.w3.org/hg/audio/raw-file/tip/midi",
+          extraCSS: ["http://dev.w3.org/2009/dap/ReSpec.js/css/respec.css"],
+          editors: [
+            { name: "Jussi Kalliokoski", url: "http://avd.io" },
+            { name: "Chris Wilson", url: "mailto:cwilso@google.com",
+              company: "Google", companyURL: "http://google.com" },
+          ],
+          wg: "Audio Working Group",
+          wgURI: "http://www.w3.org/2011/audio/",
+          wgPublicList: "public-audio",
+          wgPatentURI: "http://www.w3.org/2004/01/pp-impl/46884/status",
+      };
+    </script>    
+  </head>
+  <body>
+    <section id="abstract">
+      <p>
+        Some user agents have connected music devices, such as synthesizers, 
+        keyboard and other controllers, and drum machines.  The widely adopted 
+        Musical Instrument Digital Interface (MIDI) protocol enables 
+        electronic musical instruments, controllers and computers to 
+        communicate and synchronize with each other. MIDI does not transmit 
+        audio signals: instead, it sends event messages about musical notes, 
+        controller signals for parameters such as volume, vibrato and panning, 
+        cues and clock signals to set the tempo, and system-specific MIDI 
+        communications (e.g. to remotely store synthesizer-specific patch 
+        data).  This same protocol has become a standard for non-musical uses, 
+        such as show control, lighting and special effects control.
+      </p>
+      <p>
+        This specification defines an API supporting the MIDI protocol, enabling web applications to enumerate and select MIDI input and output devices on the client system and send and receive MIDI messages. It is intended to enable non-music MIDI applications as well as music ones, by providing low-level access to the MIDI devices available on the users' systems.  At the same time, the Web MIDI API is not intended to become a semantic controller platform; it is designed to expose the mechanics of MIDI input and output interfaces, and the practical aspects of sending and receiving MIDI messages, without identifying what those actions might mean semantically.
+      </p>
+      <p>
+        To some users, "MIDI" has become synonymous with Standard MIDI Files and General MIDI.  That is not the intent of this API; the use case of simply playing back a .SMF file is not within the purview of this specification (it could be considered a different format to be supported by the HTML5 <code>&lt;audio&gt;</code> element, for example).  The Web MIDI API is intended to enable direct access to devices that respond to MIDI - external synthesizers or lighting systems, for example, or even the software synthesizers that are built in to many common operating systems.  The Web MIDI API is also explicitly designed to enable a new class of applications on the web that can respond to MIDI controller inputs - using external hardware controllers with physical buttons, knobs and sliders (as well as musical controllers like keyboard, guitar or wind instrument controllers) to control web applications.
+      </p>
+      <p>
+        The Web MIDI API is also expected to be used in conjunction with other APIs and elements of the web platform, notably the Web Audio API and High-Resolution Time.  This API is also intended to be familiar to users of MIDI APIs on other systems, such as Apple's CoreMIDI and Microsoft's Windows MIDI API.
+      </p>
+    </section>
+    <section class="informative">
+      <h2>Introduction</h2>
+      <p>
+        The Web MIDI API specification defines a means for web developers to
+        enumerate, manipulate and access MIDI devices - for example interfaces that may provide hardware MIDI ports with other devices plugged in to them and USB devices that support the USB-MIDI specification. Having a Web API for MIDI enables web applications that use existing software and
+        hardware synthesizers, hardware music controllers and light systems and other mechanical
+        apparatus controlled by MIDI.
+      </p>
+      <p>
+        This API has been defined with a wide variety of use cases in mind.  The approaches taken by this API are similar to those taken in Apple's CoreMIDI API and Microsoft's Windows MIDI API; that is, the API is designed to represent the low-level software protocol of MIDI, in order to enable developers to build powerful MIDI software on top.  The API enables the developer to enumerate input and output interfaces, and send and receive MIDI messages, but (similar to the aforementioned APIs) it does not attempt to semantically define or interpret MIDI messages beyond what is necessary to robustly support current devices.
+      </p>
+      <p>
+        The Web MIDI API is not intended to directly implement high-level concepts such as sequencing; it does not directly support Standard MIDI Files, for example, although a Standard MIDI File player can be built on top of the Web MIDI API.  It is also not intended to semantically capture patches or controller assignments, as General MIDI does; such interpretation is outside the scope of the Web MIDI API (though again, General MIDI can easily be utilized through the Web MIDI API).
+      </p>
+      <section>
+        <h3>API Overview</h3>
+        <p>The Web MIDI API consists of the following set of interfaces and objects, as well as some supporting interfaces:</p>
+        <ul>
+          <li>A <a href="#NavigatorMIDIAccess">NavigatorMIDIAccess</a> interface, which is supported on the window.navigator object in user agents.  This interface has only one method which enables a developer to request access to MIDI on the system.
+          </li>
+          <li>A <a href="#MIDIAccess">MIDIAccess</a> object, which enables enumeration of and access to the MIDI devices available to the user agent.
+          </li>
+          <li>A <a href="#MIDIPort">MIDIPort</a> interface, which represents a MIDI input or output port and exposes information about the interface - its name, manufacturer, type and unique identifier.
+          </li>
+          <li>A <a href="#MIDIInput">MIDIInput</a> interface, which implements MIDIPort but also enables MIDI message handlers to be attached to the device.
+          </li>
+          <li>A <a href="#MIDIOutput">MIDIOutput</a> interface, which implements MIDIPort and additionally exposes methods to send MIDI messages to the output port.
+          </li>
+          <li>A <a href="#MIDIEvent">MIDIEvent</a> interface, which represents the Event object passed to MIDIInput's onmessage handler and contains a sequence of MIDI data bytes and a timestamp.  
+        </ul>
+      </section>
+    </section>
+
+    <section id="conformance">
+      <p>
+        This specification defines conformance criteria that apply to a single
+        product: the <dfn>user agent</dfn> that implements the
+        interfaces that it contains.
+      </p>
+      <p>
+        Implementations that use ECMAScript to implement the APIs defined in
+        this specification must implement them in a manner consistent with the
+        ECMAScript Bindings defined in the Web IDL specification [[!WEBIDL]],
+        as this specification uses that specification and terminology.
+      </p>
+    </section>
+
+    <section>
+      <h2>Terminology</h2>
+      <p>
+        The concepts <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#queue-a-task">
+        queue a task</a></dfn> and
+        <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#fire-a-simple-event">
+        fires a simple event</a></dfn> are defined in [[!HTML5]].
+      </p>
+      <p>
+        The terms <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#event-handlers">
+        event handlers</a></dfn> and
+        <dfn><a href="http://dev.w3.org/html5/spec/webappapis.html#event-handler-event-type">
+        event handler event types</a></dfn> are defined in [[!HTML5]].
+      </p>
+      <p>
+        The term <dfn><a href="http://www.khronos.org/registry/typedarray/specs/latest/#TYPEDARRAYS">Uint8Array</a></dfn>
+        is defined in [[!TYPED-ARRAYS]].
+      </p>
+      <p>
+        The term <dfn><a href=
+        "http://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#sec-DOMHighResTimeStamp"
+        >DOMHighResTimeStamp</a></dfn> is defined in [[!HIGHRES-TIME]].
+      </p>
+      <p>
+        The terms <dfn>MIDI</dfn>, <dfn>MIDI device</dfn>, <dfn>MIDI input port</dfn>, <dfn>MIDI interface</dfn>, <dfn>MIDI message</dfn> and <dfn>MIDI output port</dfn> are defined in [[!MIDI]].
+<!-- FIXME: This list is not exhaustive. -->
+    </section>
+
+    <section>
+      <h2>Security and Privacy Considerations</h2>
+      <p>
+        There are two primary security and privacy concerns with adding the Web MIDI API to the web platform:
+      </p>
+      <ol>
+        <li>Allowing the enumeration of the user's MIDI interfaces is a potential target for fingerprinting (that is, uniquely identifying a user by the specific MIDI interfaces they have connected).  Note that in this context, what can be enumerated is the MIDI <i>interfaces</i> - not, for example, an individual sampler or synthesizer plugged into a MIDI interface, as these would not be enumerated, unless those devices are connected to the host computer with USB (USB-MIDI devices typically have their own MIDI interface, and would be enumerated).  The interfaces that could be fingerprinted are equivalent to MIDI "ports".  This potential needs to be further investigated; the vast majority of systems have relatively few MIDI interfaces attached, so it is possible this is of little concern in practice.</li>
+        <li>Additionally, combined access to input and output ports on a given device (the ability to send <b>and</b> receive system exclusive messages, in particular) might allow sophisticated developers to query and test for particular MIDI-connected devices, such as samplers, and either using the presence of those devices for more precise fingerprinting, destroying data (erasing samples or patches on the devices), attempting to capture data from the devices (e.g. downloading samples from samplers, then uploading to the network), or simply initiating malicious action (e.g. sending MIDI commands to a lighting control system to turn lights on and off). </li>
+      </ol>
+      <p>
+        These issues will be further explored prior to this specification becoming a Recommendation.  In the meantime, the <a href="#NavigatorMIDIAccess">suggested security model</a> explicitly allows user agents to require the user's approval before giving access to MIDI devices, although it is not currently required to prompt the user for this approval.  It is noted that some web systems (e.g. Java) give access to MIDI interfaces without prompting, although this may not be the security model that this specification eventually uses.
+      </p>
+    </section>
+
+    <section>
+      <h2>Obtaining Access to MIDI Interfaces Available to the User Agent</h2>
+
+      <section>
+          <h2 id="NavigatorMIDIAccess">The <a>NavigatorMIDIAccess</a> Interface</h2>
+
+          <dl class="idl"
+              title="[NoInterfaceObject] interface NavigatorMIDIAccess">
+            <dt>void getMIDIAccess(NavigatorMIDIAccessSuccessCallback
+                                    successCallback,
+                                    optional NavigatorMIDIAccessErrorCallback?
+                                    errorCallback)</dt>
+            <dd>
+              <p>
+                Obtains an interface to enumerate and request access to MIDI 
+                devices on the user's system.
+              </p>
+
+              <p>
+                This call may prompt the user for access to MIDI devices. If 
+                the user accepts or the call is otherwise approved, 
+                <var>successCallback</var> is invoked, with a 
+                <code><a>MIDIAccess</a></code> object as its argument.
+              </p>
+
+              <p>
+                If the user declines or the call is denied, the 
+                <var>errorCallback</var> (if any) is invoked.
+              </p>
+
+              <p>
+                When the <dfn id="dom-navigator-getmidiaccess">
+                <code>getMIDIAccess()</code></dfn> method is called, the user
+                agent MUST run the following steps:
+              </p>
+
+              <ol>
+                <li><p>
+                  Let <var>successCallback</var> be the callback indicated by
+                  the method's first argument.
+                </p></li>
+
+                <li><p>
+                  Let <var>errorCallback</var> be the callback indicated by
+                  the method's second argument, if any, or null otherwise.
+                </p></li>
+
+                <li><p>
+                  If <var>successCallback</var> is null, abort these steps.
+                </p></li>
+
+                <li><p>
+                  Return, and run the following steps asynchronously.
+                </p></li>
+
+                <li><p>
+                  Optionally, e.g. based on a previously-established user
+                  preference, for security reasons, or due to platform
+                  limitations, jump to the step labeled <em>failure</em>
+                  below.
+                </p></li>
+
+                <li><p>
+                  Optionally, e.g. based on a previously-established user
+                  preference, jump to the step labeled <em>success</em>
+                  below.
+                </p></li>
+
+                <li><p>
+                    Prompt the user in a user-agent-specific manner for
+                    permission to provide the entry script's origin with a
+                    <code><a>MIDIAccess</a></code> object representing
+                    control over user's MIDI devices.
+                  </p>
+
+                  <p>
+                    If permission is denied, jump to the step labeled
+                    <em>failure</em> below. If the user never responds, this
+                    algorithm stalls on this step.
+                  </p>
+                </li>
+
+                <li><p>
+                  <em>success</em>: Let <var>access</var> be the <code><a
+                  >MIDIAccess</a></code> object for which access has been 
+                  granted.
+                </p></li>
+
+                <li><p>
+                  Queue a task to invoke <var>successCallback</var> with
+                  <var>access</var> as its argument, and return.
+                </p></li>
+
+                <li><p>
+                  <em>Failure</em>: If <var>errorCallback</var> is null,
+                  abort these steps.
+                </p></li>
+
+                <li><p>
+                  Let <var>error</var> be a new <code>
+                  <a href="#NavigatorMIDIAccessError">NavigatorMIDIAccessError</a>
+                  </code> object whose <code><a href="#dom-navigatormidiaccesserror-code">code</a>
+                  </code> attribute has the numeric value 1 (<code><a
+                    href="#dom-navigatormidiaccesserror-PERMISSION_DENIED">PERMISSION_DENIED</a>
+                  </code>).
+                </p></li>
+
+                <li><p>
+                  Queue a task to invoke <var>errorCallback</var> with
+                  <var>error</var> as its argument.
+                </p></li>
+              </ol>
+
+              <p>
+                The task source for these <span
+                title="concept-task">tasks</span> is the user interaction
+                task source.
+              </p>
+            </dd>
+          </dl>
+
+          <div class="idl" title="Navigator implements NavigatorMIDIAccess"></div>
+      </section>
+
+      <section>
+        <h2>NavigatorMIDIAccessSuccessCallback</h2>
+
+        <dl class="idl"
+            title="callback NavigatorMIDIAccessSuccessCallback = void">
+          <dt>MIDIAccess access</dt>
+
+          <dd>
+            <p>
+              A <code><a>MIDIAccess</a></code> object created to provide
+            script access to the user's MIDI devices.  This object is used
+            to enumerate and obtain access to individual MIDI devices.
+            <p><em>Note</em>: The term "MIDI device" in this specification 
+            refers to a MIDI interface available to the host system; for 
+            example, if a hardware MIDI adapter is connected to the host
+            system, it will be enumerated as a single device, even if 
+            several MIDI-supporting devices (such as synthesizers or drum
+            machines) are plugged into hardware MIDI ports on the 
+            adapter.
+          </dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2 id="NavigatorMIDIAccessError">
+          NavigatorMIDIAccessError and
+          NavigatorMIDIAccessErrorCallback
+        </h2>
+
+        <dl id="dom-navigatormidiaccesserror-PERMISSION_DENIED" class="idl"
+            title="[NoInterfaceObject] interface NavigatorMIDIAccessError">
+          <dt>const unsigned short PERMISSION_DENIED = 1</dt>
+
+          <dd>
+            The application was denied permission to use the user's MIDI
+            devices.
+          </dd>
+
+          <dt id="dom-navigatormidiaccesserror-code">readonly attribute unsigned short code</dt>
+
+          <dd>
+            Returns the current error's error code. At this time, this will
+            always be 1, for which the constant <code><a
+              href="#dom-navigatormidiaccesserror-PERMISSION_DENIED">PERMISSION_DENIED</a>
+            </code> is defined.
+          </dd>
+        </dl>
+
+        <dl class="idl"
+            title="callback NavigatorMIDIAccessErrorCallback = void">
+          <dt>NavigatorMIDIAccessError error</dt>
+
+          <dd>
+            A <code><a>NavigatorMIDIAccessError</a></code> object representing
+            an explanation of why access to the user's MIDI devices was not
+            granted.
+          </dd>
+        </dl>
+      </section>
+    </section>
+
+    <section>
+      <h2 id="MIDIAccess"><a>MIDIAccess</a> Interface</h2>
+      <p>This interface provides the methods to enumerate MIDI input and output
+        devices, and obtain access to an individual device.</p>
+
+      <dl title="[NoInterfaceObject]
+                 interface MIDIAccess"
+          class="idl">
+        <dt>sequence&lt;MIDIPort&gt; enumerateInputs()</dt>
+        <dd>
+          Returns a list of the MIDI input ports available on the system.
+<!-- TODO: Specify the steps the UA is required to take. -->
+        </dd>
+        <dt>sequence&lt;MIDIPort&gt; enumerateOutputs()</dt>
+        <dd>
+          Returns a list of the MIDI output ports available on the system.
+<!-- TODO: Specify the steps the UA is required to take. -->
+        </dd>
+        <dt><a>MIDIInput</a> getInput(MIDIPort or DOMString or short target)</dt>
+        <dd>
+          Acquires access to the input <code><a>MIDIPort</a></code> requested
+          as a <code><a>MIDIInput</a></code> instance. 
+
+          <p>
+            When the
+            <dfn id="midiaccess-get-input"><code>getInput()</code></dfn>
+            is invoked, the user agent MUST run the following steps:
+          </p>
+
+          <ol>
+            <li>
+              <p>Let <var>target</var> be the
+              <code><a>MIDIPort</a></code> argument.
+              If <var>target</var> is a short, <var>target</var>
+              will be a <code><a>MIDIPort</a></code> that matches the supplied
+              index in the sequence returned by <code><a>enumerateInputs()</a></code>.
+              If the <var>target</var> parameter is a 
+              short outside the bounds of available MIDI inputs, throw a 
+              <code>TYPE_ERROR</code> exception.
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not a <code><a>MIDIPort</a></code>
+                instance, or if the MIDIPort is not a valid MIDI input
+                port, throw a <code>TYPE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not available for access, throw a
+                <code>REFERENCE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If made necessary by the underlying system APIs, reserve
+                the corresponding port for use within the current process.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Return a <code>MIDIInput</code> object corresponding to the
+                <var>target</var> argument.
+              </p>
+            </li>
+          </ol>
+          <dl class='parameters'>
+            <dt>MIDIPort or DOMString or short target</dt>
+            <dd>
+              The input port to be requested.
+            </dd>
+          </dl>
+        </dd>
+        <dt><a>MIDIOutput</a> getOutput(MIDIPort or DOMString or short target)</dt>
+        <dd>
+          Acquires access to the output <code><a>MIDIPort</a></code> requested
+          as a <code><a>MIDIOutput</a></code> instance. 
+
+          <p>
+            When the
+            <dfn id="midiaccess-get-output"><code>getOutput()</code></dfn>
+            is invoked, the user agent MUST run the following steps:
+          </p>
+
+          <ol>
+            <li>
+              <p>Let <var>target</var> be the
+              <code><a>MIDIPort</a></code> argument.
+              If <var>target</var> is a short, <var>target</var>
+              will be a <code><a>MIDIPort</a></code> that matches the supplied
+              index in the sequence returned by <code><a>enumerateOutputs()</a></code>.
+              If the <var>target</var> parameter is a DOMString and there is no MIDIPort
+              that matches the fingerprint, or if the <var>target</var> parameter is a 
+              short outside the bounds of available MIDI inputs, throw a 
+              <code>TYPE_ERROR</code> exception.
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not a <code><a>MIDIPort</a></code>
+                instance, or if the MIDIPort is not a valid MIDI output
+                port, throw a <code>TYPE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If <var>target</var> is not available for access, throw a
+                <code>REFERENCE_ERROR</code> exception.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                If made necessary by the underlying system APIs, reserve
+                the corresponding port for use within the current process.
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Return a <code>MIDIOutput</code> object corresponding to the
+                <var>target</var> argument.
+              </p>
+            </li>
+          </ol>
+          <dl class='parameters'>
+            <dt>MIDIPort or DOMString or short target</dt>
+            <dd>
+              The output port to be requested.
+            </dd>
+          </dl>
+        </dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2 id="MIDIPort"><a>MIDIPort</a> Interface</h2>
+
+      <p>This interface represents a MIDI input or output port.</p>
+
+      <dl class="idl" title='enum MIDIPortType'>
+        <dt>input</dt>
+        <dd>
+          If a MIDIPort is an input port, the type member MUST be this value.
+        </dd>
+        <dt>output</dt>
+        <dd>
+          If a MIDIPort is an output port, the type member MUST be this value.
+        </dd>
+      </dl>
+
+      <dl title="[NoInterfaceObject]
+                 interface MIDIPort : EventTarget"
+          class="idl">
+        <dt>readonly attribute DOMString manufacturer</dt>
+        <dd>
+          <p>The manufacturer of the port.</p>
+        </dd>
+        <dt>readonly attribute DOMString name</dt>
+        <dd>
+          <p>The system name of the port.</p>
+        </dd>
+        <dt>readonly attribute MIDIPortType type</dt>
+        <dd>
+          <p>
+            A descriptor property to distinguish whether the port is an
+            input or an output port.
+            For <code><a>MIDIOutput</a></code>,
+            this MUST be <code>"output"</code>.
+            For <code><a>MIDIInput</a></code>,
+            this MUST be <code>"input"</code>.
+          </p>
+        </dd>
+        <dt>readonly attribute DOMString version</dt>
+        <dd>
+          <p>The version of the port.</p>
+        </dd>
+      </dl>
+
+      <section>
+        <h3 id="MIDIInput"><a>MIDIInput</a> Interface</h3>
+      <div class="idl" title="MIDIInput implements MIDIPort"></div>
+
+          <dl title="[NoInterfaceObject]
+                   interface MIDIInput implements EventTarget"
+            class="idl">
+          <dt class="no-docs">[TreatNonCallableAsNull] attribute
+                              callback? onmessage</dt>
+          <dd>
+            <p>
+              This event handler, of type <code><a href=
+              "#event-midiinput-message">message</a></code>,
+              MUST be supported by all objects implementing
+              <code><a>MIDIInput</a></code> interface.
+            </p>
+          </dd>
+        </dl>
+      <p id="event-midiinput-message">
+          Whenever the MIDI port corresponding to the
+          <code><a>MIDIInput</a></code> sends one or more MIDI messages, the UA MUST
+          run the following steps:
+        </p>
+
+        <ol>
+          <li>
+            <p>
+              Let <code>port</code> be the <code><a>MIDIInput</a></code>.
+            </p>
+          </li>
+
+          <li>
+            <p>
+              Let <code>event</code> be a newly constructed
+              <code><a>MIDIEvent</a></code>, with the <code>timestamp</code>
+              attribute set to the time the message was received by the system, and
+              with the <code>data</code> attribute set to a UInt8Array of MIDI data
+              bytes representing a single MIDI message.
+            </p>
+          </li>
+
+          <li>
+            <p>
+              Fire an event named <code><a
+              href="#event-midiinput-message">message</a></code>
+              at the <code>port</code>, using the <code>event</code> as the event object.
+            </p>
+          </li>
+        </ol>
+
+      </section>
+
+      <section>
+        <h3 id="MIDIOutput"><a>MIDIOutput</a> Interface</h3>
+
+      <div class="idl" title="MIDIOutput implements MIDIPort"></div>
+
+        <dl title="[NoInterfaceObject]
+                   interface MIDIOutput"
+            class="idl">
+          <dt>void send( Array data, optional DOMHighResTimeStamp? timestamp )</dt>
+          <dd>
+            <p>
+              Enqueues the message to be sent to the corresponding MIDI port.  The underlying implementation will (if necessary) coerce each member of the sequence to an unsigned 8-bit integer.  The use of sequence rather than a UInt8Array enables developers to use the convenience of <code>output.send( [ 0x90, 0x45, 0x7f ] );</code> rather than having to create a UInt8Array, e.g. <code>output.send( new UInt8Array( [ 0x90, 0x45, 0x7f ] ) );</code> - while still enabling use of UInt8Arrays for efficiency in large MIDI data scenarios (e.g. reading Standard MIDI Files and sending sysex messages).
+            </p>
+            <p>
+              The data must contain any number of valid, complete MIDI messages.  Running status is not allowed in the data, as underlying systems may not support it.
+            </p>
+            <dl class='parameters'>
+              <dt>sequence&lt;short&gt; data</dt>
+              <dd>
+                The data to be enqueued, with each sequence entry representing a single byte of data.  
+              </dd>
+              <dt>optional DOMHighResTimeStamp? timestamp</dt>
+              <dd>
+                The time at which to begin sending the data to the port.  If <code>timestamp</code> is not present, zero or null, the data is to be sent as soon as possible.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
+      </section>
+    </section>
+
+    <section>
+      <h2 id="MIDIEvent"><a>MIDIEvent</a> Interface</h2>
+      <p>An event object implementing this interface is passed to a MIDIInput's onmessage handler when MIDI messages are received.</p>
+      <dl title="[NoInterfaceObject]
+                 interface MIDIEvent : EventTarget"
+          class="idl">
+        <dt>readonly attribute DOMHighResTimeStamp timestamp</dt>
+        <dd>
+          <p>A <code>DOMHighResTimeStamp</code> specifying when the event occurred.</p>
+        </dd>
+        <dt>readonly attribute Uint8Array data</dt>
+        <dd>
+          <p>A Uint8Array containing the MIDI data bytes of a single MIDI message.</p>
+        </dd>
+      </dl>
+    </section>
+  </body>
+</html>

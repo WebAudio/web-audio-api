@@ -2528,7 +2528,8 @@ pow(distance / refDistance, -rolloffFactor)
     <dd><p>Sets the velocity vector of the audio source. This vector controls
       both the direction of travel and the speed in 3D space. This velocity
       relative to the listener's velocity is used to determine how much doppler
-      shift (pitch change) to apply.</p>
+      shift (pitch change) to apply.  The units used for this vector is <em>meters / second</em>
+      and is independent of the units used for position and orientation vectors.</p>
       <p>The <dfn id="dfn-x_3">x, y, z</dfn> parameters describe a direction
       vector indicating direction of travel and intensity. </p>
       <p>The default value is (0,0,0)
@@ -2621,9 +2622,10 @@ interface <dfn id="dfn-AudioListener">AudioListener</dfn> {
 <dl>
   <dt id="dfn-setVelocity_4">The <code>setVelocity</code> method</dt>
     <dd><p>Sets the velocity vector of the listener. This vector controls both
-      the direction of travel and the speed in 3D space. This velocity relative
+      the direction of travel and the speed in 3D space. This velocity relative to
       an audio source's velocity is used to determine how much doppler shift
-      (pitch change) to apply.</p>
+      (pitch change) to apply.  The units used for this vector is <em>meters / second</em>
+        and is independent of the units used for position and orientation vectors.</p>
       <p>The <dfn id="dfn-x_setVelocity_5">x, y, z</dfn> parameters describe a
       direction vector indicating direction of travel and intensity. </p>
       <p>The default value is (0,0,0)
@@ -4234,6 +4236,56 @@ return gain;
   <li>Depends on: source / listener velocity vectors, speed of sound, doppler
     factor.</li>
 </ul>
+
+<p>
+The following algorithm must be used to calculate the doppler shift value which is used
+as an additional playback rate scalar for all AudioBufferSourceNodes connecting directly or
+indirectly to the AudioPannerNode:
+</p>
+
+<div class="block">
+<div class="blockTitleDiv">
+<div class="blockContent">
+<pre class="code"><code class="idl-code"> 
+double dopplerShift = 1; // Initialize to default value
+double dopplerFactor = listener.dopplerFactor;
+
+if (dopplerFactor > 0) {
+    double speedOfSound = listener.speedOfSound;
+
+    // Don't bother if both source and listener have no velocity.
+    if (!source.velocity.isZero() || !listener.velocity.isZero()) {
+        // Calculate the source to listener vector.
+        vec3 sourceToListener = source.position - listener.position;
+
+        double sourceListenerMagnitude = sourceToListener.length();
+
+        double listenerProjection = sourceToListener.dot(listener.velocity) / sourceListenerMagnitude;
+        double sourceProjection = sourceToListener.dot(source.velocity) / sourceListenerMagnitude;
+
+        listenerProjection = -listenerProjection;
+        sourceProjection = -sourceProjection;
+
+        double scaledSpeedOfSound = speedOfSound / dopplerFactor;
+        listenerProjection = min(listenerProjection, scaledSpeedOfSound);
+        sourceProjection = min(sourceProjection, scaledSpeedOfSound);
+
+        dopplerShift = ((speedOfSound - dopplerFactor * listenerProjection) / (speedOfSound - dopplerFactor * sourceProjection));
+        fixNANs(dopplerShift); // Avoid illegal values
+
+        // Limit the pitch shifting to 4 octaves up and 3 octaves down.
+        dopplerShift = min(dopplerShift, 16);
+        dopplerShift = max(dopplerShift, 0.125);
+    }
+}
+</code></pre>
+</div>
+</div>
+</div>
+
+
+
+
 </div>
 
 <div id="Convolution-section" class="section">

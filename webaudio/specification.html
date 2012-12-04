@@ -974,19 +974,25 @@ interface <dfn id="dfn-AudioContext">AudioContext</dfn> {
       The following steps must be performed:
       </p>
       <ol>
+      
+      <li>Temporarily neuter the <dfn>audioData</dfn> ArrayBuffer in such a way that JavaScript code may not
+      access or modify the data.</li>
       <li>Queue a decoding operation to be performed on another thread.</li>
       <li>The decoding thread will attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.
       If a decoding error is encountered due to the audio format not being recognized or supported, or
-      because of corrupted/unexpected/inconsistent data then the <dfn>errorCallback</dfn> will be
+      because of corrupted/unexpected/inconsistent data then the <dfn>audioData</dfn> neutered state
+      will be restored to normal and the <dfn>errorCallback</dfn> will be
       scheduled to run on the main thread's event loop and these steps will be terminated.</li>
       <li>The decoding thread will take the result, representing the decoded linear PCM audio data,
       and resample it to the sample-rate of the AudioContext if it is different from the sample-rate
       of <dfn>audioData</dfn>.  The final result (after possibly sample-rate converting) will be stored
       in an AudioBuffer.
       </li>
+      <li>The <dfn>audioData</dfn> neutered state will be restored to normal
+      </li>
       <li>
       The <dfn>successCallback</dfn> function will be scheduled to run on the main thread's event loop
-      given the AudioBuffer from step (3) as an argument.
+      given the AudioBuffer from step (4) as an argument.
       </li>
       </ol>
     </dd>

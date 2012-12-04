@@ -214,7 +214,6 @@ other than work in progress.</p>
       </li>
       <li><a href="#PannerNode">4.14. The PannerNode Interface</a> 
         <ul>
-          <li><a href="#PannerNode-sub">4.14.1. Constants</a></li>
           <li><a href="#attributes-PannerNode_attributes">4.14.2.
             Attributes</a></li>
           <li><a href="#Methods_and_Parameters">4.14.3. Methods and
@@ -2360,20 +2359,22 @@ The output of this node is hard-coded to stereo (2 channels) and <em>currently</
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
+enum <dfn>PanningModelType</dfn> {
+  "equalpower",
+  "HRTF",
+  "soundfield"
+}
+
+enum <dfn>DistanceModelType</dfn> {
+  "linear",
+  "inverse",
+  "exponential"
+}
+
 interface <dfn id="dfn-PannerNode">PannerNode</dfn> : AudioNode {
 
-    <span class="comment">// Panning model </span>
-    const unsigned short EQUALPOWER = 0;
-    const unsigned short HRTF = 1;
-    const unsigned short SOUNDFIELD = 2;
-
-    <span class="comment">// Distance model </span>
-    const unsigned short LINEAR_DISTANCE = 0;
-    const unsigned short INVERSE_DISTANCE = 1;
-    const unsigned short EXPONENTIAL_DISTANCE = 2;
-
     <span class="comment">// Default for stereo is HRTF </span>
-    attribute unsigned short panningModel;
+    attribute PanningModelType panningModel;
 
     <span class="comment">// Uses a 3D cartesian coordinate system </span>
     void setPosition(float x, float y, float z);
@@ -2381,7 +2382,7 @@ interface <dfn id="dfn-PannerNode">PannerNode</dfn> : AudioNode {
     void setVelocity(float x, float y, float z);
 
     <span class="comment">// Distance model and attributes </span>
-    attribute unsigned short distanceModel;
+    attribute DistanceModelType distanceModel;
     attribute float refDistance;
     attribute float maxDistance;
     attribute float rolloffFactor;
@@ -2397,29 +2398,42 @@ interface <dfn id="dfn-PannerNode">PannerNode</dfn> : AudioNode {
 </div>
 </div>
 
-<div id="PannerNode-sub-section" class="section">
-<h3 id="PannerNode-sub">4.14.1. Constants</h3>
+<div id="attributes-PannerNode_attributes-section" class="section">
+<h3 id="attributes-PannerNode_attributes">4.14.2. Attributes</h3>
 <dl>
-  <dt id="dfn-EQUALPOWER"><code>EQUALPOWER</code></dt>
-    <dd><p>A simple and efficient spatialization algorithm using equal-power
-      panning. </p>
+  <dt id="dfn-panningModel"><code>panningModel</code></dt>
+    <dd><p>Determines which spatialization algorithm will be used to position
+      the audio in 3D space. The default is "HRTF". </p>
+
+      <dl>
+        <dt id="dfn-EQUALPOWER"><code>"equalpower"</code></dt>
+          <dd><p>A simple and efficient spatialization algorithm using equal-power
+            panning. </p>
+          </dd>
+      </dl>
+      <dl>
+        <dt id="dfn-HRTF"><code>"HRTF"</code></dt>
+          <dd><p>A higher quality spatialization algorithm using a convolution with
+            measured impulse responses from human subjects. This panning method
+            renders stereo output. </p>
+          </dd>
+      </dl>
+      <dl>
+        <dt id="dfn-SOUNDFIELD"><code>"soundfield"</code></dt>
+          <dd><p>An algorithm which spatializes multi-channel audio using sound field
+            algorithms. </p>
+          </dd>
+      </dl>
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-HRTF"><code>HRTF</code></dt>
-    <dd><p>A higher quality spatialization algorithm using a convolution with
-      measured impulse responses from human subjects. This panning method
-      renders stereo output. </p>
-    </dd>
-</dl>
+  <dt id="dfn-distanceModel"><code>distanceModel</code></dt>
+    <dd><p>Determines which algorithm will be used to reduce the volume of an
+      audio source as it moves away from the listener.  The default is "inverse".
+</p>
+
 <dl>
-  <dt id="dfn-SOUNDFIELD"><code>SOUNDFIELD</code></dt>
-    <dd><p>An algorithm which spatializes multi-channel audio using sound field
-      algorithms. </p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-LINEAR_DISTANCE"><code>LINEAR_DISTANCE</code></dt>
+  <dt id="dfn-LINEAR_DISTANCE"><code>"linear"</code></dt>
     <dd><p>A linear distance model which calculates <em>distanceGain</em> according to: </p>
     <pre>
 1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)
@@ -2427,7 +2441,7 @@ interface <dfn id="dfn-PannerNode">PannerNode</dfn> : AudioNode {
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-INVERSE_DISTANCE"><code>INVERSE_DISTANCE</code></dt>
+  <dt id="dfn-INVERSE_DISTANCE"><code>"inverse"</code></dt>
   <dd><p>An inverse distance model which calculates <em>distanceGain</em> according to: </p>
     <pre>
 refDistance / (refDistance + rolloffFactor * (distance - refDistance))
@@ -2435,30 +2449,15 @@ refDistance / (refDistance + rolloffFactor * (distance - refDistance))
     </dd>
 </dl>
 <dl>
-  <dt id="dfn-EXPONENTIAL_DISTANCE"><code>EXPONENTIAL_DISTANCE</code></dt>
+  <dt id="dfn-EXPONENTIAL_DISTANCE"><code>"exponential"</code></dt>
   <dd><p>An exponential distance model which calculates <em>distanceGain</em> according to: </p>
   <pre>
 pow(distance / refDistance, -rolloffFactor)
   </pre>
     </dd>
 </dl>
-</div>
 
-<div id="attributes-PannerNode_attributes-section" class="section">
-<h3 id="attributes-PannerNode_attributes">4.14.2. Attributes</h3>
-<dl>
-  <dt id="dfn-panningModel"><code>panningModel</code></dt>
-    <dd><p>Determines which spatialization algorithm will be used to position
-      the audio in 3D space. See the <b>constants</b> for the available
-      choices. The default is <b>HRTF</b>. </p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-distanceModel"><code>distanceModel</code></dt>
-    <dd><p>Determines which algorithm will be used to reduce the volume of an
-      audio source as it moves away from the listener. See the <b>constants</b> for the available choices.
-      The default is <b>INVERSE_DISTANCE</b>.
-</p>
+
     </dd>
 </dl>
 <dl>
@@ -3064,7 +3063,7 @@ BiquadFilterNode filters can be combined to form more complex filters. The
 filter parameters such as "frequency" can be changed over time for filter
 sweeps, etc. Each BiquadFilterNode can be configured as one of a number of
 common filter types as shown in the IDL below.  The default filter type
-is LOWPASS </p>
+is "lowpass" </p>
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 1
     </pre>
@@ -3077,20 +3076,22 @@ is LOWPASS </p>
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
+enum <dfn>BiquadFilterType</dfn> {
+  "lowpass",
+  "highpass",
+  "bandpass",
+  "lowshelf",
+  "highshelf",
+  "peaking",
+  "notch",
+  "allpass"
+}
+
 interface <dfn id="dfn-BiquadFilterNode">BiquadFilterNode</dfn> : AudioNode {
 
-    // Filter type.
-    const unsigned short LOWPASS = 0;
-    const unsigned short HIGHPASS = 1;
-    const unsigned short BANDPASS = 2;
-    const unsigned short LOWSHELF = 3;
-    const unsigned short HIGHSHELF = 4;
-    const unsigned short PEAKING = 5;
-    const unsigned short NOTCH = 6;
-    const unsigned short ALLPASS = 7;
-
-    attribute unsigned short type;
+    attribute BiquadFilterType type;
     readonly attribute AudioParam frequency; // in Hertz
+    readonly attribute AudioParam detune; // in Cents
     readonly attribute AudioParam Q; // Quality factor
     readonly attribute AudioParam gain; // in Decibels
 
@@ -3130,11 +3131,11 @@ All parameters are <em>k-rate</em> with the following default parameter values:
 
 
 <div id="BiquadFilterNode-description-section" class="section">
-<h3 id="BiquadFilterNode-description">4.21.1 LOWPASS</h3>
+<h3 id="BiquadFilterNode-description">4.21.1 "lowpass"</h3>
 
 <p>A <a href="http://en.wikipedia.org/wiki/Low-pass_filter">lowpass filter</a>
 allows frequencies below the cutoff frequency to pass through and attenuates
-frequencies above the cutoff. LOWPASS implements a standard second-order
+frequencies above the cutoff. It implements a standard second-order
 resonant lowpass filter with 12dB/octave rolloff.</p>
 
 <blockquote>
@@ -3143,19 +3144,19 @@ resonant lowpass filter with 12dB/octave rolloff.</p>
       <dd>The cutoff frequency</dd>
     <dt>Q</dt>
       <dd>Controls how peaked the response will be at the cutoff frequency. A
-        large value makes the response more peaked.  Please note that for the LOWPASS type, this
+        large value makes the response more peaked.  Please note that for this filter type, this
         value is not a traditional Q, but is a resonance value in decibels.</dd>
     <dt>gain</dt>
       <dd>Not used in this filter type</dd>
   </dl>
 </blockquote>
 
-<h3 id="HIGHPASS">4.21.2 HIGHPASS</h3>
+<h3 id="HIGHPASS">4.21.2 "highpass"</h3>
 
 <p>A <a href="http://en.wikipedia.org/wiki/High-pass_filter">highpass
 filter</a> is the opposite of a lowpass filter. Frequencies above the cutoff
 frequency are passed through, but frequencies below the cutoff are attenuated.
-HIGHPASS implements a standard second-order resonant highpass filter with
+It implements a standard second-order resonant highpass filter with
 12dB/octave rolloff.</p>
 
 <blockquote>
@@ -3164,18 +3165,18 @@ HIGHPASS implements a standard second-order resonant highpass filter with
       <dd>The cutoff frequency below which the frequencies are attenuated</dd>
     <dt>Q</dt>
       <dd>Controls how peaked the response will be at the cutoff frequency. A
-        large value makes the response more peaked. Please note that for the HIGHPASS type, this
+        large value makes the response more peaked. Please note that for this filter type, this
         value is not a traditional Q, but is a resonance value in decibels.</dd>
     <dt>gain</dt>
       <dd>Not used in this filter type</dd>
   </dl>
 </blockquote>
 
-<h3 id="BANDPASS">4.21.3 BANDPASS</h3>
+<h3 id="BANDPASS">4.21.3 "bandpass"</h3>
 
 <p>A <a href="http://en.wikipedia.org/wiki/Band-pass_filter">bandpass
 filter</a> allows a range of frequencies to pass through and attenuates the
-frequencies below and above this frequency range. BANDPASS implements a
+frequencies below and above this frequency range. It implements a
 second-order bandpass filter.</p>
 
 <blockquote>
@@ -3190,10 +3191,10 @@ second-order bandpass filter.</p>
   </dl>
 </blockquote>
 
-<h3 id="LOWSHELF">4.21.4 LOWSHELF</h3>
+<h3 id="LOWSHELF">4.21.4 "lowshelf"</h3>
 
 <p>The lowshelf filter allows all frequencies through, but adds a boost (or
-attenuation) to the lower frequencies. LOWSHELF implements a second-order
+attenuation) to the lower frequencies. It implements a second-order
 lowshelf filter.</p>
 
 <blockquote>
@@ -3209,10 +3210,10 @@ lowshelf filter.</p>
   </dl>
 </blockquote>
 
-<h3 id="L16352">4.21.5 HIGHSHELF</h3>
+<h3 id="L16352">4.21.5 "highshelf"</h3>
 
 <p>The highshelf filter is the opposite of the lowshelf filter and allows all
-frequencies through, but adds a boost to the higher frequencies. HIGHSHELF
+frequencies through, but adds a boost to the higher frequencies. It
 implements a second-order highshelf filter</p>
 
 <blockquote>
@@ -3228,7 +3229,7 @@ implements a second-order highshelf filter</p>
   </dl>
 </blockquote>
 
-<h3 id="PEAKING">4.21.6 PEAKING</h3>
+<h3 id="PEAKING">4.21.6 "peaking"</h3>
 
 <p>The peaking filter allows all frequencies through, but adds a boost (or
 attenuation) to a range of frequencies. </p>
@@ -3246,7 +3247,7 @@ attenuation) to a range of frequencies. </p>
   </dl>
 </blockquote>
 
-<h3 id="NOTCH">4.21.7 NOTCH</h3>
+<h3 id="NOTCH">4.21.7 "notch"</h3>
 
 <p>The notch filter (also known as a <a
 href="http://en.wikipedia.org/wiki/Band-stop_filter">band-stop or
@@ -3265,12 +3266,12 @@ frequencies through, except for a set of frequencies.</p>
   </dl>
 </blockquote>
 
-<h3 id="ALLPASS">4.21.8 ALLPASS</h3>
+<h3 id="ALLPASS">4.21.8 "allpass"</h3>
 
 <p>An <a
 href="http://en.wikipedia.org/wiki/All-pass_filter#Digital_Implementation">allpass
 filter</a> allows all frequencies through, but changes the phase relationship
-between the various frequencies. ALLPASS implements a second-order allpass
+between the various frequencies. It implements a second-order allpass
 filter</p>
 
 <blockquote>
@@ -3405,16 +3406,17 @@ The OscillatorNode's instantaneous phase at each time is the time integral of <e
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
+enum <dfn>OscillatorType</dfn> {
+  "sine",
+  "square",
+  "sawtooth",
+  "triangle",
+  "custom"
+}
+
 interface <dfn id="dfn-OscillatorNode">OscillatorNode</dfn> : AudioSourceNode {
 
-    // Type constants.
-    const unsigned short SINE = 0;
-    const unsigned short SQUARE = 1;
-    const unsigned short SAWTOOTH = 2;
-    const unsigned short TRIANGLE = 3;
-    const unsigned short CUSTOM = 4;
-
-    attribute unsigned short type;
+    attribute OscillatorType type;
 
     const unsigned short UNSCHEDULED_STATE = 0;
     const unsigned short SCHEDULED_STATE = 1;
@@ -3439,9 +3441,9 @@ interface <dfn id="dfn-OscillatorNode">OscillatorNode</dfn> : AudioSourceNode {
 <h3 id="attributes-OscillatorNode">4.23.1. Attributes</h3>
 <dl>
   <dt id="dfn-type"><code>type</code></dt>
-    <dd><p>The shape of the periodic waveform.  It may directly be set to any of the type constant values except for CUSTOM.
+    <dd><p>The shape of the periodic waveform.  It may directly be set to any of the type constant values except for "custom".
     The <a href="#dfn-setWaveTable"><code>setWaveTable()</code></a> method can be used to set a custom waveform, which results in this attribute
-    being set to CUSTOM. </p>
+    being set to "custom".  The default value is "sine". </p>
     </dd>
 </dl>
 <dl>
@@ -4162,7 +4164,7 @@ distance = sqrt(dot(v, v))
 
 <p>
 <em>distance</em> will then be used to calculate <em>distanceGain</em> which depends
-on the <em>distanceModel</em> attribute.  See the <a href="#PannerNode-sub">Constants</a> section for details of
+on the <em>distanceModel</em> attribute.  See the <a href="#dfn-distanceModel">distanceModel</a> section for details of
 how this is calculated for each distance model.
 </p>
 <p>As part of its processing, the <code>PannerNode</code> scales/multiplies the input audio signal by <em>distanceGain</em>
@@ -4792,8 +4794,10 @@ API</a>. </p>
 <div id="deprecation-section" class="section">
 <h2 id="DeprecationNotes">20. Deprecation Notes</h2>
 
-<p>Some method and attribute names have changed during API review:
+<p>Some method and attribute names have changed during API review.
+It is recommended that an implementation support both names:
 </p>
+<blockquote>
 <pre>
 AudioBufferSourceNode.noteOn() has been changed to <b>start()</b>
 AudioBufferSourceNode.noteGrainOn() has been changed to <b>start()</b>
@@ -4808,6 +4812,103 @@ OscillatorNode.noteOff() has been changed to <b>stop()</b>
 
 AudioParam.setTargetValueAtTime() has been changed to <b>setTargetAtTime()</b>
 </pre>
+</blockquote>
+
+<p>Some attributes taking constant values have changed during API review.
+The old way uses integer values, while the new way uses Web IDL string values.
+It is recommended that an implementation support both integer and string values
+for setting these attributes:
+</p>
+
+<blockquote>
+<pre>
+// PannerNode constants for the .panningModel attribute
+
+// Old way
+const unsigned short EQUALPOWER = 0;
+const unsigned short HRTF = 1;
+const unsigned short SOUNDFIELD = 2;
+
+// New way
+enum <dfn>PanningModelType</dfn> {
+  "equalpower",
+  "HRTF",
+  "soundfield"
+}
+</blockquote>
+</pre>
+
+<blockquote>
+<pre>
+// PannerNode constants for the .distanceModel attribute
+
+// Old way
+const unsigned short LINEAR_DISTANCE = 0;
+const unsigned short INVERSE_DISTANCE = 1;
+const unsigned short EXPONENTIAL_DISTANCE = 2;
+
+// New way
+enum <dfn>DistanceModelType</dfn> {
+  "linear",
+  "inverse",
+  "exponential"
+}
+</blockquote>
+</pre>
+
+
+
+<blockquote>
+<pre>
+// BiquadFilterNode constants for the .type attribute
+
+// Old way
+const unsigned short LOWPASS = 0;
+const unsigned short HIGHPASS = 1;
+const unsigned short BANDPASS = 2;
+const unsigned short LOWSHELF = 3;
+const unsigned short HIGHSHELF = 4;
+const unsigned short PEAKING = 5;
+const unsigned short NOTCH = 6;
+const unsigned short ALLPASS = 7;
+
+// New way
+enum <dfn>BiquadFilterType</dfn> {
+  "lowpass",
+  "highpass",
+  "bandpass",
+  "lowshelf",
+  "highshelf",
+  "peaking",
+  "notch",
+  "allpass"
+}
+</blockquote>
+</pre>
+
+<blockquote>
+<pre>
+// OscillatorNode constants for the .type attribute
+
+// Old way
+const unsigned short SINE = 0;
+const unsigned short SQUARE = 1;
+const unsigned short SAWTOOTH = 2;
+const unsigned short TRIANGLE = 3;
+const unsigned short CUSTOM = 4;
+
+// New way
+enum <dfn>OscillatorType</dfn> {
+  "sine",
+  "square",
+  "sawtooth",
+  "triangle",
+  "custom"
+}
+</blockquote>
+</pre>
+
+
 
 </div>
 

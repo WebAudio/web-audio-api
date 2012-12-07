@@ -654,5 +654,112 @@
         </dd>
       </dl>
     </section>
+
+    <section class="informative">
+      <h2 id="examples">Examples of Web MIDI API Usage in JavaScript</h2>
+      <p>The following are some examples of common MIDI usage in JavaScript.</p>
+
+      <section>
+        <h3>Getting Access to the MIDI System</h3>
+        <p>This example shows how to request access to the MIDI system.</p>
+          <pre class="code es-code">var midi = null;  // global MIDIAccess object
+
+function success( midiAccess ) {
+  console.log( "MIDI ready!" );
+  midi = midiAccess;
+}
+
+function onMIDIFailure(msg) {
+  console.log( "Failed to get MIDI access - " + msg );
+}
+
+navigator.getMIDIAccess( onMIDISuccess, onMIDIFailure );</pre>
+      </section>
+
+      <section>
+        <h3>Enumerating Inputs and Outputs</h3>
+        <p>This example enumerates the input and output ports, printing information to the console log.
+          <pre class="code es-code">function enumerateInputsAndOutputs( midiAccess ) {
+  var inputs = midiAccess.enumerateInputs();
+  var outputs = midiAccess.enumerateOutputs();
+  var idx;
+
+  for (idx=0; idx&lt;inputs.length; idx++) {
+    console.log( "Input port #" + idx + 
+      ": type:'" + inputs[i].type +
+      "' fingerprint:'" + inputs[i].fingerprint +
+      "' manufacturer:'" + inputs[i].manufacturer +
+      "' name:'" + inputs[i].name +
+      "' version:'" + inputs[i].version + "'" );
+  }
+
+  for (idx=0; idx&lt;outputs.length; idx++) {
+    console.log( "Output port #" + idx + 
+      ": type:'" + outputs[i].type +
+      "' fingerprint:'" + outputs[i].fingerprint +
+      "' manufacturer:'" + outputs[i].manufacturer +
+      "' name:'" + outputs[i].name +
+      "' version:'" + outputs[i].version + "'" );
+  }
+}</pre>
+      </section>
+
+      <section>
+        <h3>Handling MIDI Input</h3>
+        <p>This example prints incoming MIDI messages on a supplied input port to the console log.</p>
+        <pre class="code es-code">function onMIDIMessage( event ) {
+  var str = "MIDI message received at timestamp " + event.timestamp + "[" + event.data.length + " bytes]: ";
+  for (var i=0; i&lt;event.data.length; i++)
+    str += "0x" + event.data[i].toString(16) + " ";
+  console.log( str );
+}
+
+function startLoggingMIDIInput( midiAccess, indexOfPort ) {
+  var input = midiAccess.getInput( index );
+  input.onmessage = onMIDIMessage;
+}</pre>
+      </section>
+
+      <section>
+        <h3>Sending MIDI Messages to an Output Device</h3>
+        <p>This example sends a middle C note on message immediately, and queues a corresponding note off message for 1 second later.</p>
+        <pre class="code es-code">function sendMiddleC( midiAccess, indexOfPort ) {
+  var output = midiAccess.getOutput( index );
+  output.send( [0x90, 60, 0x7f] );  // note on, middle C, full velocity - omit timestamp.
+  output.send( [0x90, 60, 0x00], window.performance.now() + 1000.0 ); // note off, middle C, zero velocity, timestamp = now + 1000ms.
+}</pre>
+      </section>
+
+      <section>
+        <h3>A Simple Loopback</h3>
+        <p>This example loops all input on the first input port to the first output port.</p>
+        <pre class="code es-code">var midi = null;  // global MIDIAccess object
+var output = null;
+
+function echoMIDIMessage( event ) {
+  if (output)
+    output.send( event.data, event.timestamp );
+}
+
+function success( midiAccess ) {
+  console.log( "MIDI ready!" );
+  try { 
+    var input = midiAccess.getInput( 0 );
+    output = midiAccess.getOutput( 0 );
+    input.onmessage = echoMIDIMessage;
+  }
+  catch (e) {
+    console.log("Exception! Couldn't get i/o ports." + e );
+  }
+}
+
+function onMIDIFailure(msg) {
+  console.log( "Failed to get MIDI access - " + msg );
+}
+
+navigator.getMIDIAccess( onMIDISuccess, onMIDIFailure );</pre>
+      </section>
+
+    </section>
   </body>
 </html>

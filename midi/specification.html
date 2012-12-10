@@ -511,20 +511,23 @@
         <dt>readonly attribute DOMString fingerprint</dt>
         <dd>
           <p>
-            A unique ID of the port. This can be used by developers to
-            remember ports the user has chosen for their application.
-            The User Agent SHOULD make sure the
-            <code><a>fingerprint</a></code>
-            is unique to only that port if possible.  Some systems may not 
-            support completely unique identifiers; in such cases, it will 
-            be more challenging to maintain identifiers when another 
-            interface is added or removed from the system.  (This might 
-            throw off the index of the requested port.)  It is expected 
-            that the system will do the best it can to match a port across 
-            instances of the MIDI API: for example, storing the port 
-            interface manufacturer, name and index in the fingerprint, and attempting to 
-            find any ports with that name to consider as a match.
-          </p>
+            A unique ID of the port. This can be used by developers to 
+            remember ports the user has chosen for their application. The 
+            User Agent MUST ensure that the <code><a>fingerprint</a></code> 
+            is unique to only that port.  The User Agent SHOULD ensure that 
+            the fingerprint is maintained across instances of the 
+            application - e.g., when the system is rebooted - and when a 
+            device is removed from the system.  Applications may want to 
+            cache these fingerprints locally to re-create a MIDI setup. 
+            Some systems may not support completely unique persistent 
+            identifiers; in such cases, it will be more challenging to 
+            maintain identifiers when another interface is added or removed 
+            from the system.  (This might throw off the index of the 
+            requested port.)  It is expected that the system will do the 
+            best it can to match a port across instances of the MIDI API: 
+            for example, storing the port interface manufacturer, name and 
+            index in the fingerprint, and attempting to find any ports with 
+            that name to consider as a match. </p>
         </dd>
         <dt>readonly attribute DOMString manufacturer</dt>
         <dd>
@@ -664,9 +667,9 @@
         <p>This example shows how to request access to the MIDI system.</p>
           <pre class="code es-code">var midi = null;  // global MIDIAccess object
 
-function success( midiAccess ) {
+function onMIDISuccess( midiAccess ) {
   console.log( "MIDI ready!" );
-  midi = midiAccess;
+  midi = midiAccess;  // store in the global (in real usage, would probably keep in an object instance)
 }
 
 function onMIDIFailure(msg) {
@@ -682,10 +685,10 @@ navigator.getMIDIAccess( onMIDISuccess, onMIDIFailure );</pre>
           <pre class="code es-code">function enumerateInputsAndOutputs( midiAccess ) {
   var inputs = midiAccess.enumerateInputs();
   var outputs = midiAccess.enumerateOutputs();
-  var idx;
+  var i;
 
-  for (idx=0; idx&lt;inputs.length; idx++) {
-    console.log( "Input port #" + idx + 
+  for (i=0; i&lt;inputs.length; i++) {
+    console.log( "Input port #" + i + 
       ": type:'" + inputs[i].type +
       "' fingerprint:'" + inputs[i].fingerprint +
       "' manufacturer:'" + inputs[i].manufacturer +
@@ -693,8 +696,8 @@ navigator.getMIDIAccess( onMIDISuccess, onMIDIFailure );</pre>
       "' version:'" + inputs[i].version + "'" );
   }
 
-  for (idx=0; idx&lt;outputs.length; idx++) {
-    console.log( "Output port #" + idx + 
+  for (i=0; i&lt;outputs.length; i++) {
+    console.log( "Output port #" + i + 
       ": type:'" + outputs[i].type +
       "' fingerprint:'" + outputs[i].fingerprint +
       "' manufacturer:'" + outputs[i].manufacturer +
@@ -715,24 +718,25 @@ navigator.getMIDIAccess( onMIDISuccess, onMIDIFailure );</pre>
 }
 
 function startLoggingMIDIInput( midiAccess, indexOfPort ) {
-  var input = midiAccess.getInput( index );
+  var input = midiAccess.getInput( indexOfPort );
   input.onmessage = onMIDIMessage;
 }</pre>
       </section>
 
       <section>
         <h3>Sending MIDI Messages to an Output Device</h3>
-        <p>This example sends a middle C note on message immediately, and queues a corresponding note off message for 1 second later.</p>
+        <p>This example sends a middle C note on message immediately on MIDI channel 0, and queues a corresponding note off message for 1 second later.</p>
         <pre class="code es-code">function sendMiddleC( midiAccess, indexOfPort ) {
   var output = midiAccess.getOutput( index );
-  output.send( [0x90, 60, 0x7f] );  // note on, middle C, full velocity - omit timestamp.
-  output.send( [0x90, 60, 0x00], window.performance.now() + 1000.0 ); // note off, middle C, zero velocity, timestamp = now + 1000ms.
+  output.send( [0x90, 60, 0x7f] );  // note on, middle C, full velocity - omitting the timestamp means send immediately.
+  output.send( [0x80, 60, 0x40], window.performance.now() + 1000.0 ); // note off, middle C, release velocity = 64, 
+                                                                      // timestamp = now + 1000ms.
 }</pre>
       </section>
 
       <section>
         <h3>A Simple Loopback</h3>
-        <p>This example loops all input on the first input port to the first output port.</p>
+        <p>This example loops all input messages on the first input port to the first output port - including system exclusive messages.</p>
         <pre class="code es-code">var midi = null;  // global MIDIAccess object
 var output = null;
 
@@ -741,7 +745,7 @@ function echoMIDIMessage( event ) {
     output.send( event.data, event.timestamp );
 }
 
-function success( midiAccess ) {
+function onMIDISuccess( midiAccess ) {
   console.log( "MIDI ready!" );
   try { 
     var input = midiAccess.getInput( 0 );

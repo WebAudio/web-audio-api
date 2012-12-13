@@ -164,11 +164,9 @@
           <h2 id="NavigatorMIDIAccess">The <a>NavigatorMIDIAccess</a> Interface</h2>
 
           <dl class="idl"
-              title="[NoInterfaceObject] interface NavigatorMIDIAccess">
-            <dt>void getMIDIAccess(NavigatorMIDIAccessSuccessCallback
-                                    successCallback,
-                                    optional NavigatorMIDIAccessErrorCallback?
-                                    errorCallback)</dt>
+              title="interface NavigatorMIDIAccess">
+            <dt>void getMIDIAccess(SuccessCallback successCallback,
+                                    optional ErrorCallback errorCallback)</dt>
             <dd>
               <p>
                 Obtains an interface to enumerate and request access to MIDI 
@@ -176,8 +174,8 @@
               </p>
 
               <p>
-                This call may prompt the user for access to MIDI devices. If 
-                the user accepts or the call is otherwise approved, 
+                This call SHOULD prompt the user for access to MIDI devices. If 
+                the user gives express permission or the call is otherwise approved, 
                 <var>successCallback</var> is invoked, with a 
                 <code><a>MIDIAccess</a></code> object as its argument.
               </p>
@@ -201,11 +199,11 @@
 
                 <li><p>
                   Let <var>errorCallback</var> be the callback indicated by
-                  the method's second argument, if any, or null otherwise.
+                  the method's second argument, if any.
                 </p></li>
 
                 <li><p>
-                  If <var>successCallback</var> is null, abort these steps.
+                  If <var>successCallback</var> is callable, abort these steps.
                 </p></li>
 
                 <li><p>
@@ -251,17 +249,15 @@
                 </p></li>
 
                 <li><p>
-                  <em>Failure</em>: If <var>errorCallback</var> is null,
-                  abort these steps.
+                  <em>failure</em>: If <var>errorCallback</var> is not
+                  callable, abort these steps.
                 </p></li>
 
                 <li><p>
-                  Let <var>error</var> be a new <code>
-                  <a href="#NavigatorMIDIAccessError">NavigatorMIDIAccessError</a>
-                  </code> object whose <code><a href="#widl-NavigatorMIDIAccessError-code">code</a>
-                  </code> attribute has the numeric value 1 (<code><a
-                    href="#dom-navigatormidiaccesserror-PERMISSION_DENIED">PERMISSION_DENIED</a>
-                  </code>).
+                  Let <var>error</var> be a new <code><a>DOMError</a></code>.
+                  This should be of type <code>"securityError"</code> if the
+                  user denied the application from creating a MIDIAccess
+                  instance, or otherwise <code>"NotSupportedError"</code>.
                 </p></li>
 
                 <li><p>
@@ -282,10 +278,10 @@
       </section>
 
       <section>
-        <h2>NavigatorMIDIAccessSuccessCallback</h2>
+        <h2>SuccessCallback</h2>
 
         <dl class="idl"
-            title="callback NavigatorMIDIAccessSuccessCallback = void">
+            title="callback SuccessCallback = void">
           <dt>MIDIAccess access</dt>
 
           <dd>
@@ -305,38 +301,17 @@
       </section>
 
       <section>
-        <h2 id="NavigatorMIDIAccessError">
-          NavigatorMIDIAccessError and
-          NavigatorMIDIAccessErrorCallback
+        <h2>
+          ErrorCallback
         </h2>
 
-        <dl id="dom-navigatormidiaccesserror-PERMISSION_DENIED" class="idl"
-            title="[NoInterfaceObject] interface NavigatorMIDIAccessError">
-          <dt>const unsigned short PERMISSION_DENIED = 1</dt>
-
-          <dd>
-            The application was denied permission to use the user's MIDI
-            devices.
-          </dd>
-
-          <dt id="dom-navigatormidiaccesserror-code">readonly attribute unsigned short code</dt>
-
-          <dd>
-            Returns the current error's error code. At this time, this will
-            always be 1, for which the constant <code><a
-              href="#dom-navigatormidiaccesserror-PERMISSION_DENIED">PERMISSION_DENIED</a>
-            </code> is defined.
-          </dd>
-        </dl>
-
         <dl class="idl"
-            title="callback NavigatorMIDIAccessErrorCallback = void">
-          <dt>NavigatorMIDIAccessError error</dt>
+            title="callback ErrorCallback = void">
+          <dt>DOMError error</dt>
 
           <dd>
-            A <code><a>NavigatorMIDIAccessError</a></code> object representing
-            an explanation of why access to the user's MIDI devices was not
-            granted.
+            A <code><a>DOMError</a></code> object representing the reason
+            why creating getting a <code><a>MIDIAccess</a></code> failed.
           </dd>
         </dl>
       </section>
@@ -347,8 +322,7 @@
       <p>This interface provides the methods to enumerate MIDI input and output
         devices, and obtain access to an individual device.</p>
 
-      <dl title="[NoInterfaceObject]
-                 interface MIDIAccess"
+      <dl title="interface MIDIAccess"
           class="idl">
         <dt>sequence&lt;MIDIPort&gt; enumerateInputs()</dt>
         <dd>
@@ -505,8 +479,7 @@
         </dd>
       </dl>
 
-      <dl title="[NoInterfaceObject]
-                 interface MIDIPort"
+      <dl title="interface MIDIPort"
           class="idl">
         <dt>readonly attribute DOMString fingerprint</dt>
         <dd>
@@ -559,8 +532,7 @@
         <h3 id="MIDIInput"><a>MIDIInput</a> Interface</h3>
       <div class="idl" title="MIDIInput implements MIDIPort"></div>
 
-          <dl title="[NoInterfaceObject]
-                   interface MIDIInput : EventTarget"
+          <dl title="interface MIDIInput : EventTarget"
             class="idl">
           <dt class="no-docs">[TreatNonCallableAsNull] attribute
                               callback? onmessage</dt>
@@ -612,8 +584,7 @@
 
       <div class="idl" title="MIDIOutput implements MIDIPort"></div>
 
-        <dl title="[NoInterfaceObject]
-                   interface MIDIOutput"
+        <dl title="interface MIDIOutput"
             class="idl">
           <dt>void send( sequence data, optional DOMHighResTimeStamp? timestamp )</dt>
           <dd>
@@ -645,8 +616,7 @@
     <section>
       <h2 id="MIDIEvent"><a>MIDIEvent</a> Interface</h2>
       <p>An event object implementing this interface is passed to a MIDIInput's onmessage handler when MIDI messages are received.</p>
-      <dl title="[NoInterfaceObject]
-                 interface MIDIEvent : Event"
+      <dl title="interface MIDIEvent : Event"
           class="idl">
         <dt>readonly attribute DOMHighResTimeStamp timestamp</dt>
         <dd>

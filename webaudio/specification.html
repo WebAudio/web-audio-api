@@ -496,7 +496,7 @@ so that more advanced capabilities can be added at a later time. </p>
 
 <p>Modular routing allows arbitrary connections between different <a
 href="#AudioNode-section"><code>AudioNode</code></a> objects. Each node can
-have inputs and/or outputs. An <a
+have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>. An <a
 href="#AudioSourceNode-section"><code>AudioSourceNode</code></a> has no inputs
 and a single output. An <a
 href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a> has
@@ -505,7 +505,7 @@ hardware. Other nodes such as filters can be placed between the <a
 href="#AudioSourceNode-section"><code>AudioSourceNode</code></a> nodes and the
 final <a
 href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a>
-node. The developer doesn't have to worry about low-level stream format details
+node.  The developer doesn't have to worry about low-level stream format details
 when two objects are connected together; <a href="#UpMix-section">the right
 thing just happens</a>. For example, if a mono audio stream is connected to a
 stereo input it should just mix to left and right channels <a
@@ -1228,7 +1228,7 @@ href="#AudioContext-section"><code>AudioContext</code></a>. This interface
 represents audio sources, the audio destination, and intermediate processing
 modules. These modules can be connected together to form <a
 href="#ModularRouting-section">processing graphs</a> for rendering audio to the
-audio hardware. Each node can have inputs and/or outputs. An <a
+audio hardware. Each node can have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>. An <a
 href="#AudioSourceNode-section"><code>AudioSourceNode</code></a> has no inputs
 and a single output. An <a
 href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a> has
@@ -1237,14 +1237,25 @@ hardware. Most processing nodes such as filters will have one input and one
 output.  Each type of <code>AudioNode</code> differs in the details of how it processes or synthesizes audio.  But, in general, <code>AudioNodes</code>
 will process its inputs (if it has any), and generate audio for its outputs (if it has any).
  </p>
-
+ 
 <p>
-An output may connect to one or more <code>AudioNode</code> inputs, thus <em>fanout</em> is supported.  An input may be connected from one
-or more <code>AudioNode</code> outputs, thus <em>fanin</em> is supported. 
+Each <dfn>output</dfn> has one or more <dfn>channels</dfn>.  The exact number of channels depends on the details of the specific AudioNode.
 </p>
 
 <p>
-In order to handle this <em>fanin</em>, any <code>AudioNode</code> with inputs performs an up-mixing of all connections <em>for each input</em>:
+An output may connect to one or more <code>AudioNode</code> inputs, thus <em>fan-out</em> is supported.  An input initially has no connections,
+but may be connected from one
+or more <code>AudioNode</code> outputs, thus <em>fan-in</em> is supported.  When the <code>connect()</code> method is called to connect
+an output of an AudioNode to an input of an AudioNode, we call that a <dfn>connection</dfn> to the input.
+</p>
+
+<p>
+Each AudioNode <dfn>input</dfn> has a specific number of channels at any given time.  This number can change depending on the <dfn>connection(s)</dfn>
+made to the input.  If the input has no connections then it has one channel which is silent.
+</p>
+
+<p>
+In order to handle this <em>fan-in</em>, any <code>AudioNode</code> with inputs performs an up-mixing of all connections <em>for each input</em>:
 </p>
 
 <ol>
@@ -1323,7 +1334,7 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> {
       which input of the destination AudioNode to connect to. An out-of-bound
       value throws an exception. </p>
       <p>It is possible to connect an AudioNode output to more than one input
-      with multiple calls to connect(). Thus, "fanout" is supported. </p>
+      with multiple calls to connect(). Thus, "fan-out" is supported. </p>
       <p>
       It is possible to connect an AudioNode to another AudioNode which creates a <em>cycle</em>.
       In other words, an AudioNode may connect to another AudioNode, which in turn connects back
@@ -1361,9 +1372,9 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> {
       out-of-bound value throws an exception.</p>      
 
       <p>It is possible to connect an AudioNode output to more than one AudioParam
-      with multiple calls to connect(). Thus, "fanout" is supported. </p>
+      with multiple calls to connect(). Thus, "fan-out" is supported. </p>
       <p>It is possible to connect more than one AudioNode output to a single AudioParam
-      with multiple calls to connect().  Thus, "fanin" is supported. </p>
+      with multiple calls to connect().  Thus, "fan-in" is supported. </p>
       <p>An AudioParam will take the rendered audio data from any AudioNode output connected to it and <a href="#down-mix">convert it to mono</a> by down-mixing if it is not
       already mono, then mix it together with other such outputs and finally will mix with the <em>intrinsic</em>
       parameter value (the value the AudioParam would normally have without any audio connections), including any timeline changes
@@ -1886,7 +1897,7 @@ output: </p>
     numberOfOutputs : 1
     </pre>
 
-<p>which multiplies the input audio signal by the (possibly time-varying) <code>gain</code> attribute, copying the result to the output.
+<p>It multiplies the input audio signal by the (possibly time-varying) <code>gain</code> attribute, copying the result to the output.
  By default, it will take the input and pass it through to the output unchanged, which represents a constant gain change
  of 1. 
 </p>
@@ -1949,7 +1960,11 @@ interface is an AudioNode with a single input and single output: </p>
     numberOfOutputs : 1
     </pre>
 
-<p>which delays the incoming audio signal by a certain amount. The default
+<p>
+The number of channels of the output always equals the number of channels of the input.
+</p>
+
+<p>It delays the incoming audio signal by a certain amount. The default
 amount is 0 seconds (no delay). When the delay time is changed, the
 implementation must make the transition smoothly, without introducing
 noticeable clicks or glitches to the audio stream. </p>
@@ -2084,6 +2099,11 @@ AudioBufferSourceNode. </p>
 <pre>    numberOfInputs  : 0
     numberOfOutputs : 1
     </pre>
+
+<p>
+The number of channels of the output always equals the number of channels of the AudioBuffer
+assigned to the .buffer attribute, or is one channel of silence if .buffer is NULL.
+</p>
 
 <div class="block">
 
@@ -2244,6 +2264,12 @@ Interface</h2>
 <pre>    numberOfInputs  : 0
     numberOfOutputs : 1
     </pre>
+
+<p>
+The number of channels of the output corresponds to the number of channels of the media referenced by the HTMLMediaElement.
+Thus, changes to the media element's .src attribute can change the number of channels output by this node.
+If the .src attribute is not set, then the number of channels output will be one silent channel.
+</p>
 
 <div class="block">
 
@@ -3167,10 +3193,13 @@ BiquadFilterNode filters can be combined to form more complex filters. The
 filter parameters such as "frequency" can be changed over time for filter
 sweeps, etc. Each BiquadFilterNode can be configured as one of a number of
 common filter types as shown in the IDL below.  The default filter type
-is "lowpass" </p>
+is "lowpass".</p>
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 1
     </pre>
+<p>
+The number of channels of the output always equals the number of channels of the input.
+</p>
 
 <div class="block">
 
@@ -3417,10 +3446,14 @@ effects. </p>
 
 <p>Non-linear waveshaping distortion is commonly used for both subtle
 non-linear warming, or more obvious distortion effects. Arbitrary non-linear
-shaping curves may be specified. </p>
+shaping curves may be specified.</p>
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 1
     </pre>
+
+<p>
+The number of channels of the output always equals the number of channels of the input.
+</p>
 
 <div class="block">
 
@@ -3654,6 +3687,11 @@ can, for example, be sent to a remote peer using the RTCPeerConnection addStream
 <pre>    numberOfInputs  : 1
     numberOfOutputs : 0
 </pre>
+
+<p>
+The number of channels of the output corresponds to the number of channels of the <code>AudioMediaStreamTrack</code>.
+If there is no valid audio track, then the number of channels output will be one silent channel.
+</p>
 
 <p>
 The number of channels of the input is by default 2 (stereo).  Any connections to the input

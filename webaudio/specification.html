@@ -3752,8 +3752,8 @@ others: </p>
 <img alt="unity gain summing junction"
 src="images/unity-gain-summing-junction.png" /> 
 
-<p>In cases where the channel layouts of the outputs do not match, an <a
-href="#UpMix-section">up-mix</a> will occur to the highest number of channels.
+<p>In cases where the channel layouts of the outputs do not match, a mix (usually up-mix) will occur according to the <a
+href="#UpMix-section">mixing rules</a>.
 </p>
 
 <h3 id="gain-Control">Gain Control</h3>
@@ -4001,9 +4001,14 @@ function playSound() {
 <h2 id="ChannelLayouts">8. Channel Layouts</h2>
 
 <p>It's important to define the channel ordering (and define some
-abbreviations) for different layouts. </p>
+abbreviations) for different speaker layouts.</p>
 
-<p>The channel layouts are clear: </p>
+<p>
+For now, only considers cases for mono, stereo, quad, 5.1. Later other channel
+layouts can be defined. 
+</p>
+
+<p>The simple mono and stereo channel layouts are clear: </p>
 <pre>  Mono
     0: M: mono
     
@@ -4034,16 +4039,130 @@ abbreviations) for different layouts. </p>
 
 <div id="UpMix-section" class="section">
 <h2 id="UpMix">9. Channel up-mixing and down-mixing</h2>
-For now, only considers cases for mono, stereo, quad, 5.1. Later other channel
-layouts can be defined. 
 
-<h3 id="UpMix-sub">Up Mixing</h3>
+<img src="images/unity-gain-summing-junction.png">
 
-<p>Consider what happens when converting an audio stream with a lower number of
-channels to one with a higher number of channels. This can be necessary when <a
-href="#SummingJunction-section">mixing several outputs together</a> where the
-channel layouts differ. It can also be necessary if the rendered audio stream
-is played back on a system with more channels. </p>
+<p>
+<a href="#MixerGainStructure-section">Mixer Gain Structure</a>
+describes how an <dfn>input</dfn> to an AudioNode can be connected from one or more <dfn>outputs</dfn>
+of an AudioNode.  Each of these connections from an output represents a stream with
+a specific non-zero number of channels.  An input has <em>mixing rules</em> for combining the channels
+from all of the connections to it.  As a simple example, if an input is connected from a mono output and
+a stereo output, then the mono connection will usually be up-mixed to stereo and summed with
+the stereo connection.  But, of course, it's important to define the exact <em>mixing rules</em> for
+every input to every AudioNode.  The default mixing rules for all of the inputs have been chosen so that
+things "just work" without worrying too much about the details, especially in the very common
+case of mono and stereo streams.  But the rules can be changed for advanced use cases, especially
+multi-channel.
+</p>
+
+<p>
+To define some terms, <em>up-mixing</em> refers to the process of taking a stream with a smaller
+number of channels and converting it to a stream with a larger number of channels.  <em>down-mixing</em>
+refers to the process of taking a stream with a larger number of channels and converting it to a stream
+with a smaller number of channels.
+</p>
+
+<p>
+An AudioNode input use three basic pieces of information to determine how to mix all the outputs
+connected to it.  As part of this process it computes a <dfn>computedNumberOfChannels</dfn>
+value representing the actual number of channels of the input:
+</p>
+
+<ol>
+<li><dfn>ChannelCountMode</dfn> determines how <dfn>computedNumberOfChannels</dfn> will be computed.
+Once this number is computed, all of the connections will be up or down-mixed to that many channels.
+<ul>
+<li>“max”: <dfn>computedNumberOfChannels</dfn> is computed as the maximum of the number of channels of all connections </li>
+<li>“clamped-max”: same as “max” up to a limit of the <dfn>numberOfChannels</dfn></li>
+<li>“explicit”: <dfn>computedNumberOfChannels</dfn> is the exact value as specified in <dfn>numberOfChannels</dfn></li>
+</ul>
+
+</li>
+
+<li><dfn>ChannelInterpretation</dfn> determines how the individual channels will be treated.
+For example, will they be treated as speakers having a specific layout, or will they
+be treated as simple discrete channels?  This value influences exactly how the up and down mixing is
+performed.
+
+<ul>
+<li>“speakers”: use <a href="#UpMix-sub">up-down-mix equations for mono/stereo/quad/5.1</a>.
+In cases where the number of channels do not match any of these basic speaker layouts, revert
+to "discrete".
+</li>
+<li>“discrete”: up-mix by filling channels until they run out then zero out remaining channels.
+                  down-mix by filling as many channels as possible, then dropping remaining channels</li>
+</ul>
+
+</li>
+
+<li><dfn>numberOfChannels</dfn> is used to help compute <dfn>computedNumberOfChannels</dfn>.</li>
+</ol>
+
+
+<div class="block">
+<div class="blockTitleDiv">
+<div class="blockContent">
+<pre class="code"><code class="idl-code"> 
+enum <dfn>ChannelCountMode</dfn> {
+    “max”,
+    “clamped-max”,
+    “explicit”
+};
+
+enum <dfn>ChannelInterpretation</dfn> {
+    “speakers”,
+    “discrete”
+};
+
+partial interface <dfn>AudioNode</dfn> {
+
+    // Sets the mode for a specific input of a node.
+    void setInputMixingMode(unsigned long input,
+                            ChannelCountMode mode,
+                            ChannelInterpretation interpretation,
+                            optional unsigned long numberOfChannels = 2);
+
+};
+</code></pre>
+</div>
+</div>
+</div>
+
+
+<h3>Examples using setInputMixingMode()</h3>
+
+<div class="block">
+<div class="blockTitleDiv">
+<div class="blockContent">
+<pre class="code"><code class="idl-code"> 
+// GainNode, BiquadFilterNode, DelayNode, and similar are like this by default.
+biquad.setInputMixingMode(0, “max”, “speakers”);
+
+// Set gain node to explicit 2-channels (stereo).
+gain.setInputMixingMode(0, “explicit”, “speakers”, 2);
+
+// The “hardware output” is stereo like this by default.
+context.destination.setInputMixingMode(0, “explicit”, “speakers”, 2);
+
+// Set “hardware output” to 4-channels for DJ-app with two stereo output busses.
+context.destination.setInputMixingMode(0, “explicit”, “discrete”, 4);
+
+// Set “hardware output” to 5.1 to play an HTMLAudioElement.
+context.destination.setInputMixingMode(0, “explicit”, “speakers”, 6);
+
+// PannerNode and ConvolverNode are like this by default.
+pannerNode.setInputMixingMode(0, “clamped-max”, “speakers”, 2);
+
+// Explicitly down-mix to mono.
+gain.setInputMixingMode(0, “explicit”, “speakers”, 1);
+</code></pre>
+</div>
+</div>
+</div>
+
+<h3 id="UpMix-sub">9.1. Up Mixing speaker layouts</h3>
+
 <pre>Mono up-mix:
     
     1 -&gt; 2 : up-mix from mono to stereo
@@ -4090,7 +4209,7 @@ Quad up-mix:
         output.SL = input.SL;
         output.SR = input.SR;</pre>
 
-<h3 id="down-mix">Down Mixing</h3>
+<h3 id="down-mix">9.2. Down Mixing speaker layouts</h3>
 
 <p>A down-mix will be necessary, for example, if processing 5.1 source
 material, but playing back stereo. </p>

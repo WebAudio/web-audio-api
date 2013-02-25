@@ -4065,40 +4065,9 @@ with a smaller number of channels.
 
 <p>
 An AudioNode input use three basic pieces of information to determine how to mix all the outputs
-connected to it.  As part of this process it computes a <dfn>computedNumberOfChannels</dfn>
-value representing the actual number of channels of the input:
+connected to it.  As part of this process it computes an internal value <dfn>computedNumberOfChannels</dfn>
+ representing the actual number of channels of the input at any given time:
 </p>
-
-<ol>
-<li><dfn>ChannelCountMode</dfn> determines how <dfn>computedNumberOfChannels</dfn> will be computed.
-Once this number is computed, all of the connections will be up or down-mixed to that many channels.
-<ul>
-<li>“max”: <dfn>computedNumberOfChannels</dfn> is computed as the maximum of the number of channels of all connections </li>
-<li>“clamped-max”: same as “max” up to a limit of the <dfn>numberOfChannels</dfn></li>
-<li>“explicit”: <dfn>computedNumberOfChannels</dfn> is the exact value as specified in <dfn>numberOfChannels</dfn></li>
-</ul>
-
-</li>
-
-<li><dfn>ChannelInterpretation</dfn> determines how the individual channels will be treated.
-For example, will they be treated as speakers having a specific layout, or will they
-be treated as simple discrete channels?  This value influences exactly how the up and down mixing is
-performed.
-
-<ul>
-<li>“speakers”: use <a href="#UpMix-sub">up-down-mix equations for mono/stereo/quad/5.1</a>.
-In cases where the number of channels do not match any of these basic speaker layouts, revert
-to "discrete".
-</li>
-<li>“discrete”: up-mix by filling channels until they run out then zero out remaining channels.
-                  down-mix by filling as many channels as possible, then dropping remaining channels</li>
-</ul>
-
-</li>
-
-<li><dfn>numberOfChannels</dfn> is used to help compute <dfn>computedNumberOfChannels</dfn>.</li>
-</ol>
-
 
 <div class="block">
 <div class="blockTitleDiv">
@@ -4117,17 +4086,57 @@ enum <dfn>ChannelInterpretation</dfn> {
 
 partial interface <dfn>AudioNode</dfn> {
 
-    // Sets the mode for a specific input of a node.
-    void setInputMixingMode(unsigned long input,
-                            ChannelCountMode mode,
-                            ChannelInterpretation interpretation,
-                            optional unsigned long numberOfChannels = 2);
+    // Channel up-mixing and down-mixing rules for all inputs.
+    
+    attribute unsigned long channelCount
+        setter raises(DOMException);
+
+    attribute ChannelCountMode channelCountMode
+        setter raises(DOMException);
+
+    attribute ChannelInterpretation channelInterpretation
+        setter raises(DOMException);
 
 };
 </code></pre>
 </div>
 </div>
 </div>
+
+
+<ol>
+<li><dfn>channelCount</dfn> is used to help compute <dfn>computedNumberOfChannels</dfn>.</li>
+
+<li><dfn>channelCountMode</dfn> determines how <dfn>computedNumberOfChannels</dfn> will be computed.
+Once this number is computed, all of the connections will be up or down-mixed to that many channels.
+<ul>
+<li>“max”: <dfn>computedNumberOfChannels</dfn> is computed as the maximum of the number of channels of all connections.
+In this mode <dfn>channelCount</dfn> is ignored.</li>
+<li>“clamped-max”: same as “max” up to a limit of the <dfn>channelCount</dfn></li>
+<li>“explicit”: <dfn>computedNumberOfChannels</dfn> is the exact value as specified in <dfn>channelCount</dfn></li>
+</ul>
+
+</li>
+
+<li><dfn>channelInterpretation</dfn> determines how the individual channels will be treated.
+For example, will they be treated as speakers having a specific layout, or will they
+be treated as simple discrete channels?  This value influences exactly how the up and down mixing is
+performed.
+
+<ul>
+<li>“speakers”: use <a href="#UpMix-sub">up-down-mix equations for mono/stereo/quad/5.1</a>.
+In cases where the number of channels do not match any of these basic speaker layouts, revert
+to "discrete".
+</li>
+<li>“discrete”: up-mix by filling channels until they run out then zero out remaining channels.
+                  down-mix by filling as many channels as possible, then dropping remaining channels</li>
+</ul>
+
+</li>
+
+</ol>
+
+
 
 
 <h3>Examples using setInputMixingMode()</h3>
@@ -4137,25 +4146,38 @@ partial interface <dfn>AudioNode</dfn> {
 <div class="blockContent">
 <pre class="code"><code class="idl-code"> 
 // GainNode, BiquadFilterNode, DelayNode, and similar are like this by default.
-biquad.setInputMixingMode(0, “max”, “speakers”);
+biquad.channelCountMode = "max";
+biquad.channelInterpretation = "speakers";
 
 // Set gain node to explicit 2-channels (stereo).
-gain.setInputMixingMode(0, “explicit”, “speakers”, 2);
+gain.channelCount = 2;
+gain.channelCountMode = "explicit";
+gain.channelInterpretation = "speakers";
 
 // The “hardware output” is stereo like this by default.
-context.destination.setInputMixingMode(0, “explicit”, “speakers”, 2);
+context.destination.channelCount = 2;
+context.destination.channelCountMode = "explicit";
+context.destination.channelInterpretation = "speakers";
 
 // Set “hardware output” to 4-channels for DJ-app with two stereo output busses.
-context.destination.setInputMixingMode(0, “explicit”, “discrete”, 4);
+context.destination.channelCount = 4;
+context.destination.channelCountMode = "explicit";
+context.destination.channelInterpretation = "discrete";
 
 // Set “hardware output” to 5.1 to play an HTMLAudioElement.
-context.destination.setInputMixingMode(0, “explicit”, “speakers”, 6);
+context.destination.channelCount = 6;
+context.destination.channelCountMode = "explicit";
+context.destination.channelInterpretation = "speakers";
 
 // PannerNode and ConvolverNode are like this by default.
-pannerNode.setInputMixingMode(0, “clamped-max”, “speakers”, 2);
+pannerNode.channelCount = 2;
+pannerNode.channelCountMode = "clamped-max";
+pannerNode.channelInterpretation = "speakers";
 
 // Explicitly down-mix to mono.
-gain.setInputMixingMode(0, “explicit”, “speakers”, 1);
+gain.channelCount = 1;
+gain.channelCountMode = "explicit";
+gain.channelInterpretation = "speakers";
 </code></pre>
 </div>
 </div>

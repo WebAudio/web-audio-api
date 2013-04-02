@@ -1290,6 +1290,17 @@ way that other EventTargets accept events.
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
+enum <dfn>ChannelCountMode</dfn> {
+    “max”,
+    “clamped-max”,
+    “explicit”
+};
+
+enum <dfn>ChannelInterpretation</dfn> {
+    “speakers”,
+    “discrete”
+};
+
 interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
 
     void connect(AudioNode destination, optional unsigned long output = 0, optional unsigned long input = 0);
@@ -1299,6 +1310,11 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
     readonly attribute AudioContext context;
     readonly attribute unsigned long numberOfInputs;
     readonly attribute unsigned long numberOfOutputs;
+
+    // Channel up-mixing and down-mixing rules for all inputs.
+    attribute unsigned long channelCount;
+    attribute ChannelCountMode channelCountMode;
+    attribute ChannelInterpretation channelInterpretation;
 
 };
 </code></pre>
@@ -1322,6 +1338,28 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
   <dt id="dfn-numberOfOutputs_2"><code>numberOfOutputs</code></dt>
     <dd><p>The number of outputs coming out of the AudioNode. This will be 0
       for an AudioDestinationNode.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-channelCount"><code>channelCount</code><dt>
+    <dd><p>The number of channels for the node.  The default value is 2.</p>
+      <p>See the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
+        section below for more information on this attriubte.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-channelCountMode"><code>channelCountMode</code><dt>
+    <dd><p>Determines how the channel count used for up-mixing and down-mixing
+      is computed.</p>
+      <p>See the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
+        section below for more information on this attriubte.</p>
+    </dd>
+</dl>
+<dl>
+  <dt id="dfn-channelInterpretation"><code>channelInterpretation</code><dt>
+    <dd><p>Determines how individual channels will be treated.</p>
+      <p>See the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
+        section below for more information on this attriubte.</p>
     </dd>
 </dl>
 </div>
@@ -4095,37 +4133,14 @@ connected to it.  As part of this process it computes an internal value <dfn>com
  representing the actual number of channels of the input at any given time:
 </p>
 
-<div class="block">
-<div class="blockTitleDiv">
-<div class="blockContent">
-<pre class="code"><code class="idl-code"> 
-enum <dfn>ChannelCountMode</dfn> {
-    “max”,
-    “clamped-max”,
-    “explicit”
-};
-
-enum <dfn>ChannelInterpretation</dfn> {
-    “speakers”,
-    “discrete”
-};
-
-partial interface <dfn>AudioNode</dfn> {
-
-    // Channel up-mixing and down-mixing rules for all inputs.
-    attribute unsigned long channelCount;
-    attribute ChannelCountMode channelCountMode;
-    attribute ChannelInterpretation channelInterpretation;
-
-};
-</code></pre>
-</div>
-</div>
-</div>
-
+<p>
+The AudioNode attributes involved in channel up-mixing and down-mixing rules are defined
+<a href="#attributes-AudioNode-section">above</a>.  The following is a more precise specification
+on what each of them mean.
+</p>
 
 <ol>
-<li><dfn>channelCount</dfn> is used to help compute <dfn>computedNumberOfChannels</dfn>.  Its default value is 2.</li>
+<li><dfn>channelCount</dfn> is used to help compute <dfn>computedNumberOfChannels</dfn>.</li>
 
 <li><dfn>channelCountMode</dfn> determines how <dfn>computedNumberOfChannels</dfn> will be computed.
 Once this number is computed, all of the connections will be up or down-mixed to that many channels.  For most nodes,

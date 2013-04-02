@@ -161,7 +161,6 @@ other than work in progress.</p>
           <li><a href="#lifetime-AudioNode">4.2.3. Lifetime</a></li>
         </ul>
       </li>
-      <li><a href="#AudioSourceNode">4.3. The AudioSourceNode Interface</a></li>
       <li><a href="#AudioDestinationNode">4.4. The AudioDestinationNode
         Interface</a> 
         <ul>
@@ -496,16 +495,12 @@ so that more advanced capabilities can be added at a later time. </p>
 
 <p>Modular routing allows arbitrary connections between different <a
 href="#AudioNode-section"><code>AudioNode</code></a> objects. Each node can
-have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>. An <a
-href="#AudioSourceNode-section"><code>AudioSourceNode</code></a> has no inputs
-and a single output. An <a
-href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a> has
-one input and no outputs and represents the final destination to the audio
-hardware. Other nodes such as filters can be placed between the <a
-href="#AudioSourceNode-section"><code>AudioSourceNode</code></a> nodes and the
-final <a
-href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a>
-node.  The developer doesn't have to worry about low-level stream format details
+have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>. A <dfn>source node</dfn> has no inputs
+and a single output. A <dfn>destination node</dfn>  has
+one input and no outputs, the most common example being <a
+href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a> the final destination to the audio
+hardware. Other nodes such as filters can be placed between the source and destination nodes.
+The developer doesn't have to worry about low-level stream format details
 when two objects are connected together; <a href="#UpMix-section">the right
 thing just happens</a>. For example, if a mono audio stream is connected to a
 stereo input it should just mix to left and right channels <a
@@ -668,9 +663,6 @@ function setupRoutingGraph () {
     modules. AudioNodes can be dynamically connected together in a <a
     href="#ModularRouting-section">modular fashion</a>. <code>AudioNodes</code>
     exist in the context of an <code>AudioContext</code> </li>
-  <li>An <a class="dfnref" href="#AudioSourceNode-section">AudioSourceNode</a>
-    interface, an abstract AudioNode subclass representing a node which
-    generates audio. </li>
   <li>An <a class="dfnref"
     href="#AudioDestinationNode-section">AudioDestinationNode</a> interface, an
     AudioNode subclass representing the final destination for all rendered
@@ -1228,8 +1220,8 @@ href="#AudioContext-section"><code>AudioContext</code></a>. This interface
 represents audio sources, the audio destination, and intermediate processing
 modules. These modules can be connected together to form <a
 href="#ModularRouting-section">processing graphs</a> for rendering audio to the
-audio hardware. Each node can have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>. An <a
-href="#AudioSourceNode-section"><code>AudioSourceNode</code></a> has no inputs
+audio hardware. Each node can have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>.
+A <dfn>source node</dfn> has no inputs
 and a single output. An <a
 href="#AudioDestinationNode-section"><code>AudioDestinationNode</code></a> has
 one input and no outputs and represents the final destination to the audio
@@ -1330,8 +1322,8 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
 </dl>
 <dl>
   <dt id="dfn-numberOfInputs_2"><code>numberOfInputs</code></dt>
-    <dd><p>The number of inputs feeding into the AudioNode. This will be 0 for
-      an AudioSourceNode.</p>
+    <dd><p>The number of inputs feeding into the AudioNode. For <dfn>source nodes</dfn>,
+    this will be 0.</p>
     </dd>
 </dl>
 <dl>
@@ -1458,8 +1450,8 @@ An <code>AudioNode</code> will live as long as there are any references to it.  
 
 <ol>
 <li>A <em>normal</em> JavaScript reference obeying normal garbage collection rules. </li>
-<li>A <em>playing</em> reference for an <code>AudioSourceNode</code>.  Please see details for each specific
-<code>AudioSourceNode</code> sub-type.  For example, both <code>AudioBufferSourceNodes</code> and <code>OscillatorNodes</code> maintain a <em>playing</em>
+<li>A <em>playing</em> reference for both <code>AudioBufferSourceNodes</code> and <code>OscillatorNodes</code>.
+These nodes maintain a <em>playing</em>
 reference to themselves while they are in the SCHEDULED_STATE or PLAYING_STATE.</li>
 <li>A <em>connection</em> reference which occurs if another <code>AudioNode</code> is connected to it.   </li>
 <li>A <em>tail-time</em> reference which an <code>AudioNode</code> maintains on itself as long as it has
@@ -1483,34 +1475,6 @@ from any other <code>AudioNodes</code> which it is connected to.  In this way it
 Regardless of any of the above references, an <code>AudioNode</code> will be deleted when its <code>AudioContext</code> is deleted.
 </p>
 
-<div id="AudioSourceNode-section" class="section">
-<h2 id="AudioSourceNode">4.3. The AudioSourceNode Interface</h2>
-
-<p>This is an abstract interface representing an audio source, an <a
-href="#AudioNode-section"><code>AudioNode</code></a> which has no inputs and a
-single output: </p>
-<pre>      numberOfInputs  : 0
-      numberOfOutputs : 1
-      </pre>
-
-<p>Subclasses of AudioSourceNode will implement specific types of audio
-sources. </p>
-
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code">
-
-interface <dfn id="dfn-AudioSourceNode">AudioSourceNode</dfn> : AudioNode {
-
-};
-</code></pre>
-</div>
-</div>
-</div>
 
 <div id="AudioDestinationNode-section" class="section">
 <h2 id="AudioDestinationNode">4.4. The AudioDestinationNode Interface</h2>
@@ -2041,7 +2005,7 @@ interface <dfn id="dfn-DelayNode">DelayNode</dfn> : AudioNode {
     <dd><p>An AudioParam object representing the amount of delay (in seconds)
       to apply. The default value (<code>delayTime.value</code>) is 0 (no
       delay). The minimum value is 0 and the maximum value is determined by the <em>maxDelayTime</em>
-      argument to the <code>AudioContext</code> method <code>createDelay</code>.  This parameter is <em>k-rate</em></p>
+      argument to the <code>AudioContext</code> method <code>createDelay</code>.  This parameter is <em>a-rate</em></p>
     </dd>
 </dl>
 </div>
@@ -2052,8 +2016,7 @@ interface <dfn id="dfn-DelayNode">DelayNode</dfn> : AudioNode {
 
 <p>This interface represents a memory-resident audio asset (for one-shot sounds
 and other short audio clips). Its format is non-interleaved IEEE 32-bit linear PCM with a
-nominal range of -1 -&gt; +1. It can contain one or more channels. It is
-analogous to a WebGL texture. Typically, it would be expected that the length
+nominal range of -1 -&gt; +1. It can contain one or more channels.  Typically, it would be expected that the length
 of the PCM data would be fairly short (usually somewhat less than a minute).
 For longer sounds, such as music soundtracks, streaming should be used with the
 <code>audio</code> element and <code>MediaElementAudioSourceNode</code>. </p>
@@ -2161,7 +2124,7 @@ assigned to the .buffer attribute, or is one channel of silence if .buffer is NU
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
-interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : AudioSourceNode {
+interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : AudioNode {
 
     const unsigned short UNSCHEDULED_STATE = 0;
     const unsigned short SCHEDULED_STATE = 1;
@@ -2327,7 +2290,7 @@ If the .src attribute is not set, then the number of channels output will be one
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
-interface <dfn id="dfn-MediaElementAudioSourceNode">MediaElementAudioSourceNode</dfn> : AudioSourceNode {
+interface <dfn id="dfn-MediaElementAudioSourceNode">MediaElementAudioSourceNode</dfn> : AudioNode {
 
 };
 </code></pre>
@@ -3615,7 +3578,7 @@ enum <dfn>OscillatorType</dfn> {
   "custom"
 };
 
-interface <dfn id="dfn-OscillatorNode">OscillatorNode</dfn> : AudioSourceNode {
+interface <dfn id="dfn-OscillatorNode">OscillatorNode</dfn> : AudioNode {
 
     attribute OscillatorType type;
 
@@ -3731,7 +3694,7 @@ used as a source of audio.</p>
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
-interface <dfn id="dfn-MediaStreamAudioSourceNode">MediaStreamAudioSourceNode</dfn> : AudioSourceNode {
+interface <dfn id="dfn-MediaStreamAudioSourceNode">MediaStreamAudioSourceNode</dfn> : AudioNode {
 
 };
 </code></pre>
@@ -4914,7 +4877,7 @@ either be an upper threshold on the total number of voices allowed at any given
 time, or CPU usage can be dynamically monitored and voices dropped when CPU
 usage exceeds a threshold. Or a combination of these two techniques can be
 applied. When CPU usage is monitored for each voice, it can be measured all the
-way from the AudioSourceNode through any effect processing nodes which apply
+way from a source node through any effect processing nodes which apply
 uniquely to that voice. </p>
 
 <p>When a voice is "dropped", it needs to happen in such a way that it doesn't

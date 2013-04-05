@@ -1251,19 +1251,11 @@ made to the input.  If the input has no connections then it has one channel whic
 </p>
 
 <p>
-In order to handle this <em>fan-in</em>, any <code>AudioNode</code> with inputs performs an up-mixing of all connections <em>for each input</em>:
-</p>
+For each <dfn>input</dfn>, an <code>AudioNode</code> performs a mixing (usually an up-mixing) of all connections to that input.
 
-<ol>
-<li>Calculate N: the maximum number of channels of all the connections to the input.  For example, if an input has a mono connection and a stereo connection
-then this number will be 2. </li>
-<li>For each connection to the input, <a href="#UpMix-section">up-mix</a> to N channels.</li>
-<li>Mix together all the up-mixed streams from (2).  This is a straight-forward mixing together of each of the corresponding channels from each
-connection.</li>
-</ol>
+Please see <a href="#MixerGainStructure-section">Mixer Gain Structure</a> for more informative details, and the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
+  section for normative requirements.
 
-<p>
-Please see <a href="#MixerGainStructure-section">Mixer Gain Structure</a> for more informative details.
 </p>
 
 <p>
@@ -1340,7 +1332,7 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
   <dt id="dfn-channelCount"><code>channelCount</code><dt>
     <dd><p>The number of channels for the node.  The default value is 2.</p>
       <p>See the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
-        section below for more information on this attriubte.</p>
+        section for more information on this attribute.</p>
     </dd>
 </dl>
 <dl>
@@ -1348,14 +1340,14 @@ interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
     <dd><p>Determines how the channel count used for up-mixing and down-mixing
       is computed.</p>
       <p>See the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
-        section below for more information on this attriubte.</p>
+        section for more information on this attribute.</p>
     </dd>
 </dl>
 <dl>
   <dt id="dfn-channelInterpretation"><code>channelInterpretation</code><dt>
     <dd><p>Determines how individual channels will be treated.</p>
       <p>See the <a href="#UpMix-section">Channel up-mixing and down-mixing</a>
-        section below for more information on this attriubte.</p>
+        section for more information on this attribute.</p>
     </dd>
 </dl>
 </div>
@@ -4079,6 +4071,8 @@ layouts can be defined.
 <div id="UpMix-section" class="section">
 <h2 id="UpMix">9. Channel up-mixing and down-mixing</h2>
 
+<p class="norm">This section is normative.</p>
+
 <img src="images/unity-gain-summing-junction.png">
 
 <p>
@@ -4114,7 +4108,7 @@ The AudioNode attributes involved in channel up-mixing and down-mixing rules are
 on what each of them mean.
 </p>
 
-<ol>
+<ul>
 <li><dfn>channelCount</dfn> is used to help compute <dfn>computedNumberOfChannels</dfn>.</li>
 
 <li><dfn>channelCountMode</dfn> determines how <dfn>computedNumberOfChannels</dfn> will be computed.
@@ -4145,7 +4139,26 @@ to "discrete".
 
 </li>
 
+</ul>
+
+<p>
+For each input of an AudioNode, an implementation must:
+</p>
+
+<ol>
+<li>Compute <dfn>computedNumberOfChannels</dfn>.</li>
+<li>For each connection to the input:
+<ul>
+<li> up-mix or down-mix the connection to <dfn>computedNumberOfChannels</dfn> according to <dfn>channelInterpretation</dfn>.</li>
+<li> Mix it together with all of the other mixed streams (from other connections). This is a straight-forward mixing together of each of the corresponding channels from each
+connection.</li>
+</ul>
+</li>
 </ol>
+
+
+
+
 
 <h3>Examples</h3>
 

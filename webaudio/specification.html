@@ -828,7 +828,7 @@ callback DecodeSuccessCallback = void (AudioBuffer decodedData);
 callback DecodeErrorCallback = void ();
 
 [Constructor]
-interface <dfn id="dfn-AudioContext">AudioContext</dfn> {
+interface <dfn id="dfn-AudioContext">AudioContext</dfn> : EventTarget {
 
     readonly attribute AudioDestinationNode destination;
     readonly attribute float sampleRate;
@@ -1201,14 +1201,9 @@ the page goes away.
 <h2 id="OfflineAudioContext-section">4.1b. The OfflineAudioContext Interface</h2>
 <p>
 OfflineAudioContext is a particular type of AudioContext for rendering/mixing-down (potentially) faster than real-time.
-It does not render to the audio hardware, but instead renders as quickly as possible, calling a render callback function upon completion
-with the result provided as an AudioBuffer.  It is constructed by specifying the <dfn>numberOfChannels</dfn>, <dfn>length</dfn>, and <dfn>sampleRate</dfn>
-as follows:
+It does not render to the audio hardware, but instead renders as quickly as possible, calling a completion event handler
+with the result provided as an AudioBuffer.
 </p>
-
-<pre>
-var offlineContext = new OfflineAudioContext(unsigned long numberOfChannels, unsigned long length, float sampleRate);
-</pre>
 
 
 <p>
@@ -1221,17 +1216,75 @@ var offlineContext = new OfflineAudioContext(unsigned long numberOfChannels, uns
 
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
-callback OfflineRenderSuccessCallback = void (AudioBuffer renderedData);
-
 [Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)]
 interface <dfn id="dfn-OfflineAudioContext">OfflineAudioContext</dfn> : AudioContext {
 
     void startRendering();
     
-    attribute OfflineRenderSuccessCallback oncomplete;
+    attribute EventHandler oncomplete;
 
 };
 </code></pre>
+</div>
+</div>
+
+
+<div id="attributes-OfflineAudioContext-section" class="section">
+<h3 id="attributes-OfflineAudioContext">4.1b.1. Attributes</h3>
+<dl>
+  <dt id="dfn-oncomplete"><code>oncomplete</code></dt>
+    <dd><p>An EventHandler of type <a href="#OfflineAudioCompletionEvent-section">OfflineAudioCompletionEvent</a>.</p>
+    </dd>
+</dl>
+</div>
+
+
+<div id="methodsandparams-OfflineAudioContext-section" class="section">
+<h3 id="methodsandparams-OfflineAudioContext">4.1b.2. Methods and Parameters</h3>
+<dl>
+  <dt id="dfn-startRendering">The <code>startRendering</code>
+  method</dt>
+    <dd><p>Given the current connections and scheduled changes, starts rendering audio.  The
+    <code>oncomplete</code> handler will be called once the rendering has finished.
+    This method must only be called one time or an exception will be thrown.</p>
+    </dd>
+</dl>
+</div>
+
+
+<div id="OfflineAudioCompletionEvent-section" class="section">
+<h2 id="OfflineAudioCompletionEvent">4.1c. The OfflineAudioCompletionEvent Interface</h2>
+
+<p>This is an <code>Event</code> object which is dispatched to <a
+href="#OfflineAudioContext-section"><code>OfflineAudioContext</code></a>. </p>
+
+
+<div class="block">
+
+<div class="blockTitleDiv">
+<span class="blockTitle">Web IDL</span></div>
+
+<div class="blockContent">
+<pre class="code"><code class="idl-code">
+
+interface <dfn id="dfn-OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</dfn> : Event {
+
+    readonly attribute AudioBuffer renderedBuffer;
+
+};
+</code></pre>
+</div>
+</div>
+
+<div id="attributes-OfflineAudioCompletionEvent-section" class="section">
+<h3 id="attributes-OfflineAudioCompletionEvent">4.1c.1. Attributes</h3>
+<dl>
+  <dt id="dfn-renderedBuffer"><code>renderedBuffer</code></dt>
+    <dd><p>An AudioBuffer containing the rendered audio data once an OfflineAudioContext has finished rendering.
+    It will have a number of channels equal to the <code>numberOfChannels</code> parameter
+    of the OfflineAudioContext constructor.</p>
+    </dd>
+</dl>
 </div>
 </div>
 

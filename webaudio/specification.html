@@ -171,6 +171,8 @@ other than work in progress.</p>
           <li><a href="#attributes-AudioParam">4.5.1. Attributes</a></li>
           <li><a href="#methodsandparams-AudioParam">4.5.2. Methods and
             Parameters</a></li>
+          <li><a href="#computedValue-AudioParam-section">4.5.3. Computation of Value</a></li>
+          <li><a href="#example1-AudioParam-section">4.5.4. AudioParam Automation Example</a></li>
         </ul>
       </li>
       <li><a href="#GainNode">4.7. The GainNode Interface</a> 
@@ -1656,6 +1658,7 @@ used for the entire block.  <em>a-rate</em> parameters must be sampled for each
 sample-frame of the block.
 </p>
 
+
 <div class="block">
 
 <div class="blockTitleDiv">
@@ -1667,9 +1670,6 @@ sample-frame of the block.
 interface <dfn id="dfn-AudioParam">AudioParam</dfn> {
 
     attribute float value;
-    readonly attribute float computedValue;
-    readonly attribute float minValue;
-    readonly attribute float maxValue;
     readonly attribute float defaultValue;
 
     <span class="comment">// Parameter automation. </span>
@@ -1692,68 +1692,16 @@ interface <dfn id="dfn-AudioParam">AudioParam</dfn> {
 </div>
 </div>
 
+
+
 <div id="attributes-AudioParam-section" class="section">
 <h3 id="attributes-AudioParam">4.5.1. Attributes</h3>
+
 <dl>
   <dt id="dfn-value"><code>value</code></dt>
     <dd><p>The parameter's floating-point value.  This attribute is initialized to the
-      <code>defaultValue</code>. If a value is set outside the
-      allowable range described by <code>minValue</code> and
-      <code>maxValue</code> no exception is thrown, because these limits are just nominal and may be
-      exceeded.  If a value is set during a time when there are any automation events scheduled then
+      <code>defaultValue</code>.  If a value is set during a time when there are any automation events scheduled then
       it will be ignored and no exception will be thrown.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-computedValue"><code>computedValue</code></dt>
-    <dd>
-    <p>
-    The final value controlling the audio DSP is calculated as follows:
-    </p>
-    
-
-
-    <ol>
-    <li>An <em>intrinsic</em> parameter value will be calculated at each time, which is either the value set directly to the .value attribute,
-    or, if there are any scheduled parameter changes (automation events) with times before or at this time,
-    the value as calculated from these events.  If the .value attribute
-    is set after any automation events have been scheduled, then these events will be removed.  When read, the .value attribute
-    always returns the <em>intrinsic</em> value for the current time.  If automation events are removed from a given time range, then the
-    <em>intrinsic</em> value will remain unchanged and stay at its previous value until either the .value attribute is directly set, or automation events are added
-    for the time range.
-    </li>
-
-    <li>
-    An AudioParam will take the rendered audio data from any AudioNode output connected to it and <a href="#down-mix">convert it to mono</a> by down-mixing if it is not
-    already mono, then mix it together with other such outputs.  If there are no AudioNodes connected to it, then this value is 0, having no
-    effect on the <em>computedValue</em>.
-    </li>
-
-    <li>
-    The <em>computedValue</em> is the sum of the <em>intrinsic</em> value and the value calculated from (2).
-    </li>
-
-    </ol>
-
-    
-    <p>
-    The <em>computedValue</em> is constantly being updated by the audio rendering thread at each rendering time quantum.
-    Thus when the main JavaScript thread reads this value, then it will reflect the latest computed value.
-    This will mean that reading computedValue twice in a row will potentially return different results
-    if the audio thread's computations have changed the computed value of an AudioParam.  This is similar to how
-    calling <code>performance.now()</code> will return an different up-to-date high-resolution time if called two times in a row.
-    </p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-minValue"><code>minValue</code></dt>
-    <dd><p>Nominal minimum value. This attribute is informational and <code>value</code> may be set
-      lower than this value.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-maxValue"><code>maxValue</code></dt>
-    <dd><p>Nominal maximum value. This attribute is informational and <code>value</code> may be set higher than this value. </p>
     </dd>
 </dl>
 <dl>
@@ -1939,8 +1887,51 @@ of a <em>SetValueCurve</em> event at time T and duration D.</li>
 </div>
 
 
+
+<div id="computedValue-AudioParam-section" class="section">
+<h3>4.5.3. Computation of Value</h3>
+
+<p>
+<dfn>computedValue</dfn> is the final value controlling the audio DSP.  It must be internally computed as follows:
+</p>
+
+<ol>
+<li>An <em>intrinsic</em> parameter value will be calculated at each time, which is either the value set directly to the .value attribute,
+or, if there are any scheduled parameter changes (automation events) with times before or at this time,
+the value as calculated from these events.  If the .value attribute
+is set after any automation events have been scheduled, then these events will be removed.  When read, the .value attribute
+always returns the <em>intrinsic</em> value for the current time.  If automation events are removed from a given time range, then the
+<em>intrinsic</em> value will remain unchanged and stay at its previous value until either the .value attribute is directly set, or automation events are added
+for the time range.
+</li>
+
+<li>
+An AudioParam will take the rendered audio data from any AudioNode output connected to it and <a href="#down-mix">convert it to mono</a> by down-mixing if it is not
+already mono, then mix it together with other such outputs.  If there are no AudioNodes connected to it, then this value is 0, having no
+effect on the <em>computedValue</em>.
+</li>
+
+<li>
+The <em>computedValue</em> is the sum of the <em>intrinsic</em> value and the value calculated from (2).
+</li>
+
+</ol>
+
+
+<p>
+The <em>computedValue</em> is constantly being updated by the audio rendering thread at each rendering time quantum.
+Thus when the main JavaScript thread reads this value, then it will reflect the latest computed value.
+This will mean that reading computedValue twice in a row will potentially return different results
+if the audio thread's computations have changed the computed value of an AudioParam.  This is similar to how
+calling <code>performance.now()</code> will return an different up-to-date high-resolution time if called two times in a row.
+</p>
+
+
+</div>
+
+
 <div id="example1-AudioParam-section" class="section">
-<h3 id="example1-AudioParam">4.5.3. AudioParam Automation Example</h3>
+<h3 id="example1-AudioParam">4.5.4. AudioParam Automation Example</h3>
 
 
 

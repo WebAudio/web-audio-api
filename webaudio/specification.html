@@ -862,7 +862,7 @@ interface <dfn id="dfn-AudioContext">AudioContext</dfn> : EventTarget {
     MediaStreamAudioSourceNode createMediaStreamSource(MediaStream mediaStream);
     MediaStreamAudioDestinationNode createMediaStreamDestination();
 
-    ScriptProcessorNode createScriptProcessor(unsigned long bufferSize,
+    ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
                                               optional unsigned long numberOfInputChannels = 2,
                                               optional unsigned long numberOfOutputChannels = 2);
 
@@ -1069,14 +1069,20 @@ interface <dfn id="dfn-AudioContext">AudioContext</dfn> : EventTarget {
       direct audio processing using JavaScript.  An exception will be thrown if <code>bufferSize</code> or <code>numberOfInputChannels</code> or <code>numberOfOutputChannels</code>
       are outside the valid range. </p>
       <p>The <dfn id="dfn-bufferSize">bufferSize</dfn> parameter determines the
-      buffer size in units of sample-frames. It must be one of the following
-      values: 256, 512, 1024, 2048, 4096, 8192, 16384. This value controls how
+      buffer size in units of sample-frames.  If it's not passed in, or if the
+      value is 0, then the implementation will choose the best buffer size for
+      the given environment, which will be constant power of 2 throughout the lifetime
+      of the node. Otherwise if the author explicitly specifies the bufferSize,
+      it must be one of the following values: 256, 512, 1024, 2048, 4096, 8192,
+      16384. This value controls how
       frequently the <code>audioprocess</code> event is dispatched and
       how many sample-frames need to be processed each call. Lower values for
       <code>bufferSize</code> will result in a lower (better) <a
       href="#Latency-section">latency</a>. Higher values will be necessary to
-      avoid audio breakup and <a href="#Glitching-section">glitches</a>. The
-      value chosen must carefully balance between latency and audio quality.
+      avoid audio breakup and <a href="#Glitching-section">glitches</a>.
+      It is recommended for authors to not specify this buffer size and allow
+      the implementation to pick a good buffer size to balance between latency
+      and audio quality.
       </p>
       <p>The <dfn id="dfn-numberOfInputChannels">numberOfInputChannels</dfn> parameter (defaults to 2) and
       determines the number of channels for this node's input.  Values of up to 32 must be supported. </p>
@@ -2443,8 +2449,9 @@ This value controls how frequently the <code>audioprocess</code> event
 is dispatched and how many sample-frames need to be processed each call.
 Lower numbers for <code>bufferSize</code> will result in a lower (better) <a
 href="#Latency-section">latency</a>. Higher numbers will be necessary to avoid
-audio breakup and <a href="#Glitching-section">glitches</a>. The value chosen
-must carefully balance between latency and audio quality. </p>
+audio breakup and <a href="#Glitching-section">glitches</a>.
+This value will be picked by the implementation if the bufferSize argument
+to <code>createScriptProcessor</code> is not passed in, or is set to 0.</p>
 
 <p><code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code>
 determine the number of input and output channels. It is invalid for both

@@ -3601,9 +3601,16 @@ The number of channels of the output always equals the number of channels of the
 <div class="blockContent">
 <pre class="code"><code class="idl-code">
 
+enum <dfn>OverSampleType</dfn> {
+    "none",
+    "2x",
+    "4x"
+};
+
 interface <dfn id="dfn-WaveShaperNode">WaveShaperNode</dfn> : AudioNode {
 
     attribute Float32Array? curve;
+    attribute OverSampleType oversample;
 
 };
 </code></pre>
@@ -3620,8 +3627,31 @@ interface <dfn id="dfn-WaveShaperNode">WaveShaperNode</dfn> : AudioNode {
       corresponding to the center value of the curve array. Any sample value
       less than -1 will correspond to the first value in the curve array. Any
       sample value less greater than +1 will correspond to the last value in
-      the curve array. Initially the curve attribute is null, which means that
+      the curve array.  The implementation must perform linear interpolation between
+      adjacent points in the curve.  Initially the curve attribute is null, which means that
       the WaveShaperNode will pass its input to its output without modification.</p>
+    </dd>
+</dl>
+
+<dl>
+  <dt id="dfn-oversample"><code>oversample</code></dt>
+    <dd><p>Specifies what type of oversampling (if any) should be used when applying the shaping curve.    
+    The default value is "none", meaning the curve will be applied directly to the input samples.
+    A value of "2x" or "4x" can improve the quality of the processing by avoiding some aliasing, with
+    the "4x" value yielding the highest quality.  For some applications, it's better to use no oversampling
+    in order to get a very precise shaping curve.
+    </p>
+    <p>
+    A value of "2x" or "4x" means that the following steps must be performed:
+    <ol>
+    <li>Up-sample the input samples to 2x or 4x the sample-rate of the AudioContext.  Thus for each
+    processing block of 128 samples, generate 256 (for 2x) or 512 (for 4x) samples.</li>
+    <li>Apply the shaping curve.</li>
+    <li>Down-sample the result back to the sample-rate of the AudioContext.  Thus taking the 256 (or 512) processed samples, generating 128 as
+    the final result.
+    </ol>
+    The exact up-sampling and down-sampling filters are not specified, and can be tuned for sound quality (low aliasing, etc.), low latency, and performance.
+    </p>
     </dd>
 </dl>
 </div>

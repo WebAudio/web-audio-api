@@ -480,14 +480,8 @@ href="#AudioDestinationNode"><code>AudioDestinationNode</code></a>
 then <a href="#ModularRouting">connected</a> together. In most use
 cases, only a single AudioContext is used per document.</p>
 
-<dl title="callback DecodeSuccessCallback = void" class="idl">
-  <dt> AudioBuffer decodedData </dt>
-  <dd> The AudioBuffer containing the decoded audio data. </dd>
-</dl>
-
-<dl title="callback DecodeErrorCallback = void" class="idl"> </dl>
-
-<dl title="[Constructor] interface AudioContext : EventTarget" class="idl">
+<dl title="[Constructor] interface AudioContext : EventTarget" class="idl"
+  data-merge="DecodeSuccessCallback DecodeErrorCallback">
   <dt>readonly attribute AudioDestinationNode destination</dt>
   <dd><p>An <a
     href="#AudioDestinationNode"><code>AudioDestinationNode</code></a>
@@ -761,6 +755,13 @@ cases, only a single AudioContext is used per document.</p>
     </dl>
     </dd>
 </dl>
+<dl title="callback DecodeSuccessCallback = void" class="idl">
+  <dt> AudioBuffer decodedData </dt>
+  <dd> The AudioBuffer containing the decoded audio data. </dd>
+</dl>
+
+<dl title="callback DecodeErrorCallback = void" class="idl"> </dl>
+
 
 <h3 id="lifetime-AudioContext">Lifetime</h3>
 <p class="norm">This section is informative.</p>
@@ -863,193 +864,185 @@ AudioNodes are <em>EventTarget</em>s, as described in <cite><a href="http://dom.
 way that other EventTargets accept events.
 </p>
 
-<div class="block">
+<!--<dl title="enum ChannelCountMode" class="idl">-->
+  <!--<dd>max</dd>-->
+  <!--<dt></dt>-->
+  <!--<dd>clamped-max</dd>-->
+  <!--<dt> </dt>-->
+  <!--<dd>explicit</dd>-->
+  <!--<dt> </dt>-->
+<!--</dl>-->
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
+<!--<dl title="enum ChannelInterpretation" class="idl">-->
+  <!--<dd>"speakers"</dd>-->
+  <!--<dt> </dt>-->
+  <!--<dd>"discrete"</dd>-->
+  <!--<dt> </dt>-->
+<!--</dl>-->
 
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-node-idl">
+<dl title="interface AudioNode : EventTarget" class="idl">
+  <dt>void connect()</dt>
+  <dd>
+    <dl class=parameters>
+      <dt>AudioNode destination</dt>
+      <dd> The <a>destination</a> parameter is the AudioNode to connect to. </dd>
+      <dt>optional unsigned long output = 0 </dt>
+      <dd>
+        The <a>output</a> parameter is an index describing which output of the
+        AudioNode from which to connect. If this paremeter is out-of-bound, an
+        INDEX_SIZE_ERR exception MUST be thrown.
+        It is possible to connect an AudioNode output to more than one input
+        with multiple calls to connect(). Thus, "fan-out" is supported.
+      </dd>
+      <dt>optional unsigned long input = 0</dt>
+      <dd>
+        The <a>input</a> parameter is an index describing
+        which input of the destination AudioNode to connect to. If this parameter
+        is out-of ound, an INDEX_SIZE_ERR exception MUST be thrown.  It is
+        possible to connect an AudioNode to another AudioNode which creates a
+        <em>cycle</em>.  In other words, an AudioNode may connect to another
+        AudioNode, which in turn connects back to the first AudioNode.  This is
+        allowed only if there is at least one <a>DelayNode</a> in the
+        <em>cycle</em> or a NOT_SUPPORTED_ERR exception MUST be thrown.
+      </dd>
 
-enum <dfn>ChannelCountMode</dfn> {
-    "max",
-    "clamped-max",
-    "explicit"
-};
-
-enum <dfn>ChannelInterpretation</dfn> {
-    "speakers",
-    "discrete"
-};
-
-interface <dfn id="dfn-AudioNode">AudioNode</dfn> : EventTarget {
-
-    void connect(AudioNode destination, optional unsigned long output = 0, optional unsigned long input = 0);
-    void connect(AudioParam destination, optional unsigned long output = 0);
-    void disconnect(optional unsigned long output = 0);
-
-    readonly attribute AudioContext context;
-    readonly attribute unsigned long numberOfInputs;
-    readonly attribute unsigned long numberOfOutputs;
-
-    // Channel up-mixing and down-mixing rules for all inputs.
-    attribute unsigned long channelCount;
-    attribute ChannelCountMode channelCountMode;
-    attribute ChannelInterpretation channelInterpretation;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-AudioNode">Attributes</h3>
-<dl>
-  <dt id="dfn-context"><code>context</code></dt>
-    <dd><p>The AudioContext which owns this AudioNode.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-numberOfInputs_2"><code>numberOfInputs</code></dt>
-    <dd><p>The number of inputs feeding into the AudioNode. For <dfn>source nodes</dfn>,
-    this will be 0.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-numberOfOutputs_2"><code>numberOfOutputs</code></dt>
-    <dd><p>The number of outputs coming out of the AudioNode. This will be 0
-      for an AudioDestinationNode.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-channelCount"><code>channelCount</code><dt>
-    <dd><p>The number of channels used when up-mixing and down-mixing connections to any inputs to the node.  The default value is 2
-       except for specific nodes where its value is specially determined.
-       This attribute has no effect for nodes with no inputs.
-       If this value is set to zero, the implementation MUST throw a
-       NOT_SUPPORTED_ERR exception.</p>
-      <p>See the <a href="#UpMix">Channel up-mixing and down-mixing</a>
-        section for more information on this attribute.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-channelCountMode"><code>channelCountMode</code><dt>
-    <dd><p>Determines how channels will be counted when up-mixing and down-mixing connections to any inputs to the node
-      .  This attribute has no effect for nodes with no inputs.</p>
-      <p>See the <a href="#UpMix">Channel up-mixing and down-mixing</a>
-        section for more information on this attribute.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-channelInterpretation"><code>channelInterpretation</code><dt>
-    <dd><p>Determines how individual channels will be treated when up-mixing and down-mixing connections to any inputs to the node.
-    This attribute has no effect for nodes with no inputs.</p>
-      <p>See the <a href="#UpMix">Channel up-mixing and down-mixing</a>
-        section for more information on this attribute.</p>
-    </dd>
-</dl>
-</section>
-
-<section>
-<h3 id="methodsandparams-AudioNode">Methods and Parameters</h3>
-<dl>
-  <dt id="dfn-connect-AudioNode">The <code>connect</code> to AudioNode method</dt>
-    <dd><p>Connects the AudioNode to another AudioNode.</p>
-      <p>The <dfn id="dfn-destination_2">destination</dfn> parameter is the
-      AudioNode to connect to.</p>
-      <p>The <dfn id="dfn-output_2">output</dfn> parameter is an index
-      describing which output of the AudioNode from which to connect. If this paremeter is
-      out-of-bound, an INDEX_SIZE_ERR exception MUST be thrown.</p>
-      <p>The <dfn id="dfn-input_2">input</dfn> parameter is an index describing
-      which input of the destination AudioNode to connect to. If this parameter
-      is out-of ound, an INDEX_SIZE_ERR exception MUST be thrown. </p>
-      <p>It is possible to connect an AudioNode output to more than one input
-      with multiple calls to connect(). Thus, "fan-out" is supported. </p>
-      <p>
-      It is possible to connect an AudioNode to another AudioNode which creates a <em>cycle</em>.
-      In other words, an AudioNode may connect to another AudioNode, which in turn connects back
-      to the first AudioNode.  This is allowed only if there is at least one
-      <a class="dfnref" href="#DelayNode">DelayNode</a> in the
-      <em>cycle</em> or a NOT_SUPPORTED_ERR exception MUST
-      be thrown.
-      </p>
-      
-      <p>
-      There can only be one connection between a given output of one specific node and a given input of another specific node.
-      Multiple connections with the same termini are ignored.  For example: 
-      </p>
-
-      <pre class="hightlight">
-      nodeA.connect(nodeB);
-      nodeA.connect(nodeB);
-
-      will have the same effect as
-
-      nodeA.connect(nodeB);
-      </pre>
-      
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-connect-AudioParam">The <code>connect</code> to AudioParam method</dt>
-    <dd><p>Connects the AudioNode to an AudioParam, controlling the parameter
-      value with an audio-rate signal.
-      </p>
-
-      <p>The <dfn id="dfn-destination_3">destination</dfn> parameter is the
-      AudioParam to connect to.</p>
-      <p>The <dfn id="dfn-output_3-destination">output</dfn> parameter is an index
-      describing which output of the AudioNode from which to connect. If the
-      <dfn id="dfn-output_3-destination"> parameter</dfn> is
-      out-of-bound, an INDEX_SIZE_ERR exception MUST be thrown.</p>
-
-      <p>It is possible to connect an AudioNode output to more than one AudioParam
-      with multiple calls to connect(). Thus, "fan-out" is supported. </p>
-      <p>It is possible to connect more than one AudioNode output to a single AudioParam
-      with multiple calls to connect().  Thus, "fan-in" is supported. </p>
-      <p>An AudioParam will take the rendered audio data from any AudioNode output connected to it and <a href="#down-mix">convert it to mono</a> by down-mixing if it is not
-      already mono, then mix it together with other such outputs and finally will mix with the <em>intrinsic</em>
-      parameter value (the <code>value</code> the AudioParam would normally have without any audio connections), including any timeline changes
-      scheduled for the parameter. </p>
-
-      <p>
-      There can only be one connection between a given output of one specific node and a specific AudioParam.
-      Multiple connections with the same termini are ignored.  For example: 
-      </p>
+      There can only be one connection between a given output of one specific
+      node and a given input of another specific node.  Multiple connections
+      with the same termini are ignored.  For example:
 
       <pre class="highlight">
-      nodeA.connect(param);
-      nodeA.connect(param);
+      nodeA.connect(nodeB);
+      nodeA.connect(nodeB);
+      </pre>
 
       will have the same effect as
 
-      nodeA.connect(param);
+      <pre class="highlight">
+        nodeA.connect(nodeB);
       </pre>
+    </dl>
+  </dd>
+  <dt>
+    void connect()
+  </dt>
+  <dd>
+    Connects the AudioNode to an AudioParam, controlling the parameter
+    value with an audio-rate signal.
 
+    <dl class=parameters>
+      <dt> AudioParam destination </dt>
+      <dd>The <a>destination</a> parameter is the AudioParam to connect to.</dd>
+      <dt> optional unsigned long output = 0 </dt>
+      <dd>
+        The <dfn>output</dfn> parameter is an index describing which output of the
+        AudioNode from which to connect. If the <dfn> parameter</dfn> is
+        out-of-bound, an INDEX_SIZE_ERR exception MUST be thrown.
+      </dd>
+    </dl>
+
+    <p>It is possible to connect an AudioNode output to more than one
+    AudioParam with multiple calls to connect(). Thus, "fan-out" is supported.
+    </p> <p>It is possible to connect more than one AudioNode output to a
+    single AudioParam with multiple calls to connect().  Thus, "fan-in" is
+    supported. </p> <p>An AudioParam will take the rendered audio data from
+    any AudioNode output connected to it and <a href="#down-mix">convert it to
+    mono</a> by down-mixing if it is not already mono, then mix it together
+    with other such outputs and finally will mix with the <em>intrinsic</em>
+    parameter value (the <code>value</code> the AudioParam would normally have
+    without any audio connections), including any timeline changes scheduled
+    for the parameter. </p>
+
+    <p> There can only be one connection between a given output of one
+    specific node and a specific AudioParam.  Multiple connections with the
+    same termini are ignored.  For example: </p>
+
+    <pre class="highlight">
+      nodeA.connect(param);
+      nodeA.connect(param);
+    </pre>
+
+    will have the same effect as
+
+    <pre>
+      nodeA.connect(param);
+    </pre>
+  </dd>
+  <dt>void disconnect()</dt>
+  <dd>
+  <dl>
+    <dt>optional unsigned long output = 0</dt>
+    <dd>
+      The <dfn>output</dfn> parameter is an index describing which output of
+      the AudioNode to disconnect. If the <dfn>output</dfn> parameter is
+      out-of-bounds, an INDEX_SIZE_ERR exception MUST be thrown.
     </dd>
+  </dl>
+  </dd>
+
+  <dt>readonly attribute AudioContext context</dt>
+  <dd>The AudioContext which owns this AudioNode.</dd>
+  <dt>readonly attribute unsigned long numberOfInputs</dt>
+  <dd>
+    The number of inputs feeding into the AudioNode. For <dfn>source
+    nodes</dfn>, this will be 0.
+  </dd>
+  <dt>readonly attribute unsigned long numberOfOutputs</dt>
+  <dd>
+    The number of outputs coming out of the <a>AudioNode</a>. This will be 0
+    for an <a>AudioDestinationNode</a>.
+  </dd>
+
+  <dt>attribute unsigned long channelCount</dt>
+  <dd>
+    <p>The number of channels used when up-mixing and down-mixing connections
+    to any inputs to the node.  The default value is 2 except for specific
+    nodes where its value is specially determined.  This attribute has no
+    effect for nodes with no inputs.  If this value is set to zero, the
+    implementation MUST throw a NOT_SUPPORTED_ERR exception.</p>
+    <p>See the <a href="#UpMix">Channel up-mixing and down-mixing</a>
+    section for more information on this attribute.</p>
+  </dd>
+  <dt>attribute ChannelCountMode channelCountMode</dt>
+  <dd>
+    <p>
+      Determines how channels will be counted when up-mixing and down-mixing
+      connections to any inputs to the node .  This attribute has no effect
+      for nodes with no inputs.
+    </p>
+    <p>
+      See the <a href="#UpMix">Channel up-mixing and down-mixing</a> section
+      for more information on this attribute.
+    </p>
+  </dd>
+  <dt>attribute ChannelInterpretation channelInterpretation</dt>
+  <dd>
+    <p>
+      Determines how individual channels will be treated when up-mixing and
+      down-mixing connections to any inputs to the node.  This attribute has
+      no effect for nodes with no inputs.
+    </p>
+    <p>
+      See the <a href="#UpMix">Channel up-mixing and down-mixing</a> section
+      for more information on this attribute.
+    </p>
+  </dd>
 </dl>
-<dl>
-  <dt id="dfn-disconnect">The <code>disconnect</code> method</dt>
-    <dd><p>Disconnects an AudioNode's output.</p>
-      <p>The <dfn id="dfn-output_3-disconnect">output</dfn> parameter is an index
-      describing which output of the AudioNode to disconnect. If the
-      <dfn id="dfn-output_3-disconnect">output</dfn> parameter is out-of-bounds, an
-      INDEX_SIZE_ERR exception MUST be thrown. </p>
-    </dd>
-</dl>
-</section>
 
 <section>
   <h3 id="lifetime-AudioNode">Lifetime</h3>
-  
+
   <p class="norm">This section is informative.</p>
-  
-  <p>An implementation may choose any method to avoid unnecessary resource usage and unbounded memory growth of unused/finished
-  nodes.  The following is a description to help guide the general expectation of how node lifetime would be managed.
+
+  <p>
+    An implementation may choose any method to avoid unnecessary resource usage
+    and unbounded memory growth of unused/finished nodes.  The following is a
+    description to help guide the general expectation of how node lifetime would
+    be managed.
   </p>
   
   <p>
-  An <code>AudioNode</code> will live as long as there are any references to it.  There are several types of references:
+    An <code>AudioNode</code> will live as long as there are any references to it.
+    There are several types of references:
   </p>
   
   <ol>
@@ -1102,144 +1095,88 @@ href="#AudioContext"><code>AudioContext</code></a>. </p>
       channelInterpretation = "speakers";
 </pre>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-destination-node-idl">
-
-interface <dfn id="dfn-AudioDestinationNode">AudioDestinationNode</dfn> : AudioNode {
-
-    readonly attribute unsigned long maxChannelCount;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-AudioDestinationNode">Attributes</h3>
-<dl>
-  <dt id="dfn-maxChannelCount"><code>maxChannelCount</code></dt>
-    <dd><p>The maximum number of channels that the <code>channelCount</code> attribute can be set to.
-    An <code>AudioDestinationNode</code> representing the audio hardware end-point (the normal case) can potentially output more than
-    2 channels of audio if the audio hardware is multi-channel.  <code>maxChannelCount</code> is the maximum number of channels that
-    this hardware is capable of supporting.  If this value is 0, then this indicates that <code>channelCount</code> may not be
-    changed.  This will be the case for an <code>AudioDestinationNode</code> in an <code>OfflineAudioContext</code> and also for
-    basic implementations with hardware support for stereo output only.</p>
-
-    <p><code>channelCount</code> defaults to 2 for a destination in a normal AudioContext, and may be set to any non-zero value less than or equal
-    to <code>maxChannelCount</code>.  An INDEX_SIZE_ERR exception MUST be thrown if this value is not within the valid range.  Giving a concrete example, if
-    the audio hardware supports 8-channel output, then we may set <code>numberOfChannels</code> to 8, and render 8-channels of output.
-    </p>
-    
+<dl title="interface AudioDestinationNode : AudioNode" class="idl">
+  <dt>readonly attribute unsigned long maxChannelCount</dt>
+  <dd>
     <p>
-    For an AudioDestinationNode in an OfflineAudioContext, the <code>channelCount</code> is determined when the offline context is created and this value
-    may not be changed.
+      The maximum number of channels that the <code>channelCount</code>
+      attribute can be set to.  An <a>AudioDestinationNode</a> representing the
+      audio hardware end-point (the normal case) can potentially output more
+      than 2 channels of audio if the audio hardware is multi-channel.
+      <a>maxChannelCount</a> is the maximum number of channels that this
+      hardware is capable of supporting.  If this value is 0, then this
+      indicates that <a>channelCount</a> may not be changed.  This will be the
+      case for an <a>AudioDestinationNode</a> in an <a>OfflineAudioContext</a>
+      and also for basic implementations with hardware support for stereo output
+      only.
     </p>
-    
-    </dd>
+
+    <p>
+      <a>channelCount</a> defaults to 2 for a destination in a normal
+      AudioContext, and may be set to any non-zero value less than or equal to
+      <a>maxChannelCount</a>.  An INDEX_SIZE_ERR exception MUST be thrown
+      if this value is not within the valid range.  Giving a concrete example,
+      if the audio hardware supports 8-channel output, then we may set
+      <a>numberOfChannels</a> to 8, and render 8-channels of output.
+    </p>
+
+    <p>
+      For an AudioDestinationNode in an OfflineAudioContext, the
+      <code>channelCount</code> is determined when the offline context is
+      created and this value may not be changed.
+    </p>
+  </dd>
 </dl>
-</section>
+
 </section>
 
 <section>
 <h2 id="AudioParam">The AudioParam Interface</h2>
 
-<p>AudioParam controls an individual aspect of an <a
-href="#AudioNode"><code>AudioNode</code></a>'s functioning, such as
-volume. The parameter can be set immediately to a particular value using the
-<code>value</code> attribute. Or, value changes can be scheduled to happen at
-very precise times (in the coordinate system of AudioContext.currentTime), for envelopes, volume fades, LFOs, filter sweeps, grain
-windows, etc. In this way, arbitrary timeline-based automation curves can be
-set on any AudioParam.  Additionally, audio signals from the outputs of <code>AudioNodes</code> can be connected
-to an <code>AudioParam</code>, summing with the <em>intrinsic</em> parameter value.
+<p>
+  AudioParam controls an individual aspect of an <a>AudioNode</a>'s functioning,
+  such as volume.  The parameter can be set immediately to a particular value
+  using the <code>value</code> attribute. Or, value changes can be scheduled to
+  happen at very precise times (in the coordinate system of
+  AudioContext.currentTime), for envelopes, volume fades, LFOs, filter sweeps,
+  grain windows, etc. In this way, arbitrary timeline-based automation curves
+  can be set on any AudioParam.  Additionally, audio signals from the outputs of
+  <a>AudioNodes</a> can be connected to an <a>AudioParam</a>, summing with the
+  <em>intrinsic</em> parameter value.
 </p>
 
 <p>
-Some synthesis and processing <code>AudioNodes</code> have <code>AudioParams</code> as attributes whose values must
- be taken into account on a per-audio-sample basis.
-For other <code>AudioParams</code>, sample-accuracy is not important and the value changes can be sampled more coarsely.
-Each individual <code>AudioParam</code> will specify that it is either an <em>a-rate</em> parameter
-which means that its values must be taken into account on a per-audio-sample basis, or it is a <em>k-rate</em> parameter.  
+  Some synthesis and processing <code>AudioNodes</code> have
+  <code>AudioParams</code> as attributes whose values must be taken into account
+  on a per-audio-sample basis.  For other <code>AudioParams</code>,
+  sample-accuracy is not important and the value changes can be sampled more
+  coarsely.  Each individual <code>AudioParam</code> will specify that it is
+  either an <em>a-rate</em> parameter which means that its values must be taken
+  into account on a per-audio-sample basis, or it is a <em>k-rate</em>
+  parameter.
 </p>
 
 <p>
-Implementations must use block processing, with each <code>AudioNode</code>
-processing 128 sample-frames in each block.
+  Implementations must use block processing, with each <a>AudioNode</a>
+  processing 128 sample-frames in each block.
 </p>
 
 <p>
-For each 128 sample-frame block, the value of a <em>k-rate</em> parameter must
-be sampled at the time of the very first sample-frame, and that value must be
-used for the entire block.  <em>a-rate</em> parameters must be sampled for each
-sample-frame of the block.
+  For each 128 sample-frame block, the value of a <em>k-rate</em> parameter must
+  be sampled at the time of the very first sample-frame, and that value must be
+  used for the entire block.  <em>a-rate</em> parameters must be sampled for
+  each sample-frame of the block.
 </p>
 
-
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-param-idl">
-
-interface <dfn id="dfn-AudioParam">AudioParam</dfn> {
-
-    attribute float value;
-    readonly attribute float defaultValue;
-
-    <span class="comment">// Parameter automation. </span>
-    void setValueAtTime(float value, double startTime);
-    void linearRampToValueAtTime(float value, double endTime);
-    void exponentialRampToValueAtTime(float value, double endTime);
-
-    <span class="comment">// Exponentially approach the target value with a rate having the given time constant. </span>
-    void setTargetAtTime(float target, double startTime, double timeConstant);
-
-    <span class="comment">// Sets an array of arbitrary parameter values starting at time for the given duration. </span>
-    <span class="comment">// The number of values will be scaled to fit into the desired duration. </span>
-    void setValueCurveAtTime(Float32Array values, double startTime, double duration);
-
-    <span class="comment">// Cancels all scheduled parameter changes with times greater than or equal to startTime. </span>
-    void cancelScheduledValues(double startTime);
-
-};
-</code></pre>
-</div>
-</div>
-
-
-
-<section>
-<h3 id="attributes-AudioParam">Attributes</h3>
-
-<dl>
-  <dt id="dfn-value"><code>value</code></dt>
-    <dd><p>The parameter's floating-point value.  This attribute is initialized to the
-      <code>defaultValue</code>.  If <code>value</code> is set during a time when there are any automation events scheduled then
-      it will be ignored and no exception will be thrown.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-defaultValue"><code>defaultValue</code></dt>
-    <dd><p>Initial value for the <code>value</code> attribute</p>
-    </dd>
-</dl>
-</section>
-
-<section>
-<h3 id="methodsandparams-AudioParam">Methods and Parameters</h3>
-
 <p>
-An <code>AudioParam</code> maintains a time-ordered event list which is initially empty.  The times are in
-the time coordinate system of AudioContext.currentTime.  The events define a mapping from time to value.  The following methods
-can change the event list by adding a new event into the list of a type specific to the method.  Each event
-has a time associated with it, and the events will always be kept in time-order in the list.  These
-methods will be called <em>automation</em> methods:</p>
+  An <code>AudioParam</code> maintains a time-ordered event list which is
+  initially empty.  The times are in the time coordinate system of
+  AudioContext.currentTime.  The events define a mapping from time to value.
+  The following methods can change the event list by adding a new event into the
+  list of a type specific to the method.  Each event has a time associated with
+  it, and the events will always be kept in time-order in the list.  These
+  methods will be called <em>automation</em> methods:
+</p>
 
 <ul>
 <li>setValueAtTime() - <em>SetValue</em></li>
@@ -1253,159 +1190,239 @@ methods will be called <em>automation</em> methods:</p>
 The following rules will apply when calling these methods:
 </p>
 <ul>
-<li>If one of these events is added at a time where there is already an event of the exact same type, then the new event will replace the old
-one.</li>
-<li>If one of these events is added at a time where there is already one or more events of a different type, then it will be
-placed in the list after them, but before events whose times are after the event. </li>
-<li>If setValueCurveAtTime() is called for time T and duration D and there are any events having a time greater than T, but less than
-T + D, then a NOT_SUPPORTED_ERR exception MUST be thrown.  In other words, it's not ok to schedule a value curve during a time period containing other events.</li>
-<li>Similarly a NOT_SUPPORTED_ERR exception MUST be thrown if any <em>automation</em> method is called at a time which is inside of the time interval
-of a <em>SetValueCurve</em> event at time T and duration D.</li>
+  <li>
+    If one of these events is added at a time where there is already an event
+    of the exact same type, then the new event will replace the old one.
+  </li>
+  <li>
+    If one of these events is added at a time where there is already one or more
+    events of a different type, then it will be placed in the list after them, but
+    before events whose times are after the event.
+  </li>
+  <li>
+    If setValueCurveAtTime() is called for time T and duration D and there are any
+    events having a time greater than T, but less than T + D, then a
+    NOT_SUPPORTED_ERR exception MUST be thrown.  In other words, it's not ok to
+    schedule a value curve during a time period containing other events.
+  </li>
+  <li>
+    Similarly a NOT_SUPPORTED_ERR exception MUST be thrown if any
+    <em>automation</em> method is called at a time which is inside of the time
+    interval of a <em>SetValueCurve</em> event at time T and duration D.
+  </li>
 </ul>
 <p>
 </p>
 
-<dl>
-  <dt id="dfn-setValueAtTime">The <code>setValueAtTime</code> method</dt>
-    <dd><p>Schedules a parameter value change at the given time.</p>
-      <p>The <dfn id="dfn-value_2">value</dfn> parameter is the value the
-      parameter will change to at the given time.</p>
-      <p>The <dfn id="dfn-startTime_2">startTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
-      <p>
-      If there are no more events after this <em>SetValue</em> event, then for t >= startTime,  v(t) = value.  In other words, the value will remain constant.
-      </p>
-      <p>
-      If the next event (having time T1) after this <em>SetValue</em> event is not of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>,
-      then, for t: startTime &lt;= t &lt; T1,  v(t) = value.
-      In other words, the value will remain constant during this time interval, allowing the creation of "step" functions.
-      </p>
-      <p>
-      If the next event after this <em>SetValue</em> event is of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em> then please
-      see details below.
-      </p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-linearRampToValueAtTime">The <code>linearRampToValueAtTime</code>
-  method</dt>
-    <dd><p>Schedules a linear continuous change in parameter value from the
-      previous scheduled parameter value to the given value.</p>
-      <p>The <dfn id="dfn-value_3">value</dfn> parameter is the value the
-      parameter will linearly ramp to at the given time.</p>
-      <p>The <dfn id="dfn-endTime_3">endTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
 
-      <p>
-      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time of the previous event and T1 is the endTime parameter passed into this method)
-      will be calculated as:
-      </p>
+
+<dl title="interface AudioParam" class="idl">
+  <dt> attribute float value </dt>
+  <dd>
+    <p>
+      The parameter's floating-point value.  This attribute is initialized to
+      the <code>defaultValue</code>.  If <code>value</code> is set during a time
+      when there are any automation events scheduled then it will be ignored and
+      no exception will be thrown.
+    </p>
+  </dd>
+  <dt> readonly attribute float defaultValue </dt>
+  <dd>
+    Initial value for the <code>value</code> attribute.
+  </dd>
+
+  <dt> void setValueAtTime(float value, double startTime) </dt>
+  <dd>
+    <p>
+      Schedules a parameter value change at the given time.</p> <p>The <dfn
+        id="dfn-value_2">value</dfn> parameter is the value the parameter will
+      change to at the given time.
+    </p>
+    <p>
+      The <dfn id="dfn-startTime_2">startTime</dfn> parameter is the time
+      in the same time coordinate system as AudioContext.currentTime.
+    </p>
+    <p>
+      If there are no more events after this <em>SetValue</em> event, then for t
+      &gt;= startTime,  v(t) = value.  In other words, the value will remain
+      constant.
+    </p>
+    <p>
+      If the next event (having time T1) after this <em>SetValue</em> event is
+      not of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>,
+      then, for t:
+
       <pre>
-      v(t) = V0 + (V1 - V0) * ((t - T0) / (T1 - T0))
+        startTime &lt;= t &lt; T1,  v(t) = value
       </pre>
-      <p>
-      Where V0 is the value at the time T0 and V1 is the value parameter passed into this method.
-      </p>
-      <p>
-      If there are no more events after this LinearRampToValue event then for t >= T1, v(t) = V1
-      </p>
 
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-exponentialRampToValueAtTime">The
-  <code>exponentialRampToValueAtTime</code> method</dt>
-    <dd><p>Schedules an exponential continuous change in parameter value from
+       In other words, the value will remain constant during this time interval,
+       allowing the creation of "step" functions.
+    </p>
+    <p>
+      If the next event after this <em>SetValue</em> event is of type
+      <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em> then please
+      see details below.
+    </p>
+  </dd>
+  <dt> void linearRampToValueAtTime(float value, double endTime) </dt>
+  <dd>
+    <p>
+      Schedules a linear continuous change in parameter value from the previous
+      scheduled parameter value to the given value.</p> <p>The <dfn
+      id="dfn-value_3">value</dfn> parameter is the value the parameter will
+      linearly ramp to at the given time.</p> <p>The <dfn
+      id="dfn-endTime_3">endTime</dfn> parameter is the time in the same time
+      coordinate system as AudioContext.currentTime.
+    </p>
+
+    <p>
+      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
+      of the previous event and T1 is the endTime parameter passed into this
+      method) will be calculated as:
+    </p>
+    <pre>
+      v(t) = V0 + (V1 - V0) * ((t - T0) / (T1 - T0))
+    </pre>
+    <p>
+      Where V0 is the value at the time T0 and V1 is the value parameter passed
+      into this method.
+    </p>
+    <p>
+      If there are no more events after this LinearRampToValue event then for t
+      &gt;= T1, v(t) = V1.
+    </p>
+  </dd>
+  <dt> void exponentialRampToValueAtTime(float value, double endTime) </dt>
+  <dd>
+    <p>
+      Schedules an exponential continuous change in parameter value from
       the previous scheduled parameter value to the given value. Parameters
       representing filter frequencies and playback rate are best changed
-      exponentially because of the way humans perceive sound. </p>
-      <p>The <dfn id="dfn-value_4">value</dfn> parameter is the value the
-      parameter will exponentially ramp to at the given time.  A NOT_SUPPORTED_ERR exception MUST be thrown if this value is less than
-      or equal to 0, or if the value at the time of the previous event is less than or equal to 0.</p>
-      <p>The <dfn id="dfn-endTime_4">endTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
-      <p>
-      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time of the previous event and T1 is the endTime parameter passed into this method)
-      will be calculated as:
-      </p>
-      <pre>
-      v(t) = V0 * (V1 / V0) ^ ((t - T0) / (T1 - T0))
-      </pre>
-      <p>
-      Where V0 is the value at the time T0 and V1 is the value parameter passed into this method.
-      </p>
-      <p>
-      If there are no more events after this ExponentialRampToValue event then for t &gt;= T1, v(t) = V1
-      </p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-setTargetAtTime">The <code>setTargetAtTime</code>
-  method</dt>
-    <dd><p>Start exponentially approaching the target value at the given time
+      exponentially because of the way humans perceive sound.
+    </p>
+    <p>
+      The <dfn id="dfn-value_4">value</dfn> parameter is the value the parameter
+      will exponentially ramp to at the given time.  A NOT_SUPPORTED_ERR exception
+      MUST be thrown if this value is less than or equal to 0, or if the value at
+      the time of the previous event is less than or equal to 0.
+    </p>
+    <p>
+      The <dfn id="dfn-endTime_4">endTime</dfn> parameter is the time in the same
+      time coordinate system as AudioContext.currentTime.
+    </p>
+    <p>
+      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
+      of the previous event and T1 is the endTime parameter passed into this
+      method) will be calculated as:
+    </p>
+    <pre>
+        v(t) = V0 * (V1 / V0) ^ ((t - T0) / (T1 - T0))
+    </pre>
+    <p>
+      Where V0 is the value at the time T0 and V1 is the value parameter passed into
+      this method.
+    </p>
+    <p>
+      If there are no more events after this ExponentialRampToValue event then for t
+      &gt;= T1, v(t) = V1
+    </p>
+  </dd>
+  <dt> void setTargetAtTime(float target, double startTime, double timeConstant) </dt>
+  <dd>
+    <p>
+      Start exponentially approaching the target value at the given time
       with a rate having the given time constant. Among other uses, this is
       useful for implementing the "decay" and "release" portions of an ADSR
       envelope. Please note that the parameter value does not immediately
       change to the target value at the given time, but instead gradually
-      changes to the target value.</p>
-      <p>The <dfn id="dfn-target">target</dfn> parameter is the value
-      the parameter will <em>start</em> changing to at the given time.</p>
-      <p>The <dfn id="dfn-startTime">startTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
-      <p>The <dfn id="dfn-timeConstant">timeConstant</dfn> parameter is the
+      changes to the target value.
+    </p>
+    <p>
+      The <dfn id="dfn-target">target</dfn> parameter is the value
+      the parameter will <em>start</em> changing to at the given time.
+    </p>
+    <p>
+      The <dfn id="dfn-startTime">startTime</dfn> parameter is the time in the
+      same time coordinate system as AudioContext.currentTime.
+    </p>
+    <p>
+      The <dfn id="dfn-timeConstant">timeConstant</dfn> parameter is the
       time-constant value of first-order filter (exponential) approach to the
       target value. The larger this value is, the slower the transition will
-      be.</p>
-      <p>
-      More precisely, <em>timeConstant</em> is the time it takes a first-order linear continuous time-invariant system
-      to reach the value 1 - 1/e (around 63.2%) given a step input response (transition from 0 to 1 value).
-      </p>
-      <p>
-      During the time interval: <em>T0</em> &lt;= t &lt; <em>T1</em>, where T0 is the <em>startTime</em> parameter and T1 represents the time of the event following this
-      event (or <em>infinity</em> if there are no following events):
-      </p>
-      <pre>
-      v(t) = V1 + (V0 - V1) * exp(-(t - T0) / <em>timeConstant</em>)
-      </pre>
-      <p>
-      Where V0 is the initial value (the .value attribute) at T0 (the <em>startTime</em> parameter) and V1 is equal to the <em>target</em>
+      be.
+    </p>
+    <p>
+      More precisely, <em>timeConstant</em> is the time it takes a first-order
+      linear continuous time-invariant system to reach the value 1 - 1/e (around
+      63.2%) given a step input response (transition from 0 to 1 value).
+    </p>
+    <p>
+      During the time interval: <em>T0</em> &lt;= t &lt; <em>T1</em>, where T0
+      is the <em>startTime</em> parameter and T1 represents the time of the
+      event following this event (or <em>infinity</em> if there are no following
+      events):
+    </p>
+    <pre>
+    v(t) = V1 + (V0 - V1) * exp(-(t - T0) / <em>timeConstant</em>)
+    </pre>
+    <p>
+      Where V0 is the initial value (the .value attribute) at T0 (the
+      <em>startTime</em> parameter) and V1 is equal to the <em>target</em>
       parameter.
-      </p>
+    </p>
     </dd>
-</dl>
-<dl>
-  <dt id="dfn-setValueCurveAtTime">The <code>setValueCurveAtTime</code>
-  method</dt>
-    <dd><p>Sets an array of arbitrary parameter values starting at the given
-      time for the given duration. The number of values will be scaled to fit
-      into the desired duration. </p>
-      <p>The <dfn id="dfn-values">values</dfn> parameter is a Float32Array
-      representing a parameter value curve. These values will apply starting at
-      the given time and lasting for the given duration. </p>
-      <p>The <dfn id="dfn-startTime_5">startTime</dfn> parameter is the time in the same time coordinate system as AudioContext.currentTime.</p>
-      <p>The <dfn id="dfn-duration_5">duration</dfn> parameter is the
-      amount of time in seconds (after the <em>time</em> parameter) where values will be calculated according to the <em>values</em> parameter..</p>
+  <dt> void setValueCurveAtTime(Float32Array values, double startTime, double duration) </dt>
+    <dd>
       <p>
-      During the time interval: <em>startTime</em> &lt;= t &lt; <em>startTime</em> + <em>duration</em>, values will be calculated:
+        Sets an array of arbitrary parameter values starting at the given
+        time for the given duration. The number of values will be scaled to fit
+        into the desired duration.
+      </p>
+      <p>
+        The <dfn id="dfn-values">values</dfn> parameter is a Float32Array
+        representing a parameter value curve. These values will apply starting at
+        the given time and lasting for the given duration. 
+      </p>
+      <p>
+        The <dfn id="dfn-startTime_5">startTime</dfn> parameter is the time in the
+        same time coordinate system as AudioContext.currentTime.
+      </p>
+      <p>
+        The <dfn id="dfn-duration_5">duration</dfn> parameter is the amount of
+        time in seconds (after the <em>time</em> parameter) where values will be
+        calculated according to the <em>values</em> parameter.
+      </p>
+      <p>
+        During the time interval: <em>startTime</em> &lt;= t &lt;
+        <em>startTime</em> + <em>duration</em>, values will be calculated:
       </p>
       <pre>
-      v(t) = values[N * (t - startTime) / duration], where <em>N</em> is the length of the <em>values</em> array.
+        v(t) = values[N * (t - startTime) / duration]
       </pre>
       <p>
-      After the end of the curve time interval (t >= <em>startTime</em> + <em>duration</em>), the value will remain constant at the final curve value,
-      until there is another automation event (if any).
+        where <em>N</em> is the length of the <em>values</em> array.
+      </p>
+      <p>
+        After the end of the curve time interval (t &gt;= <em>startTime</em> +
+        <em>duration</em>), the value will remain constant at the final curve
+        value, until there is another automation event (if any).
+      </p>
+    </dd>
+  <dt> void cancelScheduledValues(double startTime) </dt>
+    <dd>
+      <p>
+        Cancels all scheduled parameter changes with times greater than or
+        equal to startTime.
+      </p>
+      <p>
+        The <dfn>startTime</dfn> parameter is the starting time at and after
+        which any previously scheduled parameter changes will be cancelled.  It
+        is a time in the same time coordinate system as
+        AudioContext.currentTime.
       </p>
     </dd>
 </dl>
-<dl>
-  <dt id="dfn-cancelScheduledValues">The <code>cancelScheduledValues</code>
-  method</dt>
-    <dd><p>Cancels all scheduled parameter changes with times greater than or
-      equal to startTime.</p>
-      <p>The <dfn>startTime</dfn> parameter is the starting
-      time at and after which any previously scheduled parameter changes will
-      be cancelled.  It is a time in the same time coordinate system as AudioContext.currentTime.</p>
-    </dd>
-</dl>
-</section>
-
-
 
 <section>
 <h3>Computation of Value</h3>
@@ -1475,72 +1492,60 @@ param.setValueCurveAtTime(curve, t6, t7 - t6);
 
 <section>
 <h2 id="GainNode">The GainNode Interface</h2>
-
-<p>Changing the gain of an audio signal is a fundamental operation in audio
-applications.  The <code>GainNode</code> is one of the building blocks for creating <a
-href="#MixerGainStructure">mixers</a>.
-This interface is an AudioNode with a single input and single
-output: </p>
+<p>
+  Changing the gain of an audio signal is a fundamental operation in audio
+  applications.  The <code>GainNode</code> is one of the building blocks for
+  creating <a href="#MixerGainStructure">mixers</a>.  This interface is an
+  AudioNode with a single input and single output:
+</p>
 <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
+  numberOfInputs  : 1
+  numberOfOutputs : 1
 
-    channelCountMode = "max";
-    channelInterpretation = "speakers";
+  channelCountMode = "max";
+  channelInterpretation = "speakers";
 </pre>
 
-<p>It multiplies the input audio signal by the (possibly time-varying) <code>gain</code> attribute, copying the result to the output.
- By default, it will take the input and pass it through to the output unchanged, which represents a constant gain change
- of 1.
+<p>
+  It multiplies the input audio signal by the (possibly time-varying)
+  <code>gain</code> attribute, copying the result to the output.  By default, it
+  will take the input and pass it through to the output unchanged, which
+  represents a constant gain change of 1.
 </p>
 
 <p>
-As with other <code>AudioParams</code>, the <code>gain</code> parameter represents a mapping from time
-(in the coordinate system of AudioContext.currentTime) to floating-point value.
+  As with other <code>AudioParams</code>, the <code>gain</code> parameter
+  represents a mapping from time (in the coordinate system of
+  AudioContext.currentTime) to floating-point value.
 
-Every PCM audio sample in the input is multiplied by the <code>gain</code> parameter's value for the specific time
-corresponding to that audio sample.  This multiplied value represents the PCM audio sample for the output.
+  Every PCM audio sample in the input is multiplied by the <code>gain</code>
+  parameter's value for the specific time corresponding to that audio sample.
+  This multiplied value represents the PCM audio sample for the output.
 </p>
 
 <p>
-The number of channels of the output will always equal the number of channels of the input, with each channel
-of the input being multiplied by the <code>gain</code> values and being copied into the corresponding channel
-of the output.
+  The number of channels of the output will always equal the number of channels
+  of the input, with each channel of the input being multiplied by the
+  <code>gain</code> values and being copied into the corresponding channel of
+  the output.
 </p>
 
 <p>
- The implementation must make
-gain changes to the audio stream smoothly, without introducing noticeable
-clicks or glitches. This process is called "de-zippering". </p>
+  The implementation must make gain changes to the audio stream smoothly,
+  without introducing noticeable clicks or glitches. This process is called
+  "de-zippering".
+</p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="gain-node-idl">
-
-interface <dfn id="dfn-GainNode">GainNode</dfn> : AudioNode {
-
-    readonly attribute AudioParam gain;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-GainNode">Attributes</h3>
-<dl>
-<dt id="dfn-gain"><code>gain</code></dt>
-  <dd><p>Represents the amount of gain to apply. Its
-    default <code>value</code> is 1 (no gain change). The nominal <code>minValue</code> is 0, but may be
-    set negative for phase inversion.  The nominal <code>maxValue</code> is 1, but higher values are allowed (no
-    exception thrown).This parameter is <em>a-rate</em> </p>
+<dl title="interface GainNode : AudioNode" class="idl">
+  <dt>readonly attribute AudioParam gain</dt>
+  <dd>
+    Represents the amount of gain to apply. Its default <code>value</code> is 1
+    (no gain change). The nominal <code>minValue</code> is 0, but may be set
+    negative for phase inversion.  The nominal <code>maxValue</code> is 1, but
+    higher values are allowed (no
+    exception thrown).This parameter is <em>a-rate</em>
   </dd>
 </dl>
-</section>
 </section>
 
 <section>
@@ -1557,258 +1562,198 @@ interface is an AudioNode with a single input and single output: </p>
 </pre>
 
 <p>
-The number of channels of the output always equals the number of channels of the input.
+  The number of channels of the output always equals the number of channels of the
+  input.
 </p>
 
-<p>It delays the incoming audio signal by a certain amount. Specifically, at
-each time <em>t</em>, input signal <em>input(t)</em>, delay time
-<em>delayTime(t)</em> and output signal <em>output(t)</em>, the output will be
-<em> output(t) = input(t - delayTime(t))</em>. The default <code>delayTime</code> is 0
-seconds (no delay). When the delay time is changed, the implementation must make
-the transition smoothly, without introducing noticeable clicks or glitches to
-the audio stream. </p>
+<p>
+  It delays the incoming audio signal by a certain amount. Specifically, at each
+  time <em>t</em>, input signal <em>input(t)</em>, delay time
+  <em>delayTime(t)</em> and output signal <em>output(t)</em>, the output will be
+  <em> output(t) = input(t - delayTime(t))</em>. The default
+  <code>delayTime</code> is 0 seconds (no delay). When the delay time is
+  changed, the implementation must make the transition smoothly, without
+  introducing noticeable clicks or glitches to the audio stream.
+</p>
 
-<div class="block">
+<dl title="interface DelayNode : AudioNode" class="idl">
+  <dt> readonly attribute AudioParam delayTime </dt>
+  <dd>
+    An AudioParam object representing the amount of delay (in seconds)
+    to apply. Its default <code>value</code> is 0 (no delay). The minimum value is
+    0 and the maximum value is determined by the <code>maxDelayTime</code>
+    argument to the <code>AudioContext</code> method <code>createDelay</code>.
+    This parameter is <em>a-rate</em>.
+  </dd>
+</dl>
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="delay-node-idl">
-
-interface <dfn id="dfn-DelayNode">DelayNode</dfn> : AudioNode {
-
-    readonly attribute AudioParam delayTime;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-  <h3 id="attributes-DelayNode">Attributes</h3>
-  <dl>
-    <dt id="dfn-delayTime"><code>delayTime</code></dt>
-      <dd><p>An AudioParam object representing the amount of delay (in seconds)
-        to apply. Its default <code>value</code> is 0 (no
-        delay). The minimum value is 0 and the maximum value is determined by the <code>maxDelayTime</code>
-        argument to the <code>AudioContext</code> method <code>createDelay</code>.  This parameter is <em>a-rate</em></p>
-      </dd>
-  </dl>
-</section>
 </section>
 
 <section>
 <h2 id="AudioBuffer">The AudioBuffer Interface</h2>
 
-<p>This interface represents a memory-resident audio asset (for one-shot sounds
-and other short audio clips). Its format is non-interleaved IEEE 32-bit linear PCM with a
-nominal range of -1 -&gt; +1. It can contain one or more channels.  Typically, it would be expected that the length
-of the PCM data would be fairly short (usually somewhat less than a minute).
-For longer sounds, such as music soundtracks, streaming should be used with the
-<code>audio</code> element and <code>MediaElementAudioSourceNode</code>. </p>
+<p>
+  This interface represents a memory-resident audio asset (for one-shot sounds
+  and other short audio clips). Its format is non-interleaved IEEE 32-bit linear
+  PCM with a nominal range of -1 -&gt; +1. It can contain one or more channels.
+  Typically, it would be expected that the length of the PCM data would be
+  fairly short (usually somewhat less than a minute).  For longer sounds, such
+  as music soundtracks, streaming should be used with the <code>audio</code>
+  element and <code>MediaElementAudioSourceNode</code>.
+</p>
 
 <p>
 An AudioBuffer may be used by one or more AudioContexts.
 </p>
 
-<div class="block">
+<dl title="interface AudioBuffer" class="idl">
+    <dt> readonly attribute float sampleRate </dt>
+    <dd> The sample-rate for the PCM audio data in samples per second. </dd>
+    <dt> readonly attribute long length </dt>
+    <dd> Length of the PCM audio data in sample-frames. </dd>
+    <dt> readonly attribute double duration </dt>
+    <dd> Duration of the PCM audio data in seconds. </dd>
+    <dt> readonly attribute long numberOfChannels </dt>
+    <dd> The number of discrete audio channels. </dd>
+    <dt> Float32Array getChannelData() </dt>
+    <dd>
+      Returns the <code>Float32Array</code> representing the PCM audio data for
+      the specific channel.
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-buffer-idl">
-
-interface <dfn id="dfn-AudioBuffer">AudioBuffer</dfn> {
-
-    readonly attribute float sampleRate;
-    readonly attribute long length;
-
-    <span class="comment">// in seconds </span>
-    readonly attribute double duration;
-
-    readonly attribute long numberOfChannels;
-
-    Float32Array getChannelData(unsigned long channel);
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-AudioBuffer">Attributes</h3>
-<dl>
-  <dt id="dfn-sampleRate_AudioBuffer"><code>sampleRate</code></dt>
-    <dd><p>The sample-rate for the PCM audio data in samples per second.</p>
+      <dl class="parameters">
+        <dt>unsigned long channel</dt>
+        <dd>
+          This parameter is an index representing the particular channel to get data
+          for.  An index value of 0 represents the first channel.  This  index value
+          MUST be less than <code>numberOfChannels</code> or an INDEX_SIZE_ERR
+          exception MUST be thrown.
+        </dd>
+      </dl>
     </dd>
 </dl>
-<dl>
-  <dt id="dfn-length_AudioBuffer"><code>length</code></dt>
-    <dd><p>Length of the PCM audio data in sample-frames.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-duration_AudioBuffer"><code>duration</code></dt>
-    <dd><p>Duration of the PCM audio data in seconds.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-numberOfChannels_AudioBuffer"><code>numberOfChannels</code></dt>
-    <dd><p>The number of discrete audio channels.</p>
-    </dd>
-</dl>
-</section>
 
-<section>
-<h3 id="methodsandparams-AudioBuffer">Methods and Parameters</h3>
-<dl>
-  <dt id="dfn-getChannelData">The <code>getChannelData</code> method</dt>
-    <dd><p>Returns the <code>Float32Array</code> representing the PCM audio data for the specific channel.</p>
-      <p>The <dfn id="dfn-channel">channel</dfn> parameter is an index
-      representing the particular channel to get data for.  An index value of 0 represents
-      the first channel.  This  index value MUST be less than <code>numberOfChannels</code>
-      or an INDEX_SIZE_ERR exception MUST be thrown.</p>
-    </dd>
-</dl>
-</section>
 </section>
 
 <section>
 <h2 id="AudioBufferSourceNode">The AudioBufferSourceNode Interface</h2>
 
-<p>This interface represents an audio source from an in-memory audio asset in
-an <code>AudioBuffer</code>. It is useful for playing short audio assets
-which require a high degree of scheduling flexibility (can playback in
-rhythmically perfect ways). The start() method is used to schedule when 
-sound playback will happen.  The playback will stop automatically when
-the buffer's audio data has been completely
-played (if the <code>loop</code> attribute is false), or when the stop()
-method has been called and the specified time has been reached. Please see more
-details in the start() and stop() description.  start() and stop() may not be issued
-multiple times for a given
-AudioBufferSourceNode. </p>
-<pre>    numberOfInputs  : 0
-    numberOfOutputs : 1
-    </pre>
+<p>
+  This interface represents an audio source from an in-memory audio asset in an
+  <code>AudioBuffer</code>. It is useful for playing short audio assets which
+  require a high degree of scheduling flexibility (can playback in rhythmically
+  perfect ways). The start() method is used to schedule when sound playback will
+  happen.  The playback will stop automatically when the buffer's audio data has
+  been completely played (if the <code>loop</code> attribute is false), or when
+  the stop() method has been called and the specified time has been reached.
+  Please see more details in the start() and stop() description.  start() and
+  stop() may not be issued multiple times for a given AudioBufferSourceNode.
+</p>
+<pre>
+  numberOfInputs  : 0
+  numberOfOutputs : 1
+</pre>
 
 <p>
-The number of channels of the output always equals the number of channels of the AudioBuffer
-assigned to the .buffer attribute, or is one channel of silence if .buffer is NULL.
+  The number of channels of the output always equals the number of channels of
+  the AudioBuffer assigned to the .buffer attribute, or is one channel of
+  silence if .buffer is NULL.
 </p>
 
-<div class="block">
+<dl title="interface AudioBufferSourceNode : AudioNode" class="idl">
+  <dt>attribute AudioBuffer? buffer</dt>
+  <dd> Represents the audio asset to be played. </dd>
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
+  <dt> readonly attribute AudioParam playbackRate </dt>
+  <dd>
+    The speed at which to render the audio stream. Its default
+    <code>value</code> is 1.  This parameter is <em>a-rate</em>.
+  </dd>
 
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-buffer-source-node-idl">
+  <dt> attribute boolean loop </dt>
+  <dd>
+    Indicates if the audio data should play in a loop.  The default value is
+    false.
+  </dd>
+  <dt> attribute double loopStart </dt>
+  <dd>
+    An optional value in seconds where looping should begin if the
+    <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
+    and it may usefully be set to any value between 0 and the duration of the
+    buffer.
+  </dd>
+  <dt> attribute double loopEnd </dt>
+  <dd>
+    An optional value in seconds where looping should end if the
+    <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
+    and it may usefully be set to any value between 0 and the duration of the
+    buffer.
+  </dd>
 
-interface <dfn id="dfn-AudioBufferSourceNode">AudioBufferSourceNode</dfn> : AudioNode {
+  <dt>
+    void start()
+  </dt>
+  <dd>
+    <dl class="parameters">
+      Schedules a sound to playback at an exact time.
+      <dt>optional double when = 0</dt>
+      <dd>
+        The <a>when</a> parameter describes at what time (in seconds) the sound
+        should start playing. It is in the same time coordinate system as
+        AudioContext.currentTime. If 0 is passed in for this value or if the
+        value is less than <b>currentTime</b>, then the sound will start playing
+        immediately.  <code>start</code> may only be called one time and must be
+        called before <code>stop</code> is called or an INVALID_STATE_ERR
+        exception MUST be thrown.
+      </dd>
+      <dt>optional double offset = 0</dt>
+      <dd>
+        The <dfn id="dfn-offset">offset</dfn> parameter describes the offset
+        time in the buffer (in seconds) where playback will begin. If 0 is
+        passed in for this value, then playback will start from the beginning of
+        the buffer.
+      </dd>
+      <dt>optional double duration</dt>
+      <dd>
+        The <a>duration</a> parameter describes the
+        duration of the portion (in seconds) to be played.  If this parameter is
+        not passed, the duration will be equal to the total duration of the
+        AudioBuffer minus the <code>offset</code> parameter.  Thus if neither
+        <code>offset</code> nor <code>duration</code> are specified then the
+        implied duration is the total duration of the AudioBuffer.
+      </dd>
+    </dl>
+  </dd>
 
-    attribute AudioBuffer? buffer;
+  <dt> void stop() </dt>
+  <dd>
+    Schedules a sound to stop playback at an exact time.
+    <dl class="parameters">
+      <dt>optional double when = 0</dt>
+      <dd>
+        The <a>when</a> parameter describes at what time (in seconds) the sound
+        should stop playing.  It is in the same time coordinate system as
+        AudioContext.currentTime.  If 0 is passed in for this value or if the value
+        is less than <a>currentTime</a>, then the sound will stop playing
+        immediately.  <code>stop</code> must only be called one time and only after
+        a call to <code>start</code> or <code>stop</code>, or an INVALID_STATE_ERR
+        exception MUST be thrown.
+      </dd>
+    </dl>
+  </dd>
 
-    readonly attribute AudioParam playbackRate;
-
-    attribute boolean loop;
-    attribute double loopStart;
-    attribute double loopEnd;
-
-    void start(optional double when = 0, optional double offset = 0, optional double duration);
-    void stop(optional double when = 0);
-
-    attribute EventHandler onended;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-AudioBufferSourceNode">Attributes</h3>
-<dl>
-  <dt id="dfn-buffer_AudioBufferSourceNode"><code>buffer</code></dt>
-    <dd><p>Represents the audio asset to be played. </p>
-    </dd>
+  <dt> attribute EventHandler onended </dt>
+  <dd>
+  A property used to set the <code>EventHandler</code> (described in <cite>
+    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    HTML</a></cite>[[HTML]]) for the ended event that is dispatched to
+    <a href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code>
+    </a> node types.  When the playback of the buffer for an <code>
+    AudioBufferSourceNode</code> is finished, an event of type <code>Event
+    </code> (described in <cite>
+    <a href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a>
+    </cite>[[HTML]]) will be dispatched to the event handler.
+  </dd>
 </dl>
-<dl>
-  <dt id="dfn-playbackRate_AudioBufferSourceNode"><code>playbackRate</code></dt>
-    <dd><p>The speed at which to render the audio stream. Its default
-      <code>value</code> is 1.  This parameter is <em>a-rate</em> </p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-loop_AudioBufferSourceNode"><code>loop</code></dt>
-    <dd><p>Indicates if the audio data should play in a loop.  The default value is false. </p>
-    </dd>
-</dl>
-
-<dl>
-  <dt id="dfn-loopStart_AudioBufferSourceNode"><code>loopStart</code></dt>
-    <dd><p>An optional value in seconds where looping should begin if the <code>loop</code> attribute is true.
-    Its default <code>value</code> is 0, and it may usefully be set to any value between 0 and the duration of the buffer.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-loopEnd_AudioBufferSourceNode"><code>loopEnd</code></dt>
-    <dd><p>An optional value in seconds where looping should end if the <code>loop</code> attribute is true.
-    Its default <code>value</code> is 0, and it may usefully be set to any value between 0 and the duration of the buffer.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-onended_AudioBufferSourceNode"><code>onended</code></dt>
-    <dd><p>A property used to set the <code>EventHandler</code> (described in <cite><a
-      href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">HTML</a></cite>[[HTML]])
-      for the ended event that is dispatched to <a
-      href="#AudioBufferSourceNode-section"><code>AudioBufferSourceNode</code></a>
-      node types.  When the playback of the buffer for an <code>AudioBufferSourceNode</code>
-      is finished, an event of type <code>Event</code> (described in <cite><a
-      href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a></cite>[[HTML]])
-      will be dispatched to the event handler. </p>
-    </dd>
-</dl>
-
-
-</section>
-
-<section>
-<h3 id="methodsandparams-AudioBufferSourceNode">Methods and Parameters</h3>
-<dl>
-  <dt id="dfn-start">The <code>start</code> method</dt>
-    <dd><p>Schedules a sound to playback at an exact time.</p>
-      <p>The <dfn id="dfn-when">when</dfn> parameter describes at what time (in
-      seconds) the sound should start playing. It is in the same
-      time coordinate system as AudioContext.currentTime. If 0 is passed in for
-      this value or if the value is less than <b>currentTime</b>, then the
-      sound will start playing immediately.  <code>start</code> may only be called one time
-      and must be called before <code>stop</code> is called or an INVALID_STATE_ERR exception MUST be thrown.</p>
-      <p>The <dfn id="dfn-offset">offset</dfn> parameter describes
-      the offset time in the buffer (in seconds) where playback will begin. If 0 is passed
-      in for this value, then playback will start from the beginning of the buffer.</p>
-      <p>The <dfn id="dfn-duration">duration</dfn> parameter
-      describes the duration of the portion (in seconds) to be played.  If this parameter is not passed,
-      the duration will be equal to the total duration of the AudioBuffer minus the <code>offset</code> parameter.
-      Thus if neither <code>offset</code> nor <code>duration</code> are specified then the implied duration is
-      the total duration of the AudioBuffer.
-      </p>
-
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-stop">The <code>stop</code> method</dt>
-    <dd><p>Schedules a sound to stop playback at an exact time.</p>
-      <p>The <dfn id="dfn-when_AudioBufferSourceNode_2">when</dfn> parameter
-      describes at what time (in seconds) the sound should stop playing.
-      It is in the same time coordinate system as AudioContext.currentTime.
-      If 0 is passed in for this value or if the value is less than
-      <b>currentTime</b>, then the sound will stop playing immediately.
-      <code>stop</code> must only be called one time and only after a call to <code>start</code> or <code>stop</code>,
-      or an INVALID_STATE_ERR exception MUST be thrown.</p>
-    </dd>
-</dl>
-</section>
 
 <section>
 <h3 id="looping-AudioBufferSourceNode">Looping</h3>

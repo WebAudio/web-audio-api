@@ -3,7 +3,7 @@
 <head>
   <title>Web Audio API</title>
   <meta charset=utf-8>
-  <script src='http://www.w3.org/Tools/respec/respec-w3c-common' async class='remove'></script>
+  <script src='respec-w3c-common' async class='remove'></script>
   <script class='remove'>
     var respecConfig = {
         specStatus: "ED",
@@ -137,7 +137,7 @@ so that more advanced capabilities can be added at a later time. </p>
     from getUserMedia().
      </li>
     
-     <li>Integration with WebRTC</li>
+     <li>Integration with WebRTC
   <ul>
   
 
@@ -191,7 +191,7 @@ so that more advanced capabilities can be added at a later time. </p>
 
 </ul>
 
-<div id="ModularRouting">
+<section>
 <h2 id="ModularRouting">Modular Routing</h2>
 
 <p>Modular routing allows arbitrary connections between different <a
@@ -220,13 +220,7 @@ href="#AudioContext"><code>AudioContext</code></a> containing a single
 <p>Illustrating this simple routing, here's a simple example playing a single
 sound: </p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">ECMAScript</span> </div>
-
-<div class="blockContent">
-<pre class="code"><code class="es-code highlight"> 
+<pre class="highlight example">
 
 var context = new AudioContext();
 
@@ -236,9 +230,7 @@ function playSound() {
     source.connect(context.destination);
     source.start(0);
 }
-                    </code></pre>
-</div>
-</div>
+</pre>
 
 <p>Here's a more complex example with three sources and a convolution reverb
 send with a dynamics compressor at the final output stage: </p>
@@ -247,18 +239,7 @@ send with a dynamics compressor at the final output stage: </p>
   <figcaption>A more complex example of modular rounting.</figcaption>
 </figure>
 
-<div class="example">
-
-<div class="exampleHeader">
-Example</div>
-
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">ECMAScript</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="es-code highlight">
+<pre class="highlight example">
 
 var context = 0;
 var compressor = 0;
@@ -348,17 +329,12 @@ function setupRoutingGraph () {
     source2.start(0);
     source3.start(0);
 }
- </code></pre>
-</div>
-</div>
-</div>
-</div>
-
+</pre>
+</section>
 </section>
 
-<section id="APIOverview">
+<section>
 <h2 id="APIOverview">API Overview</h2>
-</div>
 
 <p>The interfaces defined are: </p>
 <ul>
@@ -469,7 +445,7 @@ function setupRoutingGraph () {
 <section id=audioapi>
 <h2 id="API">The Audio API</h2>
 
-<section id="AudioContext">
+<section>
 <h2 id="AudioContext">The AudioContext Interface</h2>
 
 <p>This interface represents a set of <a
@@ -584,13 +560,13 @@ cases, only a single AudioContext is used per document.</p>
 
     <dt>MediaElementAudioSourceNode createMediaElementSource()</dt>
     <dd>
-    Creates a <a href="#MediaElementAudioSourceNode"><code>MediaElementAudioSourceNode</code></a>
+    Creates a <a href="#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
     given an HTMLMediaElement.  As a consequence of calling this method, audio
     playback from the HTMLMediaElement will be re-routed into the processing graph
     of the AudioContext.
       <dl class=parameters>
         <dt> HTMLMediaElement mediaElement </dt>
-        <dd></dd>
+        <dd> The media element that will be re-routed. </dd>
       </dl>
     </dd>
 
@@ -598,7 +574,7 @@ cases, only a single AudioContext is used per document.</p>
     <dd>
     <dl class=parameters>
       <dt>MediaStream mediaStream</dt>
-      <dd></dd>
+      <dd> The media stream that will act as source. </dd>
     </dl>
     </dd>
 
@@ -613,8 +589,6 @@ cases, only a single AudioContext is used per document.</p>
       <a>bufferSize</a> or <a>numberOfInputChannels</a> or
       <a>numberOfOutputChannels</a> are outside the valid range.
     </p>
-    <p>
-
       <dl class=parameters>
         <dt> optional unsigned long bufferSize = 0 </dt>
         <dd>
@@ -864,21 +838,24 @@ AudioNodes are <em>EventTarget</em>s, as described in <cite><a href="http://dom.
 way that other EventTargets accept events.
 </p>
 
-<!--<dl title="enum ChannelCountMode" class="idl">-->
-  <!--<dd>max</dd>-->
-  <!--<dt></dt>-->
-  <!--<dd>clamped-max</dd>-->
-  <!--<dt> </dt>-->
-  <!--<dd>explicit</dd>-->
-  <!--<dt> </dt>-->
-<!--</dl>-->
+<dl title="enum ChannelCountMode" class="idl">
+  <dd>max</dd>
+  <dt><a>computedNumberOfChannels</a> is computed as the maximum of the number of channels of all connections. In this mode channelCount is ignored</dt>
+  <dd>clamped-max</dd>
+  <dt>Same as “max” up to a limit of the channelCount</dt>
+  <dd>explicit</dd>
+  <dt><a>computedNumberOfChannels</a> is the exact value as specified in channelCount</dt>
+</dl>
 
-<!--<dl title="enum ChannelInterpretation" class="idl">-->
-  <!--<dd>"speakers"</dd>-->
-  <!--<dt> </dt>-->
-  <!--<dd>"discrete"</dd>-->
-  <!--<dt> </dt>-->
-<!--</dl>-->
+<dl title="enum ChannelInterpretation" class="idl">
+  <dd>"speakers"</dd>
+  <dt>use <a>up-down-mix equations for mono/stereo/quad/5.1</a>. In cases where the number of channels do not match any of these basic speaker layouts, revert to "discrete". </dt>
+  <dd>"discrete"</dd>
+  <dt>Up-mix by filling channels until they run out then zero out remaining
+  channels. down-mix by filling as many channels as possible, then dropping
+  remaining channels.
+  </dt>
+</dl>
 
 <dl title="interface AudioNode : EventTarget" class="idl">
   <dt>void connect()</dt>
@@ -906,21 +883,21 @@ way that other EventTargets accept events.
         <em>cycle</em> or a NOT_SUPPORTED_ERR exception MUST be thrown.
       </dd>
 
-      There can only be one connection between a given output of one specific
-      node and a given input of another specific node.  Multiple connections
-      with the same termini are ignored.  For example:
-
-      <pre class="highlight">
-      nodeA.connect(nodeB);
-      nodeA.connect(nodeB);
-      </pre>
-
-      will have the same effect as
-
-      <pre class="highlight">
-        nodeA.connect(nodeB);
-      </pre>
     </dl>
+    There can only be one connection between a given output of one specific
+    node and a given input of another specific node.  Multiple connections
+    with the same termini are ignored.  For example:
+
+    <pre class="highlight">
+    nodeA.connect(nodeB);
+    nodeA.connect(nodeB);
+    </pre>
+
+    will have the same effect as
+
+    <pre class="highlight">
+      nodeA.connect(nodeB);
+    </pre>
   </dd>
   <dt>
     void connect()
@@ -1211,10 +1188,6 @@ The following rules will apply when calling these methods:
     interval of a <em>SetValueCurve</em> event at time T and duration D.
   </li>
 </ul>
-<p>
-</p>
-
-
 
 <dl title="interface AudioParam" class="idl">
   <dt> attribute float value </dt>
@@ -1234,9 +1207,11 @@ The following rules will apply when calling these methods:
   <dt> void setValueAtTime(float value, double startTime) </dt>
   <dd>
     <p>
-      Schedules a parameter value change at the given time.</p> <p>The <dfn
-        id="dfn-value_2">value</dfn> parameter is the value the parameter will
-      change to at the given time.
+      Schedules a parameter value change at the given time.
+    </p>
+    <p>
+      The <dfn id="dfn-value_2">value</dfn> parameter is the value the parameter
+      will change to at the given time.
     </p>
     <p>
       The <dfn id="dfn-startTime_2">startTime</dfn> parameter is the time
@@ -1663,25 +1638,25 @@ An AudioBuffer may be used by one or more AudioContexts.
   <dt>attribute AudioBuffer? buffer</dt>
   <dd> Represents the audio asset to be played. </dd>
 
-  <dt> readonly attribute AudioParam playbackRate </dt>
+  <dt>readonly attribute AudioParam playbackRate</dt>
   <dd>
     The speed at which to render the audio stream. Its default
     <code>value</code> is 1.  This parameter is <em>a-rate</em>.
   </dd>
 
-  <dt> attribute boolean loop </dt>
+  <dt>attribute boolean loop</dt>
   <dd>
     Indicates if the audio data should play in a loop.  The default value is
     false.
   </dd>
-  <dt> attribute double loopStart </dt>
+  <dt>attribute double loopStart</dt>
   <dd>
     An optional value in seconds where looping should begin if the
     <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
     and it may usefully be set to any value between 0 and the duration of the
     buffer.
   </dd>
-  <dt> attribute double loopEnd </dt>
+  <dt>attribute double loopEnd</dt>
   <dd>
     An optional value in seconds where looping should end if the
     <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
@@ -1693,8 +1668,8 @@ An AudioBuffer may be used by one or more AudioContexts.
     void start()
   </dt>
   <dd>
+    Schedules a sound to playback at an exact time.
     <dl class="parameters">
-      Schedules a sound to playback at an exact time.
       <dt>optional double when = 0</dt>
       <dd>
         The <a>when</a> parameter describes at what time (in seconds) the sound
@@ -1770,7 +1745,7 @@ In <em>loop</em> mode then the <em>actual</em> loop points are calculated as fol
 </p>
 
 <blockquote>
-<pre>
+<pre class="highlight">
 if ((loopStart || loopEnd) &amp;&amp; loopStart &gt;= 0 &amp;&amp; loopEnd &gt; 0 &amp;&amp; loopStart &lt; loopEnd) {
     actualLoopStart = loopStart;
     actualLoopEnd = min(loopEnd, buffer.length);
@@ -1811,53 +1786,40 @@ Thus, changes to the media element's .src attribute can change the number of cha
 If the .src attribute is not set, then the number of channels output will be one silent channel.
 </p>
 
-<div class="block">
+<dl title="interface MediaElementAudioSourceNode : AudioNode" class=idl>
+</dl>
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
 
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="media-element-audio-source-node-idl">
-
-interface <dfn id="dfn-MediaElementAudioSourceNode">MediaElementAudioSourceNode</dfn> : AudioNode {
-
-};
-</code></pre>
-</div>
-</div>
-
-<p>A MediaElementAudioSourceNode
-is created given an HTMLMediaElement using the AudioContext <a href="#dfn-createMediaElementSource">createMediaElementSource()</a> method. </p>
+<p>A MediaElementAudioSourceNode is created given an HTMLMediaElement using the
+AudioContext <a>createMediaElementSource()</a> method. </p>
 
 <p>
 The number of channels of the single output equals the number of channels of the audio referenced by
-the HTMLMediaElement passed in as the argument to createMediaElementSource(), or is 1 if the HTMLMediaElement
+the HTMLMediaElement passed in as the argument to
+<a>createMediaElementSource()</a>, or is 1 if the HTMLMediaElement
 has no audio.
 </p>
 
 <p>
-The HTMLMediaElement must behave in an identical fashion after the MediaElementAudioSourceNode has
-been created, <em>except</em> that the rendered audio will no longer be heard directly, but instead will be heard
-as a consequence of the MediaElementAudioSourceNode being connected through the routing graph.  Thus pausing, seeking,
-volume, <code>.src</code> attribute changes, and other aspects of the HTMLMediaElement must behave as they normally would
-if <em>not</em> used with a MediaElementAudioSourceNode.
+The <A>HTMLMediaElement</A> must behave in an identical fashion after the
+MediaElementAudioSourceNode has been created, <em>except</em> that the rendered
+audio will no longer be heard directly, but instead will be heard as a
+consequence of the <a>MediaElementAudioSourceNode</a> being connected through the
+routing graph.  Thus pausing, seeking, volume, <code>.src</code> attribute
+changes, and other aspects of the HTMLMediaElement must behave as they normally
+would if <em>not</em> used with a MediaElementAudioSourceNode.
 </p>
 
-<section>
-  <h2>Example</h2>
-  <div class="example">
-  <pre class="code"><code class="es-code highlight">
-  var mediaElement = document.getElementById('mediaElementID');
-  var sourceNode = context.createMediaElementSource(mediaElement);
-  sourceNode.connect(filterNode);
-   </code></pre>
-  </div>
-</section>
+<pre class="highlight example">
+var mediaElement = document.getElementById('mediaElementID');
+var sourceNode = context.createMediaElementSource(mediaElement);
+sourceNode.connect(filterNode);
+</pre>
 </section>
 
 
 <section>
-<h2 id="ScriptProcessorNode">The ScriptProcessorNode Interface</h2>
+<h2>The ScriptProcessorNode Interface</h2>
 
 <p>This interface is an AudioNode which can generate, process, or analyse audio
 directly using JavaScript. </p>
@@ -1870,130 +1832,97 @@ directly using JavaScript. </p>
     channelInterpretation = "speakers";
 </pre>
 
-<p>The ScriptProcessorNode is constructed with a <code>bufferSize</code> which
-must be one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384.
-This value controls how frequently the <code>audioprocess</code> event is
-dispatched and how many sample-frames need to be processed each call.
-<code>audioprocess</code> events are only dispatched if the
-<a href="#ScriptProcessorNode-section"><code>ScriptProcessorNode</code></a>
-has at least one input or one output connected.
-Lower numbers for <code>bufferSize</code> will result in a lower (better)
-<a href="#Latency-section">latency</a>. Higher numbers will be necessary to avoid
-audio breakup and <a href="#Glitching-section">glitches</a>.
-This value will be picked by the implementation if the bufferSize argument
-to <code>createScriptProcessor</code> is not passed in, or is set to 0.</p>
+<p>
+The ScriptProcessorNode is constructed with a <code>bufferSize</code> which must
+be one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384.  This
+value controls how frequently the <code>audioprocess</code> event is dispatched
+and how many sample-frames need to be processed each call.
+<code>audioprocess</code> events are only dispatched if the <a
+href="#ScriptProcessorNode-section"><code>ScriptProcessorNode</code></a> has at
+least one input or one output connected.  Lower numbers for
+<code>bufferSize</code> will result in a lower (better) <a
+href="#Latency-section">latency</a>. Higher numbers will be necessary to avoid
+audio breakup and <a href="#Glitching-section">glitches</a>.  This value will be
+picked by the implementation if the bufferSize argument to
+<code>createScriptProcessor</code> is not passed in, or is set to 0.
+</p>
 
-<p><code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code>
+<p>
+<code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code>
 determine the number of input and output channels. It is invalid for both
 <code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> to
-be zero. </p>
+be zero.
+</p>
 <pre class=highlight>
     var node = context.createScriptProcessor(bufferSize, numberOfInputChannels, numberOfOutputChannels);
 </pre>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="script-processor-node-idl">
-
-interface <dfn id="dfn-ScriptProcessorNode">ScriptProcessorNode</dfn> : AudioNode {
-
-    attribute EventHandler onaudioprocess;
-
-    readonly attribute long bufferSize;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-ScriptProcessorNode">Attributes</h3>
-<dl>
-<dt id="dfn-onaudioprocess"><code>onaudioprocess</code></dt>
-  <dd><p>A property used to set the <code>EventHandler</code> (described in <cite><a
-    href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">HTML</a></cite>[[HTML]])
-    for the audioprocess event that is dispatched to <a
-    href="#ScriptProcessorNode-section"><code>ScriptProcessorNode</code></a>
-    node types. An event of type <a
-    href="#AudioProcessingEvent-section"><code>AudioProcessingEvent</code></a>
-    will be dispatched to the event handler. </p>
+<dl title="interface ScriptProcessorNode : AudioNode" class="idl">
+  <dt>attribute EventHandler onaudioprocess</dt>
+  <dd>
+    A property used to set the <code>EventHandler</code> (described in <cite>
+    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    HTML</a></cite>[[HTML]]) for the audioprocess event that is dispatched to
+    <a href="#ScriptProcessorNode-section"><code>ScriptProcessorNode</code></a>
+    node types. An event of type <a href="#AudioProcessingEvent-section">
+    <code>AudioProcessingEvent</code></a> will be dispatched to the event
+    handler.
   </dd>
-</dl>
-<dl>
-<dt id="dfn-bufferSize_ScriptProcessorNode"><code>bufferSize</code></dt>
-  <dd><p>The size of the buffer (in sample-frames) which needs to be
-    processed each time <code>onaudioprocess</code> is called. Legal values
-    are (256, 512, 1024, 2048, 4096, 8192, 16384). </p>
+  <dt> readonly attribute long bufferSize </dt>
+  <dd>
+    The size of the buffer (in sample-frames) which needs to be processed each
+    time <code>onaudioprocess</code> is called. Legal values are (256, 512,
+    1024, 2048, 4096, 8192, 16384).
   </dd>
 </dl>
 </section>
-</section>
 
 <section>
-<h2 id="AudioProcessingEvent">The AudioProcessingEvent Interface</h2>
+<h2>The AudioProcessingEvent Interface</h2>
 
-<p>This is an <code>Event</code> object which is dispatched to <a
-href="#ScriptProcessorNode"><code>ScriptProcessorNode</code></a> nodes. </p>
+<p>
+This is an <code>Event</code> object which is dispatched to
+<a href="#ScriptProcessorNode"><code>ScriptProcessorNode</code></a> nodes.
+</p>
 
-<p>The event handler processes audio from the input (if any) by accessing the
-audio data from the <code>inputBuffer</code> attribute. The audio data which is
-the result of the processing (or the synthesized data if there are no inputs)
-is then placed into the <code>outputBuffer</code>. </p>
+<p>
+  The event handler processes audio from the input (if any) by accessing the
+  audio data from the <code>inputBuffer</code> attribute. The audio data which
+  is the result of the processing (or the synthesized data if there are no
+  inputs) is then placed into the <code>outputBuffer</code>.
+</p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-processing-event-idl">
-
-interface <dfn id="dfn-AudioProcessingEvent">AudioProcessingEvent</dfn> : Event {
-
-    readonly attribute double playbackTime;
-    readonly attribute AudioBuffer inputBuffer;
-    readonly attribute AudioBuffer outputBuffer;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-AudioProcessingEvent">Attributes</h3>
-<dl>
-  <dt id="dfn-playbackTime"><code>playbackTime</code></dt>
-    <dd><p>The time when the audio will be played in the same time coordinate system as AudioContext.currentTime.
-      <code>playbackTime</code> allows for very tight synchronization between
-      processing directly in JavaScript with the other events in the context's
-      rendering graph. </p>
+<dl title="interface AudioProcessingEvent : Event" class="idl">
+    <dt> readonly attribute double playbackTime </dt>
+    <dd>
+      The time when the audio will be played in the same time coordinate system
+      as AudioContext.currentTime.  <code>playbackTime</code> allows for very
+      tight synchronization between processing directly in JavaScript with the
+      other events in the context's rendering graph.
     </dd>
-</dl>
-<dl>
-  <dt id="dfn-inputBuffer"><code>inputBuffer</code></dt>
-    <dd><p>An AudioBuffer containing the input audio data.  It will have a number of channels equal to the <code>numberOfInputChannels</code> parameter
-    of the createScriptProcessor() method.  This AudioBuffer is only valid while in the scope of the <code>onaudioprocess</code>
-    function.  Its values will be meaningless outside of this scope.</p>
-    </dd>
-</dl>
-<dl>
-  <dt id="dfn-outputBuffer"><code>outputBuffer</code></dt>
-    <dd><p>An AudioBuffer where the output audio data should be written.  It will have a number of channels equal to the
-    <code>numberOfOutputChannels</code> parameter of the createScriptProcessor() method.
-      Script code within the scope of the <code>onaudioprocess</code> function is expected to modify the
-      <code>Float32Array</code> arrays representing channel data in this AudioBuffer.
-      Any script modifications to this AudioBuffer outside of this scope will not produce any audible effects.</p>
+    <dt> readonly attribute AudioBuffer inputBuffer </dt>
+    <dd>
+      An AudioBuffer containing the input audio data.  It will have a number of
+      channels equal to the <code>numberOfInputChannels</code> parameter of the
+      createScriptProcessor() method.  This AudioBuffer is only valid while in
+      the scope of the <code>onaudioprocess</code> function.  Its values will be
+      meaningless outside of this scope.
+      </dd>
+    <dt> readonly attribute AudioBuffer outputBuffer </dt>
+    <dd>
+      An AudioBuffer where the output audio data should be written.  It will
+      have a number of channels equal to the <code>numberOfOutputChannels</code>
+      parameter of the createScriptProcessor() method.  Script code within the
+      scope of the <code>onaudioprocess</code> function is expected to modify
+      the <code>Float32Array</code> arrays representing channel data in this
+      AudioBuffer.  Any script modifications to this AudioBuffer outside of this
+      scope will not produce any audible effects.
     </dd>
 </dl>
 </section>
-</section>
 
 <section>
-<h2 id="PannerNode">The PannerNode Interface</h2>
+<h2>The PannerNode Interface</h2>
 
 <p>This interface represents a processing node which <a
 href="#Spatialization-section">positions / spatializes</a> an incoming audio
@@ -2012,296 +1941,263 @@ href="#AudioListener-section"><code>AudioListener</code></a>
 </pre>
 
 <p>
-The audio stream from the input will be either mono or stereo, depending on the connection(s) to the input.
+The audio stream from the input will be either mono or stereo, depending on the
+connection(s) to the input.
 </p>
 
 <p>
-The output of this node is hard-coded to stereo (2 channels) and <em>currently</em> cannot be configured.
+The output of this node is hard-coded to stereo (2 channels) and
+<em>currently</em> cannot be configured.
 </p>
 
 
-<div class="block">
+<p>
+  The <a>PanningModelType</a> enum determines which spatialization algorithm will
+  be used to position the audio in 3D space. The default is "HRTF".
+</p>
+<dl title="enum PanningModelType" class=idl>
+  <dt>equalpower</dt>
+  <dd>
+    A simple and efficient spatialization algorithm using equal-power panning.
+  </dd>
+  <dt>HRTF</dt>
+  <dd>
+    A higher quality spatialization algorithm using a convolution with measured
+    impulse responses from human subjects. This panning method renders stereo
+    output.
+  </dd>
+</dl>
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
+<p>
+The <a>DistanceModelType</a> enum determines which algorithm will be used to
+reduce the volume of an audio source as it moves away from the listener.  The
+default is "inverse".
+</p>
+<dl title="enum DistanceModelType" class=idl>
+  <dt>linear</dt>
+  <dd>
+  A linear distance model which calculates <em>distanceGain</em> according to:
+  <pre>
+    1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)
+  </pre>
+  </dd>
+  <dt>inverse</dt>
+  <dd>
+  <p>An inverse distance model which calculates <em>distanceGain</em> according to: </p>
+  <pre>
+    refDistance / (refDistance + rolloffFactor * (distance - refDistance))
+  </pre>
+  </dd>
+  <dt>exponential</dt>
+  <dd><p>An exponential distance model which calculates <em>distanceGain</em> according to: </p>
+  <pre>
+    pow(distance / refDistance, -rolloffFactor)
+  </pre>
+  </dd>
+</dl>
 
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="panner-node-idl">
+<dl title="interface PannerNode : AudioNode" class=idl>
 
-enum <dfn>PanningModelType</dfn> {
-  "equalpower",
-  "HRTF"
-};
+    <!--<dt>// Default for stereo is HRTF</dt>-->
+    <dt>attribute PanningModelType panningModel</dt>
+    <dd> Specifies the panning model used by this <a>PannerNode</a>. Defaults to
+    <a>"HRTF"</a>.</dd>
 
-enum <dfn>DistanceModelType</dfn> {
-  "linear",
-  "inverse",
-  "exponential"
-};
+    <!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
+    <dt>void setPosition(double x, double y, double z)</dt>
+    <dd>
+    <p>
+      Sets the position of the audio source relative to the
+      <a>listener</a> attribute. A 3D cartesian coordinate system is used.
+    </p>
+    <p>
+      The <dfn id="dfn-x">x, y, z</dfn> parameters represent the coordinates
+      in 3D space.
+    </p>
+    <p>
+      The default value is (0,0,0)
+    </p>
+    </dd>
+    <dt>void setOrientation(double x, double y, double z)</dt>
+    <dd>
+    <p>
+      Describes which direction the audio source is pointing in the 3D
+      cartesian coordinate space. Depending on how directional the sound is
+      (controlled by the <b>cone</b> attributes), a sound pointing away from
+      the listener can be very quiet or completely silent.
+    </p>
+    <p>
+      The <dfn id="dfn-x_2">x, y, z</dfn> parameters represent a direction
+      vector in 3D space.
+    </p>
+    <p>
+      The default value is (1,0,0)
+    </p>
+    </dd>
+    <dt>void setVelocity(double x, double y, double z)</dt>
+    <dd>
+    <p>
+      Sets the velocity vector of the audio source. This vector controls both
+      the direction of travel and the speed in 3D space. This velocity relative
+      to the listener's velocity is used to determine how much doppler shift
+      (pitch change) to apply.  The units used for this vector is <em>meters /
+      second</em> and is independent of the units used for position and
+      orientation vectors.
+    </p>
+    <p>
+      The <dfn id="dfn-x_3">x, y, z</dfn> parameters describe a direction
+      vector indicating direction of travel and intensity.
+    </p>
+    <p>
+      The default value is (0,0,0)
+    </p>
+    </dd>
 
-interface <dfn id="dfn-PannerNode">PannerNode</dfn> : AudioNode {
+    <!--<dt> // Distance model and attributes </dt>-->
+    <dt>attribute DistanceModelType distanceModel</dt>
+    <dd> Specifies the distance model used by this PannerNode. Defaults to
+    <a>"inverse"</a>.
+    </dd>
+    <dt>attribute double refDistance</dt>
+    <dd>
+      A reference distance for reducing volume as source move further
+      from the listener.  The default value is 1.
+    </dd>
+    <dt>attribute double maxDistance</dt>
+    <dd>
+      The maximum distance between source and listener, after which the
+      volume will not be reduced any further.  The default value is 10000.
+    </dd>
+    <dt>attribute double rolloffFactor</dt>
+    <dd>
+      Describes how quickly the volume is reduced as source moves away from
+      listener.  The default value is 1.
+    </dd>
 
-    <span class="comment">// Default for stereo is HRTF </span>
-    attribute PanningModelType panningModel;
-
-    <span class="comment">// Uses a 3D cartesian coordinate system </span>
-    void setPosition(double x, double y, double z);
-    void setOrientation(double x, double y, double z);
-    void setVelocity(double x, double y, double z);
-
-    <span class="comment">// Distance model and attributes </span>
-    attribute DistanceModelType distanceModel;
-    attribute double refDistance;
-    attribute double maxDistance;
-    attribute double rolloffFactor;
-
-    <span class="comment">// Directional sound cone </span>
-    attribute double coneInnerAngle;
-    attribute double coneOuterAngle;
-    attribute double coneOuterGain;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-  <h3 id="attributes-PannerNode_attributes">Attributes</h3>
-  <dl>
-    <dt id="dfn-panningModel"><code>panningModel</code></dt>
-      <dd><p>Determines which spatialization algorithm will be used to position
-        the audio in 3D space. The default is "HRTF". </p>
-  
-        <dl>
-          <dt id="dfn-EQUALPOWER"><code>"equalpower"</code></dt>
-            <dd><p>A simple and efficient spatialization algorithm using equal-power
-              panning. </p>
-            </dd>
-        </dl>
-        <dl>
-          <dt id="dfn-HRTF"><code>"HRTF"</code></dt>
-            <dd><p>A higher quality spatialization algorithm using a convolution with
-              measured impulse responses from human subjects. This panning method
-              renders stereo output. </p>
-            </dd>
-        </dl>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-distanceModel"><code>distanceModel</code></dt>
-      <dd><p>Determines which algorithm will be used to reduce the volume of an
-        audio source as it moves away from the listener.  The default is "inverse".
-  </p>
-  
-  <dl>
-    <dt id="dfn-LINEAR_DISTANCE"><code>"linear"</code></dt>
-      <dd><p>A linear distance model which calculates <em>distanceGain</em> according to: </p>
-      <pre>
-        1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)
-      </pre>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-INVERSE_DISTANCE"><code>"inverse"</code></dt>
-    <dd><p>An inverse distance model which calculates <em>distanceGain</em> according to: </p>
-      <pre>
-        refDistance / (refDistance + rolloffFactor * (distance - refDistance))
-      </pre>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-EXPONENTIAL_DISTANCE"><code>"exponential"</code></dt>
-    <dd><p>An exponential distance model which calculates <em>distanceGain</em> according to: </p>
-    <pre>
-      pow(distance / refDistance, -rolloffFactor)
-    </pre>
-      </dd>
-  </dl>
-  
-  
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-refDistance"><code>refDistance</code></dt>
-      <dd><p>A reference distance for reducing volume as source move further from
-        the listener.  The default value is 1. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-maxDistance"><code>maxDistance</code></dt>
-      <dd><p>The maximum distance between source and listener, after which the
-        volume will not be reduced any further.  The default value is 10000. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-rolloffFactor"><code>rolloffFactor</code></dt>
-      <dd><p>Describes how quickly the volume is reduced as source moves away
-        from listener.  The default value is 1. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-coneInnerAngle"><code>coneInnerAngle</code></dt>
-      <dd><p>A parameter for directional audio sources, this is an angle, inside
-        of which there will be no volume reduction.  The default value is 360. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-coneOuterAngle"><code>coneOuterAngle</code></dt>
-      <dd><p>A parameter for directional audio sources, this is an angle, outside
-        of which the volume will be reduced to a constant value of
-        <b>coneOuterGain</b>.  The default value is 360. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-coneOuterGain"><code>coneOuterGain</code></dt>
-      <dd><p>A parameter for directional audio sources, this is the amount of
-        volume reduction outside of the <b>coneOuterAngle</b>.  The default value is 0. </p>
-      </dd>
-  </dl>
-</section>
+    <!--<dt> // Directional sound cone </dt>-->
+    <dt>attribute double coneInnerAngle</dt>
+    <dd>
+      A parameter for directional audio sources, this is an angle, inside
+      of which there will be no volume reduction.  The default value is 360.
+    </dd>
+    <dt>attribute double coneOuterAngle</dt>
+    <dd>
+      A parameter for directional audio sources, this is an angle, outside
+      of which the volume will be reduced to a constant value of
+      <a>coneOuterGain</a>.  The default value is 360.
+    </dd>
+    <dt>attribute double coneOuterGain</dt>
+    <dd>
+      A parameter for directional audio sources, this is the amount of volume
+      reduction outside of the <a>coneOuterAngle</a>.  The default value is 0.
+    </dd>
+</dl>
 
 <section>
   <h3 id="Methods_and_Parameters">Methods and Parameters</h3>
   <dl>
     <dt id="dfn-setPosition">The <code>setPosition</code> method</dt>
-      <dd><p>Sets the position of the audio source relative to the
-        <b>listener</b> attribute. A 3D cartesian coordinate system is used.</p>
-        <p>The <dfn id="dfn-x">x, y, z</dfn> parameters represent the coordinates
-        in 3D space. </p>
-        <p>The default value is (0,0,0)
-        </p>
-      </dd>
   </dl>
   <dl>
     <dt id="dfn-setOrientation">The <code>setOrientation</code> method</dt>
-      <dd><p>Describes which direction the audio source is pointing in the 3D
-        cartesian coordinate space. Depending on how directional the sound is
-        (controlled by the <b>cone</b> attributes), a sound pointing away from
-        the listener can be very quiet or completely silent.</p>
-        <p>The <dfn id="dfn-x_2">x, y, z</dfn> parameters represent a direction
-        vector in 3D space. </p>
-        <p>The default value is (1,0,0)
-        </p>
-      </dd>
   </dl>
   <dl>
     <dt id="dfn-setVelocity">The <code>setVelocity</code> method</dt>
-      <dd><p>Sets the velocity vector of the audio source. This vector controls
-        both the direction of travel and the speed in 3D space. This velocity
-        relative to the listener's velocity is used to determine how much doppler
-        shift (pitch change) to apply.  The units used for this vector is <em>meters / second</em>
-        and is independent of the units used for position and orientation vectors.</p>
-        <p>The <dfn id="dfn-x_3">x, y, z</dfn> parameters describe a direction
-        vector indicating direction of travel and intensity. </p>
-        <p>The default value is (0,0,0)
-        </p>
-      </dd>
   </dl>
 </section>
 </section>
 
 <section>
-<h2 id="AudioListener">The AudioListener Interface</h2>
+<h2>The AudioListener Interface</h2>
 
-<p>This interface represents the position and orientation of the person
-listening to the audio scene. All <a
-href="#PannerNode-section"><code>PannerNode</code></a> objects
-spatialize in relation to the AudioContext's <code>listener</code>. See <a
+<p>
+This interface represents the position and orientation of the person
+listening to the audio scene. All <a>PannerNode</a> objects
+spatialize in relation to the AudioContext's <a>listener</a>. See <a
 href="#Spatialization-section">this</a> section for more details about
-spatialization. </p>
+spatialization.
+</p>
 
-<div class="block">
+<dl title="interface AudioListener" class="idl">
+    <dt> attribute double dopplerFactor </dt>
+    <dd>
+      A constant used to determine the amount of pitch shift to use when
+      rendering a doppler effect.  The default value is 1.
+    </dd>
+    <dt> attribute double speedOfSound </dt>
+    <dd>
+      The speed of sound used for calculating doppler shift. The default value
+      is 343.3.
+    </dd>
 
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="audio-listener-idl">
-
-interface <dfn id="dfn-AudioListener">AudioListener</dfn> {
-
-    attribute double dopplerFactor;
-    attribute double speedOfSound;
-
-    <span class="comment">// Uses a 3D cartesian coordinate system </span>
-    void setPosition(double x, double y, double z);
-    void setOrientation(double x, double y, double z, double xUp, double yUp, double zUp);
-    void setVelocity(double x, double y, double z);
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-  <h3 id="AudioListener-attributes">Attributes</h3>
-  <dl>
-    <dt id="dfn-dopplerFactor"><code>dopplerFactor</code></dt>
-      <dd><p>A constant used to determine the amount of pitch shift to use when
-        rendering a doppler effect.  The default value is 1. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-speedOfSound"><code>speedOfSound</code></dt>
-      <dd><p>The speed of sound used for calculating doppler shift. The default
-        value is 343.3. </p>
-      </dd>
-  </dl>
-</section>
-
-<section id="AudioListener-MethodsAndParamaters">
-  <h3>Methods and Parameters</h3>
-  <dl>
-    <dt id="dfn-setPosition_2">The <code>setPosition</code> method</dt>
-      <dd><p>Sets the position of the listener in a 3D cartesian coordinate
-        space. <code>PannerNode</code> objects use this position relative to
-        individual audio sources for spatialization.</p>
-        <p>The <dfn id="dfn-x_AudioListener">x, y, z</dfn> parameters represent
-        the coordinates in 3D space. </p>
-        <p>The default value is (0,0,0)
-        </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-setOrientation_2">The <code>setOrientation</code> method</dt>
-      <dd><p>Describes which direction the listener is pointing in the 3D
-        cartesian coordinate space. Both a <b>front</b> vector and an <b>up</b>
-        vector are provided.  In simple human terms, the <b>front</b> vector represents which
-        direction the person's nose is pointing.  The <b>up</b> vector represents the
-        direction the top of a person's head is pointing.  These values are expected to
-        be linearly independent (at right angles to each other).  For normative requirements
-        of how these values are to be interpreted, see the
-        <a href="#Spatialization-section">spatialization section</a>.
-        </p>
-        <p>The <dfn id="dfn-x_setOrientation">x, y, z</dfn> parameters represent
-        a <b>front</b> direction vector in 3D space, with the default value being (0,0,-1) </p>
-        <p>The <dfn id="dfn-x_setOrientation_2">xUp, yUp, zUp</dfn> parameters
-        represent an <b>up</b> direction vector in 3D space, with the default value being (0,1,0)  </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-setVelocity_4">The <code>setVelocity</code> method</dt>
-      <dd><p>Sets the velocity vector of the listener. This vector controls both
-        the direction of travel and the speed in 3D space. This velocity relative to
+    <!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
+    <dt> void setPosition(double x, double y, double z) </dt>
+    <dd>
+      <p>
+        Sets the position of the listener in a 3D cartesian coordinate
+        space. <a>PannerNode</a> objects use this position relative to
+        individual audio sources for spatialization.
+      </p>
+      <p>
+        The <code>x, y, z</code> parameters represent
+        the coordinates in 3D space.
+      </p>
+      <p>
+        The default value is (0,0,0)
+      </p>
+    </dd>
+    <dt> void setOrientation(double x, double y, double z, double xUp, double yUp, double zUp) </dt>
+    <dd>
+      <p>
+        Describes which direction the listener is pointing in the 3D cartesian
+        coordinate space. Both a <b>front</b> vector and an <b>up</b> vector are
+        provided.  In simple human terms, the <b>front</b> vector represents
+        which direction the person's nose is pointing.  The <b>up</b> vector
+        represents the direction the top of a person's head is pointing.  These
+        values are expected to be linearly independent (at right angles to each
+        other).  For normative requirements of how these values are to be
+        interpreted, see the <a href="#Spatialization-section">spatialization
+        section</a>.
+      </p>
+      <p>
+        The <code>x, y, z</code> parameters represent a <b>front</b> direction
+        vector in 3D space, with the default value being (0,0,-1).
+      </p>
+      <p>
+        The <code>xUp, yUp, zUp</code> parameters represent an <b>up</b> direction
+        vector in 3D space, with the default value being (0,1,0).
+      </p>
+    </dd>
+    <dd> void setVelocity(double x, double y, double z) </dd>
+    <dd>
+      <p>
+        Sets the velocity vector of the listener. This vector controls both the
+        direction of travel and the speed in 3D space. This velocity relative to
         an audio source's velocity is used to determine how much doppler shift
-        (pitch change) to apply.  The units used for this vector is <em>meters / second</em>
-          and is independent of the units used for position and orientation vectors.</p>
-        <p>The <dfn id="dfn-x_setVelocity_5">x, y, z</dfn> parameters describe a
-        direction vector indicating direction of travel and intensity. </p>
-        <p>The default value is (0,0,0)
-        </p>
-      </dd>
-  </dl>
-</section>
+        (pitch change) to apply.  The units used for this vector is <em>meters /
+        second</em> and is independent of the units used for position and
+      orientation vectors.
+      </p>
+      <p>
+        The <code>x, y, z</code> parameters describe a direction vector
+        indicating direction of travel and intensity.
+      </p>
+      <p>The default value is (0,0,0) </p>
+    </dd>
+</dl>
+
 </section>
 
 <section>
-<h2 id="ConvolverNode">The ConvolverNode Interface</h2>
+<h2>The ConvolverNode Interface</h2>
 
-<p>This interface represents a processing node which applies a <a
-href="#Convolution-section">linear convolution effect</a> given an impulse
-response.  Normative requirements for multi-channel convolution matrixing are described
-<a href="#Convolution-reverb-effect">here</a>. </p>
+<p>
+  This interface represents a processing node which applies a <a
+    href="#Convolution-section">linear convolution effect</a> given an impulse
+  response.  Normative requirements for multi-channel convolution matrixing are
+  described <a href="#Convolution-reverb-effect">here</a>.
+</p>
+
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -2311,69 +2207,44 @@ response.  Normative requirements for multi-channel convolution matrixing are de
     channelInterpretation = "speakers";
 </pre>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="convolver-node-idl">
-
-interface <dfn id="dfn-ConvolverNode">ConvolverNode</dfn> : AudioNode {
-
-    attribute AudioBuffer? buffer;
-    attribute boolean normalize;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-ConvolverNode">Attributes</h3>
-<dl>
-  <dt id="dfn-buffer_ConvolverNode"><code>buffer</code></dt>
-    <dd><p>A mono, stereo, or 4-channel <code>AudioBuffer</code> containing the
-    (possibly multi-channel) impulse response used by the ConvolverNode.  This
-    <code>AudioBuffer</code> must be of the same sample-rate as the AudioContext
-    or an NOT_SUPPORTED_ERR exception MUST be thrown.  At the time when this
-    attribute is set, the <em>buffer</em> and the state of the
-    <em>normalize</em> attribute will be used to configure the ConvolverNode
-    with this impulse response having the given normalization.  The initial
-    value of this attribute is null.</p>
+<dl title="interface ConvolverNode : AudioNode" class="idl">
+  <dt> attribute AudioBuffer? buffer </dt>
+    <dd>
+      A mono, stereo, or 4-channel <a>AudioBuffer</a> containing the (possibly
+      multi-channel) impulse response used by the <a>ConvolverNode</a>.  This
+      <a>AudioBuffer</a> must be of the same sample-rate as the AudioContext or
+      an NOT_SUPPORTED_ERR exception MUST be thrown.  At the time when this
+      attribute is set, the <em>buffer</em> and the state of the
+      <em>normalize</em> attribute will be used to configure the
+      <a>ConvolverNode</a> with this impulse response having the given
+      normalization.  The initial value of this attribute is null.
     </dd>
-</dl>
-<dl>
-  <dt id="dfn-normalize"><code>normalize</code></dt>
-    <dd><p>Controls whether the impulse response from the buffer will be scaled
-      by an equal-power normalization when the <code>buffer</code> atttribute
-      is set. Its default value is <code>true</code> in order to achieve a more
-      uniform output level from the convolver when loaded with diverse impulse
-      responses. If <code>normalize</code> is set to <code>false</code>, then
-      the convolution will be rendered with no pre-processing/scaling of the
-      impulse response.  Changes to this value do not take effect until the next time
-      the <em>buffer</em> attribute is set. </p>
-      
-    </dd>
-</dl>
-
+  <dt> attribute boolean normalize </dt>
+    <dd>
       <p>
-      If the <em>normalize</em> attribute is false when the <em>buffer</em> attribute is set then the
-      ConvolverNode will perform a linear convolution given the exact impulse response contained within the <em>buffer</em>.
+        Controls whether the impulse response from the buffer will be scaled by an
+        equal-power normalization when the <code>buffer</code> atttribute is set.
+        Its default value is <code>true</code> in order to achieve a more uniform
+        output level from the convolver when loaded with diverse impulse
+        responses.  If <code>normalize</code> is set to <code>false</code>, then
+        the convolution will be rendered with no pre-processing/scaling of the
+        impulse response.  Changes to this value do not take effect until the next
+        time the <em>buffer</em> attribute is set.
       </p>
       <p>
-      Otherwise, if the <em>normalize</em> attribute is true when the <em>buffer</em> attribute is set then the
-      ConvolverNode will first perform a scaled RMS-power analysis of the audio data contained within <em>buffer</em> to calculate a
-      <em>normalizationScale</em> given this algorithm:
+        If the <em>normalize</em> attribute is false when the <em>buffer</em>
+        attribute is set then the <a>ConvolverNode</a> will perform a linear convolution
+        given the exact impulse response contained within the <em>buffer</em>.
+      </p>
+      <p>
+        Otherwise, if the <em>normalize</em> attribute is true when the
+        <em>buffer</em> attribute is set then the <a>ConvolverNode</a> will
+        first perform a scaled RMS-power analysis of the audio data contained
+        within <em>buffer</em> to calculate a <em>normalizationScale</em> given
+        this algorithm:
       </p>
 
-
-      <div class="block">
-
-      <div class="blockTitleDiv">
-
-      <div class="blockContent">
-      <pre class="code"><code class="highlight">
+      <pre class="highlight">
 
 float calculateNormalizationScale(buffer)
 {
@@ -2421,27 +2292,29 @@ float calculateNormalizationScale(buffer)
 
     return scale;
 }
-          </code></pre>
+      </pre>
 
-      </div>
-      </div>
-      </div>
-
-<p>
-During processing, the ConvolverNode will then take this calculated <em>normalizationScale</em> value and multiply it by the result of the linear convolution
-resulting from processing the input with the impulse response (represented by the <em>buffer</em>) to produce the
-final output.  Or any mathematically equivalent operation may be used, such as pre-multiplying the
-input by <em>normalizationScale</em>, or pre-multiplying a version of the impulse-response by <em>normalizationScale</em>.
-</p>
-</section>
+      <p>
+        During processing, the ConvolverNode will then take this calculated
+        <em>normalizationScale</em> value and multiply it by the result of the
+        linear convolution resulting from processing the input with the impulse
+        response (represented by the <em>buffer</em>) to produce the final output.
+        Or any mathematically equivalent operation may be used, such as
+        pre-multiplying the input by <em>normalizationScale</em>, or
+        pre-multiplying a version of the impulse-response by
+        <em>normalizationScale</em>.
+      </p>
+    </dd>
+</dl>
 </section>
 
 <section>
-<h2 id="AnalyserNode">The AnalyserNode Interface</h2>
+<h2>The AnalyserNode Interface</h2>
 
-<p>This interface represents a node which is able to provide real-time
-frequency and time-domain <a href="#AnalyserNode">analysis</a>
-information. The audio stream will be passed un-processed from input to output.
+<p>
+  This interface represents a node which is able to provide real-time frequency
+  and time-domain analysis information. The audio stream will be passed
+  un-processed from input to output.
 </p>
 <pre>
     numberOfInputs  : 1
@@ -2452,123 +2325,105 @@ information. The audio stream will be passed un-processed from input to output.
     channelInterpretation = "speakers";
 </pre>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="analyser-node-idl">
-
-interface <dfn id="dfn-AnalyserNode">AnalyserNode</dfn> : AudioNode {
-
-    <span class="comment">// Real-time frequency-domain data </span>
-    void getFloatFrequencyData(Float32Array array);
-    void getByteFrequencyData(Uint8Array array);
-
-    <span class="comment">// Real-time waveform data </span>
-    void getByteTimeDomainData(Uint8Array array);
-
-    attribute unsigned long fftSize;
-    readonly attribute unsigned long frequencyBinCount;
-
-    attribute double minDecibels;
-    attribute double maxDecibels;
-
-    attribute double smoothingTimeConstant;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-ConvolverNode_2">Attributes</h3>
-<dl>
-<dt id="dfn-fftSize"><code>fftSize</code></dt>
-  <dd><p>The size of the FFT used for frequency-domain analysis. This must be
-    a non-zero power of two in the range 32 to 2048, otherwise an INDEX_SIZE_ERR exception MUST be thrown.
-    The default value is 2048.</p>
-  </dd>
-</dl>
-<dl>
-<dt id="dfn-frequencyBinCount"><code>frequencyBinCount</code></dt>
-  <dd><p>Half the FFT size. </p>
-  </dd>
-</dl>
-<dl>
-<dt id="dfn-minDecibels"><code>minDecibels</code></dt>
-  <dd><p>The minimum power value in the scaling range for the FFT analysis
-    data for conversion to unsigned byte values.
-    The default value is -100.
-    If the value of this attribute is set to a value more than or equal to <code>maxDecibels</code>,
-    an INDEX_SIZE_ERR exception MUST be thrown.</p>
-  </dd>
-</dl>
-<dl>
-<dt id="dfn-maxDecibels"><code>maxDecibels</code></dt>
-  <dd><p>The maximum power value in the scaling range for the FFT analysis
-    data for conversion to unsigned byte values.
-    The default value is -30.
-    If the value of this attribute is set to a value less than or equal to <code>minDecibels</code>,
-    an INDEX_SIZE_ERR exception MUST be thrown.</p>
-  </dd>
-</dl>
-<dl>
-<dt id="dfn-smoothingTimeConstant"><code>smoothingTimeConstant</code></dt>
-  <dd><p>A value from 0 -&gt; 1 where 0 represents no time averaging
-    with the last analysis frame.
-    The default value is 0.8.
-    If the value of this attribute is set to a value less than 0 or more than 1,
-    an INDEX_SIZE_ERR exception MUST be thrown.</p>
-  </dd>
-</dl>
-</section>
-
-<section>
-  <h3 id="methods-and-parameters">Methods and Parameters</h3>
-  <dl>
-    <dt id="dfn-getFloatFrequencyData">The <code>getFloatFrequencyData</code>
-    method</dt>
-      <dd><p>Copies the current frequency data into the passed floating-point
+<dl title="interface AnalyserNode : AudioNode" class="idl">
+    <!--<dt> // Real-time frequency-domain data </dt>-->
+    <dt> void getFloatFrequencyData() </dt>
+    <dd>
+      <p>
+        Copies the current frequency data into the passed floating-point
         array. If the array has fewer elements than the frequencyBinCount, the
         excess elements will be dropped. If the array has more elements than
-        the frequencyBinCount, the excess elements will be ignored.</p>
-        <p>The <dfn id="dfn-array">array</dfn> parameter is where
-        frequency-domain analysis data will be copied. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-getByteFrequencyData">The <code>getByteFrequencyData</code>
-    method</dt>
-      <dd><p>Copies the current frequency data into the passed unsigned byte
+        the frequencyBinCount, the excess elements will be ignored.
+      </p>
+      <dl class="parameters">
+        <dt>Float32Array array</dt>
+        <dd>
+          This parameter is where the frequency-domain analysis data will be
+          copied.
+        </dd>
+      </dl>
+    </dd>
+    <dt> void getByteFrequencyData() </dt>
+    <dd>
+      <p>
+        Copies the current frequency data into the passed unsigned byte
         array. If the array has fewer elements than the frequencyBinCount, the
         excess elements will be dropped. If the array has more elements than
-        the frequencyBinCount, the excess elements will be ignored.</p>
-        <p>The <dfn id="dfn-array_2">array</dfn> parameter is where
-        frequency-domain analysis data will be copied. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-getByteTimeDomainData">The <code>getByteTimeDomainData</code>
-    method</dt>
-      <dd><p>Copies the current time-domain (waveform) data into the passed
-        unsigned byte array. If the array has fewer elements than the
-        fftSize, the excess elements will be dropped. If the array has more
-        elements than fftSize, the excess elements will be ignored.</p>
-        <p>The <dfn id="dfn-array_3">array</dfn> parameter is where time-domain
-        analysis data will be copied. </p>
-      </dd>
-  </dl>
-</section>
+        the frequencyBinCount, the excess elements will be ignored.
+      </p>
+      <dl class="parameters">
+        <dt>Uint8Array array</dt>
+        <dd>
+          This parameter is where the frequency-domain analysis data will be
+          copied.
+        </dd>
+      </dl>
+    </dd>
+
+    <!--<dt>// Real-time waveform data </dt>-->
+    <dt> void getByteTimeDomainData() </dt>
+    <dd>
+      <p>
+        Copies the current time-domain (waveform) data into the passed unsigned
+        byte array. If the array has fewer elements than the value of
+        <a>fftSize</a>, the excess elements will be dropped. If the array has
+        more elements than <a>fftSize</a>, the excess elements will be ignored.
+      </p>
+      <dl class="parameters">
+        <dt>Uint8Array array</dt>
+        <dd>
+          This parameter is where the time-domain analysis data will be copied.
+        </dd>
+      </dl>
+    </dd>
+
+    <dt> attribute unsigned long fftSize </dt>
+    <dd>
+      The size of the FFT used for frequency-domain analysis. This must be a
+      non-zero power of two in the range 32 to 2048, otherwise an INDEX_SIZE_ERR
+      exception MUST be thrown.
+
+      The default value is 2048.
+    </dd>
+    <dt> readonly attribute unsigned long frequencyBinCount </dt>
+    <dd>
+      Half the FFT size.
+    </dd>
+
+    <dt> attribute double minDecibels </dt>
+    <dd>
+      The minimum power value in the scaling range for the FFT analysis data for
+      conversion to unsigned byte values.  The default value is -100.  If the
+      value of this attribute is set to a value more than or equal to
+      <code>maxDecibels</code>, an INDEX_SIZE_ERR exception MUST be thrown.
+    </dd>
+    <dt> attribute double maxDecibels </dt>
+  <dd>
+    The maximum power value in the scaling range for the FFT analysis data for
+    conversion to unsigned byte values.  The default value is -30.  If the value
+    of this attribute is set to a value less than or equal to
+    <code>minDecibels</code>, an INDEX_SIZE_ERR exception MUST be thrown.
+  </dd>
+
+    <dt> attribute double smoothingTimeConstan </dt>
+    <dd>
+      A value from 0 -&gt; 1 where 0 represents no time averaging
+      with the last analysis frame.
+      The default value is 0.8.
+      If the value of this attribute is set to a value less than 0 or more than 1,
+      an INDEX_SIZE_ERR exception MUST be thrown.
+    </dd>
+</dl>
 </section>
 
 <section>
-<h2 id="ChannelSplitterNode">The ChannelSplitterNode Interface</h2>
+<h2>The ChannelSplitterNode Interface</h2>
 
-<p>The <code>ChannelSplitterNode</code> is for use in more advanced
-applications and would often be used in conjunction with <a
-href="#ChannelMergerNode-section"><code>ChannelMergerNode</code></a>. </p>
+<p>
+  The <code>ChannelSplitterNode</code> is for use in more advanced
+  applications and would often be used in conjunction with <a
+  href="#ChannelMergerNode-section"><code>ChannelMergerNode</code></a>.
+</p>
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : Variable N (defaults to 6) // number of "active" (non-silent) outputs is determined by number of channels in the input
@@ -2577,16 +2432,18 @@ href="#ChannelMergerNode-section"><code>ChannelMergerNode</code></a>. </p>
     channelInterpretation = "speakers";
 </pre>
 
-<p>This interface represents an AudioNode for accessing the individual channels
-of an audio stream in the routing graph. It has a single input, and a number of
-"active" outputs which equals the number of channels in the input audio stream.
-For example, if a stereo input is connected to an
-<code>ChannelSplitterNode</code> then the number of active outputs will be two
-(one from the left channel and one from the right). There are always a total
-number of N outputs (determined by the <code>numberOfOutputs</code> parameter to the AudioContext method <code>createChannelSplitter()</code>),
- The default number is 6 if this value is not provided. Any outputs
-which are not "active" will output silence and would typically not be connected
-to anything. </p>
+<p>
+  This interface represents an AudioNode for accessing the individual channels
+  of an audio stream in the routing graph. It has a single input, and a number
+  of "active" outputs which equals the number of channels in the input audio
+  stream.  For example, if a stereo input is connected to an
+  <a>ChannelSplitterNode</a> then the number of active outputs will be two
+  (one from the left channel and one from the right). There are always a total
+  number of N outputs (determined by the <a>numberOfOutputs</a> parameter
+  to the AudioContext method <a>createChannelSplitter()</a>), The default
+  number is 6 if this value is not provided. Any outputs which are not "active"
+  will output silence and would typically not be connected to anything.
+</p>
 
 <h3 id="example-1">Example:</h3>
 <figure>
@@ -2594,34 +2451,28 @@ to anything. </p>
   <figcaption>A diagram of a ChannelSplitter</figcaption>
 </figure>
 
-<p>Please note that in this example, the splitter does <b>not</b> interpret the channel identities (such as left, right, etc.), but
-simply splits out channels in the order that they are input.</p>
+<p>
+  Please note that in this example, the splitter does <b>not</b> interpret the
+  channel identities (such as left, right, etc.), but simply splits out channels
+  in the order that they are input.
+</p>
 
-<p>One application for <code>ChannelSplitterNode</code> is for doing "matrix
-mixing" where individual gain control of each channel is desired. </p>
+<p>
+  One application for <code>ChannelSplitterNode</code> is for doing "matrix
+  mixing" where individual gain control of each channel is desired.
+</p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="channel-splitter-node-idl">
-
-interface <dfn id="dfn-ChannelSplitterNode">ChannelSplitterNode</dfn> : AudioNode {
-
-};
-</code></pre>
-</div>
-</div>
+<dl title="interface ChannelSplitterNode : AudioNode" class="idl">
+</dl>
 </section>
 
 <section>
-<h2 id="ChannelMergerNode">The ChannelMergerNode Interface</h2>
+<h2>The ChannelMergerNode Interface</h2>
 
-<p>The <code>ChannelMergerNode</code> is for use in more advanced applications
-and would often be used in conjunction with <a
-href="#ChannelSplitterNode-section"><code>ChannelSplitterNode</code></a>. </p>
+<p>
+  The <a>ChannelMergerNode</a> is for use in more advanced applications
+  and would often be used in conjunction with <a>ChannelSplitterNode</a>.
+</p>
 <pre>
   numberOfInputs  : Variable N (default to 6)  // number of connected inputs may be less than this
   numberOfOutputs : 1
@@ -2630,63 +2481,64 @@ href="#ChannelSplitterNode-section"><code>ChannelSplitterNode</code></a>. </p>
   channelInterpretation = "speakers";
 </pre>
 
-<p>This interface represents an AudioNode for combining channels from multiple
-audio streams into a single audio stream. It has a variable number of inputs (defaulting to 6), but not all of them
-need be connected. There is a single output whose audio stream has a number of
-channels equal to the sum of the numbers of channels of all the connected
-inputs. For example, if an <code>ChannelMergerNode</code> has two connected
-inputs (both stereo), then the output will be four channels, the first two from
-the first input and the second two from the second input. In another example
-with two connected inputs (both mono), the output will be two channels
-(stereo), with the left channel coming from the first input and the right
-channel coming from the second input. </p>
+<p>
+  This interface represents an <a>AudioNode</a> for combining channels from
+  multiple audio streams into a single audio stream. It has a variable number of
+  inputs (defaulting to 6), but not all of them need be connected. There is a
+  single output whose audio stream has a number of channels equal to the sum of
+  the numbers of channels of all the connected inputs. For example, if an
+  <a>ChannelMergerNode</a> has two connected inputs (both stereo), then the
+  output will be four channels, the first two from the first input and the
+  second two from the second input. In another example with two connected inputs
+  (both mono), the output will be two channels (stereo), with the left channel
+  coming from the first input and the right channel coming from the second
+  input.
+</p>
 
 <h3 id="example-2">Example:</h3>
 <figure>
-  <img alt="channel merger" src="images/channel-merger.png" /> 
+  <img alt="channel merger" src="images/channel-merger.png">
   <figcaption>A diagram of ChannelMerger</figcaption>
 </figure>
 
-<p>Please note that in this example, the merger does <b>not</b> interpret the channel identities (such as left, right, etc.), but
-simply combines channels in the order that they are input.</p>
+<p>
+  Please note that in this example, the merger does <b>not</b> interpret the
+  channel identities (such as left, right, etc.), but simply combines channels
+  in the order that they are input.
+</p>
 
 
-<p>Be aware that it is possible to connect an <code>ChannelMergerNode</code>
-in such a way that it outputs an audio stream with a large number of channels
-greater than the maximum supported by the audio hardware. In this case where such an output is connected
-to the AudioContext .destination (the audio hardware), then the extra channels will be ignored.
-Thus, the <code>ChannelMergerNode</code> should be used in situations where the number
-of channels is well understood. </p>
+<p>
+  Be aware that it is possible to connect an <a>ChannelMergerNode</a> in
+  such a way that it outputs an audio stream with a large number of channels
+  greater than the maximum supported by the audio hardware. In this case where
+  such an output is connected to the <a>AudioContext</a> <a>destination</a> (the
+  audio hardware), then the extra channels will be ignored.  Thus, the
+  <a>ChannelMergerNode</a> should be used in situations where the number of
+  channels is well understood.
+</p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="channel-merger-node-idl">
-
-interface <dfn id="dfn-ChannelMergerNode">ChannelMergerNode</dfn> : AudioNode {
-
-};
-</code></pre>
-</div>
-</div>
+<dl title="interface ChannelMergerNode : AudioNode">
+</dl>
 </section>
 
 <section>
-<h2 id="DynamicsCompressorNode">The DynamicsCompressorNode Interface</h2>
+<h2>The DynamicsCompressorNode Interface</h2>
 
-<p>DynamicsCompressorNode is an AudioNode processor implementing a dynamics
-compression effect. </p>
+<p>
+  DynamicsCompressorNode is an AudioNode processor implementing a dynamics
+  compression effect.
+</p>
 
-<p>Dynamics compression is very commonly used in musical production and game
-audio. It lowers the volume of the loudest parts of the signal and raises the
-volume of the softest parts. Overall, a louder, richer, and fuller sound can be
-achieved. It is especially important in games and musical applications where
-large numbers of individual sounds are played simultaneous to control the
-overall signal level and help avoid clipping (distorting) the audio output to
-the speakers. </p>
+<p>
+  Dynamics compression is very commonly used in musical production and game
+  audio. It lowers the volume of the loudest parts of the signal and raises the
+  volume of the softest parts. Overall, a louder, richer, and fuller sound can
+  be achieved. It is especially important in games and musical applications
+  where large numbers of individual sounds are played simultaneous to control
+  the overall signal level and help avoid clipping (distorting) the audio output
+  to the speakers.
+</p>
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -2696,85 +2548,60 @@ the speakers. </p>
     channelInterpretation = "speakers";
 </pre>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="dynamics-compressor-node-idl">
-
-interface <dfn id="dfn-DynamicsCompressorNode">DynamicsCompressorNode</dfn> : AudioNode {
-
-    readonly attribute AudioParam threshold; // in Decibels
-    readonly attribute AudioParam knee; // in Decibels
-    readonly attribute AudioParam ratio; // unit-less
-    readonly attribute AudioParam reduction; // in Decibels
-    readonly attribute AudioParam attack; // in Seconds
-    readonly attribute AudioParam release; // in Seconds
-
-};
-</code>
-</pre>
-</div>
-</div>
-
-<section>
-  <h3 id="attributes-DynamicsCompressorNode">Attributes</h3>
-  <p>
-  All parameters are <em>k-rate</em>
-  </p>
-  
-  <dl>
-    <dt id="dfn-threshold"><code>threshold</code></dt>
-      <dd><p>The decibel value above which the compression will start taking
-        effect.  Its default <code>value</code> is -24, with a nominal range of -100 to 0. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-knee"><code>knee</code></dt>
-      <dd><p>A decibel value representing the range above the threshold where the
-        curve smoothly transitions to the "ratio" portion. Its default <code>value</code> is 30, with a nominal range of 0 to 40. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-ratio"><code>ratio</code></dt>
-      <dd><p>The amount of dB change in input for a 1 dB change in output. Its default <code>value</code> is 12, with a nominal range of 1 to 20. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-reduction"><code>reduction</code></dt>
-      <dd><p>A read-only decibel value for metering purposes, representing the
-        current amount of gain reduction that the compressor is applying to the
-        signal. If fed no signal the value will be 0 (no gain reduction).  The nominal range is -20 to 0. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-attack"><code>attack</code></dt>
-      <dd><p>The amount of time (in seconds) to reduce the gain by 10dB.   Its default <code>value</code> is 0.003, with a nominal range of 0 to 1. </p>
-      </dd>
-  </dl>
-  <dl>
-    <dt id="dfn-release"><code>release</code></dt>
-      <dd><p>The amount of time (in seconds) to increase the gain by 10dB.  Its default <code>value</code> is 0.250, with a nominal range of 0 to 1. </p>
-      </dd>
-  </dl>
-</section>
+<dl title="interface DynamicsCompressorNode< : AudioNode" class="idl">
+  <dt> readonly attribute AudioParam threshold </dt>
+  <dd>
+    The decibel value above which the compression will start taking effect.  Its
+    default <code>value</code> is -24, with a nominal range of -100 to 0.
+  </dd>
+  <dt> readonly attribute AudioParam knee </dt>
+  <dd>
+    A decibel value representing the range above the threshold where the
+    curve smoothly transitions to the "ratio" portion. Its default
+    <code>value</code> is 30, with a nominal range of 0 to 40.
+  </dd>
+  <dt> readonly attribute AudioParam ratio </dt>
+  <dd>
+    The amount of dB change in input for a 1 dB change in output. Its default
+    <code>value</code> is 12, with a nominal range of 1 to 20.
+  </dd>
+  <dt> readonly attribute AudioParam reduction </dt>
+  <dd>
+    A read-only decibel value for metering purposes, representing the current
+    amount of gain reduction that the compressor is applying to the signal. If
+    fed no signal the value will be 0 (no gain reduction).  The nominal range is
+    -20 to 0.
+  </dd>
+  <dt> readonly attribute AudioParam attack </dt>
+  <dd>
+    The amount of time (in seconds) to reduce the gain by 10dB.   Its default
+    <code>value</code> is 0.003, with a nominal range of 0 to 1.
+  </dd>
+  <dt> readonly attribute AudioParam release </dt>
+  <dd>
+    The amount of time (in seconds) to increase the gain by 10dB.  Its default
+    <code>value</code> is 0.250, with a nominal range of 0 to 1.
+  </dd>
+</dl>
 </section>
 
 <section>
-<h2 id="BiquadFilterNode">The BiquadFilterNode Interface</h2>
+<h2>The BiquadFilterNode Interface</h2>
 
-<p>BiquadFilterNode is an AudioNode processor implementing very common
-low-order filters. </p>
+<p>
+  BiquadFilterNode is an AudioNode processor implementing very common low-order
+  filters.
+</p>
 
-<p>Low-order filters are the building blocks of basic tone controls (bass, mid,
-treble), graphic equalizers, and more advanced filters. Multiple
-BiquadFilterNode filters can be combined to form more complex filters. The
-filter parameters such as "frequency" can be changed over time for filter
-sweeps, etc. Each BiquadFilterNode can be configured as one of a number of
-common filter types as shown in the IDL below.  The default filter type
-is "lowpass".</p>
+<p>
+  Low-order filters are the building blocks of basic tone controls (bass, mid,
+  treble), graphic equalizers, and more advanced filters. Multiple
+  BiquadFilterNode filters can be combined to form more complex filters. The
+  filter parameters such as "frequency" can be changed over time for filter
+  sweeps, etc. Each BiquadFilterNode can be configured as one of a number of
+  common filter types as shown in the IDL below.  The default filter type
+  is "lowpass".
+</p>
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -2782,81 +2609,19 @@ is "lowpass".</p>
     channelCountMode = "max";
     channelInterpretation = "speakers";
 </pre>
+
 <p>
 The number of channels of the output always equals the number of channels of the input.
 </p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="biquad-filter-node-idl">
-
-enum <dfn>BiquadFilterType</dfn> {
-  "lowpass",
-  "highpass",
-  "bandpass",
-  "lowshelf",
-  "highshelf",
-  "peaking",
-  "notch",
-  "allpass"
-};
-
-interface <dfn id="dfn-BiquadFilterNode">BiquadFilterNode</dfn> : AudioNode {
-
-    attribute BiquadFilterType type;
-    readonly attribute AudioParam frequency; // in Hertz
-    readonly attribute AudioParam detune; // in Cents
-    readonly attribute AudioParam Q; // Quality factor
-    readonly attribute AudioParam gain; // in Decibels
-
-    void getFrequencyResponse(Float32Array frequencyHz,
-                              Float32Array magResponse,
-                              Float32Array phaseResponse);
-
-};
-</code></pre>
-</div>
-</div>
-
-<p>The filter types are briefly described below. We note that all of these
-filters are very commonly used in audio processing. In terms of implementation,
-they have all been derived from standard analog filter prototypes. For more
-technical details, we refer the reader to the excellent <a
-href="http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt">reference</a> by
-Robert Bristow-Johnson.</p>
-
-<section>
-<h2 id=Biquad-Attributes>Attributes</h2>
-  <p>
-  All parameters are <em>k-rate</em> with the following default parameter values:
-  </p>
-  
-  <blockquote>
-  <dl>
-    <dt>frequency</dt>
-      <dd>350Hz, with a nominal range of 10 to the Nyquist frequency (half the sample-rate).
-      </dd>
-    <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
-      <dd>1, with a nominal range of 0.0001 to 1000.</dd>
-    <dt>gain</dt>
-      <dd>0, with a nominal range of -40 to 40.</dd>
-  </dl>
-  </blockquote>
-  
-  
-  
-  <section>
-    <h3 id="BiquadFilterNode-description">"lowpass"</h3>
-    
+<dl title="enum BiquadFilterType" class="idl">
+  <dt>lowpass</dt>
+  <dd>
     <p>A <a href="http://en.wikipedia.org/wiki/Low-pass_filter">lowpass filter</a>
     allows frequencies below the cutoff frequency to pass through and attenuates
     frequencies above the cutoff. It implements a standard second-order
     resonant lowpass filter with 12dB/octave rolloff.</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2869,16 +2634,15 @@ Robert Bristow-Johnson.</p>
           <dd>Not used in this filter type</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="HIGHPASS">"highpass"</h3>
+  </dd>
+  <dt>highpass</dt>
+  <dd>
     <p>A <a href="http://en.wikipedia.org/wiki/High-pass_filter">highpass
     filter</a> is the opposite of a lowpass filter. Frequencies above the cutoff
     frequency are passed through, but frequencies below the cutoff are attenuated.
     It implements a standard second-order resonant highpass filter with
     12dB/octave rolloff.</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2891,10 +2655,9 @@ Robert Bristow-Johnson.</p>
           <dd>Not used in this filter type</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="BANDPASS">"bandpass"</h3>
+  </dd>
+  <dt>bandpass</dt>
+  <dd>
     <p>A <a href="http://en.wikipedia.org/wiki/Band-pass_filter">bandpass
     filter</a> allows a range of frequencies to pass through and attenuates the
     frequencies below and above this frequency range. It implements a
@@ -2911,10 +2674,9 @@ Robert Bristow-Johnson.</p>
           <dd>Not used in this filter type</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="LOWSHELF">"lowshelf"</h3>
+  </dd>
+  <dt>lowshelf</dt>
+  <dd>
     <p>The lowshelf filter allows all frequencies through, but adds a boost (or
     attenuation) to the lower frequencies. It implements a second-order
     lowshelf filter.</p>
@@ -2931,10 +2693,9 @@ Robert Bristow-Johnson.</p>
             frequencies are attenuated.</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="L16352">"highshelf"</h3>
+  </dd>
+  <dt>highshelf</dt>
+  <dd>
     <p>The highshelf filter is the opposite of the lowshelf filter and allows all
     frequencies through, but adds a boost to the higher frequencies. It
     implements a second-order highshelf filter</p>
@@ -2951,10 +2712,9 @@ Robert Bristow-Johnson.</p>
             frequencies are attenuated.</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="PEAKING">"peaking"</h3>
+  </dd>
+  <dt>peaking</dt>
+  <dd>
     <p>The peaking filter allows all frequencies through, but adds a boost (or
     attenuation) to a range of frequencies. </p>
     
@@ -2970,10 +2730,9 @@ Robert Bristow-Johnson.</p>
             frequencies are attenuated.</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="NOTCH">"notch"</h3>
+  </dd>
+  <dt>notch</dt>
+  <dd>
     <p>The notch filter (also known as a <a
     href="http://en.wikipedia.org/wiki/Band-stop_filter">band-stop or
     band-rejection filter</a>) is the opposite of a bandpass filter. It allows all
@@ -2990,10 +2749,9 @@ Robert Bristow-Johnson.</p>
           <dd>Not used in this filter type.</dd>
       </dl>
     </blockquote>
-  </section>
-  
-  <section>
-    <h3 id="ALLPASS">"allpass"</h3>
+  </dd>
+  <dt>allpass</dt>
+  <dd>
     <p>An <a
     href="http://en.wikipedia.org/wiki/All-pass_filter#Digital_Implementation">allpass
     filter</a> allows all frequencies through, but changes the phase relationship
@@ -3013,37 +2771,85 @@ Robert Bristow-Johnson.</p>
           <dd>Not used in this filter type.</dd>
       </dl>
     </blockquote>
-  </section>
-</section>
+  </dd>
+</dl>
 
-<section>
-  <h3 id="Biquad-methods">Methods and parameters</h3>
-  <dl>
-    <dt id="dfn-getFrequencyResponse">The <code>getFrequencyResponse</code>
-    method</dt>
-      <dd><p>Given the current filter parameter settings, calculates the
-        frequency response for the specified frequencies. </p>
-        <p>The <dfn id="dfn-frequencyHz">frequencyHz</dfn> parameter specifies an
-        array of frequencies at which the response values will be calculated.</p>
-        <p>The <dfn id="dfn-magResponse">magResponse</dfn> parameter specifies an
-        output array receiving the linear magnitude response values.</p>
-        <p>The <dfn id="dfn-phaseResponse">phaseResponse</dfn> parameter
-        specifies an output array receiving the phase response values in
-        radians.</p>
-      </dd>
+<p>
+All attributes of the <a>BiquadFilterNode</a> are <em>k-rate</em>
+<a>AudioParam</a>.
+</p>
+
+<dl title="interface BiquadFilterNode : AudioNode" class="idl">
+  <dt>attribute BiquadFilterType type</dt>
+  <dd>
+    The type of this <a>BiquadFilterNode</a>. The exact meaning of the other
+    parameters depend on the value of the <code>type</code> attribute.
+  </dd>
+  <dt>readonly attribute AudioParam frequency</dt>
+  <dd>
+    The frequency at which the <a>BiquadFilterNode</a> will operate, in Hz.
+    Its default value is 350Hz, and its nominal range is from 10Hz to half the
+    Nyquist frequency.
+  </dd>
+  <dt>readonly attribute AudioParam detune</dt>
+  <dd> A detune value, in cents, for the frequency</dd>
+  <dt>readonly attribute AudioParam Q</dt>
+  <dd>
+    The <a href="http://en.wikipedia.org/wiki/Q_factor">Q</a> factor has a
+    default value of 1, with a nominal range of 0.0001 to 1000.
+  </dd>
+  <dt>readonly attribute AudioParam gain</dt>
+  <dd>The gain has a default value of 0, with a nominal range of -40 to 40.</dd>
+
+  <dt>void getFrequencyResponse() </dt>
+  <dd>
+  <p>
+    Given the current filter parameter settings, calculates the
+    frequency response for the specified frequencies.
+  </p>
+  <dl class="parameters">
+    <dt>Float32Array frequencyHz</dt>
+    <dd>
+      This parameter specifies an array of frequencies at which the response
+      values will be calculated.
+    </dd>
+    <dt>Float32Array magResponse</dt>
+    <dd>
+      This parameter specifies an output array receiving the linear magnitude
+      response values.
+    </dd>
+    <dt>Float32Array phaseResponse</dt>
+   <dd>
+    This parameter specifies an output array receiving the phase response values
+    in radians.
+   </dd>
   </dl>
-</section>
-</section>
+  </dd>
+</dl>
+
+<p>
+  The filter types are briefly described below. We note that all of these
+  filters are very commonly used in audio processing. In terms of
+  implementation, they have all been derived from standard analog filter
+  prototypes. For more technical details, we refer the reader to the
+  excellent <a href="http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt">
+  reference</a> by Robert Bristow-Johnson.
+</p>
 
 <section>
 <h2 id="WaveShaperNode">The WaveShaperNode Interface</h2>
 
-<p>WaveShaperNode is an AudioNode processor implementing non-linear distortion
-effects. </p>
+<p>
+<a>WaveShaperNode</a> is an <a>AudioNode</a> processor implementing non-linear
+distortion effects.
+</p>
 
-<p>Non-linear waveshaping distortion is commonly used for both subtle
-non-linear warming, or more obvious distortion effects. Arbitrary non-linear
-shaping curves may be specified.</p>
+<p>
+Non-linear waveshaping distortion is commonly used for both subtle non-linear
+warming, or more obvious distortion effects. Arbitrary non-linear shaping curves
+may be specified.
+</p>
+
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -3053,114 +2859,123 @@ shaping curves may be specified.</p>
 </pre>
 
 <p>
-The number of channels of the output always equals the number of channels of the input.
+  The number of channels of the output always equals the number of channels of
+  the input.
 </p>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="wave-shaper-node-idl">
-
-enum <dfn>OverSampleType</dfn> {
-    "none",
-    "2x",
-    "4x"
-};
-
-interface <dfn id="dfn-WaveShaperNode">WaveShaperNode</dfn> : AudioNode {
-
-    attribute Float32Array? curve;
-    attribute OverSampleType oversample;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-WaveShaperNode">Attributes</h3>
-<dl>
-  <dt id="dfn-curve"><code>curve</code></dt>
-    <dd><p>The shaping curve used for the waveshaping effect. The input signal
-      is nominally within the range -1 -&gt; +1. Each input sample within this
-      range will index into the shaping curve with a signal level of zero
-      corresponding to the center value of the curve array. Any sample value
-      less than -1 will correspond to the first value in the curve array. Any
-      sample value greater than +1 will correspond to the last value in
-      the curve array.  The implementation must perform linear interpolation between
-      adjacent points in the curve.  Initially the curve attribute is null, which means that
-      the WaveShaperNode will pass its input to its output without modification.</p>
-    </dd>
+<dl title="enum OverSampleType" class="idl">
+  <dt> none </dt>
+  <dd> Don't oversample</dd>
+  <dt> 2x </dt>
+  <dd> Oversample two times </dd>
+  <dt> 4x </dt>
+  <dd> Oversample four times </dd>
 </dl>
 
-<dl>
-  <dt id="dfn-oversample"><code>oversample</code></dt>
-    <dd><p>Specifies what type of oversampling (if any) should be used when applying the shaping curve.    
-    The default value is "none", meaning the curve will be applied directly to the input samples.
-    A value of "2x" or "4x" can improve the quality of the processing by avoiding some aliasing, with
-    the "4x" value yielding the highest quality.  For some applications, it's better to use no oversampling
-    in order to get a very precise shaping curve.
+<dl title="interface WaveShaperNode : AudioNode" class="idl" data-merge="OverSampleType">
+  <dt> attribute Float32Array? curve </dt>
+  <dd>
+    The shaping curve used for the waveshaping effect. The input signal is
+    nominally within the range -1 -&gt; +1. Each input sample within this range
+    will index into the shaping curve with a signal level of zero corresponding
+    to the center value of the curve array. Any sample value less than -1 will
+    correspond to the first value in the curve array. Any sample value greater
+    than +1 will correspond to the last value in the curve array.  The
+    implementation must perform linear interpolation between adjacent points in
+    the curve.  Initially the curve attribute is null, which means that the
+    WaveShaperNode will pass its input to its output without modification.
+  </dd>
+  <dt> attribute OverSampleType oversample </dt>
+    <dd>
+    <p>
+      Specifies what type of oversampling (if any) should be used when applying
+      the shaping curve.    The default value is "none", meaning the curve will
+      be applied directly to the input samples.  A value of "2x" or "4x" can
+      improve the quality of the processing by avoiding some aliasing, with the
+      "4x" value yielding the highest quality.  For some applications, it's
+      better to use no oversampling in order to get a very precise shaping
+      curve.
     </p>
     <p>
-    A value of "2x" or "4x" means that the following steps must be performed:
+      A value of "2x" or "4x" means that the following steps must be performed:
+    </p>
     <ol>
-    <li>Up-sample the input samples to 2x or 4x the sample-rate of the AudioContext.  Thus for each
-    processing block of 128 samples, generate 256 (for 2x) or 512 (for 4x) samples.</li>
-    <li>Apply the shaping curve.</li>
-    <li>Down-sample the result back to the sample-rate of the AudioContext.  Thus taking the 256 (or 512) processed samples, generating 128 as
-    the final result.
+      <li>
+        Up-sample the input samples to 2x or 4x the sample-rate of the
+        <a>AudioContext</a>.  Thus for each processing block of 128 samples,
+        generate 256 (for 2x) or 512 (for 4x) samples.
+      </li>
+      <li>Apply the shaping curve.</li>
+      <li>
+        Down-sample the result back to the sample-rate of the <a>AudioContext</a>.
+        Thus taking the 256 (or 512) processed samples, generating 128 as the
+        final result.
+      </li>
     </ol>
-    The exact up-sampling and down-sampling filters are not specified, and can be tuned for sound quality (low aliasing, etc.), low latency, and performance.
+    <p>
+      The exact up-sampling and down-sampling filters are not specified, and can
+      be tuned for sound quality (low aliasing, etc.), low latency, and
+      performance.
     </p>
     </dd>
 </dl>
-</section>
+
 </section>
 
 <section>
-<h2 id="OscillatorNode">The OscillatorNode Interface</h2>
-
-<p>OscillatorNode represents an audio source generating a periodic waveform. It can be set to
-a few commonly used waveforms. Additionally, it can be set to an arbitrary periodic
-waveform through the use of a <a href="#PeriodicWave-section"><code>PeriodicWave</code></a> object. </p>
-
-<p>Oscillators are common foundational building blocks in audio synthesis.  An OscillatorNode will start emitting sound at the time
-specified by the <code>start()</code> method. </p>
+<h2>The OscillatorNode Interface</h2>
 
 <p>
-Mathematically speaking, a <em>continuous-time</em> periodic waveform can have very high (or infinitely high) frequency information when considered
-in the frequency domain.  When this waveform is sampled as a discrete-time digital audio signal at a particular sample-rate,
-then care must be taken to discard (filter out) the high-frequency information higher than the <em>Nyquist</em> frequency (half the sample-rate)
-before converting the waveform to a digital form.  If this is not done, then <em>aliasing</em> of higher frequencies (than the Nyquist frequency) will fold
-back as mirror images into frequencies lower than the Nyquist frequency.  In many cases this will cause audibly objectionable artifacts.
-This is a basic and well understood principle of audio DSP.
+<a>OscillatorNode</a> represents an audio source generating a periodic waveform.
+It can be set to a few commonly used waveforms. Additionally, it can be set to
+an arbitrary periodic waveform through the use of a <a>PeriodicWave</a> object.
 </p>
 
 <p>
-There are several practical approaches that an implementation may take to avoid this aliasing.
-But regardless of approach, the <em>idealized</em> discrete-time digital audio signal is well defined mathematically.
-The trade-off for the implementation is a matter of implementation cost (in terms of CPU usage) versus fidelity to
-achieving this ideal.
+Oscillators are common foundational building blocks in audio synthesis.  An
+OscillatorNode will start emitting sound at the time specified by the
+<code>start()</code> method.
 </p>
 
 <p>
-It is expected that an implementation will take some care in achieving this ideal, but it is reasonable to consider lower-quality,
-less-costly approaches on lower-end hardware.
+Mathematically speaking, a <em>continuous-time</em> periodic waveform can have
+very high (or infinitely high) frequency information when considered in the
+frequency domain.  When this waveform is sampled as a discrete-time digital
+audio signal at a particular sample-rate, then care must be taken to discard
+(filter out) the high-frequency information higher than the <em>Nyquist</em>
+frequency (half the sample-rate) before converting the waveform to a digital
+form.  If this is not done, then <em>aliasing</em> of higher frequencies (than
+the Nyquist frequency) will fold back as mirror images into frequencies lower
+than the Nyquist frequency.  In many cases this will cause audibly objectionable
+artifacts.  This is a basic and well understood principle of audio DSP.
 </p>
 
 <p>
-Both .frequency and .detune are <em>a-rate</em> parameters and are used together to determine a <em>computedFrequency</em> value:
+There are several practical approaches that an implementation may take to avoid
+this aliasing.  But regardless of approach, the <em>idealized</em> discrete-time
+digital audio signal is well defined mathematically.  The trade-off for the
+implementation is a matter of implementation cost (in terms of CPU usage) versus
+fidelity to achieving this ideal.
 </p>
 
-<pre>
+<p>
+It is expected that an implementation will take some care in achieving this
+ideal, but it is reasonable to consider lower-quality, less-costly approaches on
+lower-end hardware.
+</p>
+
+<p>
+Both .frequency and .detune are <em>a-rate</em> parameters and are used together
+to determine a <em>computedFrequency</em> value:
+</p>
+
+<pre class=highlight>
   computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
 </pre>
 
 <p>
-The OscillatorNode's instantaneous phase at each time is the time integral of <em>computedFrequency</em>.
+  The OscillatorNode's instantaneous phase at each time is the time integral of
+  <em>computedFrequency</em>.
 </p>
 
 <pre>
@@ -3168,82 +2983,66 @@ The OscillatorNode's instantaneous phase at each time is the time integral of <e
   numberOfOutputs : 1 (mono output)
 </pre>
 
-<div class="block">
-
-<div class="blockTitleDiv">
-<span class="blockTitle">Web IDL</span></div>
-
-<div class="blockContent">
-<pre class="code"><code class="idl-code" id="oscillator-node-idl">
-
-enum <dfn>OscillatorType</dfn> {
-  "sine",
-  "square",
-  "sawtooth",
-  "triangle",
-  "custom"
-};
-
-interface <dfn id="dfn-OscillatorNode">OscillatorNode</dfn> : AudioNode {
-
-    attribute OscillatorType type;
-
-    readonly attribute AudioParam frequency; // in Hertz
-    readonly attribute AudioParam detune; // in Cents
-
-    void start(double when);
-    void stop(double when);
-    void setPeriodicWave(PeriodicWave periodicWave);
-
-    attribute EventHandler onended;
-
-};
-</code></pre>
-</div>
-</div>
-
-<section>
-<h3 id="attributes-OscillatorNode">Attributes</h3>
-<dl>
-  <dt id="dfn-type"><code>type</code></dt>
-    <dd><p>The shape of the periodic waveform.  It may directly be set to any of the type constant values except for "custom".
-    The <a href="#dfn-setPeriodicWave"><code>setPeriodicWave()</code></a> method can be used to set a custom waveform, which results in this attribute
-    being set to "custom".  The default value is "sine". </p>
-    </dd>
+<dl title="enum OscillatorType" class="idl">
+  <dt> sine </dt>
+  <dd> A sine wave. </dd>
+  <dt> square </dt>
+  <dd> A square wave of duty period 0.5 </dd>
+  <dt> sawtooth </dt>
+  <dd> XXX </dd>
+  <dt> triangle </dt>
+  <dd> XXX </dd>
+  <dt> custom </dt>
+  <dd> XXX </dd>
 </dl>
 
-<dl>
-  <dt id="dfn-frequency"><code>frequency</code></dt>
-    <dd><p>The frequency (in Hertz) of the periodic waveform. Its default <code>value</code> is 440. This parameter is <em>a-rate</em> </p>
+<dl title="interface OscillatorNode : AudioNode">
+    <dt> attribute OscillatorType type </dt>
+    <dd>
+      The shape of the periodic waveform.  It may directly be set to any of the
+      type constant values except for "custom".  The <a
+      href="#dfn-setPeriodicWave"><code>setPeriodicWave()</code></a> method can be
+      used to set a custom waveform, which results in this attribute being set to
+      "custom".  The default value is "sine".
     </dd>
-</dl>
-<dl>
-  <dt id="dfn-detune"><code>detune</code></dt>
-    <dd><p>A detuning value (in Cents) which will offset the <code>frequency</code> by the given amount. Its default <code>value</code> is 0.
-     This parameter is <em>a-rate</em> </p>
+
+    <dt> readonly attribute AudioParam frequency </dt>
+    <dd>
+      The frequency (in Hertz) of the periodic waveform. Its default
+      <code>value</code> is 440. This parameter is <em>a-rate</em>.
     </dd>
-</dl>
-<dl>
-  <dt id="dfn-onended"><code>onended</code></dt>
-    <dd><p>A property used to set the <code>EventHandler</code> (described in <cite><a
+    <dt> readonly attribute AudioParam detune </dt>
+    <dd>
+      A detuning value (in Cents) which will offset the <code>frequency</code> by
+      the given amount. Its default <code>value</code> is 0.  This parameter is
+      <em>a-rate</em>.
+    </dd>
+
+    <dt> void start(double when) </dt>
+    <dt> void stop(double when) </dt>
+    <dt> void setPeriodicWave(PeriodicWave periodicWave) </dt>
+    <dd>Sets an arbitrary custom periodic waveform given a <a
+    href="#PeriodicWave-section"><code>PeriodicWave</code></a>.
+    </dd>
+
+    <dt> attribute EventHandler onended; </dt>
+    <dd>
+    A property used to set the <code>EventHandler</code> (described in <cite><a
       href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">HTML</a></cite>[[HTML]])
       for the ended event that is dispatched to <a
       href="#OscillatorNode-section"><code>OscillatorNode</code></a>
       node types.  When the playback of the buffer for an <code>OscillatorNode</code>
       is finished, an event of type <code>Event</code> (described in <cite><a
       href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a></cite>[[HTML]])
-      will be dispatched to the event handler. </p>
+      will be dispatched to the event handler.
     </dd>
 </dl>
-</section>
 
 <section>
   <h3 id="methodsandparams-OscillatorNode">Methods and Parameters</h3>
   <dl>
     <dt id="dfn-setPeriodicWave">The <code>setPeriodicWave</code>
     method</dt>
-      <dd><p>Sets an arbitrary custom periodic waveform given a <a href="#PeriodicWave-section"><code>PeriodicWave</code></a>.</p>
-      </dd>
   </dl>
   <dl>
     <dt id="dfn-start-AudioBufferSourceNode">The <code>start</code>
@@ -3767,8 +3566,7 @@ connection.</li>
       3: LFE: subwoofer
       4: SL:  surround left
       5: SR:  surround right
-    </pre>
-  </div>
+  </pre>
 </section>
 
 <section><h4 id="UpMix-sub">Up Mixing speaker layouts</h4>
@@ -3995,9 +3793,6 @@ Quad up-mix:
   else if (elevation &lt; -90)
       elevation = -180 - elevation;
   </code></pre>
-  </div>
-  </div>
-  </div>
 </section>
 
 <section>
@@ -4346,7 +4141,7 @@ Quad up-mix:
   </figure>
 </section>
 
-<sectin>
+<section>
   <h3 id="recording-impulse-responses">Recording Impulse Responses</h3>
   
   <p class="norm">This section is informative.</p>
@@ -4371,7 +4166,7 @@ Quad up-mix:
   room with the corresponding microphone placement. These impulse responses are
   then ready to be loaded into the convolution reverb engine to re-create the
   sound of being in the room. </p>
-</sectin>
+</section>
 
 <section>
   <h3 id="tools">Tools</h3>
@@ -4395,9 +4190,6 @@ Quad up-mix:
   <pre>
   <code>% convolve -h</code>
   Usage: convolve input_file impulse_response_file output_file</pre>
-  <pre>
-</ul>
-</p>
 </section>
 
 
@@ -4413,7 +4205,7 @@ Quad up-mix:
   </figure>
   <figure>
     <img alt="microphone" src="images/microphone.png" />
-    <figcaption>Microphones: AKG 414s<figcaption>
+    <figcaption>Microphones: AKG 414s</figcaption>
   </figure>
   <figure>
     <img alt="speaker" src="images/speaker.png" />

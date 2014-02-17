@@ -1587,8 +1587,8 @@ param.setValueCurveAtTime(curve, t6, t7 - t6);
     Represents the amount of gain to apply. Its default <code>value</code> is 1
     (no gain change). The nominal <code>minValue</code> is 0, but may be set
     negative for phase inversion.  The nominal <code>maxValue</code> is 1, but
-    higher values are allowed (no
-    exception thrown).This parameter is <a>a-rate</a>
+    higher values are allowed (no exception thrown).This parameter is
+    <a>a-rate</a>
   </dd>
 </dl>
 </section>
@@ -3111,64 +3111,115 @@ may be specified.
   <code>start()</code> method.
 </p>
 
-<p>
-  Mathematically speaking, a <em>continuous-time</em> periodic waveform can have
-  very high (or infinitely high) frequency information when considered in the
-  frequency domain.  When this waveform is sampled as a discrete-time digital
-  audio signal at a particular sample-rate, then care must be taken to discard
-  (filter out) the high-frequency information higher than the <em>Nyquist</em>
-  frequency (half the sample-rate) before converting the waveform to a digital
-  form.  If this is not done, then <em>aliasing</em> of higher frequencies (than
-  the Nyquist frequency) will fold back as mirror images into frequencies lower
-  than the Nyquist frequency.  In many cases this will cause audibly objectionable
-  artifacts.  This is a basic and well understood principle of audio DSP.
-</p>
-
-<p>
-  There are several practical approaches that an implementation may take to avoid
-  this aliasing.  But regardless of approach, the <em>idealized</em> discrete-time
-  digital audio signal is well defined mathematically.  The trade-off for the
-  implementation is a matter of implementation cost (in terms of CPU usage) versus
-  fidelity to achieving this ideal.
-</p>
-
-<p>
-It is expected that an implementation will take some care in achieving this
-ideal, but it is reasonable to consider lower-quality, less-costly approaches on
-lower-end hardware.
-</p>
-
-<p>
-Both .frequency and .detune are <a>a-rate</a> parameters and are used together
-to determine a <em>computedFrequency</em> value:
-</p>
-
-<pre class=highlight>
-  computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
-</pre>
-
-<p>
-  The OscillatorNode's instantaneous phase at each time is the time integral of
-  <em>computedFrequency</em>.
-</p>
-
 <pre>
   numberOfInputs  : 0
   numberOfOutputs : 1 (mono output)
 </pre>
 
-<dl title="enum OscillatorType" class="idl">
-  <dt> sine </dt>
-  <dd> A sine wave. </dd>
-  <dt> square </dt>
-  <dd> A square wave of duty period 0.5 </dd>
-  <dt> sawtooth </dt>
-  <dd> XXX </dd>
-  <dt> triangle </dt>
-  <dd> XXX </dd>
-  <dt> custom </dt>
-  <dd> XXX </dd>
-</dl>
+<section>
+<h3 id="oscillator-band-limiting">Band-limiting</h3>
+<p>
+  Mathematically speaking, a <em>continuous-time</em> periodic waveform can have
+  very high (or infinitely high) frequency information when considered in the
+  frequency domain.  When this waveform is sampled as a discrete-time digital
+  audio signal at a particular sample-rate, then care must be taken to discard
+  (filter out) the high-frequency information higher than the <dfn id="nyquist">
+  Nyquist frequency</dfn> (half the sample-rate of the
+  <a><code>AudioContext</code></a>) before converting the waveform to a digital
+  form.  If this is not done, then <em>aliasing</em> of higher frequencies (than
+  the Nyquist frequency) will fold back as mirror images into frequencies lower
+  than the Nyquist frequency.  When the <a>OscillatorNode</a> is used to produce
+  audio, this may cause audibly objectionable artifacts.
+</p>
+<p>
+  If the <a href="#widl-OscillatorNode-bandLimited">bandLimited</a> attribute is
+  <code>true</code> (the default), care should be taken to remove frequencies
+  higher than the <a href="#nyquist">Nyquist frequency</a>.
+
+  If the <a href="#widl-OscillatorNode-bandLimited">bandLimited</a> attribute is
+  <code>false</code>, the <a>OscillatorNode</a> will produce a mathematically
+  accurate signal.
+</p>
+
+<section class="note" id="oscillator-band-limiting-note">
+  <p>
+    There are several practical approaches that an implementation may take to
+    avoid this aliasing: inverse Fourier tranform, band limited impulse train
+    synthesis, etc.  But regardless of approach, the <em>idealized</em>
+    discrete-time digital audio signal is well defined mathematically.  The
+    trade-off for the implementation is a matter of implementation cost (in terms
+    of CPU usage) versus fidelity to achieving this ideal.
+  </p>
+  <p>
+    It is expected that an implementation will take some care in achieving this
+    ideal, but it is reasonable to consider lower-quality, less-costly approaches on
+    lower-end hardware.
+  </p>
+  <p>
+    Non band-limited signals can be useful when fed to an <a>AudioParam</a>, to
+    act as an <abbr>LFO</abbr>
+  </p>
+</section>
+
+<section>
+<h3>Frequency</h3>
+<p>
+  Both <a href="#widl-OscillatorNode-frequency">frequency</a> and 
+  <a href="#widl-OscillatorNode-detune">detune</a> are <a>a-rate</a> parameters
+  and are used together to determine a <dfn><code>computedFrequency</code></dfn>
+  value:
+</p>
+
+<pre class=highlight>
+  computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
+</pre>
+</section>
+
+<section>
+  <h3>Phase of basic waveforms</h3>
+  <p>
+    There are multiple ways of defining the <dfn id="basic-waveforms">basic
+    waveforms</dfn> for each <a>OscillatorType</a> (that is, all types apart
+    from the <a href="#widl-OscillatorType-custom">custom</a> type), in terms of
+    phase.
+  </p>
+
+  <p>
+    All the <a href="#basic-waveforms">basic waveform types</a> are
+    2&pi;-periodic odd functions starting with a positive slope at time 0.
+  </p>
+  <p>
+    <dl title="enum OscillatorType" class="idl">
+      <dt>sine</dt>
+      <dd>The waveform for the sine oscillator at time <code>t</code> is
+      <code>sin(t)</code> in the interval <code>[0; 2&pi;]</code>.
+      <dt>square</dt>
+      <dd>
+        The value at time <code>t</code> for the square oscillator is 1 if
+        <code>0 &lt;= t &lt; &pi;</code> and -1 if <code> -&pi; &lt;= t &lt;
+        0</code>.
+      </dd>
+      <dt>sawtooth</dt>
+      <dd>
+        The value at time <code>t</code> for the sawtooth oscillator is the ramp
+        <code>t / &pi;</code> in the inverval <code>[-&pi;; &pi;]</code>.
+      </dd>
+      <dt>triangle</dt>
+      <dd>
+      The value at time <code>t</code> for the triangle oscillator is
+      <code>2/&pi;*t</code> for <code>0 &lt;= t &lt; &pi;/2</code> and <code>
+        1 - 2/&pi;*(t - &pi;/2)</code> for <code>&pi;/2 &lt; t &lt;=
+        &pi;</code>.
+      </dd>
+      <dt> custom </dt>
+      <dd> See the
+        <a href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">createPeriodicWave()</a>
+        definition.
+      </dd>
+    </dl>
+  </p>
+
+</section>
 
 <dl title="interface OscillatorNode : AudioNode" class="idl">
     <dt> attribute OscillatorType type </dt>
@@ -3190,6 +3241,12 @@ to determine a <em>computedFrequency</em> value:
       A detuning value (in Cents) which will offset the <a><code>frequency</code></a> by
       the given amount. Its default <code>value</code> is 0.  This parameter is
       <a>a-rate</a>.
+    </dd>
+    <dt> attribute bool bandLimited </dt>
+    <dd>
+      Whether the <a>OscillatorNode</a> should produce a band limited output or
+      note. See the <a href="#oscillator-band-limiting"></a> section for
+      normative details. The default is <code>true</code>.
     </dd>
 
     <dt> void start(double when)</dt>
@@ -3221,8 +3278,7 @@ to determine a <em>computedFrequency</em> value:
 <p>
 PeriodicWave represents an arbitrary periodic waveform to be used with an
 <a><code>OscillatorNode</code></a>.  Please see
-<a
-  href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">createPeriodicWave()</a> and <a
+<a href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">createPeriodicWave()</a> and <a
 href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">setPeriodicWave()</a> and for more details.
 </p>
 

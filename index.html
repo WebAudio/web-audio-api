@@ -428,7 +428,7 @@ function setupRoutingGraph () {
   <li>An <a><code>PannerNode</code></a>
     interface, for spatializing / positioning audio in 3D space. </li>
   <li>An <a><code>AudioListener</code></a>
-    interface, which works with an <a><code>PannerNode</code></a> for
+    interface, which works with a <a>PannerNode</a> for
     spatialization. </li>
   <li>A <a><code>ConvolverNode</code></a>
       interface, an <a><code>AudioNode</code></a> for applying a <a
@@ -487,7 +487,8 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     with a single input representing the final destination for all audio.
     Usually this will represent the actual audio hardware.
     All <a><code>AudioNode</code></a>s actively rendering
-    audio will directly or indirectly connect to <a><code>destination</code></a>.</p>
+    audio will directly or indirectly connect to <a
+      href="#widl-AudioContext-destination"><code>destination</code></a>.</p>
   </dd>
   <dt> readonly attribute float sampleRate</dt>
   <dd><p>The sample rate (in sample-frames per second) at which the
@@ -715,23 +716,33 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dd>Creates an <a><code>OscillatorNode</code></a></dd>
     <dt> PeriodicWave createPeriodicWave() </dt>
     <dd>
-    Creates a <a><code>PeriodicWave</code></a> representing a waveform containing arbitrary
-    harmonic content.  The <code>real</code> and <code>imag</code> parameters
-    must be of type <code>Float32Array</code> (described in [[!TYPED-ARRAYS]])
-    of equal lengths greater than zero
-    and less than or equal to 4096 or an INDEX_SIZE_ERR exception MUST be
-    thrown.  These parameters specify the Fourier coefficients of a
-    <a href="http://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
-    representing the partials of a periodic waveform.  The created
-    <a><code>PeriodicWave</code></a> will be used with an
-    <a><code>OscillatorNode</code></a> and will
-    represent a <em>normalized</em> time-domain waveform having maximum absolute
-    peak value of 1.  Another way of saying this is that the generated waveform of
-    an <a><code>OscillatorNode</code></a> will have maximum peak value at 0dBFS. Conveniently,
-    this corresponds to the full-range of the signal values used by the Web Audio
-    API.  Because the PeriodicWave will be normalized on creation, the
-    <code>real</code> and <code>imag</code> parameters represent <em>relative</em>
-    values.
+    <p>
+      Creates a <a><code>PeriodicWave</code></a> representing a waveform
+      containing arbitrary harmonic content.  The <code>real</code> and
+      <code>imag</code> parameters must be of type <code>Float32Array</code>
+      (described in [[!TYPED-ARRAYS]]) of equal lengths greater than zero and less
+      than or equal to 4096 or an INDEX_SIZE_ERR exception MUST be thrown.  These
+      parameters specify the Fourier coefficients of a 
+      <a href="http://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
+      representing the partials of a periodic waveform.  The created
+      <a><code>PeriodicWave</code></a> will be used with an
+      <a><code>OscillatorNode</code></a> and will represent a <em>normalized</em>
+      time-domain waveform having maximum absolute peak value of 1.  Another way of
+      saying this is that the generated waveform of an
+      <a><code>OscillatorNode</code></a> will have maximum peak value at 0dBFS.
+      Conveniently, this corresponds to the full-range of the signal values used by
+      the Web Audio API.  Because the PeriodicWave will be normalized on creation,
+      the <code>real</code> and <code>imag</code> parameters represent
+      <em>relative</em> values.
+    </p>
+    <p>
+      As <a>PeriodicWave</a> objects maintain their own representation, any
+      modification of the arrays uses as the <code>real</code> and
+      <code>imag</code> parameters after the call to
+      <a href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
+        <code>createPeriodicWave()</code></a> will have no effect on the
+      <a>PeriodicWave</a> object.
+    </p>
 
     <dl class=parameters>
       <dt> Float32Array real </dt>
@@ -799,9 +810,17 @@ href="#OfflineAudioContext"><code>OfflineAudioContext</code></a>. </p>
 
 <dl title="interface OfflineAudioCompletionEvent : Event" class="idl">
   <dt>readonly attribute AudioBuffer renderedBuffer</dt>
-  <dd><p>An AudioBuffer containing the rendered audio data once an OfflineAudioContext has finished rendering.
-  It will have a number of channels equal to the <code>numberOfChannels</code> parameter
-  of the OfflineAudioContext constructor.</p>
+  <dd>
+    <p>
+      An AudioBuffer containing the rendered audio data once an
+      OfflineAudioContext has finished rendering.  It will have a number of channels
+      equal to the <code>numberOfChannels</code> parameter of the
+      OfflineAudioContext constructor.
+    </p>
+    <p>
+      A new <a>AudioBuffer</a> MUST be used each time an
+      <a>OfflineAudioCompletionEvent</a> is fired.
+    </p>
   </dd>
 </dl>
 
@@ -836,13 +855,13 @@ channels depends on the details of the specific <a><code>AudioNode</code></a>.
 An output may connect to one or more <a><code>AudioNode</code></a> 
 inputs, thus <em>fan-out</em> is supported.  An input initially has no connections,
 but may be connected from one
-or more <a><code>AudioNode</code></a> outputs, thus <em>fan-in</em> is supported.  When the <code>connect()</code> method is called to connect
-an output of an <a><code>AudioNode</code></a> to an input of an
-<a><code>AudioNode</code></a>, we call that a <dfn>connection</dfn> to the input.
+or more <a>AudioNode</a> outputs, thus <em>fan-in</em> is supported.  When the <code>connect()</code> method is called to connect
+an output of an <a>AudioNode</a> to an input of an
+<a>AudioNode</a>, we call that a <dfn>connection</dfn> to the input.
 </p>
 
 <p>
-Each <a><code>AudioNode</code></a> <dfn>input</dfn> has a specific number of
+Each <a>AudioNode</a> <dfn>input</dfn> has a specific number of
 channels at any given time.  This number can change depending on the <a>connection</a>(s)
 made to the input.  If the input has no connections then it has one channel which is silent.
 </p>
@@ -1405,7 +1424,9 @@ The following rules will apply when calling these methods:
       <p>
         The <dfn id="dfn-values">values</dfn> parameter is a Float32Array
         representing a parameter value curve. These values will apply starting at
-        the given time and lasting for the given duration. 
+        the given time and lasting for the given duration. Any modification to the
+        the array used as <a id="#dfn-values"><code>values</code></a> argument
+        after the call won't have any effect on the <a>AudioParam</a>.
       </p>
       <p>
         The <dfn id="dfn-startTime_5">startTime</dfn> parameter is the time in the
@@ -1626,7 +1647,8 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
 </p>
 
 <p>
-An AudioBuffer may be used by one or more <a><code>AudioContext</code></a>s.
+  An <a>AudioBuffer</a> may be used by one or more
+  <a><code>AudioContext</code></a>s.
 </p>
 
 <dl title="interface AudioBuffer" class="idl">
@@ -1653,7 +1675,108 @@ An AudioBuffer may be used by one or more <a><code>AudioContext</code></a>s.
         </dd>
       </dl>
     </dd>
+    <dt> void copyFromChannel() </dt>
+    <dd>
+      The <code>copyFromChannel</code> method copies the samples from the
+      specified channel of the <a>AudioBuffer</a> to the
+      <code>destination</code> array.
+      <dl class="parameters">
+        <dt>Float32Array destination</dt>
+        <dd>The array the channel data will be copied to.</dd>
+        <dt>long channelNumber</dt>
+        <dd>
+          The index of the channel to copy the data from. If
+          <code>channelNumber</code> is greater or equal than the number of
+          channel of the <a>AudioBuffer</a>, an <code>INDEX_SIZE_ERR</code> MUST
+          be thrown.
+        </dd>
+        <dt>optional unsigned long startInChannel = 0</dt>
+        <dd>
+          An optional offset to copy the data from. If
+          <code>startInChannel</code> is greater than the <code>length</code> of the
+          <a>AudioBuffer</a>, an <code>INDEX_SIZE_ERR</code> MUST be thrown.
+        </dd>
+      </dl>
+    </dd>
+    <dt>void copyToChannel()</dt>
+    <dd>
+      The <code>copyToChannel</code> method copies the samples to the
+      specified channel of the <a>AudioBuffer</a>, from the
+      <code>source</code> array.
+      <dl class="parameters">
+        <dt>Float32Array source</dt>
+        <dd>The array the channel data will be copied from.</dd>
+        <dt>long channelNumber</dt>
+        <dd>
+          The index of the channel to copy the data to. If
+          <code>channelNumber</code> is greater or equal than the number of
+          channel of the <a>AudioBuffer</a>, an <code>INDEX_SIZE_ERR</code> MUST
+          be thrown.
+        </dd>
+        <dt>optional unsigned long startInChannel = 0</dt>
+          <dd>
+            An optional offset to copy the data to.  If
+            <code>startInChannel</code> is greater than the <code>length</code>
+            of the <a>AudioBuffer</a>, an <code>INDEX_SIZE_ERR</code> MUST be
+            thrown.
+          </dd>
+      </dl>
+    </dd>
 </dl>
+
+<p class="note">
+  The methods <code>copyToChannel</code> and <code>copyFromChannel</code> can be
+  used to fill part of an array by passing in a <code>Float32Array</code> that's
+  a view onto the larger array.
+
+  When reading data from an <a>AudioBuffer</a>'s channels, and the data can be
+  processed in chunks, <code>copyChannelDataTo</code> should be preferred to
+  calling <code>getChannelData</code> and accessing the resulting array, because
+  it may avoid unnecessary memory allocation and copying.
+</p>
+
+<p>
+  An internal operation <a href="#acquire-the-content">acquire the contents of
+  an <code>AudioBuffer</code></a> is invoked when the contents of an
+  <a>AudioBuffer</a> are needed by some API implementation. This operation
+  returns immutable channel data to the
+  invoker.
+</p>
+
+<p>
+When an <dfn id="acquire-the-content">acquire the content</dfn> operation occurs on an
+<a>AudioBuffer</a>, run the following steps:
+</p>
+<ol>
+  <li> If any of the <a>AudioBuffer</a>'s <code>ArrayBuffer</code> have
+  been neutered, abort these steps, and return a zero-length channel data
+  buffers to the invoker. </li>
+  <li> Neuter all <code>ArrayBuffer</code>s for arrays previously returned by
+  <code>getChannelData</code> on this <a>AudioBuffer</a>.</li>
+  <li>Retain the underlying data buffers from those <code>ArrayBuffer</code>s
+  and return references to them to the invoker.</li>
+  <li>Attach <code>ArrayBuffer</code>s containing copies of the data to the
+  <a>AudioBuffer</a>, to be returned by the next call to
+  <code>getChannelData</code>.</li>
+</ol>
+
+The <a href="#acquire-the-content">acquire the contents of an AudioBuffer</a> operation is
+invoked in the following cases:
+<ul>
+  <li>When <code>AudioBufferSourceNode.start</code> is called, it
+  <a href="#acquire-the-content">acquires the contents</a> of the node's
+  <code>buffer</code>. If the operation fails, nothing is played.</li>
+  <li> When a <a>ConvolverNode</a>'s <code>buffer</code> is set to an
+  <a>AudioBuffer</a> while the node is connected to an output node, or a
+  <a>ConvolverNode</a> is connected to an output node while the
+  <a>ConvolverNode</a>'s <code>buffer</code> is set to an
+  <a>AudioBuffer</a>, it <a href="#acquire-the-content">acquires the
+    content</a> of the <a>AudioBuffer</a>.</li>
+  <li> When the dispatch of an <a>AudioProcessingEvent</a> completes, it
+  <a href="#acquire-the-content">acquires the contents</a> of its
+  <code>outputBuffer</code>.</li>
+</ul>
+
 
 </section>
 
@@ -4237,7 +4360,7 @@ useful: </p>
 
 <section>
   <h3 id="javaScript-performance">JavaScript Performance</h3>
-  
+
   <p>JavaScript has a variety of <a
   href="#JavaScriptPerformance">performance issues</a> so it is not
   suitable for all types of audio processing. The approach proposed in this
@@ -4274,6 +4397,35 @@ useful: </p>
   generally cheapens the users experience much in the same way that very low
   animation frame-rates do. Depending on the application, a reasonable latency
   can be from as low as 3-6 milliseconds to 25-50 milliseconds. </p>
+</section>
+
+<section>
+<h3>Audio buffer copying</h3>
+<p>
+  When an <a href="#acquire-the-content">acquire the content</a> operation is
+  performed on an <a>AudioBuffer</a>, the entire operation can usually be
+  implemented without copying channel data. In particular, the last step should be
+  performed lazily at the next
+  <a href="#widl-AudioBuffer-getChannelData-Float32Array-unsigned-long-channel">
+  <code>getChannelData</code></a> call. That means a sequence of consecutive
+  <a href="#acquire-the-content">acquire the contents</a> operations with no
+  intervening
+  <a href="#widl-AudioBuffer-getChannelData-Float32Array-unsigned-long-channel">
+  <code>getChannelData</code></a> (e.g. multiple <a>AudioBufferSourceNode</a>s
+  playing the same <a>AudioBuffer</a>) can be
+  implemented with no allocations or copying.
+</p>
+
+<p>
+  Implementations can perform an additional optimization: if
+  <a href="#widl-AudioBuffer-getChannelData-Float32Array-unsigned-long-channel">
+  getChannelData</a> is called on an <a>AudioBuffer</a>, fresh
+  <code>ArrayBuffer</code>s have not yet been allocated, but all invokers of
+  previous <a href="#acquire-the-content">acquire the content</a> operations on
+  an <a>AudioBuffer</a> have stopped using the <a>AudioBuffer</a>'s data, the
+  raw data buffers can be recycled for use with new <a>AudioBuffer</a>s,
+  avoiding any reallocation or copying of the channel data.
+</p>
 </section>
 
 <section>

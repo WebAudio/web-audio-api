@@ -2521,7 +2521,7 @@ float calculateNormalizationScale(buffer)
     <dt> void getFloatFrequencyData() </dt>
     <dd>
       <p>
-        Copies the current frequency data into the passed floating-point
+        Copies the <a>current frequency data</a> into the passed floating-point
         array. If the array has fewer elements than the <a><code>frequencyBinCount</code></a>, the
         excess elements will be dropped. If the array has more elements than
         the <a><code>frequencyBinCount</code></a>, the excess elements will be ignored.
@@ -2537,7 +2537,7 @@ float calculateNormalizationScale(buffer)
     <dt> void getByteFrequencyData() </dt>
     <dd>
       <p>
-        Copies the current frequency data into the passed unsigned byte
+        Copies the <a>current frequency data</a> into the passed unsigned byte
         array. If the array has fewer elements than the <a><code>frequencyBinCount</code></a>, the
         excess elements will be dropped. If the array has more elements than
         the <a><code>frequencyBinCount</code></a>, the excess elements will be ignored.
@@ -2621,6 +2621,78 @@ float calculateNormalizationScale(buffer)
       an INDEX_SIZE_ERR exception MUST be thrown.
     </dd>
 </dl>
+
+<section>
+<h3>FFT Windowing and smoothing over time</h3>
+When the <dfn id="current-frequency-data">current frequency data</dfn> are
+computed, the following operations are to be performed:
+<ol>
+  <li> <a href="#blackman-window">Apply a Blackman window</a> to the time domain input data </li>
+  <li> Apply a Fourier tranform to the windowed time domain input data to get imaginary and real frequency data </li>
+  <li> <a href="#smoothing-over-time">Smooth over time</a> the frequency domain data</li>
+</ol>
+
+<dfn id="blackman-window">Applying a Blackman window</dfn> consists in the
+following operation on the input time domain data <code>buffer</code>:
+
+    <pre class="highlight">
+function blackmanWindow(buffer) {
+  var alpha = 0.16;
+  var a0 = 0.5 * (1.0 - alpha);
+  var a1 = 0.5;
+  var a2 = 0.5 * alpha;
+
+  for (var i = 0; i &lt; buffer.length; i++) {
+    var x = i / aSize;
+    buffer[i] *= a0 - a1 * Math.cos(2 * Math.PI * x) + a2 * Math.cos(4 * Math.PI * x);
+  }
+}
+    </pre>
+
+<dfn id="smoothing-over-time">Smoothing over time</dfn> frequency data consists
+in the following operation:
+<ul>
+<li>
+  Let <code>fftSize</code> be the value of <a
+    href="#widl-AnalyserNode-fftSize"><code>fftSize</code></a> for this
+  <a>AnalyserNode</a>.
+</li>
+<li>
+  Let <code>outputBuffer</code> be an array that contains
+  the frequency data that will be made available to the author via <a
+    href="#widl-AnalyserNode-getFloatFrequencyData-void-Float32Array-array"><code>getFloatFrequencyData</code></a>,
+  or <a
+  href="#widl-AnalyserNode-getByteFrequencyData-void-Uint8Array-array"><code>getByteFrequencyData</code></a>.
+</li>
+<li>
+  Let <code>lastOutputBuffer</code> be the result of this operation on the last block,
+  or an array of <code>fftSize</code> zeros if this is the first time we are <a
+  href="#smoothing-over-time">smoothing over time</a>.
+</li>
+<li>
+  Let <code>smoothingConstant</code> be the value of the <a
+  href="#widl-AnalyserNode-smoothingTimeConstant"><code>smoothingTimeConstant</code></a> attribute for
+  this <a><code>AnalyserNode</code></a>.
+</li>
+<li>
+  Let <code>real</code> and <code>imag</code> be two arrays of length
+  <code>fftSize</code>, that contain the result of the previously applied Fourier
+  transform.
+</li>
+</ul>
+
+<pre class="highlight">
+  function smoothingOverTime(outputBuffer, lastOutputBuffer,
+                             smoothingConstant,
+                             real, imag, fftSize) {
+    for (var i = 0; i &lt; outputBuffer.length; i++) {
+      var magnitude = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]) / (1.0 / fftSize)
+      outputBuffer[i] = smoothingTimeConstant * lastOutputBuffer[i] + (1.0 - smoothingTimeConstant) * magnitude;
+    }
+  }
+</pre>
+
+</section>
 </section>
 
 <section>
@@ -4620,7 +4692,7 @@ battery-life issues.
   available <a><code>AudioNode</code></a>s, the Web Audio API potentially exposes information on
   characteristic features of the client (such as audio hardware sample-rate) to
   any page that makes use of the <a><code>AudioNode</code></a> interface. Additionally, timing
-  information can be collected through the RealtimeAnalyzerNode or
+  information can be collected through the <a><code>AnalyserNode</code></a> or
   <a><code>ScriptProcessorNode</code></a> interface. The information could subsequently be used to
   create a fingerprint of the client. </p>
   

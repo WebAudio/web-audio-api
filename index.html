@@ -50,7 +50,7 @@
         nodes[i].classList.remove("badLink");
       }
       var nodes = document.querySelectorAll('a');
-  
+
       for (var i = 0; i < nodes.length; i++) {
           if (nodes[i].href) {
               var id =  nodes[i].href.split("/");
@@ -75,7 +75,7 @@
       var codetags = document.querySelectorAll("code");
 
       for (var i = 0; i < codetags.length; i++) {
-        if (!(codetags[i].parentNode instanceof HTMLAnchorElement) || 
+        if (!(codetags[i].parentNode instanceof HTMLAnchorElement) ||
             codetags[i].parentNode.href == "") {
           codetags[i].style.backgroundColor = 'hotpink';
           codetags[i].style.color  = 'yellow';
@@ -162,14 +162,14 @@ so that more advanced capabilities can be added at a later time. </p>
   <li>Processing of audio sources from an <code>audio</code> or
     <code>video</code> <a href="#MediaElementAudioSourceNode">media
     element</a>. </li>
-  
+
     <li>Processing live audio input using a <a href="#MediaStreamAudioSourceNode">MediaStream</a>
     from getUserMedia().
      </li>
-    
+
      <li>Integration with WebRTC
   <ul>
-  
+
 
    <li>Processing audio received from a remote peer using a
    <a><code>MediaStreamAudioSourceNode</code></a> and [[!webrtc]].
@@ -268,7 +268,7 @@ function playSound() {
 <p>Here's a more complex example with three sources and a convolution reverb
 send with a dynamics compressor at the final output stage: </p>
 <figure>
-  <img alt="modular routing2" src="images/modular-routing2.png" /> 
+  <img alt="modular routing2" src="images/modular-routing2.png" />
   <figcaption>A more complex example of modular rounting.</figcaption>
 </figure>
 
@@ -356,7 +356,7 @@ function setupRoutingGraph () {
     panner.connect(wet3);
     dry3.connect(masterDry);
     wet3.connect(reverb);
-    
+
     // Start the sources now.
     source1.start(0);
     source2.start(0);
@@ -528,7 +528,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   </dl>
   </dd>
 
-    <dt> void decodeAudioData() </dt>
+    <dt> Promise&lt;AudioBuffer&gt; decodeAudioData() </dt>
     <dd>
       Asynchronously decodes the audio file data contained in the ArrayBuffer.
     The ArrayBuffer can, for example, be loaded from an XMLHttpRequest's
@@ -538,7 +538,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dl class=parameters>
       <dt> ArrayBuffer audioData </dt>
       <dd> An ArrayBuffer containing compressed audio data </dd>
-      <dt> DecodeSuccessCallback successCallback </dt>
+      <dt> optional DecodeSuccessCallback successCallback </dt>
       <dd>
         A callback function which will be invoked when the decoding is finished.
         The single argument to this callback is an AudioBuffer representing the
@@ -552,27 +552,46 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
 
     </dl>
       <p>
+      Although the primary method of interfacing with this function is via its promise return value, the callback
+      parameters are provided for legacy reasons.
+      </p>
+      <p>
       The following steps must be performed:
       </p>
       <ol>
+      <li>Let <var>promise</var> be a new promise.</li>
       <li>Temporarily neuter the <dfn>audioData</dfn> ArrayBuffer in such a way that JavaScript code may not
       access or modify the data.</li>
       <li>Queue a decoding operation to be performed on another thread.</li>
-      <li>The decoding thread will attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.
-      If a decoding error is encountered due to the audio format not being recognized or supported, or
-      because of corrupted/unexpected/inconsistent data then the <dfn>audioData</dfn> neutered state
-      will be restored to normal and the <dfn>errorCallback</dfn> will be
-      scheduled to run on the main thread's event loop and these steps will be terminated.</li>
-      <li>The decoding thread will take the result, representing the decoded linear PCM audio data,
-      and resample it to the sample-rate of the <a><code>AudioContext</code></a> if it is different from the sample-rate
-      of <dfn>audioData</dfn>.  The final result (after possibly sample-rate converting) will be stored
-      in an AudioBuffer.
-      </li>
-      <li>The <dfn>audioData</dfn> neutered state will be restored to normal
-      </li>
-      <li>
-      The <dfn>successCallback</dfn> function will be scheduled to run on the main thread's event loop
-      given the AudioBuffer from step (4) as an argument.
+      <li>Return <var>promise</var>.</li>
+      <li>In the decoding thread:
+        <ol>
+        <li>Attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.</li>
+        <li>If a decoding error is encountered due to the audio format not being recognized or supported, or because
+        of corrupted/unexpected/inconsistent data, then, on the main thread's event loop:
+          <ol>
+          <li>Restore the <dfn>audioData</dfn> neutered state to normal.</li>
+          <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>EncodingError</code>.</li>
+          <li>Reject <var>promise</var> with <var>error</var>.</li>
+          <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
+        </ol>
+        <li>Otherwise:
+          <ol>
+          <li>Take the result, representing the decoded linear PCM audio data, and resample it to the sample-rate of
+          the <a><code>AudioContext</code></a> if it is different from the sample-rate of <dfn>audioData</dfn>.</li>
+          <li>On the main thread's event loop:
+            <ol>
+            <li>Restore the <dfn>audioData</dfn> neutered state to normal.</li>
+            <li>Let <var>buffer</var> be an <code>AudioBuffer</code> containing the final result (after possibly
+            sample-rate converting).</li>
+            <li>Resolve <var>promise</var> with <var>buffer</var>.</li>
+            <li>If <dfn>successCallback</dfn> is not missing, invoke <dfn>successCallback</dfn> with <var>buffer</var>.
+            </li>
+            </ol>
+          </li>
+          </ol>
+        </li>
+        </ol>
       </li>
       </ol>
     </dd>
@@ -722,7 +741,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       <code>imag</code> parameters must be of type <code>Float32Array</code>
       (described in [[!TYPED-ARRAYS]]) of equal lengths greater than zero and less
       than or equal to 4096 or an INDEX_SIZE_ERR exception MUST be thrown.  These
-      parameters specify the Fourier coefficients of a 
+      parameters specify the Fourier coefficients of a
       <a href="http://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
       representing the partials of a periodic waveform.  The created
       <a><code>PeriodicWave</code></a> will be used with an
@@ -771,7 +790,10 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   <dd> The AudioBuffer containing the decoded audio data. </dd>
 </dl>
 
-<dl title="callback DecodeErrorCallback = void" class="idl"> </dl>
+<dl title="callback DecodeErrorCallback = void" class="idl">
+  <dt> DOMException error </dt>
+  <dd> The error that occurred while decoding. </dd>
+  </dl>
 
 
 <h3 id="lifetime-AudioContext">Lifetime</h3>
@@ -845,14 +867,14 @@ hardware. Most processing nodes such as filters will have one input and one
 output.  Each type of <a><code>AudioNode</code></a> differs in the details of how it processes or synthesizes audio.  But, in general, <code>AudioNodes</code>
 will process its inputs (if it has any), and generate audio for its outputs (if it has any).
  </p>
- 
+
 <p>
 Each <dfn>output</dfn> has one or more <dfn>channels</dfn>.  The exact number of
 channels depends on the details of the specific <a><code>AudioNode</code></a>.
 </p>
 
 <p>
-An output may connect to one or more <a><code>AudioNode</code></a> 
+An output may connect to one or more <a><code>AudioNode</code></a>
 inputs, thus <em>fan-out</em> is supported.  An input initially has no connections,
 but may be connected from one
 or more <a>AudioNode</a> outputs, thus <em>fan-in</em> is supported.  When the <code>connect()</code> method is called to connect
@@ -1079,12 +1101,12 @@ way that other EventTargets accept events.
     description to help guide the general expectation of how node lifetime would
     be managed.
   </p>
-  
+
   <p>
     An <a><code>AudioNode</code></a> will live as long as there are any references to it.
     There are several types of references:
   </p>
-  
+
   <ol>
   <li>A <em>normal</em> JavaScript reference obeying normal garbage collection rules. </li>
   <li>A <em>playing</em> reference for both <a> <code>AudioBufferSourceNodes</code> </a> and <a><code>OscillatorNodes</code></a>.
@@ -1097,17 +1119,17 @@ way that other EventTargets accept events.
     hall and continuing to hear the sound reverberate throughout the hall).  Some <a><code>AudioNodes</code></a> have this
     property.  Please see details for specific nodes.</li>
   </ol>
-  
+
   <p>
   Any <a><code>AudioNodes</code></a> which are connected in a cycle <em>and</em> are directly or indirectly connected to the
   <a><code>AudioDestinationNode</code></a> of the <a><code>AudioContext</code></a> will stay alive as long as the <a><code>AudioContext</code></a> is alive.
   </p>
-  
+
   <p>
   When an <a><code>AudioNode</code></a> has no references it will be deleted.  But before it is deleted, it will disconnect itself
   from any other <a><code>AudioNodes</code></a> which it is connected to.  In this way it releases all connection references (3) it has to other nodes.
   </p>
-  
+
   <p>
   Regardless of any of the above references, it can be assumed that the <a><code>AudioNode</code></a> will be deleted when its <a><code>AudioContext</code></a> is deleted.
   </p>
@@ -1163,7 +1185,7 @@ through the <code>destination</code> attribute of <a><code>AudioContext</code></
 
     <p>
       For an<a><code>AudioDestinationNode</code></a> in an
-      <a><code>OfflineAudioContext</code></a>, the 
+      <a><code>OfflineAudioContext</code></a>, the
       <a href="#widl-AudioNode-channelCount"><code>channelCount</code></a> is
       determined when the offline context is created and this value may not be
       changed.
@@ -1882,11 +1904,11 @@ invoked in the following cases:
         <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  If 0
         is passed in for this value or if the value
         is less than <a><code>currentTime</code></a>, then the sound will stop playing
-        immediately.  If <code>stop</code> is called again after already have been 
-        called, the last invocation will be the only one applied; stop times set by previous 
-        calls will not be applied, unless the buffer has already stopped prior to any 
-        subsequent calls.  If the buffer has already stopped, further calls to 
-        <code>stop</code> will have no effect.  If a stop time is reached prior to the 
+        immediately.  If <code>stop</code> is called again after already have been
+        called, the last invocation will be the only one applied; stop times set by previous
+        calls will not be applied, unless the buffer has already stopped prior to any
+        subsequent calls.  If the buffer has already stopped, further calls to
+        <code>stop</code> will have no effect.  If a stop time is reached prior to the
         scheduled start time, the sound will not play.
       </dd>
     </dl>
@@ -2442,7 +2464,7 @@ float calculateNormalizationScale(buffer)
     const float GainCalibration = 0.00125;
     const float GainCalibrationSampleRate = 44100;
     const float MinPower = 0.000125;
-  
+
     // Normalize by RMS power.
     size_t numberOfChannels = buffer->numberOfChannels();
     size_t length = buffer->length();
@@ -2555,7 +2577,7 @@ float calculateNormalizationScale(buffer)
     <dt> void getFloatTimeDomainData() </dt>
     <dd>
       <p>
-        Copies the current time-domain (waveform) data into the passed 
+        Copies the current time-domain (waveform) data into the passed
         floating-point array. If the array has fewer elements than the value of
         <a><code>fftSize</code></a>, the excess elements will be dropped. If the array has
         more elements than <a><code>fftSize</code></a>, the excess elements will be ignored.
@@ -2718,7 +2740,7 @@ float calculateNormalizationScale(buffer)
   Be aware that it is possible to connect an <a><code>ChannelMergerNode</code></a> in
   such a way that it outputs an audio stream with a large number of channels
   greater than the maximum supported by the audio hardware. In this case where
-  such an output is connected to the <a><code>AudioContext</code></a> 
+  such an output is connected to the <a><code>AudioContext</code></a>
   <a href="#widl-AudioContext-destination"><code>destination</code></a> (the
   audio hardware), then the extra channels will be ignored.  Thus, the
   <a><code>ChannelMergerNode</code></a> should be used in situations where the number of
@@ -2869,7 +2891,7 @@ The number of channels of the output always equals the number of channels of the
     filter</a> allows a range of frequencies to pass through and attenuates the
     frequencies below and above this frequency range. It implements a
     second-order bandpass filter.</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2887,7 +2909,7 @@ The number of channels of the output always equals the number of channels of the
     <p>The lowshelf filter allows all frequencies through, but adds a boost (or
     attenuation) to the lower frequencies. It implements a second-order
     lowshelf filter.</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2906,7 +2928,7 @@ The number of channels of the output always equals the number of channels of the
     <p>The highshelf filter is the opposite of the lowshelf filter and allows all
     frequencies through, but adds a boost to the higher frequencies. It
     implements a second-order highshelf filter</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2924,7 +2946,7 @@ The number of channels of the output always equals the number of channels of the
   <dd>
     <p>The peaking filter allows all frequencies through, but adds a boost (or
     attenuation) to a range of frequencies. </p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2944,7 +2966,7 @@ The number of channels of the output always equals the number of channels of the
     href="http://en.wikipedia.org/wiki/Band-stop_filter">band-stop or
     band-rejection filter</a>) is the opposite of a bandpass filter. It allows all
     frequencies through, except for a set of frequencies.</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -2964,7 +2986,7 @@ The number of channels of the output always equals the number of channels of the
     filter</a> allows all frequencies through, but changes the phase relationship
     between the various frequencies. It implements a second-order allpass
     filter</p>
-    
+
     <blockquote>
       <dl>
         <dt>frequency</dt>
@@ -3262,7 +3284,7 @@ to determine a <em>computedFrequency</em> value:
   <dt>"square"</dt>
   <dd>
     The waveform for the square wave oscillator is 1 for 0&le; t &lt; &pi; and
-    -1 for -&pi; &lt; t &lt; 0. 
+    -1 for -&pi; &lt; t &lt; 0.
   </dd>
   <dt>"sawtooth"</dt>
   <dd>
@@ -3372,7 +3394,7 @@ as other architectures. </p>
 
 <section>
   <h3 id="SummingJunction">Summing Inputs</h3>
-  
+
   <p>The inputs to <a><code>AudioNode</code></a>s have
   the ability to accept connections from multiple outputs. The input then acts as
   a unity gain summing junction with each output signal being added with the
@@ -3382,7 +3404,7 @@ as other architectures. </p>
     <figcaption>A graph showing Source 1 and Source 2 output summed at the input
     of Destination</figcaption>
   </figure>
-  
+
   <p>In cases where the channel layouts of the outputs do not match, a mix
   (usually up-mix) will occur according to the <a href="UpMix">mixing rules</a>.
   </p>
@@ -3390,7 +3412,7 @@ as other architectures. </p>
 
 <section>
   <h3>Gain Control</h3>
-  
+
   <p>But many times, it's important to be able to control the gain for each of
   the output signals. The <a><code>GainNode</code></a> gives this
   control: </p>
@@ -3398,19 +3420,19 @@ as other architectures. </p>
     <img alt="mixer architecture new" src="images/mixer-architecture-new.png" />
     <figcaption>A graph featuring volume control for each voice</figcaption>
   </figure>
-  
+
   <p>Using these two concepts of unity gain summing junctions and GainNodes,
   it's possible to construct simple or complex mixing scenarios. </p>
 </section>
 
 <section>
   <h3 id="Example-mixer-with-send-busses">Example: Mixer with Send Busses</h3>
-  
+
   <p>In a routing scenario involving multiple sends and submixes, explicit
   control is needed over the volume or "gain" of each connection to a mixer. Such
   routing topologies are very common and exist in even the simplest of electronic
   gear sitting around in a basic recording studio. </p>
-  
+
   <p>Here's an example with two send mixers and a main mixer. Although possible,
   for simplicity's sake, pre-gain control and insert effects are not illustrated:
   </p>
@@ -3418,7 +3440,7 @@ as other architectures. </p>
     <img alt="mixer gain structure" src="images/mixer-gain-structure.png" />
     <figcaption>A graph showing a full mixer with send busses.</figcaption>
   </figure>
-  
+
   <p>This diagram is using a shorthand notation where "send 1", "send 2", and
   "main bus" are actually inputs to <a><code>AudioNode</code></a>s, but here are represented as
   summing busses, where the intersections g2_1, g3_1, etc. represent the "gain"
@@ -3723,19 +3745,19 @@ For each input of an <a><code>AudioNode</code></a>, an implementation must:
 
 <section>
   <h3 id="ChannelLayouts">Speaker Channel Layouts</h3>
-  
+
   <p class="norm">This section is normative.</p>
-  
+
   <p>
   When <a
     href="#widl-AudioNode-channelInterpretation"><code>channelInterpretation</code></a>
   is <a href="#idl-def-ChannelInterpretation.speakers">"speakers"</a> then the up-mixing and down-mixing
   is defined for specific channel layouts.
   </p>
-  
+
   <p>It's important to define the channel ordering (and define some
   abbreviations) for these speaker layouts.</p>
-  
+
   <p>
   For now, only considers cases for mono, stereo, quad, 5.1. Later other channel
   layouts can be defined.
@@ -3744,21 +3766,21 @@ For each input of an <a><code>AudioNode</code></a>, an implementation must:
 
 <section>
   <h4 id ="ChannelOrdering">Channel ordering</h4>
-  
+
   <pre>  Mono
       0: M: mono
-      
+
     Stereo
       0: L: left
       1: R: right
     </pre>
-  
+
   <pre>  Quad
       0: L:  left
       1: R:  right
       2: SL: surround left
       3: SR: surround right
-  
+
     5.1
       0: L:   left
       1: R:   right
@@ -3772,7 +3794,7 @@ For each input of an <a><code>AudioNode</code></a>, an implementation must:
 <section><h4 id="UpMix-sub">Up Mixing speaker layouts</h4>
 
 <pre>Mono up-mix:
-    
+
     1 -&gt; 2 : up-mix from mono to stereo
         output.L = input;
         output.R = input;
@@ -3821,68 +3843,68 @@ Quad up-mix:
 
 <section>
   <h4 id="down-mix">Down Mixing speaker layouts</h4>
-  
+
   <p>A down-mix will be necessary, for example, if processing 5.1 source
   material, but playing back stereo. </p>
   <pre>
   Mono down-mix:
-  
+
       2 -&gt; 1 : stereo to mono
           output = 0.5 * (input.L + input.R);
-  
+
       4 -&gt; 1 : quad to mono
           output = 0.25 * (input.L + input.R + input.SL + input.SR);
-  
+
       5.1 -&gt; 1 : 5.1 to mono
           output = 0.7071 * (input.L + input.R) + input.C + 0.5 * (input.SL + input.SR)
-  
-  
+
+
   Stereo down-mix:
-  
+
       4 -&gt; 2 : quad to stereo
           output.L = 0.5 * (input.L + input.SL);
           output.R = 0.5 * (input.R + input.SR);
-  
+
       5.1 -&gt; 2 : 5.1 to stereo
           output.L = L + 0.7071 * (input.C + input.SL)
           output.R = R + 0.7071 * (input.C + input.SR)
-  
+
   Quad down-mix:
-  
+
       5.1 -&gt; 4 : 5.1 to quad
           output.L = L + 0.7071 * input.C
           output.R = R + 0.7071 * input.C
           output.SL = input.SL
           output.SR = input.SR
-  
+
   </pre>
 </section>
 
 <section class="informative">
   <h3 id="ChannelRules-section">Channel Rules Examples</h3>
-  
+
   <pre class="highlight example">
   // Set gain node to explicit 2-channels (stereo).
   gain.channelCount = 2;
   gain.channelCountMode = "explicit";
   gain.channelInterpretation = "speakers";
-  
+
   // Set "hardware output" to 4-channels for DJ-app with two stereo output busses.
   context.destination.channelCount = 4;
   context.destination.channelCountMode = "explicit";
   context.destination.channelInterpretation = "discrete";
-  
+
   // Set "hardware output" to 8-channels for custom multi-channel speaker array
   // with custom matrix mixing.
   context.destination.channelCount = 8;
   context.destination.channelCountMode = "explicit";
   context.destination.channelInterpretation = "discrete";
-  
+
   // Set "hardware output" to 5.1 to play an HTMLAudioElement.
   context.destination.channelCount = 6;
   context.destination.channelCountMode = "explicit";
   context.destination.channelInterpretation = "speakers";
-  
+
   // Explicitly down-mix to mono.
   gain.channelCount = 1;
   gain.channelCountMode = "explicit";
@@ -3897,12 +3919,12 @@ Quad up-mix:
 
 <section>
   <h3 id="Spatialization-background">Background</h3>
-  
+
   <p>A common feature requirement for modern 3D games is the ability to
   dynamically spatialize and move multiple audio sources in 3D space. Game audio
   engines such as OpenAL, FMOD, Creative's EAX, Microsoft's XACT Audio, etc. have
   this ability. </p>
-  
+
   <p>Using an <a><code>PannerNode</code></a>, an audio stream can be spatialized or
   positioned in space relative to an <a><code>AudioListener</code></a>. An
   <a><code>AudioContext</code></a> will contain a
@@ -3923,7 +3945,7 @@ Quad up-mix:
   <em>velocity</em> vector representing both the speed and direction of
   movement. Taken together, these two velocities can be used to generate a
   doppler shift effect which changes the pitch. </p>
-  
+
   <p>
   During rendering, the <a><code>PannerNode</code></a> calculates an <em>azimuth</em>
   and <em>elevation</em>.  These values are used internally by the implementation in
@@ -3931,56 +3953,56 @@ Quad up-mix:
     href="#Spatialization-panning-algorithm">Panning Algorithm</a> section for
   details of how these values are used.
   </p>
-  
+
   <p>
   The following algorithm must be used to calculate the <em>azimuth</em>
   and <em>elevation</em>:
   </p>
-  
+
   <pre class="code highlight">
   // Calculate the source-listener vector.
   vec3 sourceListener = source.position - listener.position;
-  
+
   if (sourceListener.isZero()) {
       // Handle degenerate case if source and listener are at the same point.
       azimuth = 0;
       elevation = 0;
       return;
   }
-  
+
   sourceListener.normalize();
-  
+
   // Align axes.
   vec3 listenerFront = listener.orientation;
   vec3 listenerUp = listener.up;
   vec3 listenerRight = listenerFront.cross(listenerUp);
   listenerRight.normalize();
-  
+
   vec3 listenerFrontNorm = listenerFront;
   listenerFrontNorm.normalize();
-  
+
   vec3 up = listenerRight.cross(listenerFrontNorm);
-  
+
   float upProjection = sourceListener.dot(up);
-  
+
   vec3 projectedSource = sourceListener - upProjection * up;
   projectedSource.normalize();
-  
+
   azimuth = 180 * acos(projectedSource.dot(listenerRight)) / PI;
-  
+
   // Source in front or behind the listener.
   double frontBack = projectedSource.dot(listenerFrontNorm);
   if (frontBack &lt; 0)
       azimuth = 360 - azimuth;
-  
+
   // Make azimuth relative to "front" and not "right" listener vector.
   if ((azimuth &gt;= 0) &amp;&amp; (azimuth &lt;= 270))
       azimuth = 90 - azimuth;
   else
       azimuth = 450 - azimuth;
-  
+
   elevation = 90 - 180 * acos(sourceListener.dot(up)) / PI;
-  
+
   if (elevation &gt; 90)
       elevation = 180 - elevation;
   else if (elevation &lt; -90)
@@ -3990,12 +4012,12 @@ Quad up-mix:
 
 <section>
   <h3 id="Spatialization-panning-algorithm">Panning Algorithm</h3>
-  
+
   <p>
   <em>mono->stereo</em> and <em>stereo->stereo</em>  panning must be supported.
   <em>mono->stereo</em> processing is used when all connections to the input are mono.
   Otherwise <em>stereo->stereo</em> processing is used.</p>
-  
+
   <p>The following algorithms must be implemented: </p>
   <ul>
     <li>Equal-power (Vector-based) panning
@@ -4003,13 +4025,13 @@ Quad up-mix:
       basic, but reasonable results.  It is commonly used when panning musical sources.
       </p>
       The <em>elevation</em> value is ignored in this panning algorithm.
-  
+
       <p>
       The following steps are used for processing:
       </p>
-      
+
       <ol>
-  
+
       <li>
       <p>
       The <em>azimuth</em> value is first contained to be within the range -90 &lt;= <em>azimuth</em> &lt;= +90 according to:
@@ -4018,7 +4040,7 @@ Quad up-mix:
       // Clamp azimuth to allowed range of -180 -&gt; +180.
       azimuth = max(-180, azimuth);
       azimuth = min(180, azimuth);
-  
+
       // Now wrap to range -90 -&gt; +90.
       if (azimuth &lt; -90)
           azimuth = -180 - azimuth;
@@ -4026,7 +4048,7 @@ Quad up-mix:
           azimuth = 180 - azimuth;
       </pre>
       </li>
-      
+
       <li>
       <p>
       A 0 -&gt; 1 normalized value <em>x</em> is calculated from <em>azimuth</em> for <em>mono->stereo</em> as:
@@ -4034,7 +4056,7 @@ Quad up-mix:
       <pre class="highlight">
       x = (azimuth + 90) / 180
       </pre>
-  
+
       <p>
       Or for <em>stereo->stereo</em> as:
       </p>
@@ -4050,7 +4072,7 @@ Quad up-mix:
       }
       </pre>
       </li>
-      
+
       <li>
       <p>
       Left and right gain values are then calculated:
@@ -4060,7 +4082,7 @@ Quad up-mix:
       gainR = sin(0.5 * PI * x);
       </pre>
       </li>
-      
+
       <li>
       <p>For <em>mono->stereo</em>, the output is calculated as:</p>
       <pre class="highlight">
@@ -4078,11 +4100,11 @@ Quad up-mix:
       }
       </pre>
       </li>
-      
+
       </ol>
-      
-      
-      
+
+
+
     </li>
     <li><a
       href="http://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
@@ -4108,8 +4130,8 @@ Quad up-mix:
   Exactly <em>how</em> a sound's volume changes according to distance from the listener
   depends on the <em>distanceModel</em> attribute.
   </p>
-  
-  
+
+
   <p>
   During audio rendering, a <em>distance</em> value will be calculated based on the panner and listener positions according to:
   </p>
@@ -4119,7 +4141,7 @@ Quad up-mix:
   <pre class="highlight">
   distance = sqrt(dot(v, v))
   </pre>
-  
+
   <p>
   <em>distance</em> will then be used to calculate <em>distanceGain</em> which
   depends on the <em>distanceModel</em> attribute.  See the <a
@@ -4133,41 +4155,41 @@ how this is calculated for each distance model.
 
 <section>
   <h3 id="Spatialization-sound-cones">Sound Cones</h3>
-  
+
   <p>The listener and each sound source have an orientation vector describing
   which way they are facing. Each sound source's sound projection characteristics
   are described by an inner and outer "cone" describing the sound intensity as a
   function of the source/listener angle from the source's orientation vector.
   Thus, a sound source pointing directly at the listener will be louder than if
   it is pointed off-axis. Sound sources can also be omni-directional. </p>
-  
+
   <p>
   The following algorithm must be used to calculate the gain contribution due
   to the cone effect, given the source (the <a> <code>PannerNode</code></a>)
   and the listener:
   </p>
-  
+
   <pre class="highlight">
   if (source.orientation.isZero() || ((source.coneInnerAngle == 360) &amp;&amp; (source.coneOuterAngle == 360)))
       return 1; // no cone specified - unity gain
-  
+
   // Normalized source-listener vector
   vec3 sourceToListener = listener.position - source.position;
   sourceToListener.normalize();
-  
+
   vec3 normalizedSourceOrientation = source.orientation;
   normalizedSourceOrientation.normalize();
-  
+
   // Angle between the source orientation vector and the source-listener vector
   double dotProduct = sourceToListener.dot(normalizedSourceOrientation);
   double angle = 180 * acos(dotProduct) / PI;
   double absAngle = fabs(angle);
-  
+
   // Divide by 2 here since API is entire angle (not half-angle)
   double absInnerAngle = fabs(source.coneInnerAngle) / 2;
   double absOuterAngle = fabs(source.coneOuterAngle) / 2;
   double gain = 1;
-  
+
   if (absAngle &lt;= absInnerAngle)
       // No attenuation
       gain = 1;
@@ -4180,7 +4202,7 @@ how this is calculated for each distance model.
       double x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
       gain = (1 - x) + source.coneOuterGain * x;
   }
-  
+
   return gain;
   </pre>
 </section>
@@ -4193,40 +4215,40 @@ how this is calculated for each distance model.
     <li>Depends on: source / listener velocity vectors, speed of sound, doppler
       factor.</li>
   </ul>
-  
+
   <p>
   The following algorithm must be used to calculate the doppler shift value which is used
   as an additional playback rate scalar for all AudioBufferSourceNodes connecting directly or
   indirectly to the AudioPannerNode:
   </p>
-  
+
   <pre class="highlight">
   double dopplerShift = 1; // Initialize to default value
   double dopplerFactor = listener.dopplerFactor;
-  
+
   if (dopplerFactor &gt; 0) {
       double speedOfSound = listener.speedOfSound;
-  
+
       // Don't bother if both source and listener have no velocity.
       if (!source.velocity.isZero() || !listener.velocity.isZero()) {
           // Calculate the source to listener vector.
           vec3 sourceToListener = source.position - listener.position;
-  
+
           double sourceListenerMagnitude = sourceToListener.length();
-  
+
           double listenerProjection = sourceToListener.dot(listener.velocity) / sourceListenerMagnitude;
           double sourceProjection = sourceToListener.dot(source.velocity) / sourceListenerMagnitude;
-  
+
           listenerProjection = -listenerProjection;
           sourceProjection = -sourceProjection;
-  
+
           double scaledSpeedOfSound = speedOfSound / dopplerFactor;
           listenerProjection = min(listenerProjection, scaledSpeedOfSound);
           sourceProjection = min(sourceProjection, scaledSpeedOfSound);
-  
+
           dopplerShift = ((speedOfSound - dopplerFactor * listenerProjection) / (speedOfSound - dopplerFactor * sourceProjection));
           fixNANs(dopplerShift); // Avoid illegal values
-  
+
           // Limit the pitch shifting to 4 octaves up and 3 octaves down.
           dopplerShift = min(dopplerShift, 16);
           dopplerShift = max(dopplerShift, 0.125);
@@ -4241,7 +4263,7 @@ how this is calculated for each distance model.
 
 <section>
   <h3 id="Convolution-background">Background</h3>
-  
+
   <p><a href="http://en.wikipedia.org/wiki/Convolution">Convolution</a> is a
   mathematical process which can be applied to an audio signal to achieve many
   interesting high-quality linear effects. Very often, the effect is used to
@@ -4251,7 +4273,7 @@ how this is calculated for each distance model.
   telephone, or playing through a vintage speaker cabinet. This technique is very
   commonly used in major motion picture and music production and is considered to
   be extremely versatile and of high quality. </p>
-  
+
   <p>Each unique effect is defined by an <em>impulse response</em>. An
   impulse response can be represented as an audio file and <a
   href="#recording-impulse-responses">can be recorded</a> from a real acoustic
@@ -4261,7 +4283,7 @@ how this is calculated for each distance model.
 
 <section>
   <h3 id="Convolution-motivation">Motivation for use as a Standard</h3>
-  
+
   <p>A key feature of many game audio engines (OpenAL, FMOD, Creative's EAX,
   Microsoft's XACT Audio, etc.) is a reverberation effect for simulating the
   sound of being in an acoustic space. But the code used to generate the effect
@@ -4275,7 +4297,7 @@ how this is calculated for each distance model.
   implementations as a standard. Additionally, algorithmic reverberation effects
   are limited to a relatively narrow range of different effects, regardless of
   how the parameters are tweaked. </p>
-  
+
   <p>A convolution effect solves these problems by using a very precisely defined
   mathematical algorithm as the basis of its processing. An impulse response
   represents an exact sound effect to be applied to an audio stream and is easily
@@ -4294,16 +4316,16 @@ how this is calculated for each distance model.
 
 <section>
   <h3 id="Convolution-reverb-effect">Reverb Effect (with matrixing)</h3>
-  
+
   <p class="norm">This section is normative.</p>
-  
+
   <p>
   In the general case the source
   has N input channels, the impulse response has K channels, and the playback
   system has M output channels. Thus it's a matter of how to matrix these
   channels to achieve the final result.
   </p>
-  
+
   <p>
   The subset of N, M, K below must be implemented (note that the first image in the diagram is just illustrating
   the general case and is not normative, while the following images are normative).
@@ -4311,8 +4333,8 @@ how this is calculated for each distance model.
   matrixing can use multiple <a><code>ConvolverNode</code></a>
   objects in conjunction with an <a><code>ChannelMergerNode</code></a>.
   </p>
-  
-  
+
+
   <p>Single channel convolution operates on a mono audio input, using a mono
   impulse response, and generating a mono output. But to achieve a more spacious sound, 2 channel audio
   inputs and 1, 2, or 4 channel impulse responses will be considered. The following diagram, illustrates the
@@ -4341,7 +4363,7 @@ useful: </p>
 
 <section>
   <h3 id="custom-DSP-effects">Custom DSP Effects</h3>
-  
+
   <p>Unusual and interesting custom audio processing can be done directly in JS.
   It's also a good test-bed for prototyping new algorithms. This is an extremely
   rich area. </p>
@@ -4349,7 +4371,7 @@ useful: </p>
 
 <section>
   <h3 id="educational-applications">Educational Applications</h3>
-  
+
   <p>JS processing is ideal for illustrating concepts in computer music synthesis
   and processing, such as showing the de-composition of a square wave into its
   harmonic components, FM synthesis techniques, etc. </p>
@@ -4427,7 +4449,7 @@ useful: </p>
 
 <section>
   <h3>Audio Glitching</h3>
-  
+
   <p>Audio glitches are caused by an interruption of the normal continuous audio
   stream, resulting in loud clicks and pops. It is considered to be a
   catastrophic failure of a multi-media system and must be avoided. It can be
@@ -4439,29 +4461,29 @@ useful: </p>
 
 <section>
   <h3>Hardware Scalability</h3>
-  
+
   <p>The system should gracefully degrade to allow audio processing under
   resource constrained conditions without dropping audio frames. </p>
-  
+
   <p>First of all, it should be clear that regardless of the platform, the audio
   processing load should never be enough to completely lock up the machine.
   Second, the audio rendering needs to produce a clean, un-interrupted audio
   stream without audible <a href="#audio-glitching">glitches</a>. </p>
-  
+
   <p>The system should be able to run on a range of hardware, from mobile phones
   and tablet devices to laptop and desktop computers. But the more limited
   compute resources on a phone device make it necessary to consider techniques to
   scale back and reduce the complexity of the audio rendering. For example,
   voice-dropping algorithms can be implemented to reduce the total number of
   notes playing at any given time. </p>
-  
+
   <p>Here's a list of some techniques which can be used to limit CPU usage: </p>
-  
+
   <section>
     <h4 id="CPU-monitoring">CPU monitoring</h4>
-    
+
     <p>In order to avoid audio breakup, CPU usage must remain below 100%. </p>
-    
+
   <p>The relative CPU usage can be dynamically measured for each <a><code>AudioNode</code></a> (and
     chains of connected nodes) as a percentage of the rendering time quantum. In a
     single-threaded implementation, overall CPU usage must remain below 100%. The
@@ -4469,15 +4491,15 @@ useful: </p>
     adjustments to the rendering. It may also be exposed through a
     <code>cpuUsage</code> attribute of <a><code>AudioNode</code></a> for use by
     JavaScript. </p>
-    
+
     <p>In cases where the measured CPU usage is near 100% (or whatever threshold is
     considered too high), then an attempt to add additional <a><code>AudioNode</code></a>s
     into the rendering graph can trigger voice-dropping. </p>
   </section>
-  
+
   <section>
     <h4 id="Voice-dropping">Voice Dropping</h4>
-    
+
     <p>Voice-dropping is a technique which limits the number of voices (notes)
     playing at the same time to keep CPU usage within a reasonable range. There can
     either be an upper threshold on the total number of voices allowed at any given
@@ -4486,12 +4508,12 @@ useful: </p>
     applied. When CPU usage is monitored for each voice, it can be measured all the
     way from a source node through any effect processing nodes which apply
     uniquely to that voice. </p>
-    
+
     <p>When a voice is "dropped", it needs to happen in such a way that it doesn't
     introduce audible clicks or pops into the rendered audio stream. One way to
     achieve this is to quickly fade-out the rendered audio for that voice before
     completely removing it from the rendering graph. </p>
-    
+
     <p>When it is determined that one or more voices must be dropped, there are
     various strategies for picking which voice(s) to drop out of the total ensemble
     of voices currently playing. Here are some of the factors which can be used in
@@ -4512,7 +4534,7 @@ useful: </p>
   <section>
     <h4 id="Simplification-of-Effects-Processing">Simplification of Effects
     Processing</h4>
-    
+
     <p>Most of the effects described in this document are relatively inexpensive
     and will likely be able to run even on the slower mobile devices. However, the
     <a href="#ConvolverNode">convolution effect</a> can be configured with
@@ -4525,16 +4547,16 @@ useful: </p>
     may be interesting to consider truncating the impulse responses to the maximum
     allowed length and/or reducing the number of channels of the impulse response.
     </p>
-    
+
     <p>In addition to the convolution effect. The <a><code>PannerNode</code></a>
     may also be expensive if using the HRTF panning model. For slower devices, a
     cheaper algorithm such as EQUALPOWER can be used to conserve compute
     resources. </p>
   </section>
-  
+
   <section>
     <h4 id="Sample-rate">Sample Rate</h4>
-    
+
     <p>For very slow devices, it may be worth considering running the rendering at
     a lower sample-rate than normal. For example, the sample-rate can be reduced
     from 44.1KHz to 22.05KHz. This decision must be made when the
@@ -4542,30 +4564,30 @@ useful: </p>
     on-the-fly can be difficult to implement and will result in audible glitching
     when the transition is made. </p>
   </section>
-  
+
   <section>
     <h4 id="pre-flighting">Pre-flighting</h4>
-    
+
     <p>It should be possible to invoke some kind of "pre-flighting" code (through
     JavaScript) to roughly determine the power of the machine. The JavaScript code
     can then use this information to scale back any more intensive processing it
     may normally run on a more powerful machine. Also, the underlying
     implementation may be able to factor in this information in the voice-dropping
     algorithm. </p>
-    
+
     <p><span class="ednote">TODO: add specification and more detail here </span></p>
   </section>
-  
+
   <section>
     <h4 id="Authoring-for-different-user-agents">Authoring for different
     user agents</h4>
     JavaScript code can use information about user-agent to scale back any more
-    intensive processing it may normally run on a more powerful machine. 
+    intensive processing it may normally run on a more powerful machine.
   </section>
-  
+
   <section>
     <h4 id="Scalability-of-Direct-JavaScript-Synthesis">Scalability of Direct JavaScript Synthesis / Processing</h4>
-    
+
     <p>Any audio DSP / processing code done directly in JavaScript should also be
     concerned about scalability. To the extent possible, the JavaScript code itself
     needs to monitor CPU usage and scale back any more ambitious processing when
@@ -4579,7 +4601,7 @@ useful: </p>
 <h3 id="JavaScriptPerformance">JavaScript Issues with real-time Processing and Synthesis: </h3>
 While processing audio in JavaScript, it is extremely challenging to get
 reliable, glitch-free audio while achieving a reasonably low-latency,
-especially under heavy processor load. 
+especially under heavy processor load.
 <ul>
   <li>JavaScript is very much slower than heavily optimized C++ code and is not
     able to take advantage of SSE optimizations and multi-threading which is
@@ -4615,7 +4637,7 @@ battery-life issues.
 
 <section class="informative">
   <h2 id="PrivacyConsiderations">Privacy Considerations</h2>
-  
+
   <p>When giving various information on
   available <a><code>AudioNode</code></a>s, the Web Audio API potentially exposes information on
   characteristic features of the client (such as audio hardware sample-rate) to
@@ -4623,7 +4645,7 @@ battery-life issues.
   information can be collected through the RealtimeAnalyzerNode or
   <a><code>ScriptProcessorNode</code></a> interface. The information could subsequently be used to
   create a fingerprint of the client. </p>
-  
+
   <p>Currently audio input is not specified in this document, but it will involve
   gaining access to the client machine's audio input or microphone. This will
   require asking the user for permission in an appropriate way, probably via the
@@ -4633,7 +4655,7 @@ battery-life issues.
 
 <section>
   <h2 id="requirements">Requirements and Use Cases</h2>
-  
+
   <p>Please see <a href="#ExampleApplications">Example Applications</a>
   </p>
 </section>

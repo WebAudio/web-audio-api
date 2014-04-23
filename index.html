@@ -528,7 +528,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   </dl>
   </dd>
 
-    <dt> void decodeAudioData() </dt>
+    <dt> Promise&lt;AudioBuffer&gt; decodeAudioData() </dt>
     <dd>
       Asynchronously decodes the audio file data contained in the ArrayBuffer.
     The ArrayBuffer can, for example, be loaded from an XMLHttpRequest's
@@ -538,7 +538,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dl class=parameters>
       <dt> ArrayBuffer audioData </dt>
       <dd> An ArrayBuffer containing compressed audio data </dd>
-      <dt> DecodeSuccessCallback successCallback </dt>
+      <dt> optional DecodeSuccessCallback successCallback </dt>
       <dd>
         A callback function which will be invoked when the decoding is finished.
         The single argument to this callback is an AudioBuffer representing the
@@ -552,27 +552,46 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
 
     </dl>
       <p>
+      Although the primary method of interfacing with this function is via its promise return value, the callback
+      parameters are provided for legacy reasons.
+      </p>
+      <p>
       The following steps must be performed:
       </p>
       <ol>
+      <li>Let <var>promise</var> be a new promise.</li>
       <li>Temporarily neuter the <dfn>audioData</dfn> ArrayBuffer in such a way that JavaScript code may not
       access or modify the data.</li>
       <li>Queue a decoding operation to be performed on another thread.</li>
-      <li>The decoding thread will attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.
-      If a decoding error is encountered due to the audio format not being recognized or supported, or
-      because of corrupted/unexpected/inconsistent data then the <dfn>audioData</dfn> neutered state
-      will be restored to normal and the <dfn>errorCallback</dfn> will be
-      scheduled to run on the main thread's event loop and these steps will be terminated.</li>
-      <li>The decoding thread will take the result, representing the decoded linear PCM audio data,
-      and resample it to the sample-rate of the <a><code>AudioContext</code></a> if it is different from the sample-rate
-      of <dfn>audioData</dfn>.  The final result (after possibly sample-rate converting) will be stored
-      in an AudioBuffer.
-      </li>
-      <li>The <dfn>audioData</dfn> neutered state will be restored to normal
-      </li>
-      <li>
-      The <dfn>successCallback</dfn> function will be scheduled to run on the main thread's event loop
-      given the AudioBuffer from step (4) as an argument.
+      <li>Return <var>promise</var>.</li>
+      <li>In the decoding thread:
+        <ol>
+        <li>Attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.</li>
+        <li>If a decoding error is encountered due to the audio format not being recognized or supported, or because
+        of corrupted/unexpected/inconsistent data, then, on the main thread's event loop:
+          <ol>
+          <li>Restore the <dfn>audioData</dfn> neutered state to normal.</li>
+          <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>EncodingError</code>.</li>
+          <li>Reject <var>promise</var> with <var>error</var>.</li>
+          <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
+        </ol>
+        <li>Otherwise:
+          <ol>
+          <li>Take the result, representing the decoded linear PCM audio data, and resample it to the sample-rate of
+          the <a><code>AudioContext</code></a> if it is different from the sample-rate of <dfn>audioData</dfn>.</li>
+          <li>On the main thread's event loop:
+            <ol>
+            <li>Restore the <dfn>audioData</dfn> neutered state to normal.</li>
+            <li>Let <var>buffer</var> be an <code>AudioBuffer</code> containing the final result (after possibly
+            sample-rate converting).</li>
+            <li>Resolve <var>promise</var> with <var>buffer</var>.</li>
+            <li>If <dfn>successCallback</dfn> is not missing, invoke <dfn>successCallback</dfn> with <var>buffer</var>.
+            </li>
+            </ol>
+          </li>
+          </ol>
+        </li>
+        </ol>
       </li>
       </ol>
     </dd>
@@ -771,7 +790,10 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   <dd> The AudioBuffer containing the decoded audio data. </dd>
 </dl>
 
-<dl title="callback DecodeErrorCallback = void" class="idl"> </dl>
+<dl title="callback DecodeErrorCallback = void" class="idl">
+  <dt> DOMException error </dt>
+  <dd> The error that occurred while decoding. </dd>
+  </dl>
 
 
 <h3 id="lifetime-AudioContext">Lifetime</h3>

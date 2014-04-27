@@ -571,7 +571,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
         of corrupted/unexpected/inconsistent data, then, on the main thread's event loop:
           <ol>
           <li>Restore the <dfn>audioData</dfn> neutered state to normal.</li>
-          <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>EncodingError</code>.</li>
+          <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>"EncodingError"</code>.</li>
           <li>Reject <var>promise</var> with <var>error</var>.</li>
           <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
         </ol>
@@ -808,47 +808,62 @@ the page goes away.
 
 <section>
 <h2 id="OfflineAudioContext">The OfflineAudioContext Interface</h2>
-<p>
-OfflineAudioContext is a particular type of <a><code>AudioContext</code></a> for rendering/mixing-down (potentially) faster than real-time.
-It does not render to the audio hardware, but instead renders as quickly as possible, calling a completion event handler
-with the result provided as an AudioBuffer.
-</p>
+<p><code>OfflineAudioContext</code> is a particular type of <a><code>AudioContext</code></a> for rendering/mixing-down
+(potentially) faster than real-time. It does not render to the audio hardware, but instead renders as quickly as
+possible, fulfilling the returned promise with the rendered result as an <code>AudioBuffer</code>.</p>
 
-<dl title='[Constructor(unsigned long numberOfChannels, unsigned long length,
-  float sampleRate)] interface OfflineAudioContext : AudioContext' class='idl'>
-  <dt>void startRendering()</dt>
-  <dd><p>Given the current connections and scheduled changes, starts rendering audio.  The
-  <a href="#widl-OfflineAudioContext-oncomplete"><code>oncomplete</code></a> handler will be called once the rendering has finished.
-  This method must only be called one time or an INVALID_STATE_ERR exception MUST be thrown.</p>
+<p>Each <code>OfflineAudioContext</code> instance has an associated
+<dfn id="#offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
+<code>false</code>.</p>
+
+<dl title='[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : AudioContext' class='idl'>
+  <dt>Promise&lt;AudioBuffer&gt; startRendering()</dt>
+  <dd>
+    <p>Given the current connections and scheduled changes, starts rendering audio.</p>
+    <p>Although the primary method of getting the rendered audio data is via its promise return value, the instance
+    will also fire an event named <code>complete</code> for legacy reasons.</p>
+    <p>The following steps must be performed:</p>
+    <ol>
+      <li>If this instance's <a href="#offline-audio-context-rendering-started-flag">rendering started flag</a> is
+      <code>true</code>, return a promise rejected with a <code>DOMException</code> whose name is
+      <code>"InvalidStateError"</code>.</li>
+      <li>Set this instance's <a href="#offline-audio-context-rendering-started-flag">rendering started flag</a> to
+      <code>true</code>.</li>
+      <li>Let <var>promise</var> be a new promise.</li>
+      <li>Asynchronously perform the following steps:
+        <ol>
+          <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>, with a number of channels equal to the
+          <code>numberOfChannels</code> parameter used when this instance's constructor was called.</li>
+          <li>Given the current connections and scheduled changes, start rendering audio into <var>buffer</var>.</li>
+          <li>Once the rendering is complete,
+            <ol>
+              <li>Resolve <var>promise</var> with <var>buffer</var>.</li>
+              <li>Fire a simple event named <code>complete</code> at this instance, using an instance of
+              <a><code>OfflineAudioCompletionEvent</code></a> whose
+              <code>renderedBuffer</code> property is set to <var>buffer</var>.</li>
+            </ol>
+          </li>
+        </ol>
+      </li>
+      <li>Return <var>promise</var>.</li>
+    </ol>
   </dd>
   <dt>attribute EventHandler oncomplete</dt>
-    <dd><p>An EventHandler of type <a href="#OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</a>.</p>
-    </dd>
+  <dd><p>An EventHandler of type <a href="#OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</a>.</p></dd>
 </dl>
 
 <section>
 <h2 id="OfflineAudioCompletionEvent">The OfflineAudioCompletionEvent Interface</h2>
 
-<p>This is an <code>Event</code> object which is dispatched to <a
-href="#OfflineAudioContext"><code>OfflineAudioContext</code></a>. </p>
+<p>This is an <code>Event</code> object which is dispatched to <a><code>OfflineAudioContext</code></a> for legacy
+reasons.</p>
 
 <dl title="interface OfflineAudioCompletionEvent : Event" class="idl">
   <dt>readonly attribute AudioBuffer renderedBuffer</dt>
-  <dd>
-    <p>
-      An AudioBuffer containing the rendered audio data once an
-      OfflineAudioContext has finished rendering.  It will have a number of channels
-      equal to the <code>numberOfChannels</code> parameter of the
-      OfflineAudioContext constructor.
-    </p>
-    <p>
-      A new <a>AudioBuffer</a> MUST be used each time an
-      <a>OfflineAudioCompletionEvent</a> is fired.
-    </p>
-  </dd>
+  <dd><p>An <code>AudioBuffer</code> containing the rendered audio data.</p></dd>
 </dl>
-
 </section>
+
 </section>
 
 

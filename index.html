@@ -395,6 +395,10 @@ function setupRoutingGraph () {
   <li>A <a><code>MediaStreamAudioDestinationNode</code></a>
     interface, an <a><code>AudioNode</code></a> which is the audio destination to a
     MediaStream sent to a remote peer. </li>
+  <li>An <a><code>AudioWorker</code></a> interface, a
+    <a><code>WebWorker</code></a> designed to enable processing audio directly in JavaScript in a Worker.</li>
+  <li>An <a><code>AudioWorkerNode</code></a> interface, an
+    <a><code>AudioNode</code></a> for connecting the node graph to an AudioWorker. </li>
   <li>A <a><code>ScriptProcessorNode</code></a> interface, an
     <a><code>AudioNode</code></a> for generating or processing audio directly in JavaScript. </li>
   <li>An <a><code>AudioProcessingEvent</code></a> interface,
@@ -620,6 +624,40 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
 
     <dt> MediaStreamAudioDestinationNode createMediaStreamDestination() </dt>
     <dd>Creates a <a><code>MediaStreamAudioDestinationNode</code></a> </dd>
+
+<!--
+  <li>An <a><code>AudioWorker</code></a> interface, a
+    <a><code>WebWorker</code></a> designed to enable processing audio directly in JavaScript in a Worker.</li>
+  <li>An <a><code>AudioWorkerNode</code></a> interface, an
+    <a><code>AudioNode</code></a> for connecting the node graph to an AudioWorker. </li>
+-->
+    <dt> AudioWorkerNode createAudioWorker()</dt>
+    <dd>
+    <p>
+      Creates an <a><code>AudioWorkerNode</code></a> and its associated AudioWorker 
+      for direct audio processing using JavaScript.  An INDEX_SIZE_ERR exception MUST 
+      be thrown if <a><code>numberOfInputChannels</code></a> or
+      <a><code>numberOfOutputChannels</code></a> are outside the valid range.
+    </p>
+      <dl class=parameters>
+        <dt> DOMString scriptURL </dt>
+        <dd>
+          This parameter represents the URL of the script to be loaded as an <a>AudioWorker</a>.
+        </dd>
+        <dt> optional unsigned long numberOfInputChannels = 2 </dt>
+        <dd>
+          This parameter determines the number of channels for this node's
+          input. Values of up to 32 must be supported.
+        </dd>
+        <dt> optional unsigned long numberOfOutputChannels = 2 </dt>
+        <dd>
+          This parameter determines the number of channels for this node's
+          output. Values of up to 32 must be supported.
+        </dd>
+      </dl>
+      It is invalid for both <a><code>numberOfInputChannels</code></a> and
+      <a><code>numberOfOutputChannels</code></a> to be zero.
+    </dd>
 
     <dt> ScriptProcessorNode createScriptProcessor()</dt>
     <dd>
@@ -2057,6 +2095,71 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 
 </section>
 
+
+<section>
+<h2>The AudioWorkerNode Interface</h2>
+
+<p>This interface is an <a><code>AudioNode</code></a> which interacts with an <a>AudioWorker</a> to generate, process, or analyse audio directly using JavaScript. The user creates a separate audio processing "worker script", which is hosted inside the AudioWorkerGlobalScope and runs inside the audio processing thread, rather than the main UI thread.  The AudioWorkerNode represents the processing node in the main processing thread's node graph; the AudioWorkerGlobalScope represents the context in which the user's audio processing script is run.</p>
+<p>Nota bene that if the Web Audio implementation normally runs audio process at higher than normal thread priority, utilizing AudioWorkerNodes may cause demotion of the priority of the audio thread (since user scripts cannot be run with higher than normal priority).</p>
+
+<pre>
+    numberOfInputs  : variable
+    numberOfOutputs : variable
+
+    channelCount = numberOfInputChannels;
+    channelCountMode = "explicit";
+    channelInterpretation = "speakers";
+</pre>
+
+<p>
+<dfn>numberOfInputChannels</dfn> and <dfn>numberOfOutputChannels</dfn>
+determine the number of input and output channels (and the number of channels 
+present in the AudioBuffers passed to the AudioProcess event handler inside the
+<a>AudioWorkerGlobalScope</a>). It is invalid for both
+<code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> to
+be zero.
+</p>
+
+<pre class="highlight">
+    var node = context.createAudioWorker( "bitcrusher.js", numberOfInputChannels, numberOfOutputChannels);
+</pre>
+
+<dl title="interface AudioWorkerNode : AudioNode" class="idl">
+  <span class="idlImplements"><dt class="idlType">Worker</dt></span>
+</dl>
+<div title="AudioWorkerNode implements Worker" class="idl">AudioWorkerNodes must implement the Worker
+  interface for communication with the audio worker script.</div>
+</section>
+
+<section>
+<h2>The AudioWorkerGlobalScope Interface</h2>
+
+<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived object representing the context in which an audio processing script is run; it is designed to enable the generation, processing, and analysis of audio data directly using JavaScript in a Worker thread. </p>
+
+<p>
+The <a><code>AudioWorkerGlobalScope</code></a> has an <dfn>audioprocess</dfn> event that is dispatched synchronously to process audio frames.  <a><code>audioprocess</code></a> events are only dispatched if the
+<a><code>AudioWorkerNode</code></a> has at least one input or one output connected.
+
+<pre class=highlight>
+// Bitcrusher sample code goes here
+</pre>
+
+<dl title="interface AudioWorkerGlobalScope : DedicatedWorkerGlobalScope" class="idl">
+  <dt>attribute EventHandler onaudioprocess</dt>
+  <dd>
+    A property used to set the <code>EventHandler</code> (described in <cite>
+    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    HTML</a></cite>[[!HTML]]) for the audioprocess event that is dispatched to
+    <a><code>AudioWorkerGlobalScope</code></a> when the associated 
+    <a><code>AudioWorkerNode</code></a> is connected. An event of type 
+    <a><code>AudioProcessingEvent</code></a> will be dispatched to the event handler.
+  </dd>
+  <dt>readonly attribute float sampleRate</dt>
+  <dd>
+    The sample rate of the host <a>AudioContext</a> (since inside the <a>Worker</a> scope, the user will not have direct access to the <a>AudioContext</a>.
+  </dd>
+</dl>
+</section>
 
 <section>
 <h2>The ScriptProcessorNode Interface</h2>

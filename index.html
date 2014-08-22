@@ -563,13 +563,13 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       </p>
       <ol>
       <li>Let <var>promise</var> be a new promise.</li>
-      <li> Neuter the <dfn>audioData</dfn> ArrayBuffer in such a way that JavaScript code may not
+      <li> Neuter the <a>audioData</a> ArrayBuffer in such a way that JavaScript code may not
       access or modify the data anymore.</li>
       <li>Queue a decoding operation to be performed on another thread.</li>
       <li>Return <var>promise</var>.</li>
       <li>In the decoding thread:
         <ol>
-        <li>Attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.</li>
+        <li>Attempt to decode the encoded <a>audioData</a> into linear PCM.</li>
         <li>If a decoding error is encountered due to the audio format not being recognized or supported, or because
         of corrupted/unexpected/inconsistent data, then, on the main thread's event loop:
           <ol>
@@ -580,7 +580,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
         <li>Otherwise:
           <ol>
           <li>Take the result, representing the decoded linear PCM audio data, and resample it to the sample-rate of
-          the <a><code>AudioContext</code></a> if it is different from the sample-rate of <dfn>audioData</dfn>.</li>
+          the <a><code>AudioContext</code></a> if it is different from the sample-rate of <a>audioData</a>.</li>
           <li>On the main thread's event loop:
             <ol>
             <li>Let <var>buffer</var> be an <code>AudioBuffer</code> containing the final result (after possibly
@@ -625,16 +625,10 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dt> MediaStreamAudioDestinationNode createMediaStreamDestination() </dt>
     <dd>Creates a <a><code>MediaStreamAudioDestinationNode</code></a> </dd>
 
-<!--
-  <li>An <a><code>AudioWorker</code></a> interface, a
-    <a><code>WebWorker</code></a> designed to enable processing audio directly in JavaScript in a Worker.</li>
-  <li>An <a><code>AudioWorkerNode</code></a> interface, an
-    <a><code>AudioNode</code></a> for connecting the node graph to an AudioWorker. </li>
--->
     <dt> AudioWorkerNode createAudioWorker()</dt>
     <dd>
     <p>
-      Creates an <a><code>AudioWorkerNode</code></a> and its associated AudioWorker 
+      Creates an <a><code>AudioWorkerNode</code></a> and its associated <a><code>AudioWorkerGlobalScope</code></a> 
       for direct audio processing using JavaScript.  An INDEX_SIZE_ERR exception MUST 
       be thrown if <a><code>numberOfInputChannels</code></a> or
       <a><code>numberOfOutputChannels</code></a> are outside the valid range.
@@ -903,7 +897,7 @@ reasons.</p>
 
 
 <section>
-<h2>The AudioNode Interface</h2>
+<h2>The <dfn>AudioNode</dfn> Interface</h2>
 
 <p>AudioNodes are the building blocks of an <a
 href="#AudioContext"><code>AudioContext</code></a>. This interface
@@ -916,12 +910,12 @@ and a single output. An <a
 href="#AudioDestinationNode"><code>AudioDestinationNode</code></a> has
 one input and no outputs and represents the final destination to the audio
 hardware. Most processing nodes such as filters will have one input and one
-output.  Each type of <a><code>AudioNode</code></a> differs in the details of how it processes or synthesizes audio.  But, in general, <code>AudioNodes</code>
+output.  Each type of <a><code>AudioNode</code></a> differs in the details of how it processes or synthesizes audio.  But, in general, an <a><code>AudioNode</code></a>
 will process its inputs (if it has any), and generate audio for its outputs (if it has any).
  </p>
 
 <p>
-Each <dfn>output</dfn> has one or more <dfn>channels</dfn>.  The exact number of
+Each <a>output</a> has one or more <a>channels</a>.  The exact number of
 channels depends on the details of the specific <a><code>AudioNode</code></a>.
 </p>
 
@@ -2096,16 +2090,32 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 </section>
 
 <section>
-<h2>The AudioWorker</h2>
+<h2>The <dfn>Audio Worker</dfn></h2>
 
-<p>AudioWorker is not an actual class in the Web Audio API; an AudioWorker is represented in the main thread by the Worker interface exposed on an <a>AudioWorkerNode</a> (exposing postMessage and onmessage, for example).  From inside an audio worker script, an AudioWorker is represented by an <a><code>AudioWorkerGlobalScope</code></a> object representing the node's contextual information; all worker scripts are run in the audio processing thread.</p>
+<p>AudioWorker is not an actual class in the Web Audio API; an Audio Worker is 
+  represented in the main thread by the Worker interface exposed on an 
+  <a>AudioWorkerNode</a> (exposing postMessage and onmessage, for example).  
+  From inside an audio worker script, an Audio Worker is represented by an 
+  <a><code>AudioWorkerGlobalScope</code></a> object representing the node's 
+  contextual information; all worker scripts are run in the audio processing 
+  thread.</p>
 </section>
 
 <section>
-<h2>The AudioWorkerNode Interface</h2>
+<h2>The <dfn>AudioWorkerNode</dfn> Interface</h2>
 
-<p>This interface is an <a><code>AudioNode</code></a> which interacts with an <a>AudioWorker</a> to generate, process, or analyse audio directly using JavaScript. The user creates a separate audio processing "worker script", which is hosted inside the AudioWorkerGlobalScope and runs inside the audio processing thread, rather than the main UI thread.  The AudioWorkerNode represents the processing node in the main processing thread's node graph; the AudioWorkerGlobalScope represents the context in which the user's audio processing script is run.</p>
-<p>Nota bene that if the Web Audio implementation normally runs audio process at higher than normal thread priority, utilizing AudioWorkerNodes may cause demotion of the priority of the audio thread (since user scripts cannot be run with higher than normal priority).</p>
+<p>This interface represents an <a><code>AudioNode</code></a> which interacts 
+  with a <a>Worker</a> thread to generate, process, or analyse audio directly. 
+  The user creates a separate audio processing worker script, which is hosted 
+  inside the AudioWorkerGlobalScope and runs inside the audio processing 
+  thread, rather than the main UI thread.  The AudioWorkerNode represents the 
+  processing node in the main processing thread's node graph; the 
+  AudioWorkerGlobalScope represents the context in which the user's audio 
+  processing script is run.</p>
+<p>Nota bene that if the Web Audio implementation normally runs audio process 
+  at higher than normal thread priority, utilizing AudioWorkerNodes may cause 
+  demotion of the priority of the audio thread (since user scripts cannot be 
+  run with higher than normal priority).</p>
 
 <pre>
     numberOfInputs  : variable
@@ -2129,21 +2139,70 @@ be zero.
     var node = context.createAudioWorker( "bitcrusher.js", numberOfInputChannels, numberOfOutputChannels);
 </pre>
 
-<dl title="interface AudioWorkerNode : AudioNode" class="idl">
+<dl title="interface AudioWorkerNode : AudioNode implements Worker" class="idl">
   <span class="idlImplements"><dt class="idlType">Worker</dt></span>
+  <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
+  <dd>
+    <p>
+      Causes a correspondingly-named read-only <a>AudioParam</a> to be 
+      present on the <a>AudioWorkerNode</a>, and a correspondingly-named 
+      read-only <a>Float32Array</a> to be present on the 
+      <a>AudioProcessingEvent</a> on subsequent audio processing events.  The 
+      AudioParam may immediately have its scheduling methods called, its 
+      .<a>value</a> set, or AudioNodes connected to it.</p>
+    <p>The <dfn
+      id="dfn-name">name</dfn> parameter is the name used for the read-only 
+      AudioParam added to the AudioWorkerNode, and the name used for the 
+      read-only Float32Array that will be present on subsequent 
+      <a>AudioProcessingEvent</a>s.</p>
+    <p>The <dfn
+      id="dfn-defaultValue">defaultValue</dfn> parameter is the default value 
+      for the <a>AudioParam</a>'s <a>value</a> attribute, as well as 
+      therefore the default value that will appear in the Float32Array in the 
+      worker script (if no other parameter changes or connections affect the 
+      value).</p>
+  </dd>
+  <dt>void removeParameter(DOMString name) </dt>
+  <dd>
+    <p>
+      Removes a previously-added parameter named <code>name</code> from the 
+      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named 
+      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
+      remove the correspondingly-named read-only <a>Float32Array</a> from the 
+      <a>AudioProcessingEvent</a> on subsequent audio processing events. A 
+      NOT_FOUND_ERR exception must be thrown if no parameter with that name 
+      exists on this node.</p>
+    <p>The <dfn
+      id="dfn-name">name</dfn> parameter identifies the parameter to be 
+      removed.</p>
+  </dd>
 </dl>
-<div title="AudioWorkerNode implements Worker" class="idl">AudioWorkerNodes must implement the Worker
-  interface for communication with the audio worker script.</div>
+</dl>
+  <p>Note that <a>AudioWorkerNode</a> objects will also have read-only 
+    AudioParam objects for each named parameter added via the 
+    <a>addParameter</a> method.  As this is dynamic, it cannot be captured in 
+    IDL.</p>
+  
+<!--<div title="AudioWorkerNode implements Worker" class="idl">-->
+  <p>AudioWorkerNodes must implement the <a>Worker</a>
+  interface for communication with the audio worker script.</p>
+<!--</div>-->
 </section>
 
 <section>
 <h2>The AudioWorkerGlobalScope Interface</h2>
 
-<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived object representing the context in which an audio processing script is run; it is designed to enable the generation, processing, and analysis of audio data directly using JavaScript in a Worker thread. </p>
+<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived 
+  object representing the context in which an audio processing script is run; 
+  it is designed to enable the generation, processing, and analysis of audio 
+  data directly using JavaScript in a Worker thread. </p>
 
 <p>
-The <a><code>AudioWorkerGlobalScope</code></a> has an <dfn>audioprocess</dfn> event that is dispatched synchronously to process audio frames.  <a><code>audioprocess</code></a> events are only dispatched if the
-<a><code>AudioWorkerNode</code></a> has at least one input or one output connected.
+The <a><code>AudioWorkerGlobalScope</code></a> has an <dfn>audioprocess</dfn> 
+event that is dispatched synchronously to process audio frames.  
+<a><code>audioprocess</code></a> events are only dispatched if the
+<a><code>AudioWorkerNode</code></a> has at least one input or one output 
+connected.
 
 <pre class=highlight>
 // Bitcrusher sample code goes here
@@ -2157,11 +2216,14 @@ The <a><code>AudioWorkerGlobalScope</code></a> has an <dfn>audioprocess</dfn> ev
     HTML</a></cite>[[!HTML]]) for the audioprocess event that is dispatched to
     <a><code>AudioWorkerGlobalScope</code></a> when the associated 
     <a><code>AudioWorkerNode</code></a> is connected. An event of type 
-    <a><code>AudioProcessingEvent</code></a> will be dispatched to the event handler.
+    <a><code>AudioProcessingEvent</code></a> will be dispatched to the event 
+    handler.
   </dd>
   <dt>readonly attribute float sampleRate</dt>
   <dd>
-    The sample rate of the host <a>AudioContext</a> (since inside the <a>Worker</a> scope, the user will not have direct access to the <a>AudioContext</a>.
+    The sample rate of the host <a>AudioContext</a> (since inside the 
+    <a>Worker</a> scope, the user will not have direct access to the 
+    <a>AudioContext</a>.
   </dd>
 </dl>
 </section>
@@ -2252,9 +2314,9 @@ This is an <code>Event</code> object which is dispatched to
     <dd>
       An AudioBuffer containing the input audio data.  It will have a number of
       channels equal to the <code>numberOfInputChannels</code> parameter of the
-      createScriptProcessor() method.  This AudioBuffer is only valid while in
-      the scope of the <code>onaudioprocess</code> function.  Its values will be
-      meaningless outside of this scope.
+      createScriptProcessor() method.  This AudioBuffer is only guaranteed to be valid while in
+      the scope of the <code>onaudioprocess</code> function.  In the context of AudioWorker
+      events, the input and output buffers may be reused.
       </dd>
     <dt> readonly attribute AudioBuffer outputBuffer </dt>
     <dd>
@@ -2267,6 +2329,14 @@ This is an <code>Event</code> object which is dispatched to
       scope will not produce any audible effects.
     </dd>
 </dl>
+<p>Also note that for any <a>AudioWorker</a> <a>AudioProcessingEvent</a>s, a 
+  correspondingly-named read-only <a>Float32Array</a> will be present on the 
+  <a>AudioProcessingEvent</a> for each parameter that has been added via 
+  <a>addParameter</a>.  As this is dynamic, this cannot be captured in IDL.  
+  The length of this Float32Array will correspond to the length of the 
+  inputBuffer.  The contents of this Float32Array will be the values to be 
+  used for the AudioParam at the corresponding points in time.  It is 
+  expected that this Float32Array will be reused by the audio engine.</p>
 </section>
 
 <section>

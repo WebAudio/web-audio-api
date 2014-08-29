@@ -395,6 +395,10 @@ function setupRoutingGraph () {
   <li>A <a><code>MediaStreamAudioDestinationNode</code></a>
     interface, an <a><code>AudioNode</code></a> which is the audio destination to a
     MediaStream sent to a remote peer. </li>
+  <li>An <a><code>AudioWorker</code></a> interface, a
+    <a><code>WebWorker</code></a> designed to enable processing audio directly in JavaScript in a Worker.</li>
+  <li>An <a><code>AudioWorkerNode</code></a> interface, an
+    <a><code>AudioNode</code></a> for connecting the node graph to an AudioWorker. </li>
   <li>A <a><code>ScriptProcessorNode</code></a> interface, an
     <a><code>AudioNode</code></a> for generating or processing audio directly in JavaScript. </li>
   <li>An <a><code>AudioProcessingEvent</code></a> interface,
@@ -559,13 +563,13 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       </p>
       <ol>
       <li>Let <var>promise</var> be a new promise.</li>
-      <li> Neuter the <dfn>audioData</dfn> ArrayBuffer in such a way that JavaScript code may not
+      <li> Neuter the <a>audioData</a> ArrayBuffer in such a way that JavaScript code may not
       access or modify the data anymore.</li>
       <li>Queue a decoding operation to be performed on another thread.</li>
       <li>Return <var>promise</var>.</li>
       <li>In the decoding thread:
         <ol>
-        <li>Attempt to decode the encoded <dfn>audioData</dfn> into linear PCM.</li>
+        <li>Attempt to decode the encoded <a>audioData</a> into linear PCM.</li>
         <li>If a decoding error is encountered due to the audio format not being recognized or supported, or because
         of corrupted/unexpected/inconsistent data, then, on the main thread's event loop:
           <ol>
@@ -576,7 +580,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
         <li>Otherwise:
           <ol>
           <li>Take the result, representing the decoded linear PCM audio data, and resample it to the sample-rate of
-          the <a><code>AudioContext</code></a> if it is different from the sample-rate of <dfn>audioData</dfn>.</li>
+          the <a><code>AudioContext</code></a> if it is different from the sample-rate of <a>audioData</a>.</li>
           <li>On the main thread's event loop:
             <ol>
             <li>Let <var>buffer</var> be an <code>AudioBuffer</code> containing the final result (after possibly
@@ -621,14 +625,40 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dt> MediaStreamAudioDestinationNode createMediaStreamDestination() </dt>
     <dd>Creates a <a><code>MediaStreamAudioDestinationNode</code></a> </dd>
 
+    <dt> AudioWorkerNode createAudioWorker()</dt>
+    <dd>
+      Creates an <a><code>AudioWorkerNode</code></a> and its associated <a><code>AudioWorkerGlobalScope</code></a> 
+      for direct audio processing using JavaScript.  An INDEX_SIZE_ERR exception MUST 
+      be thrown if <a><code>numberOfInputChannels</code></a> or
+      <a><code>numberOfOutputChannels</code></a> are outside the valid range.
+
+      <dl class=parameters>
+        <dt> DOMString scriptURL </dt>
+        <dd>
+          This parameter represents the URL of the script to be loaded as an <a>AudioWorker</a>.
+        </dd>
+        <dt> optional unsigned long numberOfInputChannels = 2 </dt>
+        <dd>
+          This parameter determines the number of channels for this node's
+          input. Values of up to 32 must be supported.
+        </dd>
+        <dt> optional unsigned long numberOfOutputChannels = 2 </dt>
+        <dd>
+          This parameter determines the number of channels for this node's
+          output. Values of up to 32 must be supported.
+        </dd>
+      </dl>
+      It is invalid for both <a><code>numberOfInputChannels</code></a> and
+      <a><code>numberOfOutputChannels</code></a> to be zero.
+    </dd>
+
     <dt> ScriptProcessorNode createScriptProcessor()</dt>
     <dd>
-    <p>
+      This method is DEPRECATED, as it is intended to be replaced by createAudioWorker.
       Creates a <a><code>ScriptProcessorNode</code></a> for direct audio processing using
       JavaScript.  An INDEX_SIZE_ERR exception MUST be thrown if
       <a><code>bufferSize</code></a> or <a><code>numberOfInputChannels</code></a> or
       <a><code>numberOfOutputChannels</code></a> are outside the valid range.
-    </p>
       <dl class=parameters>
         <dt> optional unsigned long bufferSize = 0 </dt>
         <dd>
@@ -732,7 +762,6 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dd>Creates an <a><code>OscillatorNode</code></a></dd>
     <dt> PeriodicWave createPeriodicWave() </dt>
     <dd>
-    <p>
       Creates a <a><code>PeriodicWave</code></a> representing a waveform
       containing arbitrary harmonic content.  The <code>real</code> and
       <code>imag</code> parameters must be of type <code>Float32Array</code>
@@ -750,7 +779,6 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       the Web Audio API.  Because the PeriodicWave will be normalized on creation,
       the <code>real</code> and <code>imag</code> parameters represent
       <em>relative</em> values.
-    </p>
     <p>
       As <a>PeriodicWave</a> objects maintain their own representation, any
       modification of the arrays uses as the <code>real</code> and
@@ -865,7 +893,7 @@ reasons.</p>
 
 
 <section>
-<h2>The AudioNode Interface</h2>
+<h2>The <dfn>AudioNode</dfn> Interface</h2>
 
 <p>AudioNodes are the building blocks of an <a
 href="#AudioContext"><code>AudioContext</code></a>. This interface
@@ -878,12 +906,12 @@ and a single output. An <a
 href="#AudioDestinationNode"><code>AudioDestinationNode</code></a> has
 one input and no outputs and represents the final destination to the audio
 hardware. Most processing nodes such as filters will have one input and one
-output.  Each type of <a><code>AudioNode</code></a> differs in the details of how it processes or synthesizes audio.  But, in general, <code>AudioNodes</code>
+output.  Each type of <a><code>AudioNode</code></a> differs in the details of how it processes or synthesizes audio.  But, in general, an <a><code>AudioNode</code></a>
 will process its inputs (if it has any), and generate audio for its outputs (if it has any).
  </p>
 
 <p>
-Each <dfn>output</dfn> has one or more <dfn>channels</dfn>.  The exact number of
+Each <a>output</a> has one or more <a>channels</a>.  The exact number of
 channels depends on the details of the specific <a><code>AudioNode</code></a>.
 </p>
 
@@ -2057,12 +2085,298 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 
 </section>
 
+<section>
+<h2>The <dfn>AudioWorker</dfn></h2>
+
+<p>AudioWorker is not an actual class in the Web Audio API; an Audio Worker is 
+  represented in the main thread by the <a>AudioWorkerNode</a> methods 
+  (postMessage, onmessage and terminate, in particular). From inside an audio 
+  worker script, an Audio Worker is represented by an 
+  <a><code>AudioWorkerGlobalScope</code></a> object representing the node's 
+  contextual information; all worker scripts are run in the audio processing 
+  thread.</p>
 
 <section>
-<h2>The ScriptProcessorNode Interface</h2>
+<h2>The <dfn>AudioWorkerNode</dfn> Interface</h2>
+
+<p>This interface represents an <a><code>AudioNode</code></a> which interacts 
+  with a <a>Worker</a> thread to generate, process, or analyse audio directly. 
+  The user creates a separate audio processing worker script, which is hosted 
+  inside the AudioWorkerGlobalScope and runs inside the audio processing 
+  thread, rather than the main UI thread.  The AudioWorkerNode represents the 
+  processing node in the main processing thread's node graph; the 
+  AudioWorkerGlobalScope represents the context in which the user's audio 
+  processing script is run.</p>
+<p>Nota bene that if the Web Audio implementation normally runs audio process 
+  at higher than normal thread priority, utilizing AudioWorkerNodes may cause 
+  demotion of the priority of the audio thread (since user scripts cannot be 
+  run with higher than normal priority).</p>
+
+<pre>
+    numberOfInputs  : variable
+    numberOfOutputs : variable
+
+    channelCount = numberOfInputChannels;
+    channelCountMode = "explicit";
+    channelInterpretation = "speakers";
+</pre>
+
+<p>
+<dfn>numberOfInputChannels</dfn> and <dfn>numberOfOutputChannels</dfn>
+determine the number of input and output channels (and the number of channels 
+present in the AudioBuffers passed to the AudioProcess event handler inside the
+<a>AudioWorkerGlobalScope</a>). It is invalid for both
+<code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> to
+be zero.
+</p>
+
+<pre class="highlight">
+    var node = context.createAudioWorker( "bitcrusher.js", numberOfInputChannels, numberOfOutputChannels);
+</pre>
+
+<dl title="interface AudioWorkerNode : AudioNode" class="idl">
+  <dt>void terminate()</dt>
+  <dd>The terminate() method, when invoked, must cause the 
+    <a href="http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate 
+      a worker"</a> algorithm to be run on the worker with which the object 
+      is associated.  This will cease any <a>AudioProcessEvent</a>s being
+      dispatched to the Audio Worker, and will cause the destruction of the
+      worker thread.</dd>
+  <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
+  <dd>postMessage may be called to send a message to the Audio Worker, via the
+    algorithm defined by <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
+    the Worker specification</a>.</dd>
+  <dt>attribute EventHandler onmessage</dt>
+  <dd>The onmessage handler is called whenever the Audio Worker posts a 
+    message back to the main thread.</dd>
+  <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
+  <dd>
+    <p>
+      Causes a correspondingly-named read-only <a>AudioParam</a> to be 
+      present on the <a>AudioWorkerNode</a>, and a correspondingly-named 
+      read-only <a>Float32Array</a> to be present on the 
+      <a><code>parameters</code></a> object exposed on the 
+      <a>AudioProcessEvent</a> on subsequent audio processing events.  The 
+      AudioParam may immediately have its scheduling methods called, its 
+      .<a>value</a> set, or AudioNodes connected to it.</p>
+    <p>The <dfn
+      id="dfn-name">name</dfn> parameter is the name used for the read-only 
+      AudioParam added to the AudioWorkerNode, and the name used for the 
+      read-only Float32Array that will be present on the 
+      <a><code>parameters</code></a> object exposed on subsequent 
+      <a>AudioProcessEvent</a>s.</p>
+    <p>The <dfn
+      id="dfn-defaultValue">defaultValue</dfn> parameter is the default value 
+      for the <a>AudioParam</a>'s <a>value</a> attribute, as well as 
+      therefore the default value that will appear in the Float32Array in the 
+      worker script (if no other parameter changes or connections affect the 
+      value).</p>
+  </dd>
+  <dt>void removeParameter(DOMString name) </dt>
+  <dd>
+    <p>
+      Removes a previously-added parameter named <code>name</code> from the 
+      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named 
+      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
+      remove the correspondingly-named read-only <a>Float32Array</a> from the 
+      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on 
+      subsequent audio processing events. A 
+      NOT_FOUND_ERR exception must be thrown if no parameter with that name 
+      exists on this node.</p>
+    <p>The <dfn
+      id="dfn-name">name</dfn> parameter identifies the parameter to be 
+      removed.</p>
+  </dd>
+</dl>
+</dl>
+  <p>Note that <a>AudioWorkerNode</a> objects will also have read-only 
+    AudioParam objects for each named parameter added via the 
+    <a>addParameter</a> method.  As this is dynamic, it cannot be captured in 
+    IDL.</p>
+  
+<!--<div title="AudioWorkerNode implements Worker" class="idl">-->
+  <p>AudioWorkerNodes must implement the <a>Worker</a>
+  interface for communication with the audio worker script.</p>
+<!--</div>-->
+</section>
+
+<section>
+<h2>The AudioWorkerGlobalScope Interface</h2>
+
+<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived 
+  object representing the context in which an audio processing script is run; 
+  it is designed to enable the generation, processing, and analysis of audio 
+  data directly using JavaScript in a Worker thread. </p>
+
+<p>
+The <a><code>AudioWorkerGlobalScope</code></a> has an <dfn>audioprocess</dfn> 
+event that is dispatched synchronously to process audio frames.  
+<a><code>audioprocess</code></a> events are only dispatched if the
+<a><code>AudioWorkerNode</code></a> has at least one input or one output 
+connected.
+
+<dl title="interface AudioWorkerGlobalScope : DedicatedWorkerGlobalScope" class="idl">
+  <dt>attribute EventHandler onaudioprocess</dt>
+  <dd>
+    A property used to set the <code>EventHandler</code> (described in <cite>
+    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    HTML</a></cite>[[!HTML]]) for the audioprocess event that is dispatched to
+    <a><code>AudioWorkerGlobalScope</code></a> when the associated 
+    <a><code>AudioWorkerNode</code></a> is connected. An event of type 
+    <a><code>AudioProcessEvent</code></a> will be dispatched to the event 
+    handler.
+  </dd>
+  <dt>readonly attribute float sampleRate</dt>
+  <dd>
+    The sample rate of the host <a>AudioContext</a> (since inside the 
+    <a>Worker</a> scope, the user will not have direct access to the 
+    <a>AudioContext</a>.
+  </dd>
+</dl>
+</section>
+
+<section class="informative">
+  <h3>Audio Worker Examples</h3>
+  <section>
+    <h4>A Bitcrusher Node</h4>
+      <p>Bitcrushing is a mechanism by which the audio quality of an audio 
+        stream is reduced - both by quantizing the value (simulating lower 
+        bit-depth in integer-based audio), and by quantizing in time 
+        (simulating a lower digital sample rate).  This example shows how to 
+        use AudioParams (in this case, treated as a-rate) inside an 
+        AudioWorker.</p>
+
+    <h5>Main file javascript</h5>
+    <pre class="highlight">var bitcrusherNode = audioContext.createAudioWorker("bitcrusher_worker.js", 1, 1);
+
+// Custom parameter - number of bits to crush down to - default 8
+bitcrusherNode.addParameter( "bits", 8 );
+
+// Custom parameter - frequency reduction, 0-1, default 0.5
+bitcrusherNode.addParameter( "frequencyReduction", 0.5 );</pre>
+    <h5>bitcrusher_worker.js</h5>
+    <pre class="highlight">var phaser = 0;
+var lastDataValue = 0;
+
+onaudioprocess= function (e) {
+  for (var channel=0; channel&lt;e.inputBuffers.length; channel++) {
+    var inputBuffer = e.inputBuffers[channel];
+    var outputBuffer = e.outputBuffers[channel];
+    var bufferLength = inputBuffer.length;
+    var bitsArray = e.parameters.bits;
+    var frequencyReductionArray = e.parameters.frequencyReduction;
+
+    for (var i=0; i&lt;bufferLength; i++) {
+      var bits = bitsArray ? bitsArray[i] : 8;
+      var frequencyReduction = frequencyReductionArray ? frequencyReductionArray[i] : 0.5;
+
+      var step = Math.pow(1/2, bits);
+      phaser += frequencyReduction;
+      if (phaser >= 1.0) {
+          phaser -= 1.0;
+          lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
+      }
+      output[i] = lastDataValue;
+    }
+  }
+};</pre>
+  </section>
+  <section>
+    <h4>A Volume Meter and Clip Detector</h4>
+    <p>Another common need is a clip-detecting volume meter.  This example 
+      shows how to communicate basic parameters (that do not need AudioParam 
+      scheduling) across to a Worker, as well as communicating data back to 
+      the main thread.</p>
+
+    <h5>Main file javascript</h5>
+    <pre class="highlight">var vuNode = audioContext.createAudioWorker("vu_meter_worker.js", 1, 1);
+
+// This handles communication back from the volume meter
+vuNode.onmessage = function (event) {
+  if (event.data instanceof Object ) {
+    if (event.data.hasOwnProperty("clip")
+      this.clip = event.data.clip;
+    if (event.data.hasOwnProperty("volume")
+      this.volume = event.data.volume;
+  }
+}
+
+// Set up some configuration parameters
+vuNode.postMessage( 
+  { "smoothing": 0.9,   // Smoothing parameter
+    "clipLevel": 0.9,   // Level to consider "clipping"
+    "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
+    "updating": 90      // How frequently to update volume and clip param (ms)
+  });
+
+// Set up volume and clip attributes.  These will be updated by our onmessage.
+vuNode.volume = 0;
+vuNode.clip = false;</pre>
+
+    <h5>vu_meter_worker.js</h5>
+    <pre class="highlight">// how many samples between updates - default 100ms
+var this.timeToNextUpdate = 0.1 * this.sampleRate;
+
+// This just handles setting attribute values
+onmessage = function ( event ) {
+  if (event.data instanceof Object ) {
+    if (event.data.hasOwnProperty("smoothing")
+      this.smoothing = event.data.smoothing;
+    if (event.data.hasOwnProperty("clipLevel")
+      this.clipLevel = event.data.clipLevel;
+    if (event.data.hasOwnProperty("clipLag")
+      this.clipLag = event.data.clipLag / 1000;  // convert to seconds
+    if (event.data.hasOwnProperty("updating")    // convert to samples
+      this.updatingInterval = event.data.updating * this.sampleRate / 1000 ;
+  }
+};
+
+onaudioprocess = function ( event ) {
+  var buf = event.inputBuffers[0];  // For simplicity, this example is only mono
+  var bufLength = buf.length;
+  var sum = 0;
+  var x;
+
+  // Do a root-mean-square on the samples: sum up the squares...
+  for (var i=0; i&lt;bufLength; i++) {
+    x = buf[i];
+    if (Math.abs(x)>=this.clipLevel) {
+      this.clipping = true;
+      this.unsentClip = true;  // Make sure, for every clip, we send a message.
+      this.lastClip = event.playbackTime + (i/this.sampleRate);
+    }
+    sum += x * x;
+  }
+
+  // ... then take the square root of the sum.
+  var rms =  Math.sqrt(sum / bufLength);
+
+  // Now smooth this out with the smoothing factor applied
+  // to the previous sample - take the max here because we
+  // want "fast attack, slow release."
+  this.volume = Math.max(rms, this.volume*this.smoothing);
+  if (this.clipping &amp;&amp; (!this.unsentClip) &amp;&amp; (event.playbackTime > (this.lastClip + clipLag)))
+    this.clipping = false;
+
+  // How long has it been since our last update?
+  this.timeToNextUpdate -= this.last
+  if (this.timeToNextUpdate&lt;0) {
+    this.timeToNextUpdate = this.updatingInterval;
+    this.postMessage(
+      { "volume": this.volume,
+        "clip": this.clipping });
+    this.unsentClip = false;
+  }
+};</pre>
+    </section>
+  </section>
+</section>
+
+<section class="informative">
+<h2>The ScriptProcessorNode Interface - DEPRECATED</h2>
 
 <p>This interface is an <a><code>AudioNode</code></a> which can generate, process, or analyse audio
-directly using JavaScript. </p>
+directly using JavaScript.  This node type is deprecated, to be replaced by the <a>Audio Worker</a> node; this text is only here for informative purposes until implementations remove this node type.</p>
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -2117,11 +2431,69 @@ be zero.
 </section>
 
 <section>
-<h2>The AudioProcessingEvent Interface</h2>
+<h2>The AudioProcessEvent Interface</h2>
 
 <p>
 This is an <code>Event</code> object which is dispatched to
-<a><code>ScriptProcessorNode</code></a> nodes.
+<a><code>AudioWorkerGlobalScope</code></a> objects to perform processing.
+</p>
+
+<p>
+  The event handler processes audio from the input (if any) by accessing the
+  audio data from the <code>inputBuffers</code> attribute. The audio data which
+  is the result of the processing (or the synthesized data if there are no
+  inputs) is then placed into the <code>outputBuffers</code>.
+</p>
+
+<dl title="interface AudioProcessEvent : Event" class="idl">
+    <dt> readonly attribute double playbackTime </dt>
+    <dd>
+      The time when the audio will be played in the same time coordinate system
+      as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a>.
+      <code>playbackTime</code> allows for very
+      tight synchronization between processing directly in JavaScript with the
+      other events in the context's rendering graph.
+    </dd>
+    <dt> readonly attribute Float32Array[] inputBuffers </dt>
+    <dd>
+      An Array of Float32Arrays, one per channel, containing the input audio 
+      buffer with input data.  The number of channels will be equal to the 
+      <code>numberOfInputChannels</code> parameter of the createAudioWorker() 
+      method.  It is expected that the event object, the Array and the input 
+      and output buffers may be reused by the processing system, in order to 
+      minimize memory churn; it is not recommended to maintain global handles
+      to them.
+      </dd>
+    <dt> readonly attribute Float32Array[] outputBuffers </dt>
+    <dd>
+      An Array of Float32Arrays, one per channel, containing the output audio 
+      buffer.  The number of channels will be equal to the 
+      <code>numberOfOutputChannels</code> parameter of the createAudioWorker() 
+      method.  It is expected that the event object, the Array and the input 
+      and output buffers may be reused by the processing system, in order to 
+      minimize memory churn; it is not recommended to maintain global handles
+      to them.
+    </dd>
+    <dt> readonly attribute object parameters</dt>
+    <dd>This object attribute exposes a correspondingly-named 
+      read-only <a>Float32Array</a> for each parameter that has been added 
+      via <a>addParameter</a>.  As this is dynamic, this cannot be captured 
+      in IDL.  The length of this Float32Array will correspond to the length 
+      of the inputBuffer.  The contents of this Float32Array will be the 
+      values to be used for the AudioParam at the corresponding points in 
+      time.  It is expected that this Float32Array will be reused by the 
+      audio engine.</dd>
+</dl>
+</section>
+
+<section class="informative">
+<h2>The AudioProcessingEvent Interface - DEPRECATED</h2>
+
+<p>
+This is an <code>Event</code> object which is dispatched to
+<a><code>ScriptProcessorNode</code></a> nodes.  It will be removed 
+when the ScriptProcessorNode is removed, as the replacement 
+<a>AudioWorker</a> uses the <a>AudioProcessEvent</a>.
 </p>
 
 <p>

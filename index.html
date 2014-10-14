@@ -6,7 +6,7 @@
   <script src='respec-w3c-common' async class='remove'></script>
   <script class='remove'>
     var respecConfig = {
-        specStatus: "WD",
+        specStatus: "ED",
         shortName:  "webaudio",
         edDraftURI: "http://webaudio.github.io/web-audio-api/",
         editors: [
@@ -376,7 +376,7 @@ function setupRoutingGraph () {
   <li>An <a><code>AudioNode</code></a> interface,
     which represents audio sources, audio outputs, and intermediate processing
     modules. <a><code>AudioNode</code></a>s can be dynamically connected together in a <a
-    href="#ModularRouting">modular fashion</a>. <a><code>AudioNodes</code></a>
+    href="#ModularRouting">modular fashion</a>. <a><code>AudioNode</code></a>s
     exist in the context of an <a><code>AudioContext</code></a> </li>
   <li>An <a><code>AudioDestinationNode</code></a> interface, an
     <a><code>AudioNode</code></a> subclass representing the final destination for all rendered
@@ -911,7 +911,7 @@ will process its inputs (if it has any), and generate audio for its outputs (if 
  </p>
 
 <p>
-Each <a>output</a> has one or more <a>channels</a>.  The exact number of
+Each <a>output</a> has one or more <a>channel</a>s.  The exact number of
 channels depends on the details of the specific <a><code>AudioNode</code></a>.
 </p>
 
@@ -1151,25 +1151,25 @@ way that other EventTargets accept events.
 
   <ol>
   <li>A <em>normal</em> JavaScript reference obeying normal garbage collection rules. </li>
-  <li>A <em>playing</em> reference for both <a> <code>AudioBufferSourceNodes</code> </a> and <a><code>OscillatorNodes</code></a>.
+  <li>A <em>playing</em> reference for both <a> <code>AudioBufferSourceNode</code></a>s and <a><code>OscillatorNode</code></a>s.
   These nodes maintain a <em>playing</em>
   reference to themselves while they are currently playing.</li>
   <li>A <em>connection</em> reference which occurs if another <a><code>AudioNode</code></a> is connected to it.   </li>
   <li>A <em>tail-time</em> reference which an <a><code>AudioNode</code></a> maintains on itself as long as it has
   any internal processing state which has not yet been emitted.  For example, a <a><code>ConvolverNode</code></a> has
   a tail which continues to play even after receiving silent input (think about clapping your hands in a large concert
-    hall and continuing to hear the sound reverberate throughout the hall).  Some <a><code>AudioNodes</code></a> have this
+    hall and continuing to hear the sound reverberate throughout the hall).  Some <a><code>AudioNode</code></a>s have this
     property.  Please see details for specific nodes.</li>
   </ol>
 
   <p>
-  Any <a><code>AudioNodes</code></a> which are connected in a cycle <em>and</em> are directly or indirectly connected to the
+  Any <a><code>AudioNode</code></a>s which are connected in a cycle <em>and</em> are directly or indirectly connected to the
   <a><code>AudioDestinationNode</code></a> of the <a><code>AudioContext</code></a> will stay alive as long as the <a><code>AudioContext</code></a> is alive.
   </p>
 
   <p>
   When an <a><code>AudioNode</code></a> has no references it will be deleted.  But before it is deleted, it will disconnect itself
-  from any other <a><code>AudioNodes</code></a> which it is connected to.  In this way it releases all connection references (3) it has to other nodes.
+  from any other <a><code>AudioNode</code></a>s which it is connected to.  In this way it releases all connection references (3) it has to other nodes.
   </p>
 
   <p>
@@ -1254,7 +1254,7 @@ through the <code>destination</code> attribute of <a><code>AudioContext</code></
 </p>
 
 <p>
-  Some synthesis and processing <code>AudioNodes</code> have
+  Some synthesis and processing <a><code>AudioNode</code></a>s have
   <code>AudioParams</code> as attributes whose values must be taken into account
   on a per-audio-sample basis.  For other <code>AudioParams</code>,
   sample-accuracy is not important and the value changes can be sampled more
@@ -1346,7 +1346,8 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       The <dfn id="dfn-startTime_2">startTime</dfn> parameter is the time
-      in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
+      in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An INVALID_ACCESS_ERR exception MUST be 
+      thrown if <code>startTime</code> is negative or is not a finite number.
     </p>
     <p>
       If there are no more events after this <em>SetValue</em> event, then for t
@@ -1379,7 +1380,8 @@ The following rules will apply when calling these methods:
       id="dfn-value_3">value</dfn> parameter is the value the parameter will
       linearly ramp to at the given time.</p> <p>The <dfn
       id="dfn-endTime_3">endTime</dfn> parameter is the time in the same time
-      coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
+      coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An INVALID_ACCESS_ERR exception MUST be thrown if 
+      <code>endTime</code> is negative or is not a finite number.
     </p>
 
     <p>
@@ -1415,7 +1417,8 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       The <dfn id="dfn-endTime_4">endTime</dfn> parameter is the time in the same
-      time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
+      time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An INVALID_ACCESS_ERR exception MUST be thrown if 
+      <code>endTime</code> is negative or is not a finite number.
     </p>
     <p>
       The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
@@ -1438,6 +1441,7 @@ The following rules will apply when calling these methods:
   <dd>
     <p>
       Start exponentially approaching the target value at the given time
+
       with a rate having the given time constant. Among other uses, this is
       useful for implementing the "decay" and "release" portions of an ADSR
       envelope. Please note that the parameter value does not immediately
@@ -1450,7 +1454,8 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       The <dfn id="dfn-startTime">startTime</dfn> parameter is the time in the
-      same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
+      same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An INVALID_ACCESS_ERR exception MUST be 
+      thrown if <code>start</code> is negative or is not a finite number.
     </p>
     <p>
       The <dfn id="dfn-timeConstant">timeConstant</dfn> parameter is the
@@ -1494,7 +1499,8 @@ The following rules will apply when calling these methods:
       </p>
       <p>
         The <dfn id="dfn-startTime_5">startTime</dfn> parameter is the time in the
-        same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
+        same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An INVALID_ACCESS_ERR exception MUST be thrown 
+        if <code>startTime</code> is negative or is not a finite number.
       </p>
       <p>
         The <dfn id="dfn-duration_5">duration</dfn> parameter is the amount of
@@ -1527,7 +1533,10 @@ The following rules will apply when calling these methods:
         The <dfn>startTime</dfn> parameter is the starting time at and after
         which any previously scheduled parameter changes will be cancelled.  It
         is a time in the same time coordinate system as
-        the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
+        the <a><code>AudioContext</code></a>'s 
+        <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  
+        An INVALID_ACCESS_ERR exception MUST be thrown if <code>startTime</code> 
+        is negative or is not a finite number.
       </p>
     </dd>
 </dl>
@@ -1913,14 +1922,16 @@ invoked in the following cases:
         value is less than <b>currentTime</b>, then the sound will start playing
         immediately.  <code>start</code> may only be called one time and must be
         called before <code>stop</code> is called or an INVALID_STATE_ERR
-        exception MUST be thrown.
+        exception MUST be thrown.  An INVALID_ACCESS_ERR exception MUST be 
+        thrown if <code>when</code> is negative or is not a finite number.
       </dd>
       <dt>optional double offset = 0</dt>
       <dd>
         The <dfn id="dfn-offset">offset</dfn> parameter describes the offset
         time in the buffer (in seconds) where playback will begin. If 0 is
         passed in for this value, then playback will start from the beginning of
-        the buffer.
+        the buffer.  An INVALID_ACCESS_ERR exception MUST be thrown if 
+        <code>offset</code> is negative or is not a finite number.
       </dd>
       <dt>optional double duration</dt>
       <dd>
@@ -1929,7 +1940,9 @@ invoked in the following cases:
         not passed, the duration will be equal to the total duration of the
         AudioBuffer minus the <code>offset</code> parameter.  Thus if neither
         <code>offset</code> nor <code>duration</code> are specified then the
-        implied duration is the total duration of the AudioBuffer.
+        implied duration is the total duration of the AudioBuffer.  An 
+        INVALID_ACCESS_ERR exception MUST be thrown if <code>duration</code> 
+        is negative or is not a finite number.
       </dd>
     </dl>
   </dd>
@@ -1946,7 +1959,9 @@ invoked in the following cases:
         <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  If 0
         is passed in for this value or if the value
         is less than <a><code>currentTime</code></a>, then the sound will stop playing
-        immediately.  If <code>stop</code> is called again after already have been
+        immediately.    An INVALID_ACCESS_ERR exception MUST be thrown if 
+        <code>when</code> is negative or is not a finite number.  If <code>stop</code> 
+        is called again after already have been
         called, the last invocation will be the only one applied; stop times set by previous
         calls will not be applied, unless the buffer has already stopped prior to any
         subsequent calls.  If the buffer has already stopped, further calls to
@@ -1997,7 +2012,6 @@ if ((loopStart || loopEnd) &amp;&amp; loopStart &gt;= 0 &amp;&amp; loopEnd &gt; 
 </blockquote>
 
 <p>
-Note that the default values for <code>loopStart</code> and <code>loopEnd</code> are both 0, which indicates that looping should occur from the very start
 Note that the default <code>value</code>s for <code>loopStart</code> and <code>loopEnd</code> are both 0, which indicates that looping should occur from the very start
 to the very end of the buffer.
 </p>
@@ -2141,7 +2155,7 @@ be zero.
       a worker"</a> algorithm to be run on the worker with which the object 
       is associated.  This will cease any <a>AudioProcessEvent</a>s being
       dispatched to the Audio Worker, and will cause the destruction of the
-      worker thread.</dd>
+      worker thread.  In practical terms, this means the node will disconnect itself from any downstream connections.</dd>
   <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
   <dd>postMessage may be called to send a message to the Audio Worker, via the
     algorithm defined by <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
@@ -2376,7 +2390,7 @@ onaudioprocess = function ( event ) {
 <h2>The ScriptProcessorNode Interface - DEPRECATED</h2>
 
 <p>This interface is an <a><code>AudioNode</code></a> which can generate, process, or analyse audio
-directly using JavaScript.  This node type is deprecated, to be replaced by the <a>Audio Worker</a> node; this text is only here for informative purposes until implementations remove this node type.</p>
+directly using JavaScript.  This node type is deprecated, to be replaced by the <a>AudioWorkerNode</a>; this text is only here for informative purposes until implementations remove this node type.</p>
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -2552,15 +2566,13 @@ stream in three-dimensional space. The spatialization is in relation to the <a
 </pre>
 
 <p>
-The audio stream from the input will be either mono or stereo, depending on the
-connection(s) to the input.
+  The input of this node is either mono (1 channel) or stereo (2 channels) and cannot be increased.  Connections from nodes with fewer or more channels will be <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed appropriately</a>, but a NOT_SUPPORTED_ERR will be thrown if an attempt is made to set channelCount to a value great than 2 or if channelCountMode is set to "max".
 </p>
 
 <p>
 The output of this node is hard-coded to stereo (2 channels) and
 <em>currently</em> cannot be configured.
 </p>
-
 
 <p>
   The <a><code>PanningModelType</code></a> enum determines which spatialization algorithm will
@@ -2685,15 +2697,16 @@ default is "inverse".
       listener.  The default value is 1.
     </dd>
 
+
     <!--<dt> // Directional sound cone </dt>-->
     <dt>attribute double coneInnerAngle</dt>
     <dd>
-      A parameter for directional audio sources, this is an angle, inside
+      A parameter for directional audio sources, this is an angle, in degrees, inside
       of which there will be no volume reduction.  The default value is 360.
     </dd>
     <dt>attribute double coneOuterAngle</dt>
     <dd>
-      A parameter for directional audio sources, this is an angle, outside
+      A parameter for directional audio sources, this is an angle, in degrees, outside
       of which the volume will be reduced to a constant value of
       <a><code>coneOuterGain</code></a>.  The default value is 360.
     </dd>
@@ -2712,7 +2725,7 @@ default is "inverse".
 <p>
 This interface represents the position and orientation of the person
 listening to the audio scene. All <a><code>PannerNode</code></a> objects
-spatialize in relation to the <a><code>AudioContext</code></a>'s <a><code>listener</code></a>. See <a
+spatialize in relation to the <a><code>AudioContext</code></a>'s <a href="widl-AudioContext-listener"><code>listener</code></a>. See <a
 href="#Spatialization">this</a> section for more details about
 spatialization.
 </p>
@@ -2805,6 +2818,10 @@ spatialization.
     channelCountMode = "clamped-max";
     channelInterpretation = "speakers";
 </pre>
+
+<p>
+  The input of this node is either mono (1 channel) or stereo (2 channels) and cannot be increased.  Connections from nodes with fewer or more channels will be <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed appropriately</a>, but a NOT_SUPPORTED_ERR will be thrown if an attempt is made to set channelCount to a value great than 2 or if channelCountMode is set to "max".
+</p>
 
 <dl title="interface ConvolverNode : AudioNode" class="idl">
   <dt> attribute AudioBuffer? buffer </dt>
@@ -2931,7 +2948,7 @@ float calculateNormalizationScale(buffer)
     <dt> void getFloatFrequencyData() </dt>
     <dd>
       <p>
-        Copies the current frequency data into the passed floating-point
+        Copies the <a>current frequency data</a> into the passed floating-point
         array. If the array has fewer elements than the <a><code>frequencyBinCount</code></a>, the
         excess elements will be dropped. If the array has more elements than
         the <a><code>frequencyBinCount</code></a>, the excess elements will be ignored.
@@ -2947,7 +2964,7 @@ float calculateNormalizationScale(buffer)
     <dt> void getByteFrequencyData() </dt>
     <dd>
       <p>
-        Copies the current frequency data into the passed unsigned byte
+        Copies the <a>current frequency data</a> into the passed unsigned byte
         array. If the array has fewer elements than the <a><code>frequencyBinCount</code></a>, the
         excess elements will be dropped. If the array has more elements than
         the <a><code>frequencyBinCount</code></a>, the excess elements will be ignored.
@@ -3031,6 +3048,78 @@ float calculateNormalizationScale(buffer)
       an INDEX_SIZE_ERR exception MUST be thrown.
     </dd>
 </dl>
+
+<section>
+<h3>FFT Windowing and smoothing over time</h3>
+When the <dfn id="current-frequency-data">current frequency data</dfn> are
+computed, the following operations are to be performed:
+<ol>
+  <li> <a href="#blackman-window">Apply a Blackman window</a> to the time domain input data </li>
+  <li> Apply a Fourier tranform to the windowed time domain input data to get imaginary and real frequency data </li>
+  <li> <a href="#smoothing-over-time">Smooth over time</a> the frequency domain data</li>
+</ol>
+
+<dfn id="blackman-window">Applying a Blackman window</dfn> consists in the
+following operation on the input time domain data <code>buffer</code>:
+
+    <pre class="highlight">
+function blackmanWindow(buffer) {
+  var alpha = 0.16;
+  var a0 = 0.5 * (1.0 - alpha);
+  var a1 = 0.5;
+  var a2 = 0.5 * alpha;
+
+  for (var i = 0; i &lt; buffer.length; i++) {
+    var x = i / aSize;
+    buffer[i] *= a0 - a1 * Math.cos(2 * Math.PI * x) + a2 * Math.cos(4 * Math.PI * x);
+  }
+}
+    </pre>
+
+<dfn id="smoothing-over-time">Smoothing over time</dfn> frequency data consists
+in the following operation:
+<ul>
+<li>
+  Let <code>fftSize</code> be the value of <a
+    href="#widl-AnalyserNode-fftSize"><code>fftSize</code></a> for this
+  <a>AnalyserNode</a>.
+</li>
+<li>
+  Let <code>outputBuffer</code> be an array that contains
+  the frequency data that will be made available to the author via <a
+    href="#widl-AnalyserNode-getFloatFrequencyData-void-Float32Array-array"><code>getFloatFrequencyData</code></a>,
+  or <a
+  href="#widl-AnalyserNode-getByteFrequencyData-void-Uint8Array-array"><code>getByteFrequencyData</code></a>.
+</li>
+<li>
+  Let <code>lastOutputBuffer</code> be the result of this operation on the last block,
+  or an array of <code>fftSize</code> zeros if this is the first time we are <a
+  href="#smoothing-over-time">smoothing over time</a>.
+</li>
+<li>
+  Let <code>smoothingConstant</code> be the value of the <a
+  href="#widl-AnalyserNode-smoothingTimeConstant"><code>smoothingTimeConstant</code></a> attribute for
+  this <a><code>AnalyserNode</code></a>.
+</li>
+<li>
+  Let <code>real</code> and <code>imag</code> be two arrays of length
+  <code>fftSize</code>, that contain the result of the previously applied Fourier
+  transform.
+</li>
+</ul>
+
+<pre class="highlight">
+  function smoothingOverTime(outputBuffer, lastOutputBuffer,
+                             smoothingConstant,
+                             real, imag, fftSize) {
+    for (var i = 0; i &lt; outputBuffer.length; i++) {
+      var magnitude = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]) / fftSize;
+      outputBuffer[i] = smoothingTimeConstant * lastOutputBuffer[i] + (1.0 - smoothingTimeConstant) * magnitude;
+    }
+  }
+</pre>
+
+</section>
 </section>
 
 <section>
@@ -5030,7 +5119,7 @@ battery-life issues.
   available <a><code>AudioNode</code></a>s, the Web Audio API potentially exposes information on
   characteristic features of the client (such as audio hardware sample-rate) to
   any page that makes use of the <a><code>AudioNode</code></a> interface. Additionally, timing
-  information can be collected through the RealtimeAnalyzerNode or
+  information can be collected through the <a><code>AnalyserNode</code></a> or
   <a><code>ScriptProcessorNode</code></a> interface. The information could subsequently be used to
   create a fingerprint of the client. </p>
 

@@ -3582,21 +3582,39 @@ may be specified.
 <dl title="interface WaveShaperNode : AudioNode" class="idl" data-merge="OverSampleType">
   <dt> attribute Float32Array? curve </dt>
   <dd>
-    The shaping curve used for the waveshaping effect. The input signal is
-    nominally within the range -1 -&gt; +1. Each input sample within this range
-    will index into the shaping curve with a signal level of zero corresponding
-    to the center value of the curve array. Any sample value less than -1 will
-    correspond to the first value in the curve array. Any sample value greater
-    than +1 will correspond to the last value in the curve array.  The
-    implementation must perform linear interpolation between adjacent points in
-    the curve.  Initially the curve attribute is null, which means that the
-    WaveShaperNode will pass its input to its output without modification.
+    <p>
+      The shaping curve used for the waveshaping effect. The input signal is
+      nominally within the range [-1; 1]. Each input sample within this range
+      will index into the shaping curve with a signal level of zero
+      corresponding to the center value of the curve array. Any sample value
+      less than -1 will correspond to the first value in the curve array. Any
+      sample value greater than +1 will correspond to the last value in the
+      curve array.
+    </p>
+    <p>
+      The implementation must perform linear interpolation between adjacent
+      points in the curve.  Initially the curve attribute is null, which means
+      that the WaveShaperNode will pass its input to its output without
+      modification.
+    </p>
+    <p>
+      Values of the curve are spread with equal spacing in the [-1; 1] range.
+      This means that a <a><code>curve</code></a> with a even number of value
+      will not have a value for a signal at zero, and a
+      <a><code>curve</code></a> with an odd number of value will have a value
+      for a signal at zero.
+    </p>
+    <p>
+      A <code>InvalidAccessError</code> MUST be thrown if this attribute is set
+      with a <code>Float32Array</code> that has a <code>length</code> less than
+      2.
+    </p>
   </dd>
   <dt> attribute OverSampleType oversample </dt>
     <dd>
     <p>
       Specifies what type of oversampling (if any) should be used when applying
-      the shaping curve.    The default value is "none", meaning the curve will
+      the shaping curve. The default value is "none", meaning the curve will
       be applied directly to the input samples.  A value of "2x" or "4x" can
       improve the quality of the processing by avoiding some aliasing, with the
       "4x" value yielding the highest quality.  For some applications, it's

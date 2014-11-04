@@ -482,6 +482,15 @@ connections. It allows for arbitrary routing of signals to the
 then <a href="#ModularRouting">connected</a> together. In most use
 cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
 
+<dl title="enum AudioContextState" class="idl">
+  <dt>suspended</dt>
+  <dd>The AudioContext is currently suspended (context time is not proceeding, audio hardware may be powered down/released).</dd>
+  <dt>running</dt>
+  <dd>Audio is being processed.</dd>
+  <dt>closed</dt>
+  <dd>The AudioContext has been released, and can no longer be used to process audio.  All system audio resources have been released.  Attempts to create new Nodes on the AudioContext will throw InvalidStateError.  (AudioBuffers may still be created, through <a>createBuffer</a> or <a>decodeAudioData</a>.)</dd>
+</dl>
+
 <dl title="[Constructor] interface AudioContext : EventTarget" class="idl"
   data-merge="DecodeSuccessCallback DecodeErrorCallback">
   <dt>readonly attribute AudioDestinationNode destination</dt>
@@ -512,6 +521,34 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   <dd><p>An <a href="#AudioListener"><code>AudioListener</code></a>
     which is used for 3D <a
     href="#Spatialization">spatialization</a>.</p>
+  </dd>
+
+  <dt>readonly attribute AudioContextState state</dt>
+  <dd>Describes the current state of the AudioContext.  The context state MUST begin in "suspended", and transitions to "running" when system resources are acquired and audio has begun processing.  For OfflineAudioContexts, the state will remain in "suspended" until startRendering()</code> is called, at which point it will transition to "running", and then to "closed" once audio processing has completed and oncomplete has been fired.
+    <p>When the state is "suspended", a call to <code>resume()</code> will cause a transition to "running", or a call to <code>close()</code> will cause a transition to "closed".</p>
+    <p>When the state is "running", a call to <code>suspend()</code> will cause a transition to "suspended", or a call to <code>close()</code> will cause a transition to "closed".</p>
+    <p>When the state is "closed", no further state transitions are possible.</p>
+  </dd>
+
+  <dt>Promise suspend()</dt>
+  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.
+
+    <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
+
+  <dt>Promise resume()</dt>
+  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+
+  <dt>Promise close()</dt>
+  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+
+ <dt>attribute EventHandler onstatechange</dt>
+  <dd>
+    A property used to set the <code>EventHandler</code> for an event that is dispatched to
+    <a><code>AudioContext</code></a> when the state of the AudioContext has changed (i.e. when the
+    corresponding promise would have resolved). An event of type <a><code>Event</code></a> will be 
+    dispatched to the event handler, which can query the AudioContext's state directly.  A 
+    newly-created AudioContext will always begin in the "paused" state, and a state change event will be fired 
+    when it transitions to "running".
   </dd>
 
   <dt>AudioBuffer createBuffer()</dt>

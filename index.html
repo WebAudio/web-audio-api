@@ -448,6 +448,8 @@ function setupRoutingGraph () {
   </li>
   <li>A <a><code>DynamicsCompressorNode</code></a> interface, an
     <a><code>AudioNode</code></a> for dynamics compression. </li>
+  <li>A <a><code>NoiseGateNode</code></a> interface, an
+    <a><code>AudioNode</code></a> for noise gating. </li>
   <li>A <a><code>WaveShaperNode</code></a>
     interface, an <a><code>AudioNode</code></a> which applies a non-linear waveshaping effect for
     distortion and other more subtle warming effects. </li>
@@ -809,6 +811,9 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
 
     <dt> DynamicsCompressorNode createDynamicsCompressor() </dt>
     <dd>Creates a <a><code>DynamicsCompressorNode</code></a></dd>
+
+    <dt> NoiseGateNode createNoiseGate() </dt>
+    <dd>Creates a <a><code>NoiseGateNode</code></a></dd>
 
     <dt> OscillatorNode createOscillator() </dt>
     <dd>Creates an <a><code>OscillatorNode</code></a></dd>
@@ -3377,6 +3382,88 @@ in the following operation:
     <code>value</code> is 0.250, with a nominal range of 0 to 1.
   </dd>
 </dl>
+</section>
+
+<section>
+  <h2>The NoiseGateNode Interface</h2>
+
+  <p>
+    <a><code>NoiseGateNode</code></a> is an <a><code>AudioNode</code></a>
+    processor implementing a noise gate (dynamic expansion) effect.
+  </p>
+
+  <p>Noise gating is very commonly used in musical production, and is 
+    frequently applied to audio inputs from live sources.  A noise gate 
+    allows the signal to pass through when it is above a given level (the 
+    threshold).  When the average level of the signal is below the 
+    threshold, the gate "closes" and a reduction is applied to the signal.  
+    The threshold is typically set above the level of background noise in 
+    the signal, so when there is no significant signal the gate will close 
+    and any background noise will be quieted.  A noise gate does not remove 
+    noise from the overall signal; however, the overall effect is to remove 
+    noise in "quiet" portions of the audio, where it is most noticeable.</p>
+  <p>The <a>NoiseGateNode</a> has two inputs; the first is the signal to be 
+    processed, and the second (if connected) is the sidechain input (the 
+    signal that controls whether the gate is open or closed, separate from 
+    the signal being passed through).  If the second input is not connected, 
+    the signal from the first input is also used as the control signal.</p>
+  <pre>
+  numberOfInputs  : 2
+  numberOfOutputs : 1
+
+  channelCount = 2;
+  channelCountMode = "explicit";
+  channelInterpretation = "speakers";</pre>
+
+  <dl title="interface NoiseGateNode : AudioNode" class="idl">
+    <dt> readonly attribute AudioParam attack </dt>
+    <dd>
+      The amount of time (in seconds) to linearly increase the output signal 
+      from full reduction applied to unity gain once the gate has opened.
+      The default <code>value</code> is 0.003, with a nominal range of 0 to 1.
+    </dd>
+    <dt> readonly attribute AudioParam closeThreshold </dt>
+    <dd>
+      The decibel value for the control signal below which the gate will 
+      trigger a "close", and stop passing the signal through to the output.  
+      Enabling separate control of the opening and closing thresholds allows 
+      the prevention of "chattering" through hysteresis.  The default 
+      <code>value</code> is -30, with a nominal range of -100 to 0.
+    </dd>
+    <dt> readonly attribute AudioParam gainReduction </dt>
+    <dd>
+      The amount of dB change to be applied to the signal input when the gate 
+      is closed.  The default <code>value</code> is -100, with a nominal range 
+      of -100 to 0.
+    </dd>
+    <dt> readonly attribute AudioParam hold </dt>
+    <dd>
+      The amount of time (in seconds) to delay closing the gate once the 
+      control signal has fallen below the <code><a>closeThreshold</a></code> 
+      level.  If the control signal rises above the 
+      <code><a>closeThreshold</a></code> level during this hold time, this 
+      cancels the closing of the gate (unless the level again falls below the 
+      <code><a>closeThreshold</a></code>, which will re-start the hold).  
+      The default <code>value</code> is 0.5, with a nominal range of 0 to 4.
+    </dd>
+    <dt> readonly attribute AudioParam openThreshold </dt>
+    <dd>
+      The decibel value above which the gate will "open", and begin passing the
+      signal through to the output.  The default <code>value</code> is -20, 
+      with a nominal range of -100 to 0.
+    </dd>
+    <dt> readonly attribute float reduction </dt>
+    <dd>
+      The amount of dB change currently being applied to the signal input, 
+      for metering purposes.
+    </dd>
+    <dt> readonly attribute AudioParam release </dt>
+    <dd>
+      The amount of time (in seconds) over which to linearly decrease the 
+      output signal from unity gain to full reduction once the gate has closed.   
+      Its default <code>value</code> is 0.5, with a nominal range of 0 to 4.
+    </dd>
+  </dl>
 </section>
 
 <section>

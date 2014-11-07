@@ -4,6 +4,7 @@
   <title>Web Audio API</title>
   <meta charset=utf-8>
   <script src='respec-w3c-common' async class='remove'></script>
+  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=MML_HTMLorMML"></script>
   <script class='remove'>
     var respecConfig = {
         specStatus: "ED",
@@ -467,6 +468,12 @@ function setupRoutingGraph () {
       apply to implementations. </p>
     </dd>
 </dl>
+<p>
+  User agents that use ECMAScript to implement the APIs defined in this
+  specification must implement them in a manner consistent with the ECMAScript
+  Bindings defined in the Web IDL specification [[!WEBIDL]] as this
+  specification uses that specification and terminology.
+</p>
 </section>
 
 <section id=audioapi>
@@ -481,6 +488,15 @@ connections. It allows for arbitrary routing of signals to the
 (what the user ultimately hears). Nodes are created from the context and are
 then <a href="#ModularRouting">connected</a> together. In most use
 cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
+
+<dl title="enum AudioContextState" class="idl">
+  <dt>suspended</dt>
+  <dd>The AudioContext is currently suspended (context time is not proceeding, audio hardware may be powered down/released).</dd>
+  <dt>running</dt>
+  <dd>Audio is being processed.</dd>
+  <dt>closed</dt>
+  <dd>The AudioContext has been released, and can no longer be used to process audio.  All system audio resources have been released.  Attempts to create new Nodes on the AudioContext will throw InvalidStateError.  (AudioBuffers may still be created, through <a>createBuffer</a> or <a>decodeAudioData</a>.)</dd>
+</dl>
 
 <dl title="[Constructor] interface AudioContext : EventTarget" class="idl"
   data-merge="DecodeSuccessCallback DecodeErrorCallback">
@@ -512,6 +528,34 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   <dd><p>An <a href="#AudioListener"><code>AudioListener</code></a>
     which is used for 3D <a
     href="#Spatialization">spatialization</a>.</p>
+  </dd>
+
+  <dt>readonly attribute AudioContextState state</dt>
+  <dd>Describes the current state of the AudioContext.  The context state MUST begin in "suspended", and transitions to "running" when system resources are acquired and audio has begun processing.  For OfflineAudioContexts, the state will remain in "suspended" until startRendering()</code> is called, at which point it will transition to "running", and then to "closed" once audio processing has completed and oncomplete has been fired.
+    <p>When the state is "suspended", a call to <code>resume()</code> will cause a transition to "running", or a call to <code>close()</code> will cause a transition to "closed".</p>
+    <p>When the state is "running", a call to <code>suspend()</code> will cause a transition to "suspended", or a call to <code>close()</code> will cause a transition to "closed".</p>
+    <p>When the state is "closed", no further state transitions are possible.</p>
+  </dd>
+
+  <dt>Promise suspend()</dt>
+  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.
+
+    <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
+
+  <dt>Promise resume()</dt>
+  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+
+  <dt>Promise close()</dt>
+  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+
+ <dt>attribute EventHandler onstatechange</dt>
+  <dd>
+    A property used to set the <code>EventHandler</code> for an event that is dispatched to
+    <a><code>AudioContext</code></a> when the state of the AudioContext has changed (i.e. when the
+    corresponding promise would have resolved). An event of type <a><code>Event</code></a> will be 
+    dispatched to the event handler, which can query the AudioContext's state directly.  A 
+    newly-created AudioContext will always begin in the "paused" state, and a state change event will be fired 
+    when it transitions to "running".
   </dd>
 
   <dt>AudioBuffer createBuffer()</dt>
@@ -563,6 +607,13 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       </p>
       <ol>
       <li>Let <var>promise</var> be a new promise.</li>
+      <li>If <a>audioData</a> is null or not a valid ArrayBuffer:
+        <ol>
+          <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>NotSupportedError</code>.</li>
+          <li>Reject <var>promise</var> with <var>error</var>.</li>
+          <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
+          <li>Terminate this algorithm.
+        </ol>
       <li> Neuter the <a>audioData</a> ArrayBuffer in such a way that JavaScript code may not
       access or modify the data anymore.</li>
       <li>Queue a decoding operation to be performed on another thread.</li>
@@ -575,7 +626,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
           <ol>
           <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>"EncodingError"</code>.</li>
           <li>Reject <var>promise</var> with <var>error</var>.</li>
-          <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
+          <li>If <dfn>errorCallback</dfn> is not missing, invoke <a>errorCallback</a> with <var>error</var>.</li>
         </ol>
         <li>Otherwise:
           <ol>
@@ -586,7 +637,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
             <li>Let <var>buffer</var> be an <code>AudioBuffer</code> containing the final result (after possibly
             sample-rate converting).</li>
             <li>Resolve <var>promise</var> with <var>buffer</var>.</li>
-            <li>If <dfn>successCallback</dfn> is not missing, invoke <dfn>successCallback</dfn> with <var>buffer</var>.
+            <li>If <dfn>successCallback</dfn> is not missing, invoke <a>successCallback</a> with <var>buffer</var>.
             </li>
             </ol>
           </li>
@@ -669,8 +720,9 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
           of the node. Otherwise if the author explicitly specifies the
           bufferSize, it must be one of the following values: 256, 512, 1024,
           2048, 4096, 8192, 16384. This value controls how frequently the
-          <a><code> audioprocess </code></a> event is dispatched and how many sample-frames
-          need to be processed each call. Lower values for <a><code>bufferSize</code></a>
+          <a href="#audioprocess-spnode"><code>audioprocess</code></a> event is
+          dispatched and how many sample-frames need to be processed each call.
+          Lower values for <a><code>bufferSize</code></a>
           will result in a lower (better) <a href="#latency">latency</a>. Higher
           values will be necessary to avoid audio breakup and
           <a href="#audio-glitching">glitches</a>.
@@ -900,8 +952,8 @@ href="#AudioContext"><code>AudioContext</code></a>. This interface
 represents audio sources, the audio destination, and intermediate processing
 modules. These modules can be connected together to form <a
 href="#ModularRouting">processing graphs</a> for rendering audio to the
-audio hardware. Each node can have <dfn>inputs</dfn> and/or <dfn>outputs</dfn>.
-A <dfn>source node</dfn> has no inputs
+audio hardware. Each node can have <a>inputs</a> and/or <a>outputs</a>.
+A <a>source node</a> has no inputs
 and a single output. An <a
 href="#AudioDestinationNode"><code>AudioDestinationNode</code></a> has
 one input and no outputs and represents the final destination to the audio
@@ -911,7 +963,7 @@ will process its inputs (if it has any), and generate audio for its outputs (if 
  </p>
 
 <p>
-Each <a>output</a> has one or more <a>channel</a>s.  The exact number of
+Each output has one or more channels.  The exact number of
 channels depends on the details of the specific <a><code>AudioNode</code></a>.
 </p>
 
@@ -931,7 +983,7 @@ made to the input.  If the input has no connections then it has one channel whic
 </p>
 
 <p>
-For each <dfn>input</dfn>, an <a> <code>AudioNode</code> </a> performs a mixing
+For each <a>input</a>, an <a><code>AudioNode</code> </a> performs a mixing
 (usually an up-mixing) of all connections to that input.
 
 Please see <a href="#mixer-gain-structure"></a> for more informative details,
@@ -998,14 +1050,15 @@ way that other EventTargets accept events.
       <dt>optional unsigned long input = 0</dt>
       <dd>
         The <code>input</code> parameter is an index describing which input of
-        the destination <a><code>AudioNode</code></a> to connect to. If this parameter is out-of
-        ound, an IndexSizeError exception MUST be thrown.  It is possible to
-        connect an <a><code>AudioNode</code></a> to another <a><code>AudioNode</code></a> which creates a
-        <em>cycle</em>.  In other words, an <a><code>AudioNode</code></a> may connect to another
+        the destination <a><code>AudioNode</code></a> to connect to. If this
+        parameter is out-of-bounds, an IndexSizeError exception MUST be thrown.
+        It is possible to connect an <a><code>AudioNode</code></a> to another
+        <a><code>AudioNode</code></a> which creates a <dfn>cycle</dfn>: an
+        <a><code>AudioNode</code></a> may connect to another
         <a><code>AudioNode</code></a>, which in turn connects back to the first
-        <a><code>AudioNode</code></a>.  This is allowed only if there is at least one
-        <a><code>DelayNode</code></a> in the <em>cycle</em> or a NotSupportedError exception
-        MUST be thrown.
+        <a><code>AudioNode</code></a>.  This is allowed only if there is at
+        least one <a><code>DelayNode</code></a> in the <em>cycle</em> or a
+        NotSupportedError exception MUST be thrown.
       </dd>
 
     </dl>
@@ -1075,11 +1128,11 @@ way that other EventTargets accept events.
   </dd>
   <dt>void disconnect()</dt>
   <dd>
-  <dl>
+  <dl class=parameters>
     <dt>optional unsigned long output = 0</dt>
     <dd>
-      The <dfn>output</dfn> parameter is an index describing which output of
-      the <a><code>AudioNode</code></a> to disconnect. If the <dfn>output</dfn> parameter is
+      This parameter is an index describing which output of the
+      <a><code>AudioNode</code></a> to disconnect. If this parameter is
       out-of-bounds, an IndexSizeError exception MUST be thrown.
     </dd>
   </dl>
@@ -1151,7 +1204,7 @@ way that other EventTargets accept events.
 
   <ol>
   <li>A <em>normal</em> JavaScript reference obeying normal garbage collection rules. </li>
-  <li>A <em>playing</em> reference for both <a> <code>AudioBufferSourceNode</code></a>s and <a><code>OscillatorNode</code></a>s.
+  <li>A <em>playing</em> reference for both <a><code>AudioBufferSourceNode</code></a>s and <a><code>OscillatorNode</code></a>s.
   These nodes maintain a <em>playing</em>
   reference to themselves while they are currently playing.</li>
   <li>A <em>connection</em> reference which occurs if another <a><code>AudioNode</code></a> is connected to it.   </li>
@@ -1168,7 +1221,7 @@ way that other EventTargets accept events.
   </p>
 
   <p>
-  When an <a><code>AudioNode</code></a> has no references it will be deleted.  But before it is deleted, it will disconnect itself
+  When an <a><code>AudioNode</code></a> has no references it will be deleted.  Before it is deleted, it will disconnect itself
   from any other <a><code>AudioNode</code></a>s which it is connected to.  In this way it releases all connection references (3) it has to other nodes.
   </p>
 
@@ -1341,18 +1394,18 @@ The following rules will apply when calling these methods:
       Schedules a parameter value change at the given time.
     </p>
     <p>
-      The <dfn id="dfn-value_2">value</dfn> parameter is the value the parameter
+      The <code>value</code> parameter is the value the parameter
       will change to at the given time.
     </p>
     <p>
-      The <dfn id="dfn-startTime_2">startTime</dfn> parameter is the time
+      The <code>startTime</code> parameter is the time
       in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be 
       thrown if <code>startTime</code> is negative or is not a finite number.
     </p>
     <p>
       If there are no more events after this <em>SetValue</em> event, then for t
-      &gt;= startTime,  v(t) = value.  In other words, the value will remain
-      constant.
+      &gt;= <code>startTime</code>,  v(t) = value.  In other words, the value
+      will remain constant.
     </p>
     <p>
       If the next event (having time T1) after this <em>SetValue</em> event is
@@ -1376,18 +1429,23 @@ The following rules will apply when calling these methods:
   <dd>
     <p>
       Schedules a linear continuous change in parameter value from the previous
-      scheduled parameter value to the given value.</p> <p>The <dfn
-      id="dfn-value_3">value</dfn> parameter is the value the parameter will
-      linearly ramp to at the given time.</p> <p>The <dfn
-      id="dfn-endTime_3">endTime</dfn> parameter is the time in the same time
-      coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be thrown if 
-      <code>endTime</code> is negative or is not a finite number.
+      scheduled parameter value to the given value.
+    </p>
+    <p>
+      The <code>value</code> parameter is the value the parameter will linearly ramp
+      to at the given time.</p>
+    <p>
+      The <code>endTime</code> parameter is the time in the same time coordinate
+      system as the <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An
+      InvalidAccessError exception MUST be thrown if <code>endTime</code> is
+      negative or is not a finite number.
     </p>
 
     <p>
       The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
-      of the previous event and T1 is the endTime parameter passed into this
-      method) will be calculated as:
+      of the previous event and T1 is the <code>endTime</code> parameter passed
+      into this method) will be calculated as:
     </p>
     <pre>
       v(t) = V0 + (V1 - V0) * ((t - T0) / (T1 - T0))
@@ -1410,15 +1468,17 @@ The following rules will apply when calling these methods:
       exponentially because of the way humans perceive sound.
     </p>
     <p>
-      The <dfn id="dfn-value_4">value</dfn> parameter is the value the parameter
+      The <code>value</code> parameter is the value the parameter
       will exponentially ramp to at the given time.  A NotSupportedError exception
       MUST be thrown if this value is less than or equal to 0, or if the value at
       the time of the previous event is less than or equal to 0.
     </p>
     <p>
-      The <dfn id="dfn-endTime_4">endTime</dfn> parameter is the time in the same
-      time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be thrown if 
-      <code>endTime</code> is negative or is not a finite number.
+      The <code>endTime</code> parameter is the time in the same
+      time coordinate system as the <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An
+      InvalidAccessError exception MUST be thrown if <code>endTime</code> is
+      negative or is not a finite number.
     </p>
     <p>
       The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
@@ -1437,7 +1497,7 @@ The following rules will apply when calling these methods:
       &gt;= T1, v(t) = V1
     </p>
   </dd>
-  <dt> void setTargetAtTime(float target, double startTime, double timeConstant) </dt>
+  <dt> void setTargetAtTime(float target, double startTime, float timeConstant) </dt>
   <dd>
     <p>
       Start exponentially approaching the target value at the given time
@@ -1449,11 +1509,11 @@ The following rules will apply when calling these methods:
       changes to the target value.
     </p>
     <p>
-      The <dfn id="dfn-target">target</dfn> parameter is the value
+      The <code>target</code> parameter is the value
       the parameter will <em>start</em> changing to at the given time.
     </p>
     <p>
-      The <dfn id="dfn-startTime">startTime</dfn> parameter is the time in the
+      The <code>startTime</code> parameter is the time in the
       same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be 
       thrown if <code>start</code> is negative or is not a finite number.
     </p>
@@ -1470,7 +1530,7 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       During the time interval: <em>T0</em> &lt;= t &lt; <em>T1</em>, where T0
-      is the <em>startTime</em> parameter and T1 represents the time of the
+      is the <code>startTime</code> parameter and T1 represents the time of the
       event following this event (or <em>infinity</em> if there are no following
       events):
     </p>
@@ -1479,7 +1539,7 @@ The following rules will apply when calling these methods:
     </pre>
     <p>
       Where V0 is the initial value (the .value attribute) at T0 (the
-      <em>startTime</em> parameter) and V1 is equal to the <em>target</em>
+      <code>startTime</code> parameter) and V1 is equal to the <em>target</em>
       parameter.
     </p>
     </dd>
@@ -1491,16 +1551,18 @@ The following rules will apply when calling these methods:
         into the desired duration.
       </p>
       <p>
-        The <dfn id="dfn-values">values</dfn> parameter is a Float32Array
+        The <code>values</code> parameter is a Float32Array
         representing a parameter value curve. These values will apply starting at
         the given time and lasting for the given duration. Any modification to the
         the array used as <a id="#dfn-values"><code>values</code></a> argument
         after the call won't have any effect on the <a>AudioParam</a>.
       </p>
       <p>
-        The <dfn id="dfn-startTime_5">startTime</dfn> parameter is the time in the
-        same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be thrown 
-        if <code>startTime</code> is negative or is not a finite number.
+        The <code>startTime</code> parameter is the time in the same time
+        coordinate system as the <a><code>AudioContext</code></a>'s <a
+        href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An
+        InvalidAccessError exception MUST be thrown if <code>startTime</code> is
+        negative or is not a finite number.
       </p>
       <p>
         The <dfn id="dfn-duration_5">duration</dfn> parameter is the amount of
@@ -1508,8 +1570,8 @@ The following rules will apply when calling these methods:
         calculated according to the <em>values</em> parameter.
       </p>
       <p>
-        During the time interval: <em>startTime</em> &lt;= t &lt;
-        <em>startTime</em> + <em>duration</em>, values will be calculated:
+        During the time interval: <code>startTime</code> &lt;= t &lt;
+        <code>startTime</code> + <em>duration</em>, values will be calculated:
       </p>
       <pre>
         v(t) = values[N * (t - startTime) / duration]
@@ -1518,7 +1580,7 @@ The following rules will apply when calling these methods:
         where <em>N</em> is the length of the <em>values</em> array.
       </p>
       <p>
-        After the end of the curve time interval (t &gt;= <em>startTime</em> +
+        After the end of the curve time interval (t &gt;= <code>startTime</code> +
         <em>duration</em>), the value will remain constant at the final curve
         value, until there is another automation event (if any).
       </p>
@@ -1527,14 +1589,14 @@ The following rules will apply when calling these methods:
     <dd>
       <p>
         Cancels all scheduled parameter changes with times greater than or
-        equal to startTime.
+        equal to <code>startTime</code>.
       </p>
       <p>
-        The <dfn>startTime</dfn> parameter is the starting time at and after
+        The <code>startTime</code> parameter is the starting time at and after
         which any previously scheduled parameter changes will be cancelled.  It
         is a time in the same time coordinate system as
         the <a><code>AudioContext</code></a>'s 
-        <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  
+        <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
         An InvalidAccessError exception MUST be thrown if <code>startTime</code> 
         is negative or is not a finite number.
       </p>
@@ -1624,27 +1686,9 @@ param.setValueCurveAtTime(curve, t6, t7 - t6);
 </pre>
 
 <p>
-  It multiplies the input audio signal by the (possibly time-varying)
-  <code>gain</code> attribute, copying the result to the output.  By default, it
-  will take the input and pass it through to the output unchanged, which
-  represents a constant gain change of 1.
-</p>
-
-<p>
-  As with other <code>AudioParams</code>, the <code>gain</code> parameter
-  represents a mapping from time (in the coordinate system of
-  the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute) to floating-point value.
-
-  Every PCM audio sample in the input is multiplied by the <code>gain</code>
-  parameter's value for the specific time corresponding to that audio sample.
-  This multiplied value represents the PCM audio sample for the output.
-</p>
-
-<p>
-  The number of channels of the output will always equal the number of channels
-  of the input, with each channel of the input being multiplied by the
-  <code>gain</code> values and being copied into the corresponding channel of
-  the output.
+  Each sample of each channel of the input data of the
+  <a><code>GainNode</code></a> MUST be multiplied by the <a>computedValue</a> of
+  the <a><code>gain</code></a> <a><code>AudioParam</code></a>.
 </p>
 
 <p>
@@ -1696,11 +1740,21 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
 <dl title="interface DelayNode : AudioNode" class="idl">
   <dt> readonly attribute AudioParam delayTime </dt>
   <dd>
-    An <a><code>AudioParam</code></a> object representing the amount of delay (in seconds)
-    to apply. Its default <code>value</code> is 0 (no delay). The minimum value is
-    0 and the maximum value is determined by the <code>maxDelayTime</code>
-    argument to the <code>AudioContext</code> method <code>createDelay</code>.
-    This parameter is <a>a-rate</a>.
+    <p>
+      An <a><code>AudioParam</code></a> object representing the amount of delay
+      (in seconds) to apply. Its default <code>value</code> is 0 (no delay). The
+      minimum value is 0 and the maximum value is determined by the
+      <code>maxDelayTime</code> argument to the <code>AudioContext</code> method
+      <code>createDelay</code>.
+    </p>
+    <p>
+      If <a><code>DelayNode</code></a> is part of a <a>cycle</a>, then the value
+      of the <a><code>delayTime</code></a> attribute is clamped to a minimum of
+      128 frames (one block).
+    </p>
+    <p>
+      This parameter is <a>a-rate</a>.
+    </p>
   </dd>
 </dl>
 
@@ -1884,32 +1938,37 @@ invoked in the following cases:
 
   <dt>readonly attribute AudioParam playbackRate</dt>
   <dd>
-    The speed at which to render the audio stream. Its default
-    <code>value</code> is 1.  This parameter is <a>a-rate</a>.
+  The speed at which to render the audio stream. Its default
+  <code>value</code> is 1.  This parameter is <a>k-rate</a>.
   </dd>
-
+  <dt>readonly attribute AudioParam detune</dt>
+  <dd>
+  An aditional parameter to modulate the speed at which is rendered the audio
+  stream. Its default value is 0. Its nominal range is [-1200; 1200].  This
+  parameter is <a>k-rate</a>.
+  </dd>
   <dt>attribute boolean loop</dt>
   <dd>
-    Indicates if the audio data should play in a loop.  The default value is
-    false.
+  Indicates if the audio data should play in a loop.  The default value is
+  false.
   </dd>
   <dt>attribute double loopStart</dt>
   <dd>
-    An optional value in seconds where looping should begin if the
-    <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
-    and it may usefully be set to any value between 0 and the duration of the
-    buffer.
+  An optional value in seconds where looping should begin if the
+  <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
+  and it may usefully be set to any value between 0 and the duration of the
+  buffer.
   </dd>
   <dt>attribute double loopEnd</dt>
   <dd>
-    An optional value in seconds where looping should end if the
-    <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
-    and it may usefully be set to any value between 0 and the duration of the
-    buffer.
+  An optional value in seconds where looping should end if the
+  <code>loop</code> attribute is true.  Its default <code>value</code> is 0,
+  and it may usefully be set to any value between 0 and the duration of the
+  buffer.
   </dd>
 
   <dt>
-    void start()
+  void start()
   </dt>
   <dd>
     Schedules a sound to playback at an exact time.
@@ -1959,7 +2018,7 @@ invoked in the following cases:
         <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  If 0
         is passed in for this value or if the value
         is less than <a><code>currentTime</code></a>, then the sound will stop playing
-        immediately.    An InvalidAccessError exception MUST be thrown if 
+        immediately.  An InvalidAccessError exception MUST be thrown if 
         <code>when</code> is negative or is not a finite number.  If <code>stop</code> 
         is called again after already have been
         called, the last invocation will be the only one applied; stop times set by previous
@@ -1975,15 +2034,29 @@ invoked in the following cases:
   <dd>
   A property used to set the <code>EventHandler</code> (described in <cite>
     <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
-    HTML</a></cite>[[!HTML]]) for the ended event that is dispatched to
-    <a><code>AudioBufferSourceNode</code></a>
-    node types.  When the playback of the buffer for an
-    <a><code>AudioBufferSourceNode</code></a> is finished, an event of type <code>Event
-      </code> (described in <cite> <a
-  href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a>
+      HTML</a></cite>[[!HTML]]) for the ended event that is dispatched to
+  <a><code>AudioBufferSourceNode</code></a>
+  node types.  When the playback of the buffer for an
+  <a><code>AudioBufferSourceNode</code></a> is finished, an event of type <code>Event
+  </code> (described in <cite> <a
+      href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a>
   </cite>[[!HTML]]) will be dispatched to the event handler.
   </dd>
 </dl>
+
+<p>
+Both <code>playbackRate</code> and <code>detune</code> are <a>k-rate</a>
+parameters and are used together to determine a <em>computedPlaybackRate</em>
+value:
+
+<pre class=highlight>
+  computedPlaybackRate(t) = playbackRate(t) * pow(2, detune(t) / 1200)
+</pre>
+
+The <code>computedPlaybackRate</code> is the effective speed at which the
+<a><code>AudioBuffer</code></a> of this <a><code>AudioBufferSourceNode</code>
+</a> MUST be played.
+</p>
 
 <section>
 <h3 id="looping-AudioBufferSourceNode">Looping</h3>
@@ -2017,8 +2090,17 @@ to the very end of the buffer.
 </p>
 
 <p>
-Please note that as a low-level implementation detail, the AudioBuffer is at a specific sample-rate (usually the same as the <a><code>AudioContext</code></a> sample-rate), and
-that the loop times (in seconds) must be converted to the appropriate sample-frame positions in the buffer according to this sample-rate.
+  Please note that as a low-level implementation detail, the AudioBuffer is at a
+  specific sample-rate (usually the same as the <a><code>AudioContext</code></a>
+  sample-rate), and that the loop times (in seconds) must be converted to the
+  appropriate sample-frame positions in the buffer according to this sample-rate.
+</p>
+<p>
+  When scheduling the beginning and the end of playback using the
+  <code>start()</code> and <code>stop()</code> methods, the resulting start or
+  stop time MUST be rounded to the nearest sample-frame in the sample rate of
+  the <a><code>AudioContext</code></a>. That is, no sub-sample scheduling is
+  possible.
 </p>
 
 </section>
@@ -2136,7 +2218,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 </pre>
 
 <p>
-<dfn>numberOfInputChannels</dfn> and <dfn>numberOfOutputChannels</dfn>
+<a>numberOfInputChannels</a> and <dfn>numberOfOutputChannels</a>
 determine the number of input and output channels (and the number of channels 
 present in the AudioBuffers passed to the AudioProcess event handler inside the
 <a>AudioWorkerGlobalScope</a>). It is invalid for both
@@ -2173,10 +2255,9 @@ be zero.
       <a>AudioProcessEvent</a> on subsequent audio processing events.  The 
       AudioParam may immediately have its scheduling methods called, its 
       .<a>value</a> set, or AudioNodes connected to it.</p>
-    <p>The <dfn
-      id="dfn-name">name</dfn> parameter is the name used for the read-only 
+    <p>The <code>name</code> parameter is the name used for the read-only 
       AudioParam added to the AudioWorkerNode, and the name used for the 
-      read-only Float32Array that will be present on the 
+      read-only <code>Float32Array</code> that will be present on the 
       <a><code>parameters</code></a> object exposed on subsequent 
       <a>AudioProcessEvent</a>s.</p>
     <p>The <dfn
@@ -2197,16 +2278,17 @@ be zero.
       subsequent audio processing events. A 
       NotFoundError exception must be thrown if no parameter with that name 
       exists on this node.</p>
-    <p>The <dfn
-      id="dfn-name">name</dfn> parameter identifies the parameter to be 
+    <p>The <code>name</code> parameter identifies the parameter to be 
       removed.</p>
   </dd>
 </dl>
 </dl>
-  <p>Note that <a>AudioWorkerNode</a> objects will also have read-only 
-    AudioParam objects for each named parameter added via the 
-    <a>addParameter</a> method.  As this is dynamic, it cannot be captured in 
-    IDL.</p>
+<p>
+  Note that <a>AudioWorkerNode</a> objects will also have read-only 
+  AudioParam objects for each named parameter added via the 
+  <code>addParameter</code> method.  As this is dynamic, it cannot be captured
+  in IDL.
+</p>
   
 <!--<div title="AudioWorkerNode implements Worker" class="idl">-->
   <p>AudioWorkerNodes must implement the <a>Worker</a>
@@ -2223,20 +2305,22 @@ be zero.
   data directly using JavaScript in a Worker thread. </p>
 
 <p>
-The <a><code>AudioWorkerGlobalScope</code></a> has an <dfn>audioprocess</dfn> 
-event that is dispatched synchronously to process audio frames.  
-<a><code>audioprocess</code></a> events are only dispatched if the
-<a><code>AudioWorkerNode</code></a> has at least one input or one output 
-connected.
+The <a><code>AudioWorkerGlobalScope</code></a> has an 
+<dfn id="audioprocess-worker">audioprocess</dfn> event that is dispatched
+synchronously to process audio frames.  
+<a href="#audioprocess-worker"><code>audioprocess</code></a> events are only
+dispatched if the <a><code>AudioWorkerNode</code></a> has at least one input or
+one output connected.
 
 <dl title="interface AudioWorkerGlobalScope : DedicatedWorkerGlobalScope" class="idl">
   <dt>attribute EventHandler onaudioprocess</dt>
   <dd>
     A property used to set the <code>EventHandler</code> (described in <cite>
     <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
-    HTML</a></cite>[[!HTML]]) for the audioprocess event that is dispatched to
-    <a><code>AudioWorkerGlobalScope</code></a> when the associated 
-    <a><code>AudioWorkerNode</code></a> is connected. An event of type 
+    HTML</a></cite>[[!HTML]]) for the <a href="#audioprocess-worker">
+    <code>audioprocess</code></a> event that is dispatched to
+    <a><code>AudioWorkerGlobalScope</code></a> when the associated
+    <a><code>AudioWorkerNode</code></a> is connected. An event of type
     <a><code>AudioProcessEvent</code></a> will be dispatched to the event 
     handler.
   </dd>
@@ -2403,15 +2487,15 @@ directly using JavaScript.  This node type is deprecated, to be replaced by the 
 <p>
 The <a><code>ScriptProcessorNode</code></a> is constructed with a <dfn>bufferSize</dfn> which must
 be one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384.  This
-value controls how frequently the <dfn>audioprocess</dfn> event is dispatched
-and how many sample-frames need to be processed each call.
-<a><code>audioprocess</code></a> events are only dispatched if the
-<a><code>ScriptProcessorNode</code></a> has at least one input or one output connected.
-Lower numbers for
-<a href="#widl-ScriptProcessorNode-bufferSize">bufferSize</a> will result in a
-lower (better) <a href="#latency">latency</a>. Higher numbers will be necessary to avoid
-audio breakup and <a href="#audio-glitching">glitches</a>.  This value will be
-picked by the implementation if the bufferSize argument to
+value controls how frequently the <a href="#audioprocess-spnode">audioprocess
+</a> event is dispatched and how many sample-frames need to be processed each
+call.  <a href="#audioprocess-spnode"><code>audioprocess</code></a> events are
+only dispatched if the <a><code>ScriptProcessorNode</code></a> has at least one
+input or one output connected.  Lower numbers for <a
+href="#widl-ScriptProcessorNode-bufferSize">bufferSize</a> will result in a
+lower (better) <a href="#latency">latency</a>. Higher numbers will be necessary
+to avoid audio breakup and <a href="#audio-glitching">glitches</a>.  This value
+will be picked by the implementation if the bufferSize argument to
 <code>createScriptProcessor</code> is not passed in, or is set to 0.
 </p>
 
@@ -2430,10 +2514,11 @@ be zero.
   <dd>
     A property used to set the <code>EventHandler</code> (described in <cite>
     <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
-    HTML</a></cite>[[!HTML]]) for the audioprocess event that is dispatched to
-    <a><code>ScriptProcessorNode</code></a>
-    node types. An event of type <a><code>AudioProcessingEvent</code></a> will be dispatched
-    to the event handler.
+    HTML</a></cite>[[!HTML]]) for the <a
+  href="#audioprocess-spnode"><code>audioprocess</code></a> event that is
+dispatched to <a><code>ScriptProcessorNode</code></a> node types. An event of
+type <a><code>AudioProcessingEvent</code></a> will be dispatched to the event
+handler.
   </dd>
   <dt> readonly attribute long bufferSize </dt>
   <dd>
@@ -2632,21 +2717,21 @@ default is "inverse".
     <a><code>"HRTF"</code></a>.</dd>
 
     <!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
-    <dt>void setPosition(double x, double y, double z)</dt>
+    <dt>void setPosition(float x, float y, float z)</dt>
     <dd>
     <p>
       Sets the position of the audio source relative to the
       <a><code>listener</code></a> attribute. A 3D cartesian coordinate system is used.
     </p>
     <p>
-      The <dfn id="dfn-x">x, y, z</dfn> parameters represent the coordinates
+      The <code>x, y, z</code> parameters represent the coordinates
       in 3D space.
     </p>
     <p>
       The default value is (0,0,0)
     </p>
     </dd>
-    <dt>void setOrientation(double x, double y, double z)</dt>
+    <dt>void setOrientation(float x, float y, float z)</dt>
     <dd>
     <p>
       Describes which direction the audio source is pointing in the 3D
@@ -2655,14 +2740,14 @@ default is "inverse".
       the listener can be very quiet or completely silent.
     </p>
     <p>
-      The <dfn id="dfn-x_2">x, y, z</dfn> parameters represent a direction
+      The <code>x, y, z</code> parameters represent a direction
       vector in 3D space.
     </p>
     <p>
       The default value is (1,0,0)
     </p>
     </dd>
-    <dt>void setVelocity(double x, double y, double z)</dt>
+    <dt>void setVelocity(float x, float y, float z)</dt>
     <dd>
     <p>
       Sets the velocity vector of the audio source. This vector controls both
@@ -2673,7 +2758,7 @@ default is "inverse".
       orientation vectors.
     </p>
     <p>
-      The <dfn id="dfn-x_3">x, y, z</dfn> parameters describe a direction
+      The <code>x, y, z</code> parameters describe a direction
       vector indicating direction of travel and intensity.
     </p>
     <p>
@@ -2683,20 +2768,20 @@ default is "inverse".
 
     <!--<dt> // Distance model and attributes </dt>-->
     <dt>attribute DistanceModelType distanceModel</dt>
-    <dd> Specifies the distance model used by this PannerNode. Defaults to
-    <a><code>"inverse"</code></a>.
+    <dd> Specifies the distance model used by this
+    <a><code>PannerNode</code></a>. Defaults to <a><code>"inverse"</code></a>.
     </dd>
-    <dt>attribute double refDistance</dt>
+    <dt>attribute float refDistance</dt>
     <dd>
       A reference distance for reducing volume as source move further
       from the listener.  The default value is 1.
     </dd>
-    <dt>attribute double maxDistance</dt>
+    <dt>attribute float maxDistance</dt>
     <dd>
       The maximum distance between source and listener, after which the
       volume will not be reduced any further.  The default value is 10000.
     </dd>
-    <dt>attribute double rolloffFactor</dt>
+    <dt>attribute float rolloffFactor</dt>
     <dd>
       Describes how quickly the volume is reduced as source moves away from
       listener.  The default value is 1.
@@ -2704,18 +2789,18 @@ default is "inverse".
 
 
     <!--<dt> // Directional sound cone </dt>-->
-    <dt>attribute double coneInnerAngle</dt>
+    <dt>attribute float coneInnerAngle</dt>
     <dd>
       A parameter for directional audio sources, this is an angle, in degrees, inside
       of which there will be no volume reduction.  The default value is 360.
     </dd>
-    <dt>attribute double coneOuterAngle</dt>
+    <dt>attribute float coneOuterAngle</dt>
     <dd>
       A parameter for directional audio sources, this is an angle, in degrees, outside
       of which the volume will be reduced to a constant value of
       <a><code>coneOuterGain</code></a>.  The default value is 360.
     </dd>
-    <dt>attribute double coneOuterGain</dt>
+    <dt>attribute float coneOuterGain</dt>
     <dd>
       A parameter for directional audio sources, this is the amount of volume
       reduction outside of the <a><code>coneOuterAngle</code></a>.  The default value is 0.
@@ -2731,24 +2816,24 @@ default is "inverse".
 This interface represents the position and orientation of the person
 listening to the audio scene. All <a><code>PannerNode</code></a> objects
 spatialize in relation to the <a><code>AudioContext</code></a>'s <a href="widl-AudioContext-listener"><code>listener</code></a>. See <a
-href="#Spatialization">this</a> section for more details about
+href="#Spatialization">the Spatialization/Panning section</a> for more details about
 spatialization.
 </p>
 
 <dl title="interface AudioListener" class="idl">
-    <dt> attribute double dopplerFactor </dt>
+    <dt> attribute float dopplerFactor </dt>
     <dd>
       A constant used to determine the amount of pitch shift to use when
       rendering a doppler effect.  The default value is 1.
     </dd>
-    <dt> attribute double speedOfSound </dt>
+    <dt> attribute float speedOfSound </dt>
     <dd>
       The speed of sound used for calculating doppler shift. The default value
       is 343.3.
     </dd>
 
     <!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
-    <dt> void setPosition(double x, double y, double z) </dt>
+    <dt> void setPosition(float x, float y, float z) </dt>
     <dd>
       <p>
         Sets the position of the listener in a 3D cartesian coordinate
@@ -2763,7 +2848,7 @@ spatialization.
         The default value is (0,0,0)
       </p>
     </dd>
-    <dt> void setOrientation(double x, double y, double z, double xUp, double yUp, double zUp) </dt>
+    <dt> void setOrientation(float x, float y, float z, float xUp, float yUp, float zUp) </dt>
     <dd>
       <p>
         Describes which direction the listener is pointing in the 3D cartesian
@@ -2785,7 +2870,7 @@ spatialization.
         vector in 3D space, with the default value being (0,1,0).
       </p>
     </dd>
-    <dd> void setVelocity(double x, double y, double z) </dd>
+    <dd> void setVelocity(float x, float y, float z) </dd>
     <dd>
       <p>
         Sets the velocity vector of the listener. This vector controls both the
@@ -3032,14 +3117,14 @@ float calculateNormalizationScale(buffer)
       Half the FFT size.
     </dd>
 
-    <dt> attribute double minDecibels </dt>
+    <dt> attribute float minDecibels </dt>
     <dd>
       The minimum power value in the scaling range for the FFT analysis data for
       conversion to unsigned byte values.  The default value is -100.  If the
       value of this attribute is set to a value more than or equal to
       <code>maxDecibels</code>, an IndexSizeError exception MUST be thrown.
     </dd>
-    <dt> attribute double maxDecibels </dt>
+    <dt> attribute float maxDecibels </dt>
   <dd>
     The maximum power value in the scaling range for the FFT analysis data for
     conversion to unsigned byte values.  The default value is -30.  If the value
@@ -3047,7 +3132,7 @@ float calculateNormalizationScale(buffer)
     <code>minDecibels</code>, an IndexSizeError exception MUST be thrown.
   </dd>
 
-    <dt> attribute double smoothingTimeConstant </dt>
+    <dt> attribute float smoothingTimeConstant </dt>
     <dd>
       A value from 0 -&gt; 1 where 0 represents no time averaging
       with the last analysis frame.
@@ -3100,9 +3185,11 @@ in the following operation:
   href="#widl-AnalyserNode-getByteFrequencyData-void-Uint8Array-array"><code>getByteFrequencyData</code></a>.
 </li>
 <li>
-  Let <code>lastOutputBuffer</code> be the result of this operation on the last block,
-  or an array of <code>fftSize</code> zeros if this is the first time we are <a
-  href="#smoothing-over-time">smoothing over time</a>.
+  Let <code>lastOutputBuffer</code> be the result of this operation on the
+  <a>previous block</a>. The <dfn>previous block</dfn> is defined as being the
+  buffer returned by the previous <a href="#smoothing-over-time">smoothing over
+  time</a> operation, or an array of <code>fftSize</code> zeros if this is the
+  first time we are <a href="#smoothing-over-time">smoothing over time</a>.
 </li>
 <li>
   Let <code>smoothingConstant</code> be the value of the <a
@@ -3152,10 +3239,12 @@ in the following operation:
   stream.  For example, if a stereo input is connected to an
   <a><code>ChannelSplitterNode</code></a> then the number of active outputs will be two
   (one from the left channel and one from the right). There are always a total
-  number of N outputs (determined by the <a><code>numberOfOutputs</code></a> parameter
-  to the <a><code>AudioContext</code></a> method <a><code>createChannelSplitter()</code></a>), The default
-  number is 6 if this value is not provided. Any outputs which are not "active"
-  will output silence and would typically not be connected to anything.
+  number of N outputs (determined by the <code>numberOfOutputs</code> parameter
+  to the <a><code>AudioContext</code></a> method <a
+    href="#widl-AudioContext-createChannelSplitter-ChannelSplitterNode-unsigned-long-numberOfOutputs"><code>createChannelSplitter()</code></a>),
+  The default number is 6 if this value is not provided. Any outputs which are
+  not "active" will output silence and would typically not be connected to
+  anything.
 </p>
 
 <h3>Example:</h3>
@@ -3240,8 +3329,8 @@ in the following operation:
 <h2>The DynamicsCompressorNode Interface</h2>
 
 <p>
-  <a><code>DynamicsCompressorNode</code></a> is an <a><code>AudioNode</code></a> processor implementing a
-  dynamics compression effect.
+  <a><code>DynamicsCompressorNode</code></a> is an <a><code>AudioNode</code></a>
+  processor implementing a dynamics compression effect.
 </p>
 
 <p>
@@ -3279,12 +3368,11 @@ in the following operation:
     The amount of dB change in input for a 1 dB change in output. Its default
     <code>value</code> is 12, with a nominal range of 1 to 20.
   </dd>
-  <dt> readonly attribute AudioParam reduction </dt>
+  <dt> readonly attribute float reduction </dt>
   <dd>
     A read-only decibel value for metering purposes, representing the current
     amount of gain reduction that the compressor is applying to the signal. If
-    fed no signal the value will be 0 (no gain reduction).  The nominal range is
-    -20 to 0.
+    fed no signal the value will be 0 (no gain reduction).
   </dd>
   <dt> readonly attribute AudioParam attack </dt>
   <dd>
@@ -3303,19 +3391,31 @@ in the following operation:
 <h2>The BiquadFilterNode Interface</h2>
 
 <p>
-  <a><code>BiquadFilterNode</code></a> is an <a><code>AudioNode</code></a> processor implementing very
-  common low-order filters.
+  <a><code>BiquadFilterNode</code></a> is an <a><code>AudioNode</code></a>
+  processor implementing very common low-order filters.
 </p>
 
 <p>
   Low-order filters are the building blocks of basic tone controls (bass, mid,
   treble), graphic equalizers, and more advanced filters. Multiple
-  <a><code>BiquadFilterNode</code></a> filters can be combined to form more complex filters. The
-  filter parameters such as "frequency" can be changed over time for filter
-  sweeps, etc. Each <a><code>BiquadFilterNode</code></a> can be configured as one of a number of
-  common filter types as shown in the IDL below.  The default filter type
-  is "lowpass".
+  <a><code>BiquadFilterNode</code></a> filters can be combined to form more
+  complex filters. The filter parameters such as <a><code>frequency</code></a>
+  can be changed over time for filter sweeps, etc. Each
+  <a><code>BiquadFilterNode</code></a> can be configured as one of a number of
+  common filter types as shown in the IDL below.  The default filter type is
+  <code>"lowpass"</code>.
 </p>
+
+<p>
+  Both <a><code>frequency</code></a> and <a><code>detune</code></a> are
+  <a>a-rate</a> parameters and are used together to determine a
+  <dfn id=computedFreq-biquad>computedFrequency</dfn> value:
+</p>
+
+<pre class=highlight>
+  computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
+</pre>
+
 <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -3506,7 +3606,7 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
     Nyquist frequency.
   </dd>
   <dt>readonly attribute AudioParam detune</dt>
-  <dd> A detune value, in cents, for the frequency</dd>
+  <dd> A detune value, in cents, for the frequency. Its default value is 0. </dd>
   <dt>readonly attribute AudioParam Q</dt>
   <dd>
     The <a href="http://en.wikipedia.org/wiki/Q_factor">Q</a> factor has a
@@ -3541,14 +3641,1660 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
   </dd>
 </dl>
 
-<p>
-  The filter types are briefly described above. We note that all of these
-  filters are very commonly used in audio processing. In terms of
-  implementation, they have all been derived from standard analog filter
-  prototypes. For more technical details, we refer the reader to the
-  excellent <a href="http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt">
-  reference</a> by Robert Bristow-Johnson.
-</p>
+  <section>
+  <h3>Filters characteristics</h3>
+  <p>
+    There are multiple ways of implementing the type of filters available
+    through the <a><code>BiquadFilterNode</code></a> each having very different
+    characteristics. The formulas in this section describe the filters that a
+    <a>conforming implementation</a> MUST implement, as they determine the
+    characteristics of the different filter type. They are derived from formulas
+    found in the <a href
+    ="http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt">Audio EQ
+    Cookbook</a>.
+  </p>
+
+  <p>
+    The transfer function for the filters implemented by the
+    <a><code>BiquadFilterNode</code></a> is:
+
+    <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+      <mi>H</mi>
+      <mrow>
+        <mo>(</mo>
+        <mi>z</mi>
+        <mo>)</mo>
+      </mrow>
+      <mo>=</mo>
+      <mfrac>
+        <mrow>
+          <mrow>
+            <mo>(</mo>
+            <mfrac>
+              <msub>
+                <mi>b</mi>
+                <mn>0</mn>
+              </msub>
+              <msub>
+                <mi>a</mi>
+                <mn>0</mn>
+              </msub>
+            </mfrac>
+            <mo>)</mo>
+          </mrow>
+          <mo>+</mo>
+          <mrow>
+            <mo>(</mo>
+            <mfrac>
+              <msub>
+                <mi>b</mi>
+                <mn>1</mn>
+              </msub>
+              <msub>
+                <mi>a</mi>
+                <mn>0</mn>
+              </msub>
+            </mfrac>
+            <mo>)</mo>
+          </mrow>
+          <mo>&#x22C5;</mo>
+          <msup>
+            <mi>z</mi>
+            <mrow>
+              <mo>-</mo>
+              <mn>1</mn>
+            </mrow>
+          </msup>
+          <mo>+</mo>
+          <mrow>
+            <mo>(</mo>
+            <mfrac>
+              <msub>
+                <mi>b</mi>
+                <mn>2</mn>
+              </msub>
+              <msub>
+                <mi>a</mi>
+                <mn>0</mn>
+              </msub>
+            </mfrac>
+            <mo>)</mo>
+          </mrow>
+          <mo>&#x22C5;</mo>
+          <msup>
+            <mi>z</mi>
+            <mrow>
+              <mo>-</mo>
+              <mn>2</mn>
+            </mrow>
+          </msup>
+        </mrow>
+        <mrow>
+          <mn>1</mn>
+          <mo>+</mo>
+          <mrow>
+            <mo>(</mo>
+            <mfrac>
+              <msub>
+                <mi>a</mi>
+                <mn>1</mn>
+              </msub>
+              <msub>
+                <mi>a</mi>
+                <mn>0</mn>
+              </msub>
+            </mfrac>
+            <mo>)</mo>
+          </mrow>
+          <mo>&#x22C5;</mo>
+          <msup>
+            <mi>z</mi>
+            <mrow>
+              <mo>-</mo>
+              <mn>1</mn>
+            </mrow>
+          </msup>
+          <mo>+</mo>
+          <mrow>
+            <mo>(</mo>
+            <mfrac>
+              <msub>
+                <mi>a</mi>
+                <mn>2</mn>
+              </msub>
+              <msub>
+                <mi>a</mi>
+                <mn>0</mn>
+              </msub>
+            </mfrac>
+            <mo>)</mo>
+          </mrow>
+          <mo>&#x22C5;</mo>
+          <msup>
+            <mi>z</mi>
+            <mrow>
+              <mo>-</mo>
+              <mn>2</mn>
+            </mrow>
+          </msup>
+        </mrow>
+      </mfrac>
+      <mo>&#xA0;</mo>
+      <mo>&#xA0;</mo>
+    </math>
+
+    The initial filter state is 0.
+  </p>
+
+  <p>
+    The coefficients in the transfer function above are different for each node
+    type. The following intermediate variable are necessary for their
+    computation, based on the <a>computedValue</a> of the
+    <a><code>AudioParam</code></a>s of the <a><code>BiquadFilterNode</code></a>.
+    <ul>
+    <li>Let <math
+    title="Fs"><mrow><msub><mi>F</mi><mn>s</mn></msub></mrow></math> be the
+    value of the <a><code>sampleRate</code></a> attribute for this
+    <a>AudioContext</a>.</li>
+    <li>Let <math
+    title="f0"><mrow><msub><mi>f</mi><mn>0</mn></msub></mrow></math> be the
+    value of the <a><code>computedFrequency</code></a>.
+    <li>Let <math title="dbGain"><mi>dbGain</mi></math> be the value of the
+    <a><code>gain</code></a> <a><code>AudioParam</code></a>.</li>
+    <li>Let <math title="Q"><mi>Q</mi></math> be the value of the
+    <a><code>Q</code></a> <a><code>AudioParam</code></a>.</li>
+    <li>Let <math title="A_0"><mi>A</mi></math> be:
+      <ul>
+        <li>
+          <math><msup><mn>10</mn><mrow><mfrac><mo>dBgain</mo><mn>40</mn></mfrac>
+          </mrow></msup></math> for the filter types <code>peaking</code>,
+          <code>highshelf</code> and <code>lowshelf</code> ;
+        </li>
+        <li>
+          <math><msqrt><mrow><msup><mn>10</mn><mrow><mfrac><mo>dBgain</mo><mn>20
+          </mn></mfrac></mrow></msup></mrow></msqrt></math> otherwise.
+        </li>
+      </ul>
+    </li>
+    <li>Let <math title="A_1"><msub><mi>A</mi><mn>1</mn></msub></math> be
+    <li>Let <math title="omega0"><msub><mi>ω</mi><mn>0</mn></msub></math> be
+    <math><mn>2</mn><mo>⋅</mo><mi>π</mi><mo>⋅</mo><mfrac><msub><mi>f</mi><mn>0</mn></msub><msub><mi>F</mi><mi>s</mi></msub></mfrac></math>.</li>
+    <li>Let <math title="Q_Q"><msub><mi>α</mi><mn>Q</mn></msub></math> be 
+    <math><mfrac><mrow><mi>sin</mi><mrow><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo></mrow></mrow><mrow><mn>2</mn><mo>⋅</mo><mi>Q</mi></mrow></mfrac></math></li>
+    <li>Let <math title="Q_BW"><msub><mi>α</mi><mn>BW</mn></msub></math> be
+    <math>
+      <mrow>
+        <mi>sin</mi>
+        <mrow>
+          <mo>(</mo>
+          <msub>
+            <mi>ω</mi>
+            <mn>0</mn>
+          </msub>
+          <mo>)</mo>
+        </mrow>
+      </mrow>
+      <mo>&#x22C5;</mo>
+      <mrow>
+        <mi>sinh</mi>
+        <mrow>
+          <mo>(</mo>
+          <mfrac>
+            <mrow>
+              <mi>ln</mi>
+              <mrow>
+                <mo>(</mo>
+                <mn>2</mn>
+                <mo>)</mo>
+              </mrow>
+            </mrow>
+            <mn>2</mn>
+          </mfrac>
+          <mo>&#x22C5;</mo>
+          <mi>Q</mi>
+          <mo>&#x22C5;</mo>
+          <mfrac>
+            <msub>
+              <mi>ω</mi>
+              <mn>0</mn>
+            </msub>
+            <mrow>
+              <mi>sin</mi>
+              <mrow>
+                <mo>(</mo>
+                <msub>
+                  <mi>ω</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>)</mo>
+              </mrow>
+            </mrow>
+          </mfrac>
+          <mo>)</mo>
+        </mrow>
+      </mrow>
+    </math>
+            </li>
+    <li>Let <math title="Q_S"><msub><mi>α</mi><mn>S</mn></msub></math> be 
+    <math>
+      <mfrac>
+        <mrow>
+          <mi>sin</mi>
+          <mrow>
+            <mo>(</mo>
+            <msub>
+              <mi>ω</mi>
+              <mn>0</mn>
+            </msub>
+            <mo>)</mo>
+          </mrow>
+        </mrow>
+        <mn>2</mn>
+      </mfrac>
+      <mo>&#x22C5;</mo>
+      <msqrt>
+        <mrow>
+          <mrow>
+            <mo>(</mo>
+            <mi>A</mi>
+            <mo>+</mo>
+            <mfrac>
+              <mn>1</mn>
+              <mi>A</mi>
+            </mfrac>
+            <mo>)</mo>
+          </mrow>
+          <mo>&#x22C5;</mo>
+          <mrow>
+            <mo>(</mo>
+            <mfrac>
+              <mn>1</mn>
+              <mi>Q</mi>
+            </mfrac>
+            <mo>-</mo>
+            <mn>1</mn>
+            <mo>)</mo>
+          </mrow>
+          <mo>+</mo>
+          <mn>2</mn>
+        </mrow>
+      </msqrt>
+    </math>
+    </li>
+    </ul>
+  </p>
+
+  <p>
+  The six coefficients (
+    <math><msub><mi>b</mi><mn>0</mn></msub></math>,
+    <math><msub><mi>b</mi><mn>1</mn></msub></math>,
+    <math><msub><mi>b</mi><mn>2</mn></msub></math>,
+    <math><msub><mi>a</mi><mn>0</mn></msub></math>,
+    <math><msub><mi>a</mi><mn>1</mn></msub></math>,
+    <math><msub><mi>a</mi><mn>2</mn></msub></math>) for each filter type, are:
+    <dl>
+      <dt><code>lowpass</code></dt>
+      <dd>
+        <math title="{:(b0 = (1 - cos(ω_0))/2), (b1 = 1 - cos(ω_0)), (b2 = (1 - cos(ω_0))/2), (a0 = 1 + alpha_Q), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_Q):}" display="block">
+          <mrow>
+            <mtable columnalign="left">
+              <mtr>
+                <mtd />
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>b</mi>
+                    <mn>0</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mfrac>
+                    <mrow>
+                      <mn>1</mn>
+                      <mo>-</mo>
+                      <mrow>
+                        <mo>cos</mo>
+                        <mrow>
+                          <mo>(</mo>
+                          <msub>
+                            <mi>ω</mi>
+                            <mn>0</mn>
+                          </msub>
+                          <mo>)</mo>
+                        </mrow>
+                      </mrow>
+                    </mrow>
+                    <mn>2</mn>
+                  </mfrac>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>b</mi>
+                    <mn>1</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mn>1</mn>
+                  <mo>-</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>b</mi>
+                    <mn>2</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mfrac>
+                    <mrow>
+                      <mn>1</mn>
+                      <mo>-</mo>
+                      <mrow>
+                        <mo>cos</mo>
+                        <mrow>
+                          <mo>(</mo>
+                          <msub>
+                            <mi>ω</mi>
+                            <mn>0</mn>
+                          </msub>
+                          <mo>)</mo>
+                        </mrow>
+                      </mrow>
+                    </mrow>
+                    <mn>2</mn>
+                  </mfrac>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>a</mi>
+                    <mn>0</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mn>1</mn>
+                  <mo>+</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>Q</mn>
+                  </msub>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>a</mi>
+                    <mn>1</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mo>-</mo>
+                  <mn>2</mn>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>a</mi>
+                    <mn>2</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mn>1</mn>
+                  <mo>-</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>Q</mn>
+                  </msub>
+                </mtd>
+              </mtr>
+            </mtable>
+          </mrow>
+    </math>
+      </dd>
+      <dt><code>highpass</code></dt>
+      <dd>
+        <math title="{: (H(s) = s^2 / (s^2 + s/Q + 1)), (), (b0 = (1 +
+        cos(ω_0))/2), (b1 = -(1 + cos(ω_0))), (b2 = (1 + cos(ω_0))/2), (a0 = 1 +
+        alpha_Q), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_Q) :}" display="block">
+        <mrow>
+          <mtable columnalign="left">
+            <mtr>
+              <mtd />
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mfrac>
+                  <mrow>
+                    <mn>1</mn>
+                    <mo>+</mo>
+                    <mrow>
+                      <mo>cos</mo>
+                      <mrow>
+                        <mo>(</mo>
+                        <msub>
+                          <mi>ω</mi>
+                          <mn>0</mn>
+                        </msub>
+                        <mo>)</mo>
+                      </mrow>
+                    </mrow>
+                  </mrow>
+                  <mn>2</mn>
+                </mfrac>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mn>1</mn>
+                  <mo>+</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mfrac>
+                  <mrow>
+                    <mn>1</mn>
+                    <mo>+</mo>
+                    <mrow>
+                      <mo>cos</mo>
+                      <mrow>
+                        <mo>(</mo>
+                        <msub>
+                          <mi>ω</mi>
+                          <mn>0</mn>
+                        </msub>
+                        <mo>)</mo>
+                      </mrow>
+                    </mrow>
+                  </mrow>
+                  <mn>2</mn>
+                </mfrac>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>+</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>Q</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>-</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>Q</mn>
+                </msub>
+              </mtd>
+            </mtr>
+          </mtable>
+        </mrow>
+        </math>
+      </dd>
+      <dt><code>bandpass</code></dt>
+      <dd>
+        <math title="{: (H(s) = (s/Q) / (s^2 + s/Q + 1)), (), (b0 = alpha_BW), (b1 = 0), (b2 = -alpha_BW), (a0 = 1 + alpha_BW), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_BW) :}" display="block">
+          <mrow>
+            <mtable columnalign="left">
+              <mtr>
+                <mtd />
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>b</mi>
+                    <mn>0</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>BW</mn>
+                  </msub>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>b</mi>
+                    <mn>1</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mn>0</mn>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>b</mi>
+                    <mn>2</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mo>-</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>BW</mn>
+                  </msub>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>a</mi>
+                    <mn>0</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mn>1</mn>
+                  <mo>+</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>BW</mn>
+                  </msub>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>a</mi>
+                    <mn>1</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mo>-</mo>
+                  <mn>2</mn>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                </mtd>
+              </mtr>
+              <mtr>
+                <mtd>
+                  <msub>
+                    <mi>a</mi>
+                    <mn>2</mn>
+                  </msub>
+                  <mo>=</mo>
+                  <mn>1</mn>
+                  <mo>-</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>BW</mn>
+                  </msub>
+                </mtd>
+              </mtr>
+            </mtable>
+          </mrow>
+        </math>
+      </dd>
+      <dt><code>notch</code></dt>
+      <dd>
+        <math title="{: (H(s) = (s^2 + 1) / (s^2 + s/Q + 1)), (), (b0 = 1), (b1 = -2*cos(ω_0)), (b2 = 1), (a0 = 1 + alpha_BW), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_BW) :}" display="block">
+        <mrow>
+          <mtable columnalign="left">
+            <mtr>
+              <mtd />
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>+</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>BW</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>-</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>BW</mn>
+                </msub>
+              </mtd>
+            </mtr>
+          </mtable>
+        </mrow>
+        </math>
+      </dd>
+      <dt><code>allpass</code></dt>
+      <dd>
+        <math title="{: (H(s) = (s^2 - s/Q + 1) / (s^2 + s/Q + 1)), (), (b0 = 1 - alpha_Q), (b1 = -2*cos(ω_0)), (b2 = 1 + alpha_Q), (a0 = 1 + alpha_Q), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_Q) :}" display="block">
+        <mrow>
+          <mtable columnalign="left">
+            <mtr>
+              <mtd />
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>-</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>Q</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>+</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>Q</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>+</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>Q</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>-</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>Q</mn>
+                </msub>
+              </mtd>
+            </mtr>
+          </mtable>
+        </mrow>
+        </math>
+      </dd>
+      <dt><code>peaking</code></dt>
+      <dd>
+        <math title="{: (H(s) = (s^2 + s*(A/Q) + 1) / (s^2 + s/(A*Q) + 1)), (), (b0 = 1 + alpha_BW*A), (b1 = -2*cos(ω_0)), (b2 = 1 - alpha_BW*A), (a0 = 1 + alpha_BW/A), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_BW/A) :}" display="block">
+        <mrow>
+          <mtable columnalign="left">
+            <mtr>
+              <mtd />
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>+</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>BW</mn>
+                </msub>
+                <mo>⋅</mo>
+                <mi>A</mi>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>-</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>BW</mn>
+                </msub>
+                <mo>⋅</mo>
+                <mi>A</mi>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>+</mo>
+                <mfrac>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>BW</mn>
+                  </msub>
+                  <mi>A</mi>
+                </mfrac>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>1</mn>
+                <mo>-</mo>
+                <mfrac>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>BW</mn>
+                  </msub>
+                  <mi>A</mi>
+                </mfrac>
+              </mtd>
+            </mtr>
+          </mtable>
+        </mrow>
+        </math>
+      </dd>
+      <dt><code>lowshelf</code></dt>
+      <dd>
+        <math title="{: (H(s) = A * (s^2 + (sqrt(A)/Q)*s + A)/(A*s^2 + (sqrt(A)/Q)*s + 1)), (), (b0 = A*( (A+1) - (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S )), (b1 = 2*A*( (A-1) - (A+1)*cos(ω_0) )), (b2 = A*( (A+1) - (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S )), (a0 = (A+1) + (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S), (a1 = -2*( (A-1) + (A+1)*cos(ω_0))), (a2 = (A+1) + (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S) :}" display="block">
+        <mrow>
+          <mtable columnalign="left">
+            <mtr>
+              <mtd />
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mi>A</mi>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>-</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>+</mo>
+                  <mn>2</mn>
+                  <mo>⋅</mo>
+                  <msqrt>
+                    <mrow>
+                      <mi>A</mi>
+                    </mrow>
+                  </msqrt>
+                  <mo>⋅</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>S</mn>
+                  </msub>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mi>A</mi>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>-</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mi>A</mi>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>-</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>-</mo>
+                  <mn>2</mn>
+                  <mo>⋅</mo>
+                  <msqrt>
+                    <mrow>
+                      <mi>A</mi>
+                    </mrow>
+                  </msqrt>
+                  <mo>⋅</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>S</mn>
+                  </msub>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>+</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>+</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>-</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+                <mo>+</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <msqrt>
+                  <mrow>
+                    <mi>A</mi>
+                  </mrow>
+                </msqrt>
+                <mo>⋅</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>S</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>+</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>+</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>+</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>-</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <msqrt>
+                  <mrow>
+                    <mi>A</mi>
+                  </mrow>
+                </msqrt>
+                <mo>⋅</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>S</mn>
+                </msub>
+              </mtd>
+            </mtr>
+          </mtable>
+        </mrow>
+        </math>
+      </dd>
+    <dt><code>highshelf</code></dt>
+    <dd>
+      <math title="{: (H(s) = A * (A*s^2 + (sqrt(A)/Q)*s + 1)/(s^2 + (sqrt(A)/Q)*s + A)), (), (b0 = A*( (A+1) + (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S )), (b1 = -2*A*( (A-1) + (A+1)*cos(ω_0) )), (b2 = A*( (A+1) + (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S )), (a0 = (A+1) - (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S), (a1 = 2*( (A-1) - (A+1)*cos(ω_0) )), (a2 = (A+1) - (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S) :}" display="block">
+        <mrow>
+          <mtable columnalign="left">
+            <mtr>
+              <mtd />
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mi>A</mi>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>+</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>+</mo>
+                  <mn>2</mn>
+                  <mo>⋅</mo>
+                  <msqrt>
+                    <mrow>
+                      <mi>A</mi>
+                    </mrow>
+                  </msqrt>
+                  <mo>⋅</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>S</mn>
+                  </msub>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mi>A</mi>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>+</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>b</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mi>A</mi>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>+</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>-</mo>
+                  <mn>2</mn>
+                  <mo>⋅</mo>
+                  <msqrt>
+                    <mrow>
+                      <mi>A</mi>
+                    </mrow>
+                  </msqrt>
+                  <mo>⋅</mo>
+                  <msub>
+                  <mi>α</mi>
+                  <mn>S</mn>
+                  </msub>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>0</mn>
+                </msub>
+                <mo>=</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>+</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>-</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>-</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+                <mo>+</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <msqrt>
+                  <mrow>
+                    <mi>A</mi>
+                  </mrow>
+                </msqrt>
+                <mo>⋅</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>S</mn>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>1</mn>
+                </msub>
+                <mo>=</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>-</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>-</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <mi>A</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                    <mo>)</mo>
+                  </mrow>
+                  <mo>⋅</mo>
+                  <mrow>
+                    <mo>cos</mo>
+                    <mrow>
+                      <mo>(</mo>
+                      <msub>
+                        <mi>ω</mi>
+                        <mn>0</mn>
+                      </msub>
+                      <mo>)</mo>
+                    </mrow>
+                  </mrow>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd>
+                <msub>
+                  <mi>a</mi>
+                  <mn>2</mn>
+                </msub>
+                <mo>=</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>+</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>-</mo>
+                <mrow>
+                  <mo>(</mo>
+                  <mi>A</mi>
+                  <mo>-</mo>
+                  <mn>1</mn>
+                  <mo>)</mo>
+                </mrow>
+                <mo>⋅</mo>
+                <mrow>
+                  <mo>cos</mo>
+                  <mrow>
+                    <mo>(</mo>
+                    <msub>
+                      <mi>ω</mi>
+                      <mn>0</mn>
+                    </msub>
+                    <mo>)</mo>
+                  </mrow>
+                </mrow>
+                <mo>-</mo>
+                <mn>2</mn>
+                <mo>⋅</mo>
+                <msqrt>
+                  <mrow>
+                    <mi>A</mi>
+                  </mrow>
+                </msqrt>
+                <mo>⋅</mo>
+                <msub>
+                <mi>α</mi>
+                <mn>S</mn>
+                </msub>
+              </mtd>
+            </mtr>
+          </mtable>
+        </mrow>
+      </math>
+    </dd>
+  </dl>
+  </p>
+</section>
 
 </section>
 <section>
@@ -3590,21 +5336,41 @@ may be specified.
 <dl title="interface WaveShaperNode : AudioNode" class="idl" data-merge="OverSampleType">
   <dt> attribute Float32Array? curve </dt>
   <dd>
-    The shaping curve used for the waveshaping effect. The input signal is
-    nominally within the range -1 -&gt; +1. Each input sample within this range
-    will index into the shaping curve with a signal level of zero corresponding
-    to the center value of the curve array. Any sample value less than -1 will
-    correspond to the first value in the curve array. Any sample value greater
-    than +1 will correspond to the last value in the curve array.  The
-    implementation must perform linear interpolation between adjacent points in
-    the curve.  Initially the curve attribute is null, which means that the
-    WaveShaperNode will pass its input to its output without modification.
+    <p>
+      The shaping curve used for the waveshaping effect. The input signal is
+      nominally within the range [-1; 1]. Each input sample within this range
+      will index into the shaping curve, with a signal level of zero
+      corresponding to the center value of the curve array if there are an odd
+      number of entries, or interpolated between the two centermost values if
+      there are an even number of entries in the array. Any sample value less
+      than -1 will correspond to the first value in the curve array. Any sample
+      value greater than +1 will correspond to the last value in the curve
+      array.
+    </p>
+    <p>
+      The implementation must perform linear interpolation between adjacent
+      points in the curve.  Initially the curve attribute is null, which means
+      that the WaveShaperNode will pass its input to its output without
+      modification.
+    </p>
+    <p>
+      Values of the curve are spread with equal spacing in the [-1; 1] range.
+      This means that a <a><code>curve</code></a> with a even number of value
+      will not have a value for a signal at zero, and a
+      <a><code>curve</code></a> with an odd number of value will have a value
+      for a signal at zero.
+    </p>
+    <p>
+      A <code>InvalidAccessError</code> MUST be thrown if this attribute is set
+      with a <code>Float32Array</code> that has a <code>length</code> less than
+      2.
+    </p>
   </dd>
   <dt> attribute OverSampleType oversample </dt>
     <dd>
     <p>
       Specifies what type of oversampling (if any) should be used when applying
-      the shaping curve.    The default value is "none", meaning the curve will
+      the shaping curve. The default value is "none", meaning the curve will
       be applied directly to the input samples.  A value of "2x" or "4x" can
       improve the quality of the processing by avoiding some aliasing, with the
       "4x" value yielding the highest quality.  For some applications, it's
@@ -3667,7 +5433,7 @@ may be specified.
 
 <p>
   There are several practical approaches that an implementation may take to avoid
-  this aliasing.  But regardless of approach, the <em>idealized</em> discrete-time
+  this aliasing.  Regardless of approach, the <em>idealized</em> discrete-time
   digital audio signal is well defined mathematically.  The trade-off for the
   implementation is a matter of implementation cost (in terms of CPU usage) versus
   fidelity to achieving this ideal.
@@ -3718,7 +5484,8 @@ to determine a <em>computedFrequency</em> value:
       type constant values except for "custom".  The <a
       href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave"><code>setPeriodicWave()</code></a> method can be
       used to set a custom waveform, which results in this attribute being set to
-      "custom".  The default value is "sine".
+      "custom".  The default value is "sine". When this attribute is set, the
+      phase of the oscillator MUST be conserved.
     </dd>
 
     <dt> readonly attribute AudioParam frequency </dt>
@@ -3898,7 +5665,7 @@ as other architectures. </p>
 <section>
   <h3>Gain Control</h3>
 
-  <p>But many times, it's important to be able to control the gain for each of
+  <p>In many scenarios, it's important to be able to control the gain for each of
   the output signals. The <a><code>GainNode</code></a> gives this
   control: </p>
   <figure>
@@ -4140,7 +5907,7 @@ a stereo output, then the mono connection will usually be up-mixed to stereo and
 the stereo connection.  But, of course, it's important to define the exact <em>mixing rules</em> for
 every input to every <a><code>AudioNode</code></a>.  The default mixing rules for all of the inputs have been chosen so that
 things "just work" without worrying too much about the details, especially in the very common
-case of mono and stereo streams.  But the rules can be changed for advanced use cases, especially
+case of mono and stereo streams.  Of course, the rules can be changed for advanced use cases, especially
 multi-channel.
 </p>
 
@@ -4476,7 +6243,7 @@ Quad up-mix:
   azimuth = 180 * acos(projectedSource.dot(listenerRight)) / PI;
 
   // Source in front or behind the listener.
-  double frontBack = projectedSource.dot(listenerFrontNorm);
+  float frontBack = projectedSource.dot(listenerFrontNorm);
   if (frontBack &lt; 0)
       azimuth = 360 - azimuth;
 
@@ -4650,7 +6417,7 @@ how this is calculated for each distance model.
 
   <p>
   The following algorithm must be used to calculate the gain contribution due
-  to the cone effect, given the source (the <a> <code>PannerNode</code></a>)
+  to the cone effect, given the source (the <a><code>PannerNode</code></a>)
   and the listener:
   </p>
 
@@ -4666,14 +6433,14 @@ how this is calculated for each distance model.
   normalizedSourceOrientation.normalize();
 
   // Angle between the source orientation vector and the source-listener vector
-  double dotProduct = sourceToListener.dot(normalizedSourceOrientation);
-  double angle = 180 * acos(dotProduct) / PI;
-  double absAngle = fabs(angle);
+  float dotProduct = sourceToListener.dot(normalizedSourceOrientation);
+  float angle = 180 * acos(dotProduct) / PI;
+  float absAngle = fabs(angle);
 
   // Divide by 2 here since API is entire angle (not half-angle)
-  double absInnerAngle = fabs(source.coneInnerAngle) / 2;
-  double absOuterAngle = fabs(source.coneOuterAngle) / 2;
-  double gain = 1;
+  float absInnerAngle = fabs(source.coneInnerAngle) / 2;
+  float absOuterAngle = fabs(source.coneOuterAngle) / 2;
+  float gain = 1;
 
   if (absAngle &lt;= absInnerAngle)
       // No attenuation
@@ -4684,7 +6451,7 @@ how this is calculated for each distance model.
   else {
       // Between inner and outer cones
       // inner -&gt; outer, x goes from 0 -&gt; 1
-      double x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+      float x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
       gain = (1 - x) + source.coneOuterGain * x;
   }
 
@@ -4702,32 +6469,33 @@ how this is calculated for each distance model.
   </ul>
 
   <p>
-  The following algorithm must be used to calculate the doppler shift value which is used
-  as an additional playback rate scalar for all AudioBufferSourceNodes connecting directly or
-  indirectly to the AudioPannerNode:
+  The following algorithm must be used to calculate the doppler shift value
+  which is used as an additional playback rate scalar for all
+  <a><code>AudioBufferSourceNode</code></a>s connecting directly or indirectly
+  to the <a><code>PannerNode</code></a>:
   </p>
 
   <pre class="highlight">
-  double dopplerShift = 1; // Initialize to default value
-  double dopplerFactor = listener.dopplerFactor;
+  float dopplerShift = 1; // Initialize to default value
+  float dopplerFactor = listener.dopplerFactor;
 
   if (dopplerFactor &gt; 0) {
-      double speedOfSound = listener.speedOfSound;
+      float speedOfSound = listener.speedOfSound;
 
       // Don't bother if both source and listener have no velocity.
       if (!source.velocity.isZero() || !listener.velocity.isZero()) {
           // Calculate the source to listener vector.
           vec3 sourceToListener = source.position - listener.position;
 
-          double sourceListenerMagnitude = sourceToListener.length();
+          float sourceListenerMagnitude = sourceToListener.length();
 
-          double listenerProjection = sourceToListener.dot(listener.velocity) / sourceListenerMagnitude;
-          double sourceProjection = sourceToListener.dot(source.velocity) / sourceListenerMagnitude;
+          float listenerProjection = sourceToListener.dot(listener.velocity) / sourceListenerMagnitude;
+          float sourceProjection = sourceToListener.dot(source.velocity) / sourceListenerMagnitude;
 
           listenerProjection = -listenerProjection;
           sourceProjection = -sourceProjection;
 
-          double scaledSpeedOfSound = speedOfSound / dopplerFactor;
+          float scaledSpeedOfSound = speedOfSound / dopplerFactor;
           listenerProjection = min(listenerProjection, scaledSpeedOfSound);
           sourceProjection = min(sourceProjection, scaledSpeedOfSound);
 
@@ -4771,7 +6539,7 @@ how this is calculated for each distance model.
 
   <p>A key feature of many game audio engines (OpenAL, FMOD, Creative's EAX,
   Microsoft's XACT Audio, etc.) is a reverberation effect for simulating the
-  sound of being in an acoustic space. But the code used to generate the effect
+  sound of being in an acoustic space. The code used to generate this effect
   has generally been custom and algorithmic (generally using a hand-tweaked set
   of delay lines and allpass filters which feedback into each other). In nearly
   all cases, not only is the implementation custom, but the code is proprietary
@@ -4821,7 +6589,7 @@ how this is calculated for each distance model.
 
 
   <p>Single channel convolution operates on a mono audio input, using a mono
-  impulse response, and generating a mono output. But to achieve a more spacious sound, 2 channel audio
+  impulse response, and generating a mono output. To achieve a more spacious sound, 2 channel audio
   inputs and 1, 2, or 4 channel impulse responses will be considered. The following diagram, illustrates the
   common cases for stereo playback where N and M are 1 or 2 and K is 1, 2, or 4.
   </p>
@@ -4830,50 +6598,6 @@ how this is calculated for each distance model.
     <figcaption>A graphical representation of the different input and output channel
     count possibilities when using a <a><code>ConvolverNode</code></a>.</figcaption>
   </figure>
-</section>
-
-<section class="informative">
-<h2 id="JavaScriptProcessing">JavaScript Synthesis and Processing</h2>
-
-<p>The Mozilla project has conducted <a
-href="https://wiki.mozilla.org/Audio_Data_API">Experiments</a> to synthesize
-and process audio directly in JavaScript. This approach is interesting for a
-certain class of audio processing and they have produced a number of impressive
-demos. This specification includes a means of synthesizing and processing
-directly using JavaScript by using a special subtype of <a><code>AudioNode</code></a> called
-<a><code>ScriptProcessorNode</code></a>. </p>
-
-<p>Here are some interesting examples where direct JavaScript processing can be
-useful: </p>
-
-<section>
-  <h3 id="custom-DSP-effects">Custom DSP Effects</h3>
-
-  <p>Unusual and interesting custom audio processing can be done directly in JS.
-  It's also a good test-bed for prototyping new algorithms. This is an extremely
-  rich area. </p>
-</section>
-
-<section>
-  <h3 id="educational-applications">Educational Applications</h3>
-
-  <p>JS processing is ideal for illustrating concepts in computer music synthesis
-  and processing, such as showing the de-composition of a square wave into its
-  harmonic components, FM synthesis techniques, etc. </p>
-</section>
-
-<section>
-  <h3 id="javaScript-performance">JavaScript Performance</h3>
-
-  <p>JavaScript has a variety of <a
-  href="#JavaScriptPerformance">performance issues</a> so it is not
-  suitable for all types of audio processing. The approach proposed in this
-  document includes the ability to perform computationally intensive aspects of
-  the audio processing (too expensive for JavaScript to compute in real-time)
-  such as multi-source 3D spatialization and convolution in optimized C++ code.
-  Both direct JavaScript processing and C++ optimized code can be combined due to
-  the APIs <a href="#ModularRouting">modular approach</a>. </p>
-</section>
 </section>
 
 <section>
@@ -4915,9 +6639,10 @@ useful: </p>
   <a href="#acquire-the-content">acquire the contents</a> operations with no
   intervening
   <a href="#widl-AudioBuffer-getChannelData-Float32Array-unsigned-long-channel">
-  <code>getChannelData</code></a> (e.g. multiple <a>AudioBufferSourceNode</a>s
-  playing the same <a>AudioBuffer</a>) can be
-  implemented with no allocations or copying.
+    <code>getChannelData</code></a> (e.g. multiple
+  <a><code>AudioBufferSourceNode</code></a>s playing the same
+  <a><code>AudioBuffer</code></a>) can be implemented with no allocations or
+  copying.
 </p>
 
 <p>
@@ -4944,7 +6669,7 @@ useful: </p>
   trying to do more work than is possible in real-time given the CPU's speed. </p>
 </section>
 
-<section>
+<section class=informative>
   <h3>Hardware Scalability</h3>
 
   <p>The system should gracefully degrade to allow audio processing under
@@ -4956,7 +6681,7 @@ useful: </p>
   stream without audible <a href="#audio-glitching">glitches</a>. </p>
 
   <p>The system should be able to run on a range of hardware, from mobile phones
-  and tablet devices to laptop and desktop computers. But the more limited
+  and tablet devices to laptop and desktop computers. The more limited
   compute resources on a phone device make it necessary to consider techniques to
   scale back and reduce the complexity of the audio rendering. For example,
   voice-dropping algorithms can be implemented to reduce the total number of

@@ -691,19 +691,60 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
         <dd>
           This parameter represents the URL of the script to be loaded as an <a>AudioWorker</a>.
         </dd>
-        <dt> optional unsigned long numberOfInputChannels = 2 </dt>
+        <dt> optional Array inputs = null </dt>
         <dd>
-          This parameter determines the number of channels for this node's
-          input. Values of up to 32 must be supported.
+          <p>
+            This parameter determines the number of inputs for the worker, as well as the default number of channels for that input.  The number of inputs cannot be changed once the node is created, although the number of channels in each input can be (see onprocess for more detail).  The parameter is an Array whose length determines the number of inputs; each member of this Array will be coerced to an integer representing the default number of channels for the given input. Channel counts of up to 32 must be supported; values outside the supported range should throw NotSupportedError.
+          </p>
+          <p>
+            A null Array is treated the same as "[2]" - that is, it will default to a single input with two channels.
+          </p>
+          <p>
+            An empty Array is explicitly supported, and will cause the node to have no inputs - i.e., any attempt to connect() to this node will fail.  (This is useful for nodes that function only as sources, such as an oscillator.)
+          </p>
         </dd>
-        <dt> optional unsigned long numberOfOutputChannels = 2 </dt>
+        <dt> optional Array outputs = null </dt>
         <dd>
-          This parameter determines the number of channels for this node's
-          output. Values of up to 32 must be supported.
+          <p>
+            This parameter determines the number of outputs for the worker, as well as the default number of channels for each output.  The number of outputs cannot be changed once the node is created, although the number of channels in each output can be (see onprocess for more detail).  The parameter is an Array whose length determines the number of outputs; each member of this Array will be coerced to an integer representing the default number of channels for the given output. Channel counts of up to 32 must be supported; values outside the supported range should throw NotSupportedError.
+          </p>
+          <p>
+            A null Array is treated the same as "[2]" - that is, it will default to a single output with two channels.
+          </p>
+          <p>
+            An empty Array is explicitly supported, and will cause the node to have no inputs - i.e., any attempt to connect() to this node will fail.  (This is useful for nodes that function only as sources, such as an oscillator.)
+          </p>
         </dd>
       </dl>
-      It is invalid for both <a><code>numberOfInputChannels</code></a> and
-      <a><code>numberOfOutputChannels</code></a> to be zero.
+      <p>
+        It is invalid for both the number of inputs and number of outputs to be zero (i.e. both Arrays are empty).  In this case, implementations should throw NotSupportedError.
+      </p>
+      <p>
+        Examples of usage:
+      </p>
+      <ul>
+        <li>
+          <code>createAudioWorker( scriptURL )</code> creates a single stereo input with a single stereo output.
+        </li>
+        <li>
+          <code>createAudioWorker( scriptURL, [1], [] )</code> creates a single mono input with no output.
+        </li>
+        <li>
+          <code>createAudioWorker( scriptURL, [1], [1] )</code> also creates a single mono input with a single mono output.
+        </li>
+        <li>
+          <code>createAudioWorker( scriptURL, [1], [2] )</code> creates a single mono input with a stereo output.
+        </li>
+        <li>
+          <code>createAudioWorker( scriptURL, [2,1], [2] )</code> creates two inputs - one stereo, one mono - and a stereo output.
+        </li>
+        <li>
+          <code>createAudioWorker( scriptURL, [1,1,1,1,1,1], [6] )</code> creates six mono inputs with a single 6-channel output. (This is similar to a 6-channel ChannelMergerNode.)
+        </li>
+        <li>
+          <code>createAudioWorker( scriptURL, [6], [1,1,1,1,1,1] )</code> creates a single 6-channel input with six mono outputs. (This is similar to a 6-channel ChannelSplitterNode.)
+        </li>
+      </ul>
     </dd>
 
     <dt> ScriptProcessorNode createScriptProcessor()</dt>
@@ -2241,17 +2282,12 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
     channelInterpretation = "speakers";
 </pre>
 
-<p>
-<a>numberOfInputChannels</a> and <dfn>numberOfOutputChannels</a>
-determine the number of input and output channels (and the number of channels 
-present in the AudioBuffers passed to the AudioProcess event handler inside the
-<a>AudioWorkerGlobalScope</a>). It is invalid for both
-<code>numberOfInputChannels</code> and <code>numberOfOutputChannels</code> to
-be zero.
+<p>The number of input and output channels specified in the createAudioWorker() call determines the initial number of input and output channels (and the number of channels present for each input and output in the AudioBuffers passed to the AudioProcess event handler inside the <a>AudioWorkerGlobalScope</a>).
 </p>
 
+<p>Example usage:</p>
 <pre class="highlight">
-    var node = context.createAudioWorker( "bitcrusher.js", numberOfInputChannels, numberOfOutputChannels);
+    var node = context.createAudioWorker( "bitcrusher.js" );
 </pre>
 
 <dl title="interface AudioWorkerNode : AudioNode" class="idl">
@@ -2369,7 +2405,7 @@ one output connected.
         AudioWorker.</p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var bitcrusherNode = audioContext.createAudioWorker("bitcrusher_worker.js", 1, 1);
+    <pre class="highlight">var bitcrusherNode = audioContext.createAudioWorker("bitcrusher_worker.js");
 
 // Custom parameter - number of bits to crush down to - default 8
 bitcrusherNode.addParameter( "bits", 8 );
@@ -2381,9 +2417,9 @@ bitcrusherNode.addParameter( "frequencyReduction", 0.5 );</pre>
 var lastDataValue = 0;
 
 onaudioprocess= function (e) {
-  for (var channel=0; channel&lt;e.inputBuffers.length; channel++) {
-    var inputBuffer = e.inputBuffers[channel];
-    var outputBuffer = e.outputBuffers[channel];
+  for (var channel=0; channel&lt;e.inputs[0].length; channel++) {
+    var inputBuffer = e.inputs[0][channel];
+    var outputBuffer = e.outputs[0][channel];
     var bufferLength = inputBuffer.length;
     var bitsArray = e.parameters.bits;
     var frequencyReductionArray = e.parameters.frequencyReduction;
@@ -2408,10 +2444,10 @@ onaudioprocess= function (e) {
     <p>Another common need is a clip-detecting volume meter.  This example 
       shows how to communicate basic parameters (that do not need AudioParam 
       scheduling) across to a Worker, as well as communicating data back to 
-      the main thread.</p>
+      the main thread.  This node does not use any output. </p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var vuNode = audioContext.createAudioWorker("vu_meter_worker.js", 1, 1);
+    <pre class="highlight">var vuNode = audioContext.createAudioWorker("vu_meter_worker.js", [1], [] );
 
 // This handles communication back from the volume meter
 vuNode.onmessage = function (event) {
@@ -2454,7 +2490,7 @@ onmessage = function ( event ) {
 };
 
 onaudioprocess = function ( event ) {
-  var buf = event.inputBuffers[0];  // For simplicity, this example is only mono
+  var buf = event.inputs[0][0];  // Node forces mono
   var bufLength = buf.length;
   var sum = 0;
   var x;
@@ -2489,6 +2525,19 @@ onaudioprocess = function ( event ) {
         "clip": this.clipping });
     this.unsentClip = false;
   }
+};</pre>
+    </section>
+  <section>
+    <h4>Reimplementing ChannelMerger</h4>
+    <p>This worker shows how to merge inputs into a single output channel.</p>
+
+    <h5>Main file javascript</h5>
+    <pre class="highlight">var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
+
+    <h5>merger_worker.js</h5>
+    <pre class="highlight">onaudioprocess = function ( event ) {
+  for (var input=0; input&lt;event.inputs.length; input++)
+    event.outputs[0][input].set(event.inputs[input][0]);
 };</pre>
     </section>
   </section>
@@ -2577,26 +2626,24 @@ This is an <code>Event</code> object which is dispatched to
       tight synchronization between processing directly in JavaScript with the
       other events in the context's rendering graph.
     </dd>
-    <dt> readonly attribute Float32Array[] inputBuffers </dt>
+    <dt>readonly attribute sequence<Float32Array[]> inputs</dt>
     <dd>
-      An Array of Float32Arrays, one per channel, containing the input audio 
-      buffer with input data.  The number of channels will be equal to the 
-      <code>numberOfInputChannels</code> parameter of the createAudioWorker() 
-      method.  It is expected that the event object, the Array and the input 
-      and output buffers may be reused by the processing system, in order to 
-      minimize memory churn; it is not recommended to maintain global handles
-      to them.
+      <p>
+        A readonly array of Arrays of Float32Arrays.  The top-level sequence is organized by input; each input may contain multiple channels; each channel contains a Float32Array of sample data.  The initial size of the channel array will be determined by the number of channels specified for that input in the createAudioWorker() method.  However, an onprocess handler may alter this number of channels in the input dynamically, either by adding a Float32Array of blocksize length (128) or by reducing the Array (by reducing the Array.length or by using Array.pop() or Array.slice().  The event object, the Array and the Float32Arrays will be reused by the processing system, in order to minimize memory churn.
+      </p>
+      <p>
+        Any reordering performed on the Array for an input will not reorganize the connections to the channels for subsequent events.
+      </p>
       </dd>
-    <dt> readonly attribute Float32Array[] outputBuffers </dt>
+    <dt>readonly attribute sequence<Float32Array[]> outputs</dt>
     <dd>
-      An Array of Float32Arrays, one per channel, containing the output audio 
-      buffer.  The number of channels will be equal to the 
-      <code>numberOfOutputChannels</code> parameter of the createAudioWorker() 
-      method.  It is expected that the event object, the Array and the input 
-      and output buffers may be reused by the processing system, in order to 
-      minimize memory churn; it is not recommended to maintain global handles
-      to them.
-    </dd>
+      <p>
+        A readonly array of Arrays of Float32Arrays.  The top-level sequence is organized by output; each output may contain multiple channels; each channel contains a Float32Array of sample data.  The initial size of the channel array will be determined by the number of channels specified for that output in the createAudioWorker() method.  However, an onprocess handler may alter this number of channels in the output dynamically, either by adding a Float32Array of blocksize length (128) or by reducing the Array (by reducing the Array.length or by using Array.pop() or Array.slice().  The event object, the Array and the Float32Arrays will be reused by the processing system, in order to minimize memory churn.
+      </p>
+      <p>
+        Any reordering performed on the Array for an output will not reorganize the connections to the channels for subsequent events.
+      </p>
+      </dd>
     <dt> readonly attribute object parameters</dt>
     <dd>This object attribute exposes a correspondingly-named 
       read-only <a>Float32Array</a> for each parameter that has been added 

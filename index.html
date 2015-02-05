@@ -747,6 +747,26 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       </ul>
     </dd>
 
+    <dt> Promise&lt;AudioWorkerFactory&gt; createAudioWorkerFactory()</dt>
+    <dd>
+      Creates an <a><code>AudioWorkerFactory</code></a> and its associated <a><code>AudioWorkerFactoryScope</code></a> 
+      for direct audio processing using JavaScript.
+
+      <dl class=parameters>
+        <dt> DOMString scriptURL </dt>
+        <dd>
+          This parameter represents the URL of the script to be loaded as an <a>AudioWorkerFactory</a>.
+        </dd>
+      <p>
+        Examples of usage:
+      </p>
+      <ul>
+        <li>
+          <code>createAudioWorker( scriptURL ).then( function (worker) { myNode = worker.createNode()} );</code> creates a factory, and once it's been created it creates a single stereo input and output node.
+        </li>
+      </ul>
+    </dd>
+
     <dt> ScriptProcessorNode createScriptProcessor()</dt>
     <dd>
       This method is DEPRECATED, as it is intended to be replaced by createAudioWorker.
@@ -2251,11 +2271,11 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 
 <p>AudioWorker is not an actual class in the Web Audio API; an Audio Worker is 
   represented in the main thread by the <a>AudioWorkerNode</a> methods 
-  (postMessage, onmessage and terminate, in particular). From inside an audio 
+  (postMessage, onmessage and terminate, in particular), and/or by the AudioWorkerFactory. From inside an audio 
   worker script, an Audio Worker is represented by an 
   <a><code>AudioWorkerGlobalScope</code></a> object representing the node's 
-  contextual information; all worker scripts are run in the audio processing 
-  thread.</p>
+  contextual information, or an <a><code>AudioWorkerFactoryScope</code></a> in the case of a factory-based worker;
+  all worker scripts are run in the audio processing thread.</p>
 
 <section>
 <h2>The <dfn>AudioWorkerNode</dfn> Interface</h2>
@@ -2282,7 +2302,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
     channelInterpretation = "speakers";
 </pre>
 
-<p>The number of input and output channels specified in the createAudioWorker() call determines the initial number of input and output channels (and the number of channels present for each input and output in the AudioBuffers passed to the AudioProcess event handler inside the <a>AudioWorkerGlobalScope</a>).
+<p>The number of input and output channels specified in the createAudioWorker() or createAudioWorkerNode() call determines the initial number of input and output channels (and the number of channels present for each input and output in the AudioBuffers passed to the AudioProcess event handler inside the <a>AudioWorkerGlobalScope</a>).
 </p>
 
 <p>Example usage:</p>
@@ -2342,7 +2362,6 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
       removed.</p>
   </dd>
 </dl>
-</dl>
 <p>
   Note that <a>AudioWorkerNode</a> objects will also have read-only 
   AudioParam objects for each named parameter added via the 
@@ -2354,6 +2373,74 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   <p>AudioWorkerNodes must implement the <a>Worker</a>
   interface for communication with the audio worker script.</p>
 <!--</div>-->
+
+</section>
+
+<section>
+<h2>The <dfn>AudioWorkerFactoryNode</dfn> Interface</h2>
+
+<p>This interface represents a worker node that is created by a factory, inside one
+single worker context.  This is useful for sharing state or data across nodes.</p>
+
+  <dl title="interface AudioWorkerFactoryNode : AudioNode" class="idl">
+  <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
+  <dd>postMessage may be called to send a message to the Audio Worker Factory, via the
+    algorithm defined by <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
+    the Worker specification</a>.</dd>
+  <dt>attribute EventHandler onmessage</dt>
+  <dd>The onmessage handler is called whenever the Audio Worker Factory posts a 
+    message back to this node in the main thread.</dd>
+</dl>
+</dl>
+<p>
+  Note that <a>AudioWorkerFactoryNode</a> objects will also have read-only 
+  AudioParam objects for each named parameter added via the AudioWorkerFactory's
+  <code>addParameter</code> method.  As this is dynamic, it cannot be captured
+  in IDL.
+</p>
+
+</section>
+<section>  
+
+<h2>The <dfn>AudioWorkerFactory</dfn> Interface</h2>
+
+<p>This interface represents an object that creates AudioWorker nodes inside one
+single worker context.  This is useful for sharing state or data across nodes.</p>
+
+<dl title="interface AudioWorkerFactory : Worker" class="idl">
+  <dt>Promise&lt;AudioWorkerFactoryNode&gt; createNode()</dt>
+  <dd>
+    <dl class=parameters>
+      <dt> optional Array inputs = null </dt>
+      <dd>
+        <p>
+          This parameter determines the number of inputs for the worker, as well as the default number of channels for that input.  The number of inputs cannot be changed once the node is created, although the number of channels in each input can be (see onprocess for more detail).  The parameter is an Array whose length determines the number of inputs; each member of this Array will be coerced to an integer representing the default number of channels for the given input. Channel counts of up to 32 must be supported; values outside the supported range should throw NotSupportedError.
+        </p>
+        <p>
+          A null Array is treated the same as "[2]" - that is, it will default to a single input with two channels.
+        </p>
+        <p>
+          An empty Array is explicitly supported, and will cause the node to have no inputs - i.e., any attempt to connect() to this node will fail.  (This is useful for nodes that function only as sources, such as an oscillator.)
+        </p>
+      </dd>
+      <dt> optional Array outputs = null </dt>
+      <dd>
+        <p>
+          This parameter determines the number of outputs for the worker, as well as the default number of channels for each output.  The number of outputs cannot be changed once the node is created, although the number of channels in each output can be (see onprocess for more detail).  The parameter is an Array whose length determines the number of outputs; each member of this Array will be coerced to an integer representing the default number of channels for the given output. Channel counts of up to 32 must be supported; values outside the supported range should throw NotSupportedError.
+        </p>
+        <p>
+          A null Array is treated the same as "[2]" - that is, it will default to a single output with two channels.
+        </p>
+        <p>
+          An empty Array is explicitly supported, and will cause the node to have no inputs - i.e., any attempt to connect() to this node will fail.  (This is useful for nodes that function only as sources, such as an oscillator.)
+        </p>
+      </dd>
+    </dl>
+    <p>
+      It is invalid for both the number of inputs and number of outputs to be zero (i.e. both Arrays are empty).  In this case, implementations should throw NotSupportedError.
+    </p>
+  </dd>
+</dl>
 </section>
 
 <section>
@@ -2389,6 +2476,79 @@ one output connected.
     The sample rate of the host <a>AudioContext</a> (since inside the 
     <a>Worker</a> scope, the user will not have direct access to the 
     <a>AudioContext</a>.
+  </dd>
+</dl>
+</section>
+
+<section>
+<h2>The AudioWorkerFactoryScope Interface</h2>
+
+<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived 
+  object representing the context in which an audio processing script is run; 
+  it is designed to enable the generation, processing, and analysis of audio 
+  data directly using JavaScript in a Worker thread, with shared context between
+  multiple instances of audio nodes. This facilitates nodes that may have 
+  substantial shared data, e.g. a convolution node.</p>
+
+<p>
+The <a><code>AudioWorkerFactoryScope</code></a> has an 
+<dfn id="audioprocess-worker">audioprocess</dfn> event that is dispatched
+synchronously to process audio frames.  
+<a href="#audioprocess-worker"><code>audioprocess</code></a> events are only
+dispatched if the <a><code>AudioWorkerNode</code></a> has at least one input or
+one output connected.
+
+<dl title="interface AudioWorkerFactoryScope : DedicatedWorkerGlobalScope" class="idl">
+  <dt>attribute EventHandler onaudioprocess</dt>
+  <dd>
+    A property used to set the <code>EventHandler</code> (described in <cite>
+    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    HTML</a></cite>[[!HTML]]) for the <a href="#audioprocess-worker">
+    <code>audioprocess</code></a> event that is dispatched to
+    <a><code>AudioWorkerGlobalScope</code></a> when the associated
+    <a><code>AudioWorkerNode</code></a> is connected. An event of type
+    <a><code>AudioProcessEvent</code></a> will be dispatched to the event 
+    handler.
+  </dd>
+  <dt>readonly attribute float sampleRate</dt>
+  <dd>
+    The sample rate of the host <a>AudioContext</a> (since inside the 
+    <a>Worker</a> scope, the user will not have direct access to the 
+    <a>AudioContext</a>.
+  </dd>
+  <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
+  <dd>
+    <p>
+      Causes a correspondingly-named read-only <a>AudioParam</a> to be 
+      present on previously-created and subsequently-created <a>AudioWorkerNode</a>s created by this factory, 
+      and a correspondingly-named read-only <a>Float32Array</a> to be present on the 
+      <a><code>parameters</code></a> object exposed on the 
+      <a>AudioProcessEvent</a> on subsequent audio processing events for nodes created from this factory.</p>
+    <p>The <code>name</code> parameter is the name used for the read-only 
+      AudioParam added to the AudioWorkerNode, and the name used for the 
+      read-only <code>Float32Array</code> that will be present on the 
+      <a><code>parameters</code></a> object exposed on subsequent 
+      <a>AudioProcessEvent</a>s.</p>
+    <p>The <dfn
+      id="dfn-defaultValue">defaultValue</dfn> parameter is the default value 
+      for the <a>AudioParam</a>'s <a>value</a> attribute, as well as 
+      therefore the default value that will appear in the Float32Array in the 
+      worker script (if no other parameter changes or connections affect the 
+      value).</p>
+  </dd>
+  <dt>void removeParameter(DOMString name) </dt>
+  <dd>
+    <p>
+      Removes a previously-added parameter named <code>name</code> from nodes processed by this factory. 
+      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named 
+      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
+      remove the correspondingly-named read-only <a>Float32Array</a> from the 
+      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on 
+      subsequent audio processing events. A 
+      NotFoundError exception must be thrown if no parameter with that name 
+      exists on this node.</p>
+    <p>The <code>name</code> parameter identifies the parameter to be 
+      removed.</p>
   </dd>
 </dl>
 </section>

@@ -6443,31 +6443,35 @@ Quad up-mix:
   <em>mono->stereo</em> processing is used when all connections to the input are mono.
   Otherwise <em>stereo->stereo</em> processing is used.</p>
 
-  <p>The following algorithms must be implemented: </p>
-  <ul>
-    <li>Equal-power (Vector-based) panning
-      <p>
-        This is a simple and relatively inexpensive algorithm which provides
-        basic, but reasonable results.  It is used for the
-        <a><code>StereoPannerNode</code></a>, and for the
-        <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
-        attribute is set to <code>"equalpower"</code>, in which case the the
-        <em>elevation</em> value is ignored.
-      </p>
+  <h3>Equal-power panning</h3>
+  <p>
+    This is a simple and relatively inexpensive algorithm which provides
+    basic, but reasonable results.  It is used for the
+    <a><code>StereoPannerNode</code></a>, and for the
+    <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
+    attribute is set to <code>"equalpower"</code>, in which case the the
+    <em>elevation</em> value is ignored.
+  </p>
 
+  <p>
+    The first step is to compute the <em>x</em> value, that is the azimuth,
+    normalized to [0, 1].
+  </p>
+
+  <p>
+    For a <a><code>PannerNode</code></a>, the following algorithm MUST be
+    implemented.
+  </p>
+  <ol>
+    <li>
+      Let <code>azimuth</code> be the value computed in the <a>azimuth and
+        elevation</a> section.
+    </li>
+    <li>
       <p>
-      For a <a><code>PannerNode</code></a>, the following algorithm MUST be
-      implemented.
-      <ol>
-        <li>
-          Let <code>azimuth</code> be the value computed in the <a>azimuth and
-            elevation</a> section.
-        </li>
-        <li>
-        <p>
-        The <em>azimuth</em> value is first contained to be within the range -90 &lt;= <em>azimuth</em> &lt;= +90 according to:
-        </p>
-        <pre class="highlight">
+      The <em>azimuth</em> value is first contained to be within the range -90 &lt;= <em>azimuth</em> &lt;= +90 according to:
+      </p>
+      <pre class="highlight">
   // Clamp azimuth to allowed range of -180 -&gt; +180.
   azimuth = max(-180, azimuth);
   azimuth = min(180, azimuth);
@@ -6478,21 +6482,21 @@ Quad up-mix:
   } else if (azimuth &gt; 90) {
       azimuth = 180 - azimuth;
   }
-        </pre>
-        </li>
+      </pre>
+    </li>
 
-        <li>
-        <p>
+    <li>
+      <p>
         A 0 -&gt; 1 normalized value <em>x</em> is calculated from <em>azimuth</em> for <em>mono->stereo</em> as:
-        </p>
-        <pre class="highlight">
+      </p>
+      <pre class="highlight">
   x = (azimuth + 90) / 180
-        </pre>
+      </pre>
 
-        <p>
+      <p>
         Or for <em>stereo->stereo</em> as:
-        </p>
-        <pre class="highlight">
+      </p>
+      <pre class="highlight">
   if (azimuth &lt;= 0) { // from -90 -&gt; 0
       // inputL -&gt; outputL and "equal-power pan" inputR as in mono case
       // by transforming the "azimuth" value from -90 -&gt; 0 degrees into the range -90 -&gt; +90.
@@ -6502,62 +6506,60 @@ Quad up-mix:
       // by transforming the "azimuth" value from 0 -&gt; +90 degrees into the range -90 -&gt; +90.
       x = azimuth / 90;
   }
-        </pre>
-        </li>
-      </ol>
+      </pre>
+    </li>
+  </ol>
 
-      <p>
-        For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
-        be implemented.
-        <ol>
-          <li>
-            Let <code>azimuth</code> be the <a>computedValue</a> of the
-            <a>pan</a> <a>AudioParam</a> of this
-            <a><code>StereoPannerNode</code></a>.
-          </li>
-          <li>
-            Normalize the <code>azimuth</code> value to [0; 1].  From mono to
-          stereo:
-            <pre class="highlight">
+  <p>
+    For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
+    be implemented.
+    <ol>
+      <li>
+        Let <code>azimuth</code> be the <a>computedValue</a> of the
+        <a>pan</a> <a>AudioParam</a> of this
+        <a><code>StereoPannerNode</code></a>.
+      </li>
+      <li>
+        Normalize the <code>azimuth</code> value to [0, 1].  From mono to stereo:
+        <pre class="highlight">
   x = (azimuth + 1) / 2;
-            </pre>
-            Or when panning stereo to stereo:
-            <pre class="highlight">
+        </pre>
+          Or when panning stereo to stereo:
+        <pre class="highlight">
   if (azymuth &lt;= 0) {
     x = azimuth + 1;
   } else {
     x = azimuth;
   }
-            </pre>
-          </li>
-        </ol>
-      </p>
+        </pre>
+      </li>
+    </ol>
+  </p>
 
       <p>
-        Then following steps are used for processing:
-
-      <ol>
-        <li>
-          <p>
-            Left and right gain values are calculated:
-          </p>
-          <pre class="highlight">
+        Then following steps are then used for processing:
+        <ol>
+          <li>
+            <p>
+              Left and right gain values are calculated:
+            </p>
+            <pre class="highlight">
   gainL = cos(0.5 * Math.PI * x);
   gainR = sin(0.5 * Math.PI * x);
-          </pre>
-        </li>
-        <li>
-          <p>
-            For <em>mono->stereo</em>, the output is calculated as:
-          </p>
-          <pre class="highlight">
+            </pre>
+          </li>
+          <li>
+            <p>
+              For <em>mono->stereo</em>, the output is calculated as:
+            </p>
+            <pre class="highlight">
   outputL = input * gainL;
   outputR = input * gainR;
-          </pre>
-          <p>
-            Else for <em>stereo->stereo</em>, the output is calculated as:
-          </p>
-          <pre class="highlight">
+            </pre>
+            <p>
+              Else for <em>stereo->stereo</em>, the output is calculated as:
+            </p>
+            <pre class="highlight">
   if (azimuth &lt;= 0) {
       outputL = inputL + inputR * gainL;
       outputR = inputR * gainR;
@@ -6565,9 +6567,9 @@ Quad up-mix:
       outputL = inputL * gainL;
       outputR = inputR + inputL * gainR;
   }
-          </pre>
-        </li>
-      </ol>
+            </pre>
+          </li>
+        </ol>
     </p>
 
 
@@ -6613,7 +6615,9 @@ Quad up-mix:
   <em>distance</em> will then be used to calculate <em>distanceGain</em> which
   depends on the <em>distanceModel</em> attribute.  See the <a
   href="#idl-def-DistanceModelType">distanceModel</a> section for details of
-how this is calculated for each distance model.
+how this is calculated for each distance model. The value computed by the <a
+  href="#idl-def-DistanceModelType">distanceModel</a> equations are to be
+clamped to [0, 1].
   </p>
   <p>As part of its processing, the <a><code>PannerNode</code></a> scales/multiplies the input audio signal by <em>distanceGain</em>
   to make distant sounds quieter and nearer ones louder.

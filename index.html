@@ -3458,22 +3458,19 @@ in the following operation:
   multiple audio streams into a single audio stream. It has a variable number of
   inputs (defaulting to 6), but not all of them need be connected. There is a
   single output whose audio stream has a number of channels equal to the numbers 
-  of inputs. Each input gets downmixed into 1 channel (mono) based on the specified
-  mixing rule. If an input is inactive or disconnected, it still counts as one
-  silent channel in the output and the order of output channels does not change. 
-  For undefined channel layout, the mixing rule automatically changes to 
-  <code>discrete</code> mode and the <a><code>ChannelMergerNode</code></a> will 
-  take the first channel and drop the rest.
+  of inputs.
 </p>
 <p>
-  For example, if an <a><code>ChannelMergerNode</code></a> has two connected 
-  inputs (both stereo), the output will be 6 channels, the first two channels from
-  the first two inputs and the rest of channels will be silent.
+  To merge multiple inputs into one stream, each input gets downmixed into 1 
+  channel (mono) based on the specified mixing rule. For undefined channel layout, 
+  the mixing rule falls back to <code>discrete</code> mode and the 
+  <a><code>ChannelMergerNode</code></a> takes the first channel from the input 
+  and drops the rest.
 </p>
 <p>
-  For <a><code>ChannelMergerNode</code></a>, <code>channelCount</code> and 
-  <code>channelCountMode</code> properties are fixed. <code>InvalidState</code> 
-  error must be thrown when changed.
+  For example, if a <a><code>ChannelMergerNode</code></a> has two connected 
+  inputs (both stereo), the output will be 6 channels whose first two channels 
+  are be filled with the first two inputs and the rest of channels will be silent.
 </p>
 
 <h3 id="example-2">Example:</h3>
@@ -3483,12 +3480,17 @@ in the following operation:
 </figure>
 
 <p>
-  Please note that in this example, the merger does <b>not</b> interpret the
-  channel identities (such as left, right, etc.), but simply combines channels
-  in the order that they are input.
+  An inactive or disconnected input still counts as <b>one silent channel</b> in the 
+  output. Changing input streams does <b>not</b> affect the order of output channels.
+  Also note that in this example, the merger does not interpret the channel identities 
+  (such as left, right, etc.), but simply combines channels in the order that 
+  they are input.
 </p>
-
-
+<p>
+  For <a><code>ChannelMergerNode</code></a>, <code>channelCount</code> and 
+  <code>channelCountMode</code> properties cannot be changed. <code>InvalidState</code> 
+  error MUST be thrown when they changed.
+</p>
 <p>
   Be aware that it is possible to connect an <a><code>ChannelMergerNode</code></a> in
   such a way that it outputs an audio stream with a large number of channels

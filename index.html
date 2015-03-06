@@ -3440,11 +3440,13 @@ in the following operation:
   The <a><code>ChannelMergerNode</code></a> is for use in more advanced applications
   and would often be used in conjunction with <a><code>ChannelSplitterNode</code></a>.
 </p>
+
 <pre>
   numberOfInputs  : Variable N (default to 6)  // number of connected inputs may be less than this
   numberOfOutputs : 1
 
-  channelCountMode = "max";
+  channelCount = 1;
+  channelCountMode = "explicit";
   channelInterpretation = "speakers";
 </pre>
 
@@ -3452,14 +3454,23 @@ in the following operation:
   This interface represents an <a><code>AudioNode</code></a> for combining channels from
   multiple audio streams into a single audio stream. It has a variable number of
   inputs (defaulting to 6), but not all of them need be connected. There is a
-  single output whose audio stream has a number of channels equal to the sum of
-  the numbers of channels of all the connected inputs. For example, if an
-  <a><code>ChannelMergerNode</code></a> has two connected inputs (both stereo), then the
-  output will be four channels, the first two from the first input and the
-  second two from the second input. In another example with two connected inputs
-  (both mono), the output will be two channels (stereo), with the left channel
-  coming from the first input and the right channel coming from the second
-  input.
+  single output whose audio stream has a number of channels equal to the numbers 
+  of inputs. Each input gets downmixed into 1 channel (mono) based on the specified
+  mixing rule. If an input is inactive or disconnected, it still counts as one
+  silent channel in the output and the order of output channels does not change. 
+  For undefined channel layout, the mixing rule automatically changes to 
+  <code>discrete</code> mode and the <a><code>ChannelMergerNode</code></a> will 
+  take the first channel and drop the rest.
+</p>
+<p>
+  For example, if an <a><code>ChannelMergerNode</code></a> has two connected 
+  inputs (both stereo), the output will be 6 channels, the first two channels from
+  the first two inputs and the rest of channels will be silent.
+</p>
+<p>
+  For <a><code>ChannelMergerNode</code></a>, <code>channelCount</code> and 
+  <code>channelCountMode</code> properties are fixed. <code>InvalidState</code> 
+  error must be thrown when changed.
 </p>
 
 <h3 id="example-2">Example:</h3>
@@ -7087,11 +7098,12 @@ battery-life issues.
 <p>This specification is the collective work of the W3C <a href="http://www.w3.org/2011/audio/">Audio Working Group</a>.</p>
 
 <p>Members of the Working Group are (at the time of writing, and by alphabetical order): <br />
-Adenot, Paul (Mozilla Foundation);
+Adenot, Paul (Mozilla Foundation) - Specification Co-editor;
 Akhgari, Ehsan (Mozilla Foundation);
-Berkovitz, Joe (Invited Expert);
+Berkovitz, Joe (Invited Expert) – WG Chair;
 Bossart, Pierre (Intel Corporation);
 Carlson, Eric (Apple, Inc.);
+Choi, Hongchan (Google, Inc.);
 Geelnard, Marcus (Opera Software);
 Goode, Adam (Google, Inc.);
 Gregan, Matthew (Mozilla Foundation);
@@ -7108,9 +7120,10 @@ Raman, T.V. (Google, Inc.);
 Schepers, Doug (W3C/MIT);
 Shires, Glen (Google, Inc.);
 Smith, Michael (W3C/Keio);
-Thereaux, Olivier (British Broadcasting Corporation) – WG Chair;
+Thereaux, Olivier (British Broadcasting Corporation);
+Toy, Raymond (Google, Inc.);
 Verdie, Jean-Charles (MStar Semiconductor, Inc.);
-Wilson, Chris (Google,Inc.);
+Wilson, Chris (Google,Inc.) - Specification Co-editor;
 ZERGAOUI, Mohamed (INNOVIMAX)
 </p>
 

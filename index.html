@@ -3443,11 +3443,13 @@ in the following operation:
   The <a><code>ChannelMergerNode</code></a> is for use in more advanced applications
   and would often be used in conjunction with <a><code>ChannelSplitterNode</code></a>.
 </p>
+
 <pre>
-  numberOfInputs  : Variable N (default to 6)  // number of connected inputs may be less than this
+  numberOfInputs  : Variable N (default to 6)
   numberOfOutputs : 1
 
-  channelCountMode = "max";
+  channelCount = 1;
+  channelCountMode = "explicit";
   channelInterpretation = "speakers";
 </pre>
 
@@ -3455,38 +3457,44 @@ in the following operation:
   This interface represents an <a><code>AudioNode</code></a> for combining channels from
   multiple audio streams into a single audio stream. It has a variable number of
   inputs (defaulting to 6), but not all of them need be connected. There is a
-  single output whose audio stream has a number of channels equal to the sum of
-  the numbers of channels of all the connected inputs. For example, if an
-  <a><code>ChannelMergerNode</code></a> has two connected inputs (both stereo), then the
-  output will be four channels, the first two from the first input and the
-  second two from the second input. In another example with two connected inputs
-  (both mono), the output will be two channels (stereo), with the left channel
-  coming from the first input and the right channel coming from the second
-  input.
+  single output whose audio stream has a number of channels equal to the number
+  of inputs.
+</p>
+<p>
+  To merge multiple inputs into one stream, each input gets downmixed into one
+  channel (mono) based on the specified mixing rule. An unconnected input still
+  counts as <b>one silent channel</b> in the output. Changing input streams does
+  <b>not</b> affect the order of output channels.
+</p>
+<p>
+  For <a><code>ChannelMergerNode</code></a>, <code>channelCount</code> and
+  <code>channelCountMode</code> properties cannot be changed. <code>InvalidState</code>
+  error MUST be thrown when they changed.
 </p>
 
 <h3 id="example-2">Example:</h3>
+<p>
+  For example, if a default <a><code>ChannelMergerNode</code></a> has two connected
+  stereo inputs, the first and second input will be downmixed to mono respectively
+  before merging. The output will be a 6-channel stream whose first two channels
+  are be filled with the first two (downmixed) inputs and the rest of channels will
+  be silent.
+</p>
+<p>
+  Also the <a><code>ChannelMergerNode</code></a> can be used to arrange multiple
+  audio streams in a certain order for the multi-channel speaker array such as
+  5.1 surround set up. The merger does not interpret the channel identities (such
+  as left, right, etc.), but simply combines channels in the order that they are
+  input.
+</p>
+
 <figure>
   <img alt="channel merger" src="images/channel-merger.png">
   <figcaption>A diagram of ChannelMerger</figcaption>
 </figure>
 
 <p>
-  Please note that in this example, the merger does <b>not</b> interpret the
-  channel identities (such as left, right, etc.), but simply combines channels
-  in the order that they are input.
-</p>
 
-
-<p>
-  Be aware that it is possible to connect an <a><code>ChannelMergerNode</code></a> in
-  such a way that it outputs an audio stream with a large number of channels
-  greater than the maximum supported by the audio hardware. In this case where
-  such an output is connected to the <a><code>AudioContext</code></a>
-  <a href="#widl-AudioContext-destination"><code>destination</code></a> (the
-  audio hardware), then the extra channels will be ignored.  Thus, the
-  <a><code>ChannelMergerNode</code></a> should be used in situations where the number of
-  channels is well understood.
 </p>
 
 <dl title="interface ChannelMergerNode : AudioNode" class="idl">

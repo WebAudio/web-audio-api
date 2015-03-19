@@ -682,10 +682,10 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dt> MediaStreamAudioDestinationNode createMediaStreamDestination() </dt>
     <dd>Creates a <a><code>MediaStreamAudioDestinationNode</code></a> </dd>
 
-    <dt> AudioWorker createAudioWorker()</dt>
+    <dt>AudioWorker createAudioWorker()</dt>
     <dd>
       Creates an <a><code>AudioWorker</code></a> object and begins loading the 
-      associated script into an <a><code>AudioWorkerGlobalScope</code></a> 
+      associated script into an <a><code>AudioWorkerGlobalScope</code></a> .
 
       <dl class=parameters>
         <dt> DOMString scriptURL </dt>
@@ -2202,7 +2202,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 <p>An AudioWorker object is the main-thread representation of a worker "thread" 
   that supports processing of audio in Javascript.  This AudioWorker object is
   a factory that is used to create multiple audio nodes of the same type; this
-  enables easy sharing of program data and global state across nodes.  An 
+  enables easy sharing of code, program data and global state across nodes.  An 
   AudioWorker can then be used to create instances of <a>AudioWorkerNode</a>, 
   which is the main-thread representation of an individual node processed by 
   that AudioWorker.</p>
@@ -2225,11 +2225,6 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   context in order to implement oscillator synchronization).</p>
 
 
-<p>Example usage:</p>
-<pre class="highlight">
-    var bitcrusherFactory = context.createAudioWorker( "bitcrusher.js" );
-</pre>
-
 <dl title="interface AudioWorker : Worker" class="idl">
   <dt>void terminate()</dt>
   <dd>The terminate() method, when invoked, must cause the 
@@ -2246,9 +2241,16 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
     <a>AudioWorkerGlobalScope</a>, via the algorithm defined by 
     <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
     the Worker specification</a>.</dd>
+  <dt>readonly attribute Array parameters</dt>
+  <dd>This array contains an Array of objects containing names and default values. TODO: expand this.</dd>
   <dt>attribute EventHandler onmessage</dt>
   <dd>The onmessage handler is called whenever the <a>AudioWorkerGlobalScope</a> 
     posts a message back to the main thread.</dd>
+  <dt>attribute EventHandler onloaded</dt>
+  <dd>The onloaded handler is called after the script is successfully loaded and
+  its global scope code is run to initialize the <a>AudioWorkerGlobalScope</a>.</dd>
+  <dt>AudioWorkerNode createNode(int numberOfInputs, int numberOfOutputs)</dt>
+  <dd>Creates a node instance in the audio worker.</dd>
   <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
   <dd>
     <p>Causes a correspondingly-named read-only <a>AudioParam</a> to be 
@@ -2413,54 +2415,15 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   </dd>
 
 
-  <dt>attribute EventHandler oninitialize</dt>
+  <dt>Promise&lt;AudioWorkerNodeProcessor&gt; createNode( int numberOfInputs, int numberOfOutputs ) </dt>
   <dd>
-    The <code>EventHandler</code> (described in [[!HTML]]) 
-    for the <a href="#initialized-worker">
-    <code>initialize</code></a> event that is dispatched to
-    <a><code>AudioWorkerGlobalScope</code></a>s to enable the scope to configure 
-    itself (e.g. call addParameter, or initiate loading of shared data, or the like).</dd>
+    The method called to tell the AudioWorker to create a new node.  Must create a new
+    <a><code>AudioWorkerNodeProcessor</code></a>s and resolve the Promise appropriately.  TODO: This is poorly defined.
   </dd>
-  <dt>attribute EventHandler oncreatenode</dt>
-  <dd>
-    The <code>EventHandler</code> (described in [[!HTML]]) 
-    for the <a href="#initialized-worker">
-    <code>initialize</code></a> event that is dispatched to
-    <a><code>AudioWorkerNodeProcessor</code></a>s to enable them to configure their
-    themselves process audio while the 
-    associated <a><code>AudioWorkerNode</code></a> is connected (to at least 
-    one input or output). An event of type <a><code>AudioProcessEvent</code></a> 
-    will be dispatched to the event handler.
-  </dd>
-
-
-
-  <dt>enumerate params TODO!!!!!!</dt>
-  <dd>If we can enumerate params in the </dd>
-
-  <dt>oninitialized TODO!!!!!!</dt>
-  <dd></dd>
-
-  <dt>onnodecreation TODO!!!!!!</dt>
-  <dd></dd>
-
-
-
-
-
-
+  <dt>readonly attribute Array parameters</dt>
+  <dd>This array contains an Array of objects containing names and default values. TODO: expand this.</dd>
 </dl>
 </section>
-
-
-
-
-
-
-
-
-
-
 
 <section>
 <h2>The AudioWorkerNodeProcessor Interface</h2>

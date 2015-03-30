@@ -3016,9 +3016,9 @@ spatialization.
 
 <p>
   This interface represents a processing node which positions an incoming audio
-  stream in a stereo image using a low-cost <a
-    href="#equal-power">equal-power</a> panning algorithm.  This panning effect
-  is common in positioning audio components in a stereo stream.
+  stream in a stereo image using a low-cost <a href="#equal-power-panning
+  ">equal-power panning algorithm</a>.  This panning effect is common in
+  positioning audio components in a stereo stream.
 </p>
 
 <pre>
@@ -3032,11 +3032,10 @@ spatialization.
 
 <p>
   The input of this node is stereo (2 channels) and cannot be increased.
-  Connections from nodes with fewer or more channels will be <a
-  href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-appropriately</a>, but a NotSupportedError will be thrown if an attempt is made
-to set channelCount to a value great than 2 or if channelCountMode is set to
-<code>"max"</code>.
+  Connections from nodes with fewer or more channels will be <a href="#channel-
+  up-mixing-and-down-mixing">up-mixed or down-mixed appropriately</a>, but a
+  NotSupportedError will be thrown if an attempt is made to set <code>channelCount</code> to
+  a value great than 2 or if <code>channelCountMode</code> is set to <code>"max"</code>.
 </p>
 
 <p>
@@ -6518,68 +6517,67 @@ Quad up-mix:
     </li>
   </ol>
 
+
   <p>
     For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
     be implemented.
     <ol>
       <li>
-        Let <code>azimuth</code> be the <a>computedValue</a> of the
-        <a>pan</a> <a>AudioParam</a> of this
-        <a><code>StereoPannerNode</code></a>.
+        <p>Let <em>pan</em> be the <a>computedValue</a> of the <code>pan</code>
+        <a>AudioParam</a> of this <a><code>StereoPannerNode</code></a>.</p>
       </li>
       <li>
-        Normalize the <code>azimuth</code> value to [0, 1].  From mono to stereo:
+        <p>Clamp <em>pan</em> to [-1, 1].</p>
         <pre class="highlight">
-  x = (azimuth + 1) / 2;
+pan = max(-1, pan);
+pan = min(1, pan);
         </pre>
-          Or when panning stereo to stereo:
+      </li>
+      <li>
+        <p>Calculate <em>x</em> by normalizing <em>pan</em> value to [0, 1].
+        For mono input:</p>
         <pre class="highlight">
-  if (azymuth &lt;= 0) {
-    x = azimuth + 1;
-  } else {
-    x = azimuth;
-  }
+x = (pan + 1) / 2;
+        </pre>
+        <p>For stereo input:</p>
+        <pre class="highlight">
+if (pan &lt;= 0)
+  x = pan + 1;
+else
+  x = pan;
         </pre>
       </li>
     </ol>
   </p>
 
-      <p>
-        Then following steps are then used for processing:
-        <ol>
-          <li>
-            <p>
-              Left and right gain values are calculated:
-            </p>
-            <pre class="highlight">
-  gainL = cos(0.5 * Math.PI * x);
-  gainR = sin(0.5 * Math.PI * x);
-            </pre>
-          </li>
-          <li>
-            <p>
-              For <em>mono->stereo</em>, the output is calculated as:
-            </p>
-            <pre class="highlight">
-  outputL = input * gainL;
-  outputR = input * gainR;
-            </pre>
-            <p>
-              Else for <em>stereo->stereo</em>, the output is calculated as:
-            </p>
-            <pre class="highlight">
-  if (azimuth &lt;= 0) {
-      outputL = inputL + inputR * gainL;
-      outputR = inputR * gainR;
-  } else {
-      outputL = inputL * gainL;
-      outputR = inputR + inputL * gainR;
-  }
-            </pre>
-          </li>
-        </ol>
-    </p>
-
+  <p>Then following steps are then used for processing.</p>
+    <ol>
+      <li>
+        <p>Left and right gain values are calculated as:</p>
+        <pre class="highlight">
+gainL = cos(x * Math.PI / 2);
+gainR = sin(x * Math.PI / 2);
+        </pre>
+      </li>
+      <li>
+        <p>For mono input, the stereo output is calculated as:</p>
+        <pre class="highlight">
+outputL = input * gainL;
+outputR = input * gainR;
+        </pre>
+        <p>Else for stereo input, the output is calculated as:</p>
+        <pre class="highlight">
+if (pan &lt;= 0) {
+  outputL = inputL + inputR * gainL;
+  outputR = inputR * gainR;
+} else {
+  outputL = inputL * gainL;
+  outputR = inputR + inputL * gainR;
+}
+        </pre>
+      </li>
+    </ol>
+  </p>
 
 
     </li>

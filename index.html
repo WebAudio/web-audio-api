@@ -3034,9 +3034,9 @@ spatialization.
 
 <p>
   This interface represents a processing node which positions an incoming audio
-  stream in a stereo image using a low-cost <a
-    href="#equal-power">equal-power</a> panning algorithm.  This panning effect
-  is common in positioning audio components in a stereo stream.
+  stream in a stereo image using a low-cost <a href="#equal-power-panning">
+  equal-power panning algorithm</a>.  This panning effect is common in
+  positioning audio components in a stereo stream.
 </p>
 
 <pre>
@@ -3050,11 +3050,11 @@ spatialization.
 
 <p>
   The input of this node is stereo (2 channels) and cannot be increased.
-  Connections from nodes with fewer or more channels will be <a
-  href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-appropriately</a>, but a NotSupportedError will be thrown if an attempt is made
-to set channelCount to a value great than 2 or if channelCountMode is set to
-<code>"max"</code>.
+  Connections from nodes with fewer or more channels will be
+  <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
+  appropriately </a>, but a NotSupportedError will be thrown if an attempt is
+  made to set <code>channelCount</code> to a value great than 2 or if
+  <code>channelCountMode</code> is set to <code>"max"</code>.
 </p>
 
 <p>
@@ -6461,162 +6461,142 @@ Quad up-mix:
   </pre>
 </section>
 
+
 <section>
   <h3 id="Spatialization-panning-algorithm">Panning Algorithm</h3>
 
-  <p>
-  <em>mono->stereo</em> and <em>stereo->stereo</em>  panning must be supported.
-  <em>mono->stereo</em> processing is used when all connections to the input are mono.
-  Otherwise <em>stereo->stereo</em> processing is used.</p>
+  <p><em>Mono-to-stereo</em> and <em>stereo-to-stereo</em> panning must be supported. 
+  <em>Mono-to-stereo</em> processing is used when all connections to the input are mono.
+  Otherwise <em>stereo-to-stereo</em> processing is used.</p>
 
-  <h3>Equal-power panning</h3>
-  <p>
-    This is a simple and relatively inexpensive algorithm which provides
-    basic, but reasonable results.  It is used for the
-    <a><code>StereoPannerNode</code></a>, and for the
-    <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
+  <section>
+  <h4 id="Spatialzation-equal-power-panning">Equal-power panning</h4>
+
+    <p>This is a simple and relatively inexpensive algorithm which provides basic,
+    but reasonable results.  It is used for the <a><code>StereoPannerNode</code></a>,
+    and for the <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
     attribute is set to <code>"equalpower"</code>, in which case the the
-    <em>elevation</em> value is ignored.
-  </p>
+    <em>elevation</em> value is ignored.</p>
 
-  <p>
-    The first step is to compute the <em>x</em> value, that is the azimuth,
-    normalized to [0, 1].
-  </p>
+    <p>For a <a><code>PannerNode</code></a>, the following algorithm MUST be implemented.</p>
 
-  <p>
-    For a <a><code>PannerNode</code></a>, the following algorithm MUST be
-    implemented.
-  </p>
-  <ol>
-    <li>
-      Let <code>azimuth</code> be the value computed in the <a>azimuth and
-        elevation</a> section.
-    </li>
-    <li>
-      <p>
-      The <em>azimuth</em> value is first contained to be within the range -90 &lt;= <em>azimuth</em> &lt;= +90 according to:
-      </p>
-      <pre class="highlight">
-  // Clamp azimuth to allowed range of -180 -&gt; +180.
+    <ol>
+      <li>
+        <p>Let <em>azimuth</em> be the value computed in the <a>azimuth and elevation</a>
+        section.</p>
+      </li>
+      <li>
+        <p>The <em>azimuth</em> value is first contained to be within the range
+        [-90, 90] according to:</p>
+        <pre class="highlight">
+  // First, clamp azimuth to allowed range of [-180, 180].
   azimuth = max(-180, azimuth);
   azimuth = min(180, azimuth);
 
-  // Now wrap to range -90 -&gt; +90.
-  if (azimuth &lt; -90) {
-      azimuth = -180 - azimuth;
-  } else if (azimuth &gt; 90) {
-      azimuth = 180 - azimuth;
-  }
-      </pre>
-    </li>
-
-    <li>
-      <p>
-        A 0 -&gt; 1 normalized value <em>x</em> is calculated from <em>azimuth</em> for <em>mono->stereo</em> as:
-      </p>
-      <pre class="highlight">
-  x = (azimuth + 90) / 180
-      </pre>
-
-      <p>
-        Or for <em>stereo->stereo</em> as:
-      </p>
-      <pre class="highlight">
-  if (azimuth &lt;= 0) { // from -90 -&gt; 0
-      // inputL -&gt; outputL and "equal-power pan" inputR as in mono case
-      // by transforming the "azimuth" value from -90 -&gt; 0 degrees into the range -90 -&gt; +90.
-      x = (azimuth + 90) / 90;
-  } else { // from 0 -&gt; +90
-      // inputR -&gt; outputR and "equal-power pan" inputL as in mono case
-      // by transforming the "azimuth" value from 0 -&gt; +90 degrees into the range -90 -&gt; +90.
-      x = azimuth / 90;
-  }
-      </pre>
-    </li>
-  </ol>
-
-  <p>
-    For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
-    be implemented.
-    <ol>
-      <li>
-        Let <code>azimuth</code> be the <a>computedValue</a> of the
-        <a>pan</a> <a>AudioParam</a> of this
-        <a><code>StereoPannerNode</code></a>.
-      </li>
-      <li>
-        Normalize the <code>azimuth</code> value to [0, 1].  From mono to stereo:
-        <pre class="highlight">
-  x = (azimuth + 1) / 2;
+  // Then wrap to range [-90, 90].
+  if (azimuth &lt; -90)
+    azimuth = -180 - azimuth;
+  else if (azimuth &gt; 90)
+    azimuth = 180 - azimuth;
         </pre>
-          Or when panning stereo to stereo:
+      </li>
+
+      <li>
+        <p>A normalized value <em>x</em> is calculated from <em>azimuth</em> for
+        a mono input as:</p>
         <pre class="highlight">
-  if (azymuth &lt;= 0) {
-    x = azimuth + 1;
-  } else {
-    x = azimuth;
+  x = (azimuth + 90) / 180;
+        </pre>
+        <p>Or for a stereo input as:</p>
+        <pre class="highlight">
+  if (azimuth &lt;= 0) { // -90 &#126; 0
+    // Transform the azimuth value from [-90, 0] degrees into the range [-90, 90].
+    x = (azimuth + 90) / 90;
+  } else { // 0 &#126; 90
+    // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
+    x = azimuth / 90;
   }
         </pre>
       </li>
     </ol>
-  </p>
-
-      <p>
-        Then following steps are then used for processing:
-        <ol>
-          <li>
-            <p>
-              Left and right gain values are calculated:
-            </p>
-            <pre class="highlight">
-  gainL = cos(0.5 * Math.PI * x);
-  gainR = sin(0.5 * Math.PI * x);
-            </pre>
-          </li>
-          <li>
-            <p>
-              For <em>mono->stereo</em>, the output is calculated as:
-            </p>
-            <pre class="highlight">
-  outputL = input * gainL;
-  outputR = input * gainR;
-            </pre>
-            <p>
-              Else for <em>stereo->stereo</em>, the output is calculated as:
-            </p>
-            <pre class="highlight">
-  if (azimuth &lt;= 0) {
-      outputL = inputL + inputR * gainL;
-      outputR = inputR * gainR;
-  } else {
-      outputL = inputL * gainL;
-      outputR = inputR + inputL * gainR;
-  }
-            </pre>
-          </li>
-        </ol>
-    </p>
 
 
+    <p>For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
+    be implemented.</p>
+    <ol>
+      <li>
+        <p>Let <em>pan</em> be the <a>computedValue</a> of the <code>pan</code>
+        <a>AudioParam</a> of this <a><code>StereoPannerNode</code></a>.</p>
+      </li>
+      <li>
+        <p>Clamp <em>pan</em> to [-1, 1].</p>
+        <pre class="highlight">
+pan = max(-1, pan);
+pan = min(1, pan);
+        </pre>
+      </li>
+      <li>
+        <p>Calculate <em>x</em> by normalizing <em>pan</em> value to [0, 1].
+        For mono input:</p>
+        <pre class="highlight">
+x = (pan + 1) / 2;
+        </pre>
+        <p>For stereo input:</p>
+        <pre class="highlight">
+if (pan &lt;= 0)
+  x = pan + 1;
+else
+  x = pan;
+        </pre>
+      </li>
+    </ol>
 
-    </li>
-    <li><a
-      href="https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
-      panning (stereo only).
-      <p>This requires a set of HRTF impulse responses recorded at a variety of
-      azimuths and elevations. There are a small number of open/free impulse
-      responses available. The implementation requires a highly optimized
-      convolution function. It is somewhat more costly than "equal-power", but
-      provides a more spatialized sound. </p>
-      <figure>
-        <img alt="HRTF panner" src="images/HRTF_panner.png" />
-        <figcaption>A diagram showing the process of panning a source using
-        HRTF.</figcaption>
-      </figure>
-    </li>
-  </ul>
+    <p>Then following steps are used to achieve equal-power panning:</p>
+    <ol>
+      <li>
+        <p>Left and right gain values are calculated as:</p>
+        <pre class="highlight">
+gainL = cos(x * Math.PI / 2);
+gainR = sin(x * Math.PI / 2);
+        </pre>
+      </li>
+      <li>
+        <p>For mono input, the stereo output is calculated as:</p>
+        <pre class="highlight">
+outputL = input * gainL;
+outputR = input * gainR;
+        </pre>
+        <p>Else for stereo input, the output is calculated as:</p>
+        <pre class="highlight">
+if (pan &lt;= 0) {
+  // Pass through inputL to outputL and equal-power pan inputR as in mono case.
+  outputL = inputL + inputR * gainL;
+  outputR = inputR * gainR;
+} else {
+  // Pass through inputR to outputR and equal-power pan inputR as in mono case.
+  outputL = inputL * gainL;
+  outputR = inputR + inputL * gainR;
+}
+        </pre>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h4>HRTF panning (stereo only)</h4>
+    <p>This requires a set of <a href="https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
+    (Head-related Transfer Function) impulse responses recorded at a variety
+    of azimuths and elevations. The implementation requires a highly optimized
+    convolution function. It is somewhat more costly than "equal-power", but
+    provides more perceptually spatialized sound.</p>
+    <figure>
+      <img alt="HRTF panner" src="images/HRTF_panner.png" />
+      <figcaption>A diagram showing the process of panning a source using HRTF.</figcaption>
+    </figure>
+  </section>
+
 </section>
+
 
 <section>
   <h3 id="Spatialization-distance-effects">Distance Effects</h3>

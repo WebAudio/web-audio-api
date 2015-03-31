@@ -682,10 +682,11 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dt> MediaStreamAudioDestinationNode createMediaStreamDestination() </dt>
     <dd>Creates a <a><code>MediaStreamAudioDestinationNode</code></a> </dd>
 
-    <dt>AudioWorker createAudioWorker()</dt>
+    <dt>Promise&lt;AudioWorker&gt; createAudioWorker()</dt>
     <dd>
-      Creates an <a><code>AudioWorker</code></a> object and begins loading the 
-      associated script into an <a><code>AudioWorkerGlobalScope</code></a> .
+      Creates an <a><code>AudioWorker</code></a> object and loads the 
+      associated script into an <a><code>AudioWorkerGlobalScope</code>, then resolves
+    </a> .
 
       <dl class=parameters>
         <dt> DOMString scriptURL </dt>
@@ -2241,8 +2242,10 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
     <a>AudioWorkerGlobalScope</a>, via the algorithm defined by 
     <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
     the Worker specification</a>.</dd>
-  <dt>readonly attribute Array parameters</dt>
-  <dd>This array contains an Array of objects containing names and default values. TODO: expand this.</dd>
+  <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
+  <dd>This array contains descriptors for each of the current parameters on 
+    nodes created by this AudioWorker.  This enables users of the AudioWorker 
+    to easily iterate over the AudioParam names and default values.</dd>
   <dt>attribute EventHandler onmessage</dt>
   <dd>The onmessage handler is called whenever the <a>AudioWorkerGlobalScope</a> 
     posts a message back to the main thread.</dd>
@@ -2251,7 +2254,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   its global scope code is run to initialize the <a>AudioWorkerGlobalScope</a>.</dd>
   <dt>AudioWorkerNode createNode(int numberOfInputs, int numberOfOutputs)</dt>
   <dd>Creates a node instance in the audio worker.</dd>
-  <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
+  <dt>AudioParam addParameter(DOMString name, float defaultValue) </dt>
   <dd>
     <p>Causes a correspondingly-named read-only <a>AudioParam</a> to be 
       present on any <a>AudioWorkerNode</a>s created (previously or 
@@ -2346,12 +2349,28 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   <dt>attribute EventHandler onmessage</dt>
   <dd>The onmessage handler is called whenever the AudioWorkerNodeScope posts a 
     node message back to the main thread.</dd>
+</dl>
 <p>
   Note that <a>AudioWorkerNode</a> objects will also have read-only 
   AudioParam objects for each named parameter added via the 
   <code>addParameter</code> method on the AudioWorker.  As this is dynamic, 
   it cannot be captured here in IDL.
 </p>
+</section>
+
+<section>
+<h2 id="AudioWorkerParamDescriptor">The <dfn>AudioWorkerParamDescriptor</dfn> Interface</h2>
+
+<p>This interface represents the description of an AudioWorkerNode AudioParam - in short, its
+  name and default value.  This enables easy iteration over the AudioParams from an
+  AudioWorkerGlobalScope (which does not have an instance of those AudioParams).</p>
+
+<dl title="interface AudioWorkerParamDescriptor" class="idl">
+  <dt>readonly attribute DOMString name</dt>
+  <dd>The name of the AudioParam.</dd>
+  <dt>readonly attribute float defaultValue</dt>
+  <dd>The default value of the AudioParam.</dd>
+</dl>
 </section>
 
 <section>
@@ -2371,7 +2390,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
     <a>Worker</a> scope, the user will not have direct access to the 
     <a>AudioContext</a>.
   </dd>
-  <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
+  <dt>AudioParam addParameter(DOMString name, float defaultValue) </dt>
   <dd>
     <p>Causes a correspondingly-named read-only <a>AudioParam</a> to be 
       present on previously-created and subsequently-created 
@@ -2415,13 +2434,16 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   </dd>
 
 
-  <dt>Promise&lt;AudioWorkerNodeProcessor&gt; createNode( int numberOfInputs, int numberOfOutputs ) </dt>
+  <dt>AudioWorkerNodeProcessor createNode( int numberOfInputs, int numberOfOutputs ) </dt>
   <dd>
     The method called to tell the AudioWorker to create a new node.  Must create a new
     <a><code>AudioWorkerNodeProcessor</code></a>s and resolve the Promise appropriately.  TODO: This is poorly defined.
   </dd>
-  <dt>readonly attribute Array parameters</dt>
-  <dd>This array contains an Array of objects containing names and default values. TODO: expand this.</dd>
+  <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
+  <dd>This array contains descriptors for each of the current parameters on 
+    nodes created in this AudioWorkerGlobalScope.  This enables audio worker 
+    implementations to easily iterate over the AudioParam names and default 
+    values.</dd>
 </dl>
 </section>
 
@@ -2475,16 +2497,37 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
         AudioWorker.</p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var bitcrusherNode = audioContext.createAudioWorker("bitcrusher_worker.js");
+    <pre class="highlight">
+var bitcrusherFactory = audioContext.createAudioWorker("bitcrusher_worker.js");
+bitcrusherFactory.ready.then( function() 
+    {
+      var bitcrusherNode = bitcrusherFactory.createNode(); 
+      bitcrusherNode.bits.setValueAtTime(8,0);
+      bitcrusherNode.connect(output); 
+      input.connect(bitcrusherNode);
+    }
+  );
 
-// Custom parameter - number of bits to crush down to - default 8
-bitcrusherNode.addParameter( "bits", 8 );
-
-// Custom parameter - frequency reduction, 0-1, default 0.5
-bitcrusherNode.addParameter( "frequencyReduction", 0.5 );</pre>
+/* TODO: REMOVE: optional alternate design:
+var bitcrusherFactory = audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
+    {  // cache 'factory' if you want to create more nodes!
+      var bitcrusherNode = factory.createNode();
+      bitcrusherNode.bits.setValueAtTime(8,0);
+      bitcrusherNode.connect(output); 
+      input.connect(bitcrusherNode);
+    }
+  );
+*/
+</pre>
     <h5>bitcrusher_worker.js</h5>
     <pre class="highlight">var phaser = 0;
 var lastDataValue = 0;
+
+// Custom parameter - number of bits to crush down to - default 8
+this.addParameter( "bits", 8 );
+
+// Custom parameter - frequency reduction, 0-1, default 0.5
+this.addParameter( "frequencyReduction", 0.5 );
 
 onaudioprocess= function (e) {
   for (var channel=0; channel&lt;e.inputs[0].length; channel++) {
@@ -2703,7 +2746,7 @@ This is an <code>Event</code> object which is dispatched to
         organized by input; each input may contain multiple channels; each
         channel contains a Float32Array of sample data.  The initial size of
         the channel array will be determined by the number of channels
-        specified for that input in the createAudioWorker() method.  However,
+        specified for that input in the createAudioWorkerNode() method.  However,
         an onprocess handler may alter this number of channels in the input
         dynamically, either by adding a Float32Array of blocksize length (128)
         or by reducing the Array (by reducing the Array.length or by using
@@ -2722,7 +2765,7 @@ This is an <code>Event</code> object which is dispatched to
         organized by output; each output may contain multiple channels; each
         channel contains a Float32Array of sample data.  The initial size of
         the channel array will be determined by the number of channels
-        specified for that output in the createAudioWorker() method.  However,
+        specified for that output in the createAudioWorkerNode() method.  However,
         an onprocess handler may alter this number of channels in the output
         dynamically, either by adding a Float32Array of blocksize length (128)
         or by reducing the Array (by reducing the Array.length or by using

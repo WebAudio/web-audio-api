@@ -2549,8 +2549,8 @@ to be zero.
 
   <dt>AudioWorkerNodeProcessor createNode( int numberOfInputs, int numberOfOutputs ) </dt>
   <dd>
-    The method called to tell the AudioWorker to create a new node.  Must create a new
-    <a><code>AudioWorkerNodeProcessor</code></a>s and resolve the Promise appropriately.  TODO: This is poorly defined.
+    The method called to tell the AudioWorker to create a new node.  The Must create a new
+    <a><code>AudioWorkerNodeProcessor</code></a>s and resolve the Promise appropriately.  TODO: This is poorly defined.  Needs to be an event?
   </dd>
   <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
   <dd>This array contains descriptors for each of the current parameters on 
@@ -2565,42 +2565,20 @@ to be zero.
 
 <p>An object supporting this interface represents each individual node 
   instantiated in an <a><code>AudioWorkerGlobalScope</code></a>; 
-  it is designed to manage the data, messaging and processing for individual nodes.
+  it is designed to manage the data for an individual node.
   Shared context between multiple instances of audio nodes is accessible from the 
   <a>AudioWorkerGlobalScope</a>; this object represents the individual node and can 
   be used for data storage or main-thread communication.</p>
 
-<p>The <a><code>AudioWorkerNodeProcessor</code></a> has an 
-  <dfn id="audioprocess-worker">audioprocess</dfn> event that is dispatched
-  synchronously to process audio frames.  
-  <a href="#audioprocess-worker"><code>audioprocess</code></a> events are only
-  dispatched if the <a><code>AudioWorkerNode</code></a> has at least one input 
-  or one output connected.</p>
 
 <dl title="interface AudioWorkerNodeProcessor : EventTarget" class="idl">
+  <p>I think this should be replaced by a raw Object.</p>
 
-  <dt>attribute EventHandler onaudioprocess</dt>
-  <dd>
-    A property used to set the <code>EventHandler</code> (described in <cite>
-    <a href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
-    HTML</a></cite>[[!HTML]]) for the <a href="#audioprocess-worker">
-    <code>audioprocess</code></a> event that is dispatched to
-    <a><code>AudioWorkerNodeProcessor</code></a> to process audio while the 
-    associated <a><code>AudioWorkerNode</code></a> is connected (to at least 
-    one input or output). An event of type <a><code>AudioProcessEvent</code></a> 
-    will be dispatched to the event handler.
-  </dd>
 </dl>
 </section>
 
 <section class="informative">
   <h3>Audio Worker Examples</h3>
-
-
-
-
-  TODO:  Fix these examples!!!
-  
   <section>
     <h4>A Bitcrusher Node</h4>
       <p>Bitcrushing is a mechanism by which the audio quality of an audio
@@ -2622,26 +2600,31 @@ bitcrusherFactory.ready.then( function()
     }
   );
 
-/* TODO: REMOVE: optional alternate design:
-var bitcrusherFactory = audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
+/* TODO: REMOVE: optional alternate design?  This prevents you from using the factory to create nodes until it's loaded. */
+
+var bitcrusherFactory = null;
+audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
     {  // cache 'factory' if you want to create more nodes!
+      bitcrusherFactory = factory;
       var bitcrusherNode = factory.createNode();
       bitcrusherNode.bits.setValueAtTime(8,0);
       bitcrusherNode.connect(output); 
       input.connect(bitcrusherNode);
     }
-  );
-*/
-</pre>
+  );</pre>
     <h5>bitcrusher_worker.js</h5>
-    <pre class="highlight">var phaser = 0;
-var lastDataValue = 0;
+    <pre class="highlight">
 
 // Custom parameter - number of bits to crush down to - default 8
 this.addParameter( "bits", 8 );
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
 this.addParameter( "frequencyReduction", 0.5 );
+
+onnodecreate=function(node) {
+  node.phaser = 0;
+  node.lastDataValue = 0;
+}
 
 onaudioprocess= function (e) {
   for (var channel=0; channel&lt;e.inputs[0].length; channel++) {
@@ -2656,18 +2639,18 @@ onaudioprocess= function (e) {
       var frequencyReduction = frequencyReductionArray ? frequencyReductionArray[i] : 0.5;
 
       var step = Math.pow(1/2, bits);
-      phaser += frequencyReduction;
-      if (phaser >= 1.0) {
-          phaser -= 1.0;
-          lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
+      node.phaser += frequencyReduction;
+      if (node.phaser >= 1.0) {
+          node.phaser -= 1.0;
+          node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
       }
-      outputBuffer[i] = lastDataValue;
+      outputBuffer[i] = node.lastDataValue;
     }
   }
 };</pre>
   </section>
   <section>
-    <h4>A Volume Meter and Clip Detector</h4>
+    <h4>TODO: fix up this example.  A Volume Meter and Clip Detector</h4>
     <p>Another common need is a clip-detecting volume meter.  This example 
       shows how to communicate basic parameters (that do not need AudioParam 
       scheduling) across to a Worker, as well as communicating data back to 
@@ -2830,6 +2813,26 @@ handler.
 </section>
 
 <section>
+<h2>The AudioWorkerNodeCreationEvent Interface</h2>
+
+<p>This is an <code>Event</code> object which is dispatched to
+  <a><code>AudioWorkerGlobalScope</code></a> objects when a new node instance
+  is created.  This allows AudioWorkers to initialize any node-local data (e.g.
+  allocating a delay or initializing local variables).
+</p>
+
+<dl title="interface AudioWorkerNodeCreationEvent : Event" class="idl">
+    <dt>readonly attribute AudioWorkerNodeProcessor</dt>
+    <dd>The new node being created.  Any node-local data storage (e.g., the 
+      buffer for a delay node) should be created on this object.</dd>
+    <dt>readonly attribute Array inputs</dt>
+    <dd>An array of channelCounts for the inputs.</dd>
+    <dt>readonly attribute Array outputs</dt>
+    <dd>An array of channelCounts for the outputs.</dd>
+  </dl>
+</section>
+
+<section>
 <h2>The AudioProcessEvent Interface</h2>
 
 <p>
@@ -2853,6 +2856,10 @@ This is an <code>Event</code> object which is dispatched to
       tight synchronization between processing directly in JavaScript with the
       other events in the context's rendering graph.
     </dd>
+    <dt>readonly attribute AudioWorkerNodeProcessor</dt>
+    <dd>The node to which this processing event is being dispatched.  Any 
+      node-local data storage (e.g., the buffer for a delay node) should be 
+      maintained on this object.</dd>
     <dt>readonly attribute Float32Array[][] inputs</dt>
     <dd>
       <p>

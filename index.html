@@ -2596,22 +2596,9 @@ to be zero.
         AudioWorker.</p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">
-var bitcrusherFactory = audioContext.createAudioWorker("bitcrusher_worker.js");
-bitcrusherFactory.ready.then( function() 
-    {
-      var bitcrusherNode = bitcrusherFactory.createNode(); 
-      bitcrusherNode.bits.setValueAtTime(8,0);
-      bitcrusherNode.connect(output); 
-      input.connect(bitcrusherNode);
-    }
-  );
-
-/* TODO: REMOVE: optional alternate design?  This prevents you from using the factory to create nodes until it's loaded. */
-
-var bitcrusherFactory = null;
+    <pre class="highlight">var bitcrusherFactory = null;
 audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
-    {  // cache 'factory' if you want to create more nodes!
+    {  // cache 'factory' in case you want to create more nodes!
       bitcrusherFactory = factory;
       var bitcrusherNode = factory.createNode();
       bitcrusherNode.bits.setValueAtTime(8,0);
@@ -2628,9 +2615,9 @@ this.addParameter( "bits", 8 );
 // Custom parameter - frequency reduction, 0-1, default 0.5
 this.addParameter( "frequencyReduction", 0.5 );
 
-onnodecreate=function(node) {
-  node.phaser = 0;
-  node.lastDataValue = 0;
+onnodecreate=function(e) {
+  e.node.phaser = 0;
+  e.node.lastDataValue = 0;
 }
 
 onaudioprocess= function (e) {
@@ -2646,12 +2633,12 @@ onaudioprocess= function (e) {
       var frequencyReduction = frequencyReductionArray ? frequencyReductionArray[i] : 0.5;
 
       var step = Math.pow(1/2, bits);
-      node.phaser += frequencyReduction;
-      if (node.phaser >= 1.0) {
-          node.phaser -= 1.0;
-          node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
+      e.node.phaser += frequencyReduction;
+      if (e.node.phaser >= 1.0) {
+          e.node.phaser -= 1.0;
+          e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
       }
-      outputBuffer[i] = node.lastDataValue;
+      outputBuffer[i] = e.node.lastDataValue;
     }
   }
 };</pre>

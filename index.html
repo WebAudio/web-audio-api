@@ -2651,47 +2651,77 @@ onaudioprocess= function (e) {
       the main thread.  This node does not use any output. </p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var vuNode = audioContext.createAudioWorker("vu_meter_worker.js", [1], [] );
-
-// This handles communication back from the volume meter
-vuNode.onmessage = function (event) {
-  if (event.data instanceof Object ) {
-    if (event.data.hasOwnProperty("clip")
-      this.clip = event.data.clip;
-    if (event.data.hasOwnProperty("volume")
-      this.volume = event.data.volume;
+    <pre class="highlight">
+function setupNodeMessaging(node) {
+  // This handles communication back from the volume meter
+  node.onmessage = function (event) {
+    if (event.data instanceof Object ) {
+      if (event.data.hasOwnProperty("clip")
+        this.clip = event.data.clip;
+      if (event.data.hasOwnProperty("volume")
+        this.volume = event.data.volume;
+    }
   }
+
+  // Set up some default configuration parameters
+  node.postMessage(
+    { "smoothing": 0.9,   // Smoothing parameter
+      "clipLevel": 0.9,   // Level to consider "clipping"
+      "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
+      "updating": 100      // How frequently to update volume and clip param (ms)
+    });
+
+  // Set up volume and clip attributes.  These will be updated by our onmessage.
+  node.volume = 0;
+  node.clip = false;
 }
 
-// Set up some configuration parameters
-vuNode.postMessage(
-  { "smoothing": 0.9,   // Smoothing parameter
-    "clipLevel": 0.9,   // Level to consider "clipping"
-    "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
-    "updating": 90      // How frequently to update volume and clip param (ms)
-  });
+var vuNode = null;
 
-// Set up volume and clip attributes.  These will be updated by our onmessage.
-vuNode.volume = 0;
-vuNode.clip = false;</pre>
+audioContext.createAudioWorker("vu_meter_worker.js").then( function(factory) 
+    {  // cache 'factory' in case you want to create more nodes!
+      vuFactory = factory;
+      vuNode = factory.createNode([1], []); // we don't need an output, and let's force to mono
+      setupNodeMessaging(vuNode);
+    }
+  );
+
+window.requestAnimationFrame( function(timestamp) {
+  if (vuNode) {
+  // Draw a bar based on vuNode.volume and vuNode.clip
+  }
+});
+
+</pre>
 
     <h5>vu_meter_worker.js</h5>
-    <pre class="highlight">// how many samples between updates - default 100ms
-this.timeToNextUpdate = 0.1 * this.sampleRate;
+    <pre class="highlight">
+// Custom parameter - number of bits to crush down to - default 8
+this.addParameter( "bits", 8 );
 
-// This just handles setting attribute values
-onmessage = function ( event ) {
-  if (event.data instanceof Object ) {
-    if (event.data.hasOwnProperty("smoothing")
-      this.smoothing = event.data.smoothing;
-    if (event.data.hasOwnProperty("clipLevel")
-      this.clipLevel = event.data.clipLevel;
-    if (event.data.hasOwnProperty("clipLag")
-      this.clipLag = event.data.clipLag / 1000;  // convert to seconds
-    if (event.data.hasOwnProperty("updating")    // convert to samples
-      this.updatingInterval = event.data.updating * this.sampleRate / 1000 ;
-  }
-};
+// Custom parameter - frequency reduction, 0-1, default 0.5
+this.addParameter( "frequencyReduction", 0.5 );
+
+onnodecreate=function(e) {
+  e.node.timeToNextUpdate = 0.1 * sampleRate;
+  e.node.smoothing = 0.5;
+  e.node.clipLevel = 0.95;
+  e.node.clipLag = 1;
+  e.node.updatingInterval = 150;
+  // This just handles setting attribute values
+  e.node.onmessage = function ( event ) {
+    if (event.data instanceof Object ) {
+      if (event.data.hasOwnProperty("smoothing")
+        this.smoothing = event.data.smoothing;
+      if (event.data.hasOwnProperty("clipLevel")
+        this.clipLevel = event.data.clipLevel;
+      if (event.data.hasOwnProperty("clipLag")
+        this.clipLag = event.data.clipLag / 1000;  // convert to seconds
+      if (event.data.hasOwnProperty("updating")    // convert to samples
+        this.updatingInterval = event.data.updating * sampleRate / 1000 ;
+    }
+  };
+}
 
 onaudioprocess = function ( event ) {
   var buf = event.inputs[0][0];  // Node forces mono
@@ -2702,10 +2732,10 @@ onaudioprocess = function ( event ) {
   // Do a root-mean-square on the samples: sum up the squares...
   for (var i=0; i&lt;bufLength; i++) {
     x = buf[i];
-    if (Math.abs(x)>=this.clipLevel) {
-      this.clipping = true;
-      this.unsentClip = true;  // Make sure, for every clip, we send a message.
-      this.lastClip = event.playbackTime + (i/this.sampleRate);
+    if (Math.abs(x)>=event.node.clipLevel) {
+      event.node.clipping = true;
+      event.node.unsentClip = true;  // Make sure, for every clip, we send a message.
+      event.node.lastClip = event.playbackTime + (i/sampleRate);
     }
     sum += x * x;
   }
@@ -2716,30 +2746,30 @@ onaudioprocess = function ( event ) {
   // Now smooth this out with the smoothing factor applied
   // to the previous sample - take the max here because we
   // want "fast attack, slow release."
-  this.volume = Math.max(rms, this.volume*this.smoothing);
-  if (this.clipping &amp;&amp; (!this.unsentClip) &amp;&amp; (event.playbackTime > (this.lastClip + clipLag)))
-    this.clipping = false;
+  event.node.volume = Math.max(rms, event.node.volume*event.node.smoothing);
+  if (event.node.clipping &amp;&amp; (!event.node.unsentClip) &amp;&amp; (event.playbackTime > (this.lastClip + clipLag)))
+    event.node.clipping = false;
 
   // How long has it been since our last update?
-  this.timeToNextUpdate -= this.last
-  if (this.timeToNextUpdate&lt;0) {
-    this.timeToNextUpdate = this.updatingInterval;
-    this.postMessage(
-      { "volume": this.volume,
-        "clip": this.clipping });
-    this.unsentClip = false;
+  event.node.timeToNextUpdate -= event.node.last;
+  if (event.node.timeToNextUpdate&lt;0) {
+    event.node.timeToNextUpdate = event.node.updatingInterval;
+    event.node.postMessage(
+      { "volume": event.node.volume,
+        "clip": event.node.clipping });
+    event.node.unsentClip = false;
   }
 };</pre>
     </section>
   <section>
-    <h4>Reimplementing ChannelMerger</h4>
+    <h4>TODO: Reimplementing ChannelMerger</h4>
     <p>This worker shows how to merge inputs into a single output channel.</p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
+    <pre class="highlight">NOT DONE: var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
 
     <h5>merger_worker.js</h5>
-    <pre class="highlight">onaudioprocess = function ( event ) {
+    <pre class="highlight">NOT DONE: onaudioprocess = function ( event ) {
   for (var input=0; input&lt;event.inputs.length; input++)
     event.outputs[0][input].set(event.inputs[input][0]);
 };</pre>

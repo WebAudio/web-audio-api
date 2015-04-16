@@ -2522,7 +2522,6 @@ to be zero.
       AudioParam added to the AudioWorkerNode, and the name used for the 
       read-only <code>Float32Array</code> that will be present on the 
       <a><code>parameters</code></a> object exposed on subsequent 
-
       <a>AudioProcessEvent</a>s.</p>
     <p>The <dfn
       id="dfn-defaultValue">defaultValue</dfn> parameter is the default value
@@ -2534,8 +2533,8 @@ to be zero.
   <dt>void removeParameter(DOMString name) </dt>
   <dd>
     <p>
-      Removes a previously-added parameter named <code>name</code> from nodes processed by this factory. 
-      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named 
+      Removes a previously-added parameter named <code>name</code> from nodes 
+      processed by this factory. This will also remove the correspondingly-named 
       read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
       remove the correspondingly-named read-only <a>Float32Array</a> from the 
       <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on 
@@ -2549,8 +2548,11 @@ to be zero.
 
   <dt>AudioWorkerNodeProcessor createNode( int numberOfInputs, int numberOfOutputs ) </dt>
   <dd>
-    The method called to tell the AudioWorker to create a new node.  The Must create a new
-    <a><code>AudioWorkerNodeProcessor</code></a>s and resolve the Promise appropriately.  TODO: This is poorly defined.  Needs to be an event?
+    The fired after the AudioWorker has been asked (through 
+    <a>AudioWorker.createNode</a>) to create a new node.  A new
+    <a><code>AudioWorkerNodeProcessor</code></a> will already have been 
+    created; this is the AudioWorker's opportunity to intialize the new 
+    node appropriately.
   </dd>
   <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
   <dd>This array contains descriptors for each of the current parameters on 
@@ -2607,9 +2609,7 @@ audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory)
     }
   );</pre>
     <h5>bitcrusher_worker.js</h5>
-    <pre class="highlight">
-
-// Custom parameter - number of bits to crush down to - default 8
+    <pre class="highlight">// Custom parameter - number of bits to crush down to - default 8
 this.addParameter( "bits", 8 );
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
@@ -2762,16 +2762,26 @@ onaudioprocess = function ( event ) {
 };</pre>
     </section>
   <section>
-    <h4>TODO: Reimplementing ChannelMerger</h4>
+    <h4>Reimplementing ChannelMerger</h4>
     <p>This worker shows how to merge inputs into a single output channel.</p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">NOT DONE: var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
+    <pre class="highlight">var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
+    <pre class="highlight">var mergerFactory = null;
+
+audioContext.createAudioWorker("merger_worker.js").then( function(factory) 
+    {  // cache 'factory' in case you want to create more nodes!
+      mergerFactory = factory;
+      var merger6channelNode = factory.createNode( [1,1,1,1,1,1], [6] );
+      // connect inputs and outputs here
+    }
+  );</pre>
 
     <h5>merger_worker.js</h5>
-    <pre class="highlight">NOT DONE: onaudioprocess = function ( event ) {
-  for (var input=0; input&lt;event.inputs.length; input++)
-    event.outputs[0][input].set(event.inputs[input][0]);
+    <pre class="highlight">
+onaudioprocess= function (e) {
+  for (var input=0; input&lt;e,node.inputs.length; input++)
+    e.node.outputs[0][input].set(e.node.inputs[input][0]);
 };</pre>
     </section>
   </section>

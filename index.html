@@ -4,21 +4,21 @@
   <title>Web Audio API</title>
   <meta charset=utf-8>
   <script src='respec-w3c-common' async class='remove'></script>
-  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=MML_HTMLorMML"></script>
+  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=MML_HTMLorMML"></script>
   <script class='remove'>
     var respecConfig = {
         specStatus: "ED",
         shortName:  "webaudio",
-        edDraftURI: "http://webaudio.github.io/web-audio-api/",
+        edDraftURI: "https://webaudio.github.io/web-audio-api/",
         editors: [
               {   name:       "Paul Adenot",
                   company:    "Mozilla",
-                  companyURL: "http://mozilla.org/",
+                  companyURL: "https://www.mozilla.org/",
                   mailto:     "padenot@mozilla.com" },
               {
                   name:       "Chris Wilson",
                   company:    "Google, Inc.",
-                  companyURL: "http://google.com",
+                  companyURL: "https://www.google.com/",
                   mailto:     "cwilso@google.com" },
         ],
         previousMaturity: "WD",
@@ -540,24 +540,24 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <p>When the state is "closed", no further state transitions are possible.</p>
   </dd>
 
-  <dt>Promise suspend()</dt>
+  <dt>Promise&lt;void&gt; suspend()</dt>
   <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.  This method will cause an InvalidAccessError exception to be thrown if called on an OfflineAudioContext.
 
     <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
 
-  <dt>Promise resume()</dt>
+  <dt>Promise&lt;void&gt; resume()</dt>
   <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.  This method will cause an InvalidAccessError exception to be thrown if called on an OfflineAudioContext.</dd>
 
-  <dt>Promise close()</dt>
+  <dt>Promise&lt;void&gt; close()</dt>
   <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an InvalidAccessError exception to be thrown if called on an OfflineAudioContext.</dd>
 
  <dt>attribute EventHandler onstatechange</dt>
   <dd>
     A property used to set the <code>EventHandler</code> for an event that is dispatched to
     <a><code>AudioContext</code></a> when the state of the AudioContext has changed (i.e. when the
-    corresponding promise would have resolved). An event of type <a><code>Event</code></a> will be 
-    dispatched to the event handler, which can query the AudioContext's state directly.  A 
-    newly-created AudioContext will always begin in the "suspended" state, and a state change event will be fired 
+    corresponding promise would have resolved). An event of type <a><code>Event</code></a> will be
+    dispatched to the event handler, which can query the AudioContext's state directly.  A
+    newly-created AudioContext will always begin in the "suspended" state, and a state change event will be fired
     whenever the state changes to a different state.
   </dd>
 
@@ -681,8 +681,8 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
 
     <dt> AudioWorkerNode createAudioWorker()</dt>
     <dd>
-      Creates an <a><code>AudioWorkerNode</code></a> and its associated <a><code>AudioWorkerGlobalScope</code></a> 
-      for direct audio processing using JavaScript.  An IndexSizeError exception MUST 
+      Creates an <a><code>AudioWorkerNode</code></a> and its associated <a><code>AudioWorkerGlobalScope</code></a>
+      for direct audio processing using JavaScript.  An IndexSizeError exception MUST
       be thrown if <a><code>numberOfInputChannels</code></a> or
       <a><code>numberOfOutputChannels</code></a> are outside the valid range.
 
@@ -825,9 +825,9 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       containing arbitrary harmonic content.  The <code>real</code> and
       <code>imag</code> parameters must be of type <code>Float32Array</code>
       (described in [[!TYPED-ARRAYS]]) of equal lengths greater than zero and less
-      than or equal to 4096 or an IndexSizeError exception MUST be thrown.  These
+      than or equal to 2048 or an IndexSizeError exception MUST be thrown.  These
       parameters specify the Fourier coefficients of a
-      <a href="http://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
+      <a href="https://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
       representing the partials of a periodic waveform.  The created
       <a><code>PeriodicWave</code></a> will be used with an
       <a><code>OscillatorNode</code></a> and will represent a <em>normalized</em>
@@ -851,11 +851,12 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       <dt> Float32Array real </dt>
       <dd>
         The <dfn id="dfn-real">real</dfn> parameter represents an array of
-        <code>cosine</code> terms (traditionally the A terms).  In audio
-        terminology, the first element (index 0) is the DC-offset of the periodic
-        waveform and is usually set to zero.  The second element (index 1)
-        represents the fundamental frequency.  The third element represents the
-        first overtone, and so on.
+        <code>cosine</code> terms (traditionally the A terms).  In
+        audio terminology, the first element (index 0) is the
+        DC-offset of the periodic waveform. The second element (index
+        1) represents the fundamental frequency.  The third element
+        represents the first overtone, and so on. The first element is
+        ignored and implementations must set it to zero internally.
       </dd>
       <dt>Float32Array imag</dt>
       <dd>
@@ -1026,7 +1027,7 @@ roughly 3ms at a sample-rate of 44.1KHz.
 </p>
 
 <p>
-AudioNodes are <em>EventTarget</em>s, as described in <cite><a href="http://dom.spec.whatwg.org/">DOM</a></cite>
+AudioNodes are <em>EventTarget</em>s, as described in <cite><a href="https://dom.spec.whatwg.org/">DOM</a></cite>
 [[!DOM]].  This means that it is possible to dispatch events to
 <a><code>AudioNode</code></a>s the same
 way that other EventTargets accept events.
@@ -1062,7 +1063,11 @@ way that other EventTargets accept events.
     <dl class=parameters>
       <dt>AudioNode destination</dt>
       <dd> The <code>destination</code> parameter is the
-      <a><code>AudioNode</code></a> to connect to. </dd>
+      <a><code>AudioNode</code></a> to connect to. If the
+      <code>destination</code> parameter is an <a><code>AudioNode</code></a>
+      that has been created using another <a><code>AudioContext</code></a>, an
+      InvalidAccessError MUST be thrown. That is, <a><code>AudioNodes</code></a>
+      cannot be shared between <a><code>AudioContext</code></a>. </dd>
       <dt>optional unsigned long output = 0 </dt>
       <dd>
         The <code>output</code> parameter is an index describing which output of the
@@ -1150,29 +1155,130 @@ way that other EventTargets accept events.
       nodeA.connect(param);
     </pre>
   </dd>
+
+  <dt>void disconnect()</dt>
+  <dd>
+    <p>Disconnects all outgoing connections from <a><code>AudioNode</code></a>.
+    </p>
+  </dd>
+
   <dt>void disconnect()</dt>
   <dd>
   <dl class=parameters>
-    <dt>optional unsigned long output = 0</dt>
+    <dt>unsigned long output</dt>
     <dd>
       This parameter is an index describing which output of the
-      <a><code>AudioNode</code></a> to disconnect. If this parameter is
-      out-of-bounds, an IndexSizeError exception MUST be thrown.
+      <a><code>AudioNode</code></a> to disconnect. It disconnects all outgoing
+      connections from the given output. If this parameter is out-of-bounds, an
+      IndexSizeError exception MUST be thrown.
+    </dd>
+  </dl>
+  </dd>
+
+  <dt>void disconnect()</dt>
+  <dd>
+  <dl class=parameters>
+    <dt>AudioNode destination</dt>
+    <dd>
+      The <code>destination</code> parameter is the <a><code>AudioNode</code></a>
+      to disconnect. It disconnects all outgoing connections to the given
+      <code>destination</code>. If there is no connection to <code>destination</code>,
+      an InvalidAccessError exception MUST be thrown.
+    </dd>
+  </dl>
+  </dd>
+
+  <dt>void disconnect()</dt>
+  <dd>
+  <dl class=parameters>
+    <dt>AudioNode destination</dt>
+    <dd>
+      The <code>destination</code> parameter is the <a><code>AudioNode</code></a>
+      to disconnect. If there is no connection to the <code>destination</code>
+      from the given output, an InvalidAccessError exception MUST be thrown.
+    </dd>
+    <dt>unsigned long output</dt>
+    <dd>
+      The <code>output</code> parameter is an index describing which output of the
+      <a><code>AudioNode</code></a> from which to disconnect. If this parameter
+      is out-of-bound, an IndexSizeError exception MUST be thrown.
+    </dd>
+  </dl>
+  </dd>
+
+  <dt>void disconnect()</dt>
+  <dd>
+  <dl class=parameters>
+    <dt>AudioNode destination</dt>
+    <dd>
+      The <code>destination</code> parameter is the <a><code>AudioNode</code></a>
+      to disconnect. If there is no connection to the <code>destination</code>
+      from the given output to the given input, an InvalidAccessError exception
+      MUST be thrown.
+    </dd>
+    <dt>unsigned long output</dt>
+    <dd>
+      The <code>output</code> parameter is an index describing which output of the
+      <a><code>AudioNode</code></a> from which to disconnect.  If this parameter
+      is out-of-bound, an IndexSizeError exception MUST be thrown.
+    </dd>
+    <dt>unsigned long input</dt>
+    <dd>
+      The <code>input</code> parameter is an index describing which input of
+      the destination <a><code>AudioNode</code></a> to disconnect. If this
+      parameter is out-of-bounds, an IndexSizeError exception MUST be thrown.
+    </dd>
+  </dl>
+  </dd>
+
+  <dt>void disconnect()</dt>
+  <dd>
+  <dl class=parameters>
+    <dt>AudioParam destination</dt>
+    <dd>The <code>destination</code> parameter is the <a><code>AudioParam</code></a>
+      to disconnect. If there is no connection to the <code>destination</code>, an
+      InvalidAccessError exception MUST be thrown.
+    </dd>
+  </dl>
+  </dd>
+
+  <dt>void disconnect()</dt>
+  <dd>
+  <dl class=parameters>
+    <dt>AudioParam destination</dt>
+    <dd>The <code>destination</code> parameter is the <a><code>AudioParam</code></a>
+      to disconnect. If there is no connection to the <code>destination</code>, an
+      InvalidAccessError exception MUST be thrown.
+    </dd>
+    <dt>unsigned long output</dt>
+    <dd>
+      The <code>output</code> parameter is an index describing which output of the
+      <a><code>AudioNode</code></a> from which to disconnect. If the <code>parameter</code>
+      is out-of-bound, an IndexSizeError exception MUST be thrown.
     </dd>
   </dl>
   </dd>
 
   <dt>readonly attribute AudioContext context</dt>
-  <dd>The <a><code>AudioContext</code></a> which owns this <a><code>AudioNode</code></a>.</dd>
+  <dd>
+    The <a><code>AudioContext</code></a> which owns this
+    <a><code>AudioNode</code></a>.
+  </dd>
   <dt>readonly attribute unsigned long numberOfInputs</dt>
   <dd>
-    The number of inputs feeding into the <a><code>AudioNode</code></a>. For <dfn>source
-    nodes</dfn>, this will be 0.
+    The number of inputs feeding into the <a><code>AudioNode</code></a>. For
+    <dfn>source nodes</dfn>, this will be 0. This attribute is predetermined
+    for many <a><code>AudioNode</code></a> types, but some
+    <a><code>AudioNode</code></a>, like the
+    <a><code>ChannelMergerNode</code></a> and the
+    <a><code>AudioWorkerNode</code></a> have variable number of inputs.
   </dd>
   <dt>readonly attribute unsigned long numberOfOutputs</dt>
   <dd>
-    The number of outputs coming out of the <a><code>AudioNode</code></a>. This will be 0
-    for an <a><code>AudioDestinationNode</code></a>.
+    The number of outputs coming out of the <a><code>AudioNode</code></a>. This
+    attribute is predetermined for some <a><code>AudioNode</code></a> types,
+    but can be variable, like for the <a><code>ChannelSplitterNode</code></a>
+    and the <a><code>AudioWorkerNode</code></a>.
   </dd>
 
   <dt>attribute unsigned long <dfn>channelCount</dfn></dt>
@@ -1423,7 +1529,7 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       The <code>startTime</code> parameter is the time
-      in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be 
+      in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be
       thrown if <code>startTime</code> is negative or is not a finite number.
     </p>
     <p>
@@ -1538,7 +1644,7 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       The <code>startTime</code> parameter is the time in the
-      same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be 
+      same time coordinate system as the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError exception MUST be
       thrown if <code>start</code> is negative or is not a finite number.
     </p>
     <p>
@@ -1619,9 +1725,9 @@ The following rules will apply when calling these methods:
         The <code>startTime</code> parameter is the starting time at and after
         which any previously scheduled parameter changes will be cancelled.  It
         is a time in the same time coordinate system as
-        the <a><code>AudioContext</code></a>'s 
+        the <a><code>AudioContext</code></a>'s
         <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.
-        An InvalidAccessError exception MUST be thrown if <code>startTime</code> 
+        An InvalidAccessError exception MUST be thrown if <code>startTime</code>
         is negative or is not a finite number.
       </p>
     </dd>
@@ -1799,7 +1905,9 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
 
 <p>
   An <a>AudioBuffer</a> may be used by one or more
-  <a><code>AudioContext</code></a>s.
+  <a><code>AudioContext</code></a>s, and can be shared between an
+  <a><code>OfflineAudioContext</code></a> and an
+  <a><code>AudioContext</code></a>.
 </p>
 
 <dl title="interface AudioBuffer" class="idl">
@@ -2005,7 +2113,7 @@ invoked in the following cases:
         value is less than <b>currentTime</b>, then the sound will start playing
         immediately.  <code>start</code> may only be called one time and must be
         called before <code>stop</code> is called or an InvalidStateError
-        exception MUST be thrown.  An InvalidAccessError exception MUST be 
+        exception MUST be thrown.  An InvalidAccessError exception MUST be
         thrown if <code>when</code> is negative or is not a finite number.
       </dd>
       <dt>optional double offset = 0</dt>
@@ -2013,7 +2121,7 @@ invoked in the following cases:
         The <dfn id="dfn-offset">offset</dfn> parameter describes the offset
         time in the buffer (in seconds) where playback will begin. If 0 is
         passed in for this value, then playback will start from the beginning of
-        the buffer.  An InvalidAccessError exception MUST be thrown if 
+        the buffer.  An InvalidAccessError exception MUST be thrown if
         <code>offset</code> is negative or is not a finite number.
       </dd>
       <dt>optional double duration</dt>
@@ -2023,8 +2131,8 @@ invoked in the following cases:
         not passed, the duration will be equal to the total duration of the
         AudioBuffer minus the <code>offset</code> parameter.  Thus if neither
         <code>offset</code> nor <code>duration</code> are specified then the
-        implied duration is the total duration of the AudioBuffer.  An 
-        InvalidAccessError exception MUST be thrown if <code>duration</code> 
+        implied duration is the total duration of the AudioBuffer.  An
+        InvalidAccessError exception MUST be thrown if <code>duration</code>
         is negative or is not a finite number.
       </dd>
     </dl>
@@ -2042,8 +2150,8 @@ invoked in the following cases:
         <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  If 0
         is passed in for this value or if the value
         is less than <a><code>currentTime</code></a>, then the sound will stop playing
-        immediately.  An InvalidAccessError exception MUST be thrown if 
-        <code>when</code> is negative or is not a finite number.  If <code>stop</code> 
+        immediately.  An InvalidAccessError exception MUST be thrown if
+        <code>when</code> is negative or is not a finite number.  If <code>stop</code>
         is called again after already have been
         called, the last invocation will be the only one applied; stop times set by previous
         calls will not be applied, unless the buffer has already stopped prior to any
@@ -2057,13 +2165,13 @@ invoked in the following cases:
   <dt> attribute EventHandler onended </dt>
   <dd>
   A property used to set the <code>EventHandler</code> (described in <cite>
-    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    <a href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
       HTML</a></cite>[[!HTML]]) for the ended event that is dispatched to
   <a><code>AudioBufferSourceNode</code></a>
   node types.  When the playback of the buffer for an
   <a><code>AudioBufferSourceNode</code></a> is finished, an event of type <code>Event
   </code> (described in <cite> <a
-      href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a>
+      href="https://html.spec.whatwg.org/multipage/infrastructure.html#event">HTML</a>
   </cite>[[!HTML]]) will be dispatched to the event handler.
   </dd>
 </dl>
@@ -2208,28 +2316,28 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 <section>
 <h2>The <dfn>AudioWorker</dfn></h2>
 
-<p>AudioWorker is not an actual class in the Web Audio API; an Audio Worker is 
-  represented in the main thread by the <a>AudioWorkerNode</a> methods 
-  (postMessage, onmessage and terminate, in particular). From inside an audio 
-  worker script, an Audio Worker is represented by an 
-  <a><code>AudioWorkerGlobalScope</code></a> object representing the node's 
-  contextual information; all worker scripts are run in the audio processing 
+<p>AudioWorker is not an actual class in the Web Audio API; an Audio Worker is
+  represented in the main thread by the <a>AudioWorkerNode</a> methods
+  (postMessage, onmessage and terminate, in particular). From inside an audio
+  worker script, an Audio Worker is represented by an
+  <a><code>AudioWorkerGlobalScope</code></a> object representing the node's
+  contextual information; all worker scripts are run in the audio processing
   thread.</p>
 
 <section>
 <h2>The <dfn>AudioWorkerNode</dfn> Interface</h2>
 
-<p>This interface represents an <a><code>AudioNode</code></a> which interacts 
-  with a <a>Worker</a> thread to generate, process, or analyse audio directly. 
-  The user creates a separate audio processing worker script, which is hosted 
-  inside the AudioWorkerGlobalScope and runs inside the audio processing 
-  thread, rather than the main UI thread.  The AudioWorkerNode represents the 
-  processing node in the main processing thread's node graph; the 
-  AudioWorkerGlobalScope represents the context in which the user's audio 
+<p>This interface represents an <a><code>AudioNode</code></a> which interacts
+  with a <a>Worker</a> thread to generate, process, or analyse audio directly.
+  The user creates a separate audio processing worker script, which is hosted
+  inside the AudioWorkerGlobalScope and runs inside the audio processing
+  thread, rather than the main UI thread.  The AudioWorkerNode represents the
+  processing node in the main processing thread's node graph; the
+  AudioWorkerGlobalScope represents the context in which the user's audio
   processing script is run.</p>
-<p>Nota bene that if the Web Audio implementation normally runs audio process 
-  at higher than normal thread priority, utilizing AudioWorkerNodes may cause 
-  demotion of the priority of the audio thread (since user scripts cannot be 
+<p>Nota bene that if the Web Audio implementation normally runs audio process
+  at higher than normal thread priority, utilizing AudioWorkerNodes may cause
+  demotion of the priority of the audio thread (since user scripts cannot be
   run with higher than normal priority).</p>
 
 <pre>
@@ -2244,7 +2352,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 <p>
 <dfn id="AudioWorker-numberOfInputChannels">numberOfInputChannels</dfn> and
 <dfn id="AudioWorker-numberOfOutputChannels">numberOfOutputChannels</dfn>
-determine the number of input and output channels (and the number of channels 
+determine the number of input and output channels (and the number of channels
 present in the AudioBuffers passed to the AudioProcess event handler inside the
 <a>AudioWorkerGlobalScope</a>). It is invalid for both <a
   href="#AudioWorker-numberOfInputChannels"><code>numberOfInputChannels</code></a>
@@ -2259,9 +2367,9 @@ to be zero.
 
 <dl title="interface AudioWorkerNode : AudioNode" class="idl">
   <dt>void terminate()</dt>
-  <dd>The terminate() method, when invoked, must cause the 
-    <a href="http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate 
-      a worker"</a> algorithm to be run on the worker with which the object 
+  <dd>The terminate() method, when invoked, must cause the
+    <a href="http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate
+      a worker"</a> algorithm to be run on the worker with which the object
       is associated.  This will cease any <a>AudioProcessEvent</a>s being
       dispatched to the Audio Worker, and will cause the destruction of the
       worker thread.  In practical terms, this means the node will disconnect itself from any downstream connections.</dd>
@@ -2270,53 +2378,53 @@ to be zero.
     algorithm defined by <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
     the Worker specification</a>.</dd>
   <dt>attribute EventHandler onmessage</dt>
-  <dd>The onmessage handler is called whenever the Audio Worker posts a 
+  <dd>The onmessage handler is called whenever the Audio Worker posts a
     message back to the main thread.</dd>
   <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
   <dd>
     <p>
-      Causes a correspondingly-named read-only <a>AudioParam</a> to be 
-      present on the <a>AudioWorkerNode</a>, and a correspondingly-named 
-      read-only <a>Float32Array</a> to be present on the 
-      <a><code>parameters</code></a> object exposed on the 
-      <a>AudioProcessEvent</a> on subsequent audio processing events.  The 
-      AudioParam may immediately have its scheduling methods called, its 
+      Causes a correspondingly-named read-only <a>AudioParam</a> to be
+      present on the <a>AudioWorkerNode</a>, and a correspondingly-named
+      read-only <a>Float32Array</a> to be present on the
+      <a><code>parameters</code></a> object exposed on the
+      <a>AudioProcessEvent</a> on subsequent audio processing events.  The
+      AudioParam may immediately have its scheduling methods called, its
       .<a>value</a> set, or AudioNodes connected to it.</p>
-    <p>The <code>name</code> parameter is the name used for the read-only 
-      AudioParam added to the AudioWorkerNode, and the name used for the 
-      read-only <code>Float32Array</code> that will be present on the 
-      <a><code>parameters</code></a> object exposed on subsequent 
+    <p>The <code>name</code> parameter is the name used for the read-only
+      AudioParam added to the AudioWorkerNode, and the name used for the
+      read-only <code>Float32Array</code> that will be present on the
+      <a><code>parameters</code></a> object exposed on subsequent
       <a>AudioProcessEvent</a>s.</p>
     <p>The <dfn
-      id="dfn-defaultValue">defaultValue</dfn> parameter is the default value 
-      for the <a>AudioParam</a>'s <a>value</a> attribute, as well as 
-      therefore the default value that will appear in the Float32Array in the 
-      worker script (if no other parameter changes or connections affect the 
+      id="dfn-defaultValue">defaultValue</dfn> parameter is the default value
+      for the <a>AudioParam</a>'s <a>value</a> attribute, as well as
+      therefore the default value that will appear in the Float32Array in the
+      worker script (if no other parameter changes or connections affect the
       value).</p>
   </dd>
   <dt>void removeParameter(DOMString name) </dt>
   <dd>
     <p>
-      Removes a previously-added parameter named <code>name</code> from the 
-      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named 
-      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
-      remove the correspondingly-named read-only <a>Float32Array</a> from the 
-      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on 
-      subsequent audio processing events. A 
-      NotFoundError exception must be thrown if no parameter with that name 
+      Removes a previously-added parameter named <code>name</code> from the
+      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named
+      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will
+      remove the correspondingly-named read-only <a>Float32Array</a> from the
+      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on
+      subsequent audio processing events. A
+      NotFoundError exception must be thrown if no parameter with that name
       exists on this node.</p>
-    <p>The <code>name</code> parameter identifies the parameter to be 
+    <p>The <code>name</code> parameter identifies the parameter to be
       removed.</p>
   </dd>
 </dl>
 </dl>
 <p>
-  Note that <a>AudioWorkerNode</a> objects will also have read-only 
-  AudioParam objects for each named parameter added via the 
+  Note that <a>AudioWorkerNode</a> objects will also have read-only
+  AudioParam objects for each named parameter added via the
   <code>addParameter</code> method.  As this is dynamic, it cannot be captured
   in IDL.
 </p>
-  
+
 <!--<div title="AudioWorkerNode implements Worker" class="idl">-->
   <p>AudioWorkerNodes must implement the <a>Worker</a>
   interface for communication with the audio worker script.</p>
@@ -2326,15 +2434,15 @@ to be zero.
 <section>
 <h2>The AudioWorkerGlobalScope Interface</h2>
 
-<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived 
-  object representing the context in which an audio processing script is run; 
-  it is designed to enable the generation, processing, and analysis of audio 
+<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived
+  object representing the context in which an audio processing script is run;
+  it is designed to enable the generation, processing, and analysis of audio
   data directly using JavaScript in a Worker thread. </p>
 
 <p>
-The <a><code>AudioWorkerGlobalScope</code></a> has an 
+The <a><code>AudioWorkerGlobalScope</code></a> has an
 <dfn id="audioprocess-worker">audioprocess</dfn> event that is dispatched
-synchronously to process audio frames.  
+synchronously to process audio frames.
 <a href="#audioprocess-worker"><code>audioprocess</code></a> events are only
 dispatched if the <a><code>AudioWorkerNode</code></a> has at least one input or
 one output connected.
@@ -2343,18 +2451,18 @@ one output connected.
   <dt>attribute EventHandler onaudioprocess</dt>
   <dd>
     A property used to set the <code>EventHandler</code> (described in <cite>
-    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    <a href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
     HTML</a></cite>[[!HTML]]) for the <a href="#audioprocess-worker">
     <code>audioprocess</code></a> event that is dispatched to
     <a><code>AudioWorkerGlobalScope</code></a> when the associated
     <a><code>AudioWorkerNode</code></a> is connected. An event of type
-    <a><code>AudioProcessEvent</code></a> will be dispatched to the event 
+    <a><code>AudioProcessEvent</code></a> will be dispatched to the event
     handler.
   </dd>
   <dt>readonly attribute float sampleRate</dt>
   <dd>
-    The sample rate of the host <a>AudioContext</a> (since inside the 
-    <a>Worker</a> scope, the user will not have direct access to the 
+    The sample rate of the host <a>AudioContext</a> (since inside the
+    <a>Worker</a> scope, the user will not have direct access to the
     <a>AudioContext</a>.
   </dd>
 </dl>
@@ -2364,11 +2472,11 @@ one output connected.
   <h3>Audio Worker Examples</h3>
   <section>
     <h4>A Bitcrusher Node</h4>
-      <p>Bitcrushing is a mechanism by which the audio quality of an audio 
-        stream is reduced - both by quantizing the value (simulating lower 
-        bit-depth in integer-based audio), and by quantizing in time 
-        (simulating a lower digital sample rate).  This example shows how to 
-        use AudioParams (in this case, treated as a-rate) inside an 
+      <p>Bitcrushing is a mechanism by which the audio quality of an audio
+        stream is reduced - both by quantizing the value (simulating lower
+        bit-depth in integer-based audio), and by quantizing in time
+        (simulating a lower digital sample rate).  This example shows how to
+        use AudioParams (in this case, treated as a-rate) inside an
         AudioWorker.</p>
 
     <h5>Main file javascript</h5>
@@ -2408,9 +2516,9 @@ onaudioprocess= function (e) {
   </section>
   <section>
     <h4>A Volume Meter and Clip Detector</h4>
-    <p>Another common need is a clip-detecting volume meter.  This example 
-      shows how to communicate basic parameters (that do not need AudioParam 
-      scheduling) across to a Worker, as well as communicating data back to 
+    <p>Another common need is a clip-detecting volume meter.  This example
+      shows how to communicate basic parameters (that do not need AudioParam
+      scheduling) across to a Worker, as well as communicating data back to
       the main thread.</p>
 
     <h5>Main file javascript</h5>
@@ -2427,7 +2535,7 @@ vuNode.onmessage = function (event) {
 }
 
 // Set up some configuration parameters
-vuNode.postMessage( 
+vuNode.postMessage(
   { "smoothing": 0.9,   // Smoothing parameter
     "clipLevel": 0.9,   // Level to consider "clipping"
     "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
@@ -2540,7 +2648,7 @@ be zero.
   <dt>attribute EventHandler onaudioprocess</dt>
   <dd>
     A property used to set the <code>EventHandler</code> (described in <cite>
-    <a href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">
+    <a href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
     HTML</a></cite>[[!HTML]]) for the <a
   href="#audioprocess-spnode"><code>audioprocess</code></a> event that is
 dispatched to <a><code>ScriptProcessorNode</code></a> node types. An event of
@@ -2582,32 +2690,32 @@ This is an <code>Event</code> object which is dispatched to
     </dd>
     <dt> readonly attribute Float32Array[] inputBuffers </dt>
     <dd>
-      An Array of Float32Arrays, one per channel, containing the input audio 
-      buffer with input data.  The number of channels will be equal to the 
-      <code>numberOfInputChannels</code> parameter of the createAudioWorker() 
-      method.  It is expected that the event object, the Array and the input 
-      and output buffers may be reused by the processing system, in order to 
+      An Array of Float32Arrays, one per channel, containing the input audio
+      buffer with input data.  The number of channels will be equal to the
+      <code>numberOfInputChannels</code> parameter of the createAudioWorker()
+      method.  It is expected that the event object, the Array and the input
+      and output buffers may be reused by the processing system, in order to
       minimize memory churn; it is not recommended to maintain global handles
       to them.
       </dd>
     <dt> readonly attribute Float32Array[] outputBuffers </dt>
     <dd>
-      An Array of Float32Arrays, one per channel, containing the output audio 
-      buffer.  The number of channels will be equal to the 
-      <code>numberOfOutputChannels</code> parameter of the createAudioWorker() 
-      method.  It is expected that the event object, the Array and the input 
-      and output buffers may be reused by the processing system, in order to 
+      An Array of Float32Arrays, one per channel, containing the output audio
+      buffer.  The number of channels will be equal to the
+      <code>numberOfOutputChannels</code> parameter of the createAudioWorker()
+      method.  It is expected that the event object, the Array and the input
+      and output buffers may be reused by the processing system, in order to
       minimize memory churn; it is not recommended to maintain global handles
       to them.
     </dd>
     <dt> readonly attribute object parameters</dt>
-    <dd>This object attribute exposes a correspondingly-named 
-      read-only <a>Float32Array</a> for each parameter that has been added 
-      via <a>addParameter</a>.  As this is dynamic, this cannot be captured 
-      in IDL.  The length of this Float32Array will correspond to the length 
-      of the inputBuffer.  The contents of this Float32Array will be the 
-      values to be used for the AudioParam at the corresponding points in 
-      time.  It is expected that this Float32Array will be reused by the 
+    <dd>This object attribute exposes a correspondingly-named
+      read-only <a>Float32Array</a> for each parameter that has been added
+      via <a>addParameter</a>.  As this is dynamic, this cannot be captured
+      in IDL.  The length of this Float32Array will correspond to the length
+      of the inputBuffer.  The contents of this Float32Array will be the
+      values to be used for the AudioParam at the corresponding points in
+      time.  It is expected that this Float32Array will be reused by the
       audio engine.</dd>
 </dl>
 </section>
@@ -2617,8 +2725,8 @@ This is an <code>Event</code> object which is dispatched to
 
 <p>
 This is an <code>Event</code> object which is dispatched to
-<a><code>ScriptProcessorNode</code></a> nodes.  It will be removed 
-when the ScriptProcessorNode is removed, as the replacement 
+<a><code>ScriptProcessorNode</code></a> nodes.  It will be removed
+when the ScriptProcessorNode is removed, as the replacement
 <a>AudioWorker</a> uses the <a>AudioProcessEvent</a>.
 </p>
 
@@ -2820,18 +2928,21 @@ default is "inverse".
     <dt>attribute float coneInnerAngle</dt>
     <dd>
       A parameter for directional audio sources, this is an angle, in degrees, inside
-      of which there will be no volume reduction.  The default value is 360.
+      of which there will be no volume reduction. The default value is 360, and
+      the value is used modulo 360.
     </dd>
     <dt>attribute float coneOuterAngle</dt>
     <dd>
       A parameter for directional audio sources, this is an angle, in degrees, outside
       of which the volume will be reduced to a constant value of
-      <a><code>coneOuterGain</code></a>.  The default value is 360.
+      <a><code>coneOuterGain</code></a>.  The default value is 360 and the value
+      is used modulo 360.
     </dd>
     <dt>attribute float coneOuterGain</dt>
     <dd>
       A parameter for directional audio sources, this is the amount of volume
-      reduction outside of the <a><code>coneOuterAngle</code></a>.  The default value is 0.
+      reduction outside of the <a><code>coneOuterAngle</code></a>.  The default
+      value is 0, and the value is used modulo 360.
     </dd>
 </dl>
 
@@ -2923,9 +3034,9 @@ spatialization.
 
 <p>
   This interface represents a processing node which positions an incoming audio
-  stream in a stereo image using a low-cost <a
-    href="#equal-power">equal-power</a> panning algorithm.  This panning effect
-  is common in positioning audio components in a stereo stream.
+  stream in a stereo image using a low-cost <a href="#equal-power-panning">
+  equal-power panning algorithm</a>.  This panning effect is common in
+  positioning audio components in a stereo stream.
 </p>
 
 <pre>
@@ -2939,11 +3050,11 @@ spatialization.
 
 <p>
   The input of this node is stereo (2 channels) and cannot be increased.
-  Connections from nodes with fewer or more channels will be <a
-  href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-appropriately</a>, but a NotSupportedError will be thrown if an attempt is made
-to set channelCount to a value great than 2 or if channelCountMode is set to
-<code>"max"</code>.
+  Connections from nodes with fewer or more channels will be
+  <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
+  appropriately </a>, but a NotSupportedError will be thrown if an attempt is
+  made to set <code>channelCount</code> to a value great than 2 or if
+  <code>channelCountMode</code> is set to <code>"max"</code>.
 </p>
 
 <p>
@@ -3350,11 +3461,13 @@ in the following operation:
   The <a><code>ChannelMergerNode</code></a> is for use in more advanced applications
   and would often be used in conjunction with <a><code>ChannelSplitterNode</code></a>.
 </p>
+
 <pre>
-  numberOfInputs  : Variable N (default to 6)  // number of connected inputs may be less than this
+  numberOfInputs  : Variable N (default to 6)
   numberOfOutputs : 1
 
-  channelCountMode = "max";
+  channelCount = 1;
+  channelCountMode = "explicit";
   channelInterpretation = "speakers";
 </pre>
 
@@ -3362,38 +3475,44 @@ in the following operation:
   This interface represents an <a><code>AudioNode</code></a> for combining channels from
   multiple audio streams into a single audio stream. It has a variable number of
   inputs (defaulting to 6), but not all of them need be connected. There is a
-  single output whose audio stream has a number of channels equal to the sum of
-  the numbers of channels of all the connected inputs. For example, if an
-  <a><code>ChannelMergerNode</code></a> has two connected inputs (both stereo), then the
-  output will be four channels, the first two from the first input and the
-  second two from the second input. In another example with two connected inputs
-  (both mono), the output will be two channels (stereo), with the left channel
-  coming from the first input and the right channel coming from the second
-  input.
+  single output whose audio stream has a number of channels equal to the number
+  of inputs.
+</p>
+<p>
+  To merge multiple inputs into one stream, each input gets downmixed into one
+  channel (mono) based on the specified mixing rule. An unconnected input still
+  counts as <b>one silent channel</b> in the output. Changing input streams does
+  <b>not</b> affect the order of output channels.
+</p>
+<p>
+  For <a><code>ChannelMergerNode</code></a>, <code>channelCount</code> and
+  <code>channelCountMode</code> properties cannot be changed. <code>InvalidState</code>
+  error MUST be thrown when they changed.
 </p>
 
 <h3 id="example-2">Example:</h3>
+<p>
+  For example, if a default <a><code>ChannelMergerNode</code></a> has two connected
+  stereo inputs, the first and second input will be downmixed to mono respectively
+  before merging. The output will be a 6-channel stream whose first two channels
+  are be filled with the first two (downmixed) inputs and the rest of channels will
+  be silent.
+</p>
+<p>
+  Also the <a><code>ChannelMergerNode</code></a> can be used to arrange multiple
+  audio streams in a certain order for the multi-channel speaker array such as
+  5.1 surround set up. The merger does not interpret the channel identities (such
+  as left, right, etc.), but simply combines channels in the order that they are
+  input.
+</p>
+
 <figure>
   <img alt="channel merger" src="images/channel-merger.png">
   <figcaption>A diagram of ChannelMerger</figcaption>
 </figure>
 
 <p>
-  Please note that in this example, the merger does <b>not</b> interpret the
-  channel identities (such as left, right, etc.), but simply combines channels
-  in the order that they are input.
-</p>
 
-
-<p>
-  Be aware that it is possible to connect an <a><code>ChannelMergerNode</code></a> in
-  such a way that it outputs an audio stream with a large number of channels
-  greater than the maximum supported by the audio hardware. In this case where
-  such an output is connected to the <a><code>AudioContext</code></a>
-  <a href="#widl-AudioContext-destination"><code>destination</code></a> (the
-  audio hardware), then the extra channels will be ignored.  Thus, the
-  <a><code>ChannelMergerNode</code></a> should be used in situations where the number of
-  channels is well understood.
 </p>
 
 <dl title="interface ChannelMergerNode : AudioNode" class="idl">
@@ -3506,7 +3625,7 @@ The number of channels of the output always equals the number of channels of the
 <dl title="enum BiquadFilterType" class="idl">
   <dt>lowpass</dt>
   <dd>
-    <p>A <a href="http://en.wikipedia.org/wiki/Low-pass_filter">lowpass filter</a>
+    <p>A <a href="https://en.wikipedia.org/wiki/Low-pass_filter">lowpass filter</a>
     allows frequencies below the cutoff frequency to pass through and attenuates
     frequencies above the cutoff. It implements a standard second-order
     resonant lowpass filter with 12dB/octave rolloff.</p>
@@ -3526,7 +3645,7 @@ The number of channels of the output always equals the number of channels of the
   </dd>
   <dt>highpass</dt>
   <dd>
-    <p>A <a href="http://en.wikipedia.org/wiki/High-pass_filter">highpass
+    <p>A <a href="https://en.wikipedia.org/wiki/High-pass_filter">highpass
     filter</a> is the opposite of a lowpass filter. Frequencies above the cutoff
     frequency are passed through, but frequencies below the cutoff are attenuated.
     It implements a standard second-order resonant highpass filter with
@@ -3547,7 +3666,7 @@ The number of channels of the output always equals the number of channels of the
   </dd>
   <dt>bandpass</dt>
   <dd>
-    <p>A <a href="http://en.wikipedia.org/wiki/Band-pass_filter">bandpass
+    <p>A <a href="https://en.wikipedia.org/wiki/Band-pass_filter">bandpass
     filter</a> allows a range of frequencies to pass through and attenuates the
     frequencies below and above this frequency range. It implements a
     second-order bandpass filter.</p>
@@ -3556,7 +3675,7 @@ The number of channels of the output always equals the number of channels of the
       <dl>
         <dt>frequency</dt>
           <dd>The center of the frequency band</dd>
-        <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
+        <dt><a href="https://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
           <dd>Controls the width of the band. The width becomes narrower as the Q
             value increases.</dd>
         <dt>gain</dt>
@@ -3575,7 +3694,7 @@ The number of channels of the output always equals the number of channels of the
         <dt>frequency</dt>
           <dd>The upper limit of the frequences where the boost (or attenuation) is
             applied.</dd>
-        <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
+        <dt><a href="https://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
           <dd>Not used in this filter type.</dd>
         <dt>gain</dt>
           <dd>The boost, in dB, to be applied. If the value is negative, the
@@ -3594,7 +3713,7 @@ The number of channels of the output always equals the number of channels of the
         <dt>frequency</dt>
           <dd>The lower limit of the frequences where the boost (or attenuation) is
             applied.</dd>
-        <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
+        <dt><a href="https://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
           <dd>Not used in this filter type.</dd>
         <dt>gain</dt>
           <dd>The boost, in dB, to be applied. If the value is negative, the
@@ -3611,7 +3730,7 @@ The number of channels of the output always equals the number of channels of the
       <dl>
         <dt>frequency</dt>
           <dd>The center frequency of where the boost is applied.</dd>
-        <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
+        <dt><a href="https://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
           <dd>Controls the width of the band of frequencies that are boosted. A
             large value implies a narrow width.</dd>
         <dt>gain</dt>
@@ -3623,7 +3742,7 @@ The number of channels of the output always equals the number of channels of the
   <dt>notch</dt>
   <dd>
     <p>The notch filter (also known as a <a
-    href="http://en.wikipedia.org/wiki/Band-stop_filter">band-stop or
+    href="https://en.wikipedia.org/wiki/Band-stop_filter">band-stop or
     band-rejection filter</a>) is the opposite of a bandpass filter. It allows all
     frequencies through, except for a set of frequencies.</p>
 
@@ -3631,7 +3750,7 @@ The number of channels of the output always equals the number of channels of the
       <dl>
         <dt>frequency</dt>
           <dd>The center frequency of where the notch is applied.</dd>
-        <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
+        <dt><a href="https://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
           <dd>Controls the width of the band of frequencies that are attenuated. A
             large value implies a narrow width.</dd>
         <dt>gain</dt>
@@ -3642,7 +3761,7 @@ The number of channels of the output always equals the number of channels of the
   <dt>allpass</dt>
   <dd>
     <p>An <a
-    href="http://en.wikipedia.org/wiki/All-pass_filter#Digital_Implementation">allpass
+    href="https://en.wikipedia.org/wiki/All-pass_filter#Digital_Implementation">allpass
     filter</a> allows all frequencies through, but changes the phase relationship
     between the various frequencies. It implements a second-order allpass
     filter</p>
@@ -3652,8 +3771,8 @@ The number of channels of the output always equals the number of channels of the
         <dt>frequency</dt>
           <dd>The frequency where the center of the phase transition occurs. Viewed
             another way, this is the frequency with maximal <a
-            href="http://en.wikipedia.org/wiki/Group_delay">group delay</a>.</dd>
-        <dt><a href="http://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
+            href="https://en.wikipedia.org/wiki/Group_delay">group delay</a>.</dd>
+        <dt><a href="https://en.wikipedia.org/wiki/Q_factor">Q</a></dt>
           <dd>Controls how sharp the phase transition is at the center frequency. A
             larger value implies a sharper transition and a larger group delay.</dd>
         <dt>gain</dt>
@@ -3684,7 +3803,7 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
   <dd> A detune value, in cents, for the frequency. Its default value is 0. </dd>
   <dt>readonly attribute AudioParam Q</dt>
   <dd>
-    The <a href="http://en.wikipedia.org/wiki/Q_factor">Q</a> factor has a
+    The <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a> factor has a
     default value of 1, with a nominal range of 0.0001 to 1000.
   </dd>
   <dt>readonly attribute AudioParam gain</dt>
@@ -3894,7 +4013,7 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
     <li>Let <math title="A_1"><msub><mi>A</mi><mn>1</mn></msub></math> be
     <li>Let <math title="omega0"><msub><mi>ω</mi><mn>0</mn></msub></math> be
     <math><mn>2</mn><mo>⋅</mo><mi>π</mi><mo>⋅</mo><mfrac><msub><mi>f</mi><mn>0</mn></msub><msub><mi>F</mi><mi>s</mi></msub></mfrac></math>.</li>
-    <li>Let <math title="Q_Q"><msub><mi>α</mi><mn>Q</mn></msub></math> be 
+    <li>Let <math title="Q_Q"><msub><mi>α</mi><mn>Q</mn></msub></math> be
     <math><mfrac><mrow><mi>sin</mi><mrow><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo></mrow></mrow><mrow><mn>2</mn><mo>⋅</mo><mi>Q</mi></mrow></mfrac></math></li>
     <li>Let <math title="Q_BW"><msub><mi>α</mi><mn>BW</mn></msub></math> be
     <math>
@@ -3950,7 +4069,7 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
       </mrow>
     </math>
             </li>
-    <li>Let <math title="Q_S"><msub><mi>α</mi><mn>S</mn></msub></math> be 
+    <li>Let <math title="Q_S"><msub><mi>α</mi><mn>S</mn></msub></math> be
     <math>
       <mfrac>
         <mrow>
@@ -5588,11 +5707,11 @@ to determine a <em>computedFrequency</em> value:
     <dt> attribute EventHandler onended </dt>
     <dd>
       A property used to set the <code>EventHandler</code> (described in <cite><a
-      href="http://www.whatwg.org/specs/web-apps/current-work/#eventhandler">HTML</a></cite>[[HTML]])
+      href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">HTML</a></cite>[[HTML]])
       for the ended event that is dispatched to <a >OscillatorNode</a>
       node types.  When the <a><code>OscillatorNode</code></a> has finished playing
       (i.e. its stop time has been reached), an event of type <code>Event</code> (described in <cite><a
-      href="http://www.whatwg.org/specs/web-apps/current-work/#event">HTML</a></cite>[[HTML]])
+      href="https://html.spec.whatwg.org/multipage/infrastructure.html#event">HTML</a></cite>[[HTML]])
       will be dispatched to the event handler.
     </dd>
 </dl>
@@ -5734,7 +5853,7 @@ as other architectures. </p>
   </figure>
 
   <p>In cases where the channel layouts of the outputs do not match, a mix
-  (usually up-mix) will occur according to the <a href="UpMix">mixing rules</a>.
+  (usually up-mix) will occur according to the <a href="#channel-up-mixing-and-down-mixing">mixing rules</a>.
   </p>
 
   <p>
@@ -6285,7 +6404,7 @@ Quad up-mix:
   </p>
   </section>
   <section id="azimuth-elevation">
-  <h3>Azimuth and Elevation</h3> 
+  <h3>Azimuth and Elevation</h3>
   <p>
   The following algorithm must be used to calculate the <em>azimuth</em>
   and <em>elevation</em>: for the <a><code>PannerNode</code></a>
@@ -6342,160 +6461,142 @@ Quad up-mix:
   </pre>
 </section>
 
+
 <section>
   <h3 id="Spatialization-panning-algorithm">Panning Algorithm</h3>
 
-  <p>
-  <em>mono->stereo</em> and <em>stereo->stereo</em>  panning must be supported.
-  <em>mono->stereo</em> processing is used when all connections to the input are mono.
-  Otherwise <em>stereo->stereo</em> processing is used.</p>
+  <p><em>Mono-to-stereo</em> and <em>stereo-to-stereo</em> panning must be supported. 
+  <em>Mono-to-stereo</em> processing is used when all connections to the input are mono.
+  Otherwise <em>stereo-to-stereo</em> processing is used.</p>
 
-  <p>The following algorithms must be implemented: </p>
-  <ul>
-    <li>Equal-power (Vector-based) panning
-      <p>
-        This is a simple and relatively inexpensive algorithm which provides
-        basic, but reasonable results.  It is used for the
-        <a><code>StereoPannerNode</code></a>, and for the
-        <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
-        attribute is set to <code>"equalpower"</code>, in which case the the
-        <em>elevation</em> value is ignored.
-      </p>
+  <section>
+  <h4 id="Spatialzation-equal-power-panning">Equal-power panning</h4>
 
-      <p>
-      For a <a><code>PannerNode</code></a>, the following algorithm MUST be
-      implemented.
-      <ol>
-        <li>
-          Let <code>azimuth</code> be the value computed in the <a>azimuth and
-            elevation</a> section.
-        </li>
-        <li>
-        <p>
-        The <em>azimuth</em> value is first contained to be within the range -90 &lt;= <em>azimuth</em> &lt;= +90 according to:
-        </p>
+    <p>This is a simple and relatively inexpensive algorithm which provides basic,
+    but reasonable results.  It is used for the <a><code>StereoPannerNode</code></a>,
+    and for the <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
+    attribute is set to <code>"equalpower"</code>, in which case the the
+    <em>elevation</em> value is ignored.</p>
+
+    <p>For a <a><code>PannerNode</code></a>, the following algorithm MUST be implemented.</p>
+
+    <ol>
+      <li>
+        <p>Let <em>azimuth</em> be the value computed in the <a>azimuth and elevation</a>
+        section.</p>
+      </li>
+      <li>
+        <p>The <em>azimuth</em> value is first contained to be within the range
+        [-90, 90] according to:</p>
         <pre class="highlight">
-  // Clamp azimuth to allowed range of -180 -&gt; +180.
+  // First, clamp azimuth to allowed range of [-180, 180].
   azimuth = max(-180, azimuth);
   azimuth = min(180, azimuth);
 
-  // Now wrap to range -90 -&gt; +90.
-  if (azimuth &lt; -90) {
-      azimuth = -180 - azimuth;
-  } else if (azimuth &gt; 90) {
-      azimuth = 180 - azimuth;
-  }
+  // Then wrap to range [-90, 90].
+  if (azimuth &lt; -90)
+    azimuth = -180 - azimuth;
+  else if (azimuth &gt; 90)
+    azimuth = 180 - azimuth;
         </pre>
-        </li>
+      </li>
 
-        <li>
-        <p>
-        A 0 -&gt; 1 normalized value <em>x</em> is calculated from <em>azimuth</em> for <em>mono->stereo</em> as:
-        </p>
+      <li>
+        <p>A normalized value <em>x</em> is calculated from <em>azimuth</em> for
+        a mono input as:</p>
         <pre class="highlight">
-  x = (azimuth + 90) / 180
+  x = (azimuth + 90) / 180;
         </pre>
-
-        <p>
-        Or for <em>stereo->stereo</em> as:
-        </p>
+        <p>Or for a stereo input as:</p>
         <pre class="highlight">
-  if (azimuth &lt;= 0) { // from -90 -&gt; 0
-      // inputL -&gt; outputL and "equal-power pan" inputR as in mono case
-      // by transforming the "azimuth" value from -90 -&gt; 0 degrees into the range -90 -&gt; +90.
-      x = (azimuth + 90) / 90;
-  } else { // from 0 -&gt; +90
-      // inputR -&gt; outputR and "equal-power pan" inputL as in mono case
-      // by transforming the "azimuth" value from 0 -&gt; +90 degrees into the range -90 -&gt; +90.
-      x = azimuth / 90;
+  if (azimuth &lt;= 0) { // -90 &#126; 0
+    // Transform the azimuth value from [-90, 0] degrees into the range [-90, 90].
+    x = (azimuth + 90) / 90;
+  } else { // 0 &#126; 90
+    // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
+    x = azimuth / 90;
   }
         </pre>
-        </li>
-      </ol>
-
-      <p>
-        For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
-        be implemented.
-        <ol>
-          <li>
-            Let <code>azimuth</code> be the <a>computedValue</a> of the
-            <a>pan</a> <a>AudioParam</a> of this
-            <a><code>StereoPannerNode</code></a>.
-          </li>
-          <li>
-            Normalize the <code>azimuth</code> value to [0; 1].  From mono to
-          stereo:
-            <pre class="highlight">
-  x = (azimuth + 1) / 2;
-            </pre>
-            Or when panning stereo to stereo:
-            <pre class="highlight">
-  if (azymuth &lt;= 0) {
-    x = azimuth + 1;
-  } else {
-    x = azimuth;
-  }
-            </pre>
-          </li>
-        </ol>
-      </p>
-
-      <p>
-        Then following steps are used for processing:
-
-      <ol>
-        <li>
-          <p>
-            Left and right gain values are calculated:
-          </p>
-          <pre class="highlight">
-  gainL = cos(0.5 * Math.PI * x);
-  gainR = sin(0.5 * Math.PI * x);
-          </pre>
-        </li>
-        <li>
-          <p>
-            For <em>mono->stereo</em>, the output is calculated as:
-          </p>
-          <pre class="highlight">
-  outputL = input * gainL;
-  outputR = input * gainR;
-          </pre>
-          <p>
-            Else for <em>stereo->stereo</em>, the output is calculated as:
-          </p>
-          <pre class="highlight">
-  if (azimuth &lt;= 0) {
-      outputL = inputL + inputR * gainL;
-      outputR = inputR * gainR;
-  } else {
-      outputL = inputL * gainL;
-      outputR = inputR + inputL * gainR;
-  }
-          </pre>
-        </li>
-      </ol>
-    </p>
+      </li>
+    </ol>
 
 
+    <p>For a <a><code>StereoPannerNode</code></a>, the following algorithm MUST
+    be implemented.</p>
+    <ol>
+      <li>
+        <p>Let <em>pan</em> be the <a>computedValue</a> of the <code>pan</code>
+        <a>AudioParam</a> of this <a><code>StereoPannerNode</code></a>.</p>
+      </li>
+      <li>
+        <p>Clamp <em>pan</em> to [-1, 1].</p>
+        <pre class="highlight">
+pan = max(-1, pan);
+pan = min(1, pan);
+        </pre>
+      </li>
+      <li>
+        <p>Calculate <em>x</em> by normalizing <em>pan</em> value to [0, 1].
+        For mono input:</p>
+        <pre class="highlight">
+x = (pan + 1) / 2;
+        </pre>
+        <p>For stereo input:</p>
+        <pre class="highlight">
+if (pan &lt;= 0)
+  x = pan + 1;
+else
+  x = pan;
+        </pre>
+      </li>
+    </ol>
 
-    </li>
-    <li><a
-      href="http://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
-      panning (stereo only).
-      <p>This requires a set of HRTF impulse responses recorded at a variety of
-      azimuths and elevations. There are a small number of open/free impulse
-      responses available. The implementation requires a highly optimized
-      convolution function. It is somewhat more costly than "equal-power", but
-      provides a more spatialized sound. </p>
-      <figure>
-        <img alt="HRTF panner" src="images/HRTF_panner.png" />
-        <figcaption>A diagram showing the process of panning a source using
-        HRTF.</figcaption>
-      </figure>
-    </li>
-  </ul>
+    <p>Then following steps are used to achieve equal-power panning:</p>
+    <ol>
+      <li>
+        <p>Left and right gain values are calculated as:</p>
+        <pre class="highlight">
+gainL = cos(x * Math.PI / 2);
+gainR = sin(x * Math.PI / 2);
+        </pre>
+      </li>
+      <li>
+        <p>For mono input, the stereo output is calculated as:</p>
+        <pre class="highlight">
+outputL = input * gainL;
+outputR = input * gainR;
+        </pre>
+        <p>Else for stereo input, the output is calculated as:</p>
+        <pre class="highlight">
+if (pan &lt;= 0) {
+  // Pass through inputL to outputL and equal-power pan inputR as in mono case.
+  outputL = inputL + inputR * gainL;
+  outputR = inputR * gainR;
+} else {
+  // Pass through inputR to outputR and equal-power pan inputR as in mono case.
+  outputL = inputL * gainL;
+  outputR = inputR + inputL * gainR;
+}
+        </pre>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h4>HRTF panning (stereo only)</h4>
+    <p>This requires a set of <a href="https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
+    (Head-related Transfer Function) impulse responses recorded at a variety
+    of azimuths and elevations. The implementation requires a highly optimized
+    convolution function. It is somewhat more costly than "equal-power", but
+    provides more perceptually spatialized sound.</p>
+    <figure>
+      <img alt="HRTF panner" src="images/HRTF_panner.png" />
+      <figcaption>A diagram showing the process of panning a source using HRTF.</figcaption>
+    </figure>
+  </section>
+
 </section>
+
 
 <section>
   <h3 id="Spatialization-distance-effects">Distance Effects</h3>
@@ -6520,7 +6621,9 @@ Quad up-mix:
   <em>distance</em> will then be used to calculate <em>distanceGain</em> which
   depends on the <em>distanceModel</em> attribute.  See the <a
   href="#idl-def-DistanceModelType">distanceModel</a> section for details of
-how this is calculated for each distance model.
+how this is calculated for each distance model. The value computed by the <a
+  href="#idl-def-DistanceModelType">distanceModel</a> equations are to be
+clamped to [0, 1].
   </p>
   <p>As part of its processing, the <a><code>PannerNode</code></a> scales/multiplies the input audio signal by <em>distanceGain</em>
   to make distant sounds quieter and nearer ones louder.
@@ -6544,7 +6647,7 @@ how this is calculated for each distance model.
   </p>
 
   <pre class="highlight">
-  if (source.orientation.isZero() || ((source.coneInnerAngle == 360) &amp;&amp; (source.coneOuterAngle == 360)))
+  if (source.orientation.isZero() || ((source.coneInnerAngle == 0) &amp;&amp; (source.coneOuterAngle == 0)))
       return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
@@ -6639,7 +6742,7 @@ how this is calculated for each distance model.
 <section>
   <h3 id="Convolution-background">Background</h3>
 
-  <p><a href="http://en.wikipedia.org/wiki/Convolution">Convolution</a> is a
+  <p><a href="https://en.wikipedia.org/wiki/Convolution">Convolution</a> is a
   mathematical process which can be applied to an audio signal to achieve many
   interesting high-quality linear effects. Very often, the effect is used to
   simulate an acoustic space such as a concert hall, cathedral, or outdoor
@@ -6791,144 +6894,6 @@ how this is calculated for each distance model.
   trying to do more work than is possible in real-time given the CPU's speed. </p>
 </section>
 
-<section class=informative>
-  <h3>Hardware Scalability</h3>
-
-  <p>The system should gracefully degrade to allow audio processing under
-  resource constrained conditions without dropping audio frames. </p>
-
-  <p>First of all, it should be clear that regardless of the platform, the audio
-  processing load should never be enough to completely lock up the machine.
-  Second, the audio rendering needs to produce a clean, un-interrupted audio
-  stream without audible <a href="#audio-glitching">glitches</a>. </p>
-
-  <p>The system should be able to run on a range of hardware, from mobile phones
-  and tablet devices to laptop and desktop computers. The more limited
-  compute resources on a phone device make it necessary to consider techniques to
-  scale back and reduce the complexity of the audio rendering. For example,
-  voice-dropping algorithms can be implemented to reduce the total number of
-  notes playing at any given time. </p>
-
-  <p>Here's a list of some techniques which can be used to limit CPU usage: </p>
-
-  <section>
-    <h4 id="CPU-monitoring">CPU monitoring</h4>
-
-    <p>In order to avoid audio breakup, CPU usage must remain below 100%. </p>
-
-  <p>The relative CPU usage can be dynamically measured for each <a><code>AudioNode</code></a> (and
-    chains of connected nodes) as a percentage of the rendering time quantum. In a
-    single-threaded implementation, overall CPU usage must remain below 100%. The
-    measured usage may be used internally in the implementation for dynamic
-    adjustments to the rendering. It may also be exposed through a
-    <code>cpuUsage</code> attribute of <a><code>AudioNode</code></a> for use by
-    JavaScript. </p>
-
-    <p>In cases where the measured CPU usage is near 100% (or whatever threshold is
-    considered too high), then an attempt to add additional <a><code>AudioNode</code></a>s
-    into the rendering graph can trigger voice-dropping. </p>
-  </section>
-
-  <section>
-    <h4 id="Voice-dropping">Voice Dropping</h4>
-
-    <p>Voice-dropping is a technique which limits the number of voices (notes)
-    playing at the same time to keep CPU usage within a reasonable range. There can
-    either be an upper threshold on the total number of voices allowed at any given
-    time, or CPU usage can be dynamically monitored and voices dropped when CPU
-    usage exceeds a threshold. Or a combination of these two techniques can be
-    applied. When CPU usage is monitored for each voice, it can be measured all the
-    way from a source node through any effect processing nodes which apply
-    uniquely to that voice. </p>
-
-    <p>When a voice is "dropped", it needs to happen in such a way that it doesn't
-    introduce audible clicks or pops into the rendered audio stream. One way to
-    achieve this is to quickly fade-out the rendered audio for that voice before
-    completely removing it from the rendering graph. </p>
-
-    <p>When it is determined that one or more voices must be dropped, there are
-    various strategies for picking which voice(s) to drop out of the total ensemble
-    of voices currently playing. Here are some of the factors which can be used in
-    combination to help with this decision: </p>
-    <ul>
-      <li>Older voices, which have been playing the longest can be dropped instead
-        of more recent voices. </li>
-      <li>Quieter voices, which are contributing less to the overall mix may be
-        dropped instead of louder ones. </li>
-      <li>Voices which are consuming relatively more CPU resources may be dropped
-        instead of less "expensive" voices.</li>
-      <li>An <a><code>AudioNode</code></a> can have a <code>priority</code>
-      attribute to help determine the relative importance of the
-      voices.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h4 id="Simplification-of-Effects-Processing">Simplification of Effects
-    Processing</h4>
-
-    <p>Most of the effects described in this document are relatively inexpensive
-    and will likely be able to run even on the slower mobile devices. However, the
-    <a href="#ConvolverNode">convolution effect</a> can be configured with
-    a variety of impulse responses, some of which will likely be too heavy for
-    mobile devices. Generally speaking, CPU usage scales with the length of the
-    impulse response and the number of channels it has. Thus, it is reasonable to
-    consider that impulse responses which exceed a certain length will not be
-    allowed to run. The exact limit can be determined based on the speed of the
-    device. Instead of outright rejecting convolution with these long responses, it
-    may be interesting to consider truncating the impulse responses to the maximum
-    allowed length and/or reducing the number of channels of the impulse response.
-    </p>
-
-    <p>In addition to the convolution effect. The <a><code>PannerNode</code></a>
-    may also be expensive if using the HRTF panning model. For slower devices, a
-    cheaper algorithm such as EQUALPOWER can be used to conserve compute
-    resources. </p>
-  </section>
-
-  <section>
-    <h4 id="Sample-rate">Sample Rate</h4>
-
-    <p>For very slow devices, it may be worth considering running the rendering at
-    a lower sample-rate than normal. For example, the sample-rate can be reduced
-    from 44.1KHz to 22.05KHz. This decision must be made when the
-    <a><code>AudioContext</code></a> is created, because changing the sample-rate
-    on-the-fly can be difficult to implement and will result in audible glitching
-    when the transition is made. </p>
-  </section>
-
-  <section>
-    <h4 id="pre-flighting">Pre-flighting</h4>
-
-    <p>It should be possible to invoke some kind of "pre-flighting" code (through
-    JavaScript) to roughly determine the power of the machine. The JavaScript code
-    can then use this information to scale back any more intensive processing it
-    may normally run on a more powerful machine. Also, the underlying
-    implementation may be able to factor in this information in the voice-dropping
-    algorithm. </p>
-
-    <p><span class="ednote">TODO: add specification and more detail here </span></p>
-  </section>
-
-  <section>
-    <h4 id="Authoring-for-different-user-agents">Authoring for different
-    user agents</h4>
-    JavaScript code can use information about user-agent to scale back any more
-    intensive processing it may normally run on a more powerful machine.
-  </section>
-
-  <section>
-    <h4 id="Scalability-of-Direct-JavaScript-Synthesis">Scalability of Direct JavaScript Synthesis / Processing</h4>
-
-    <p>Any audio DSP / processing code done directly in JavaScript should also be
-    concerned about scalability. To the extent possible, the JavaScript code itself
-    needs to monitor CPU usage and scale back any more ambitious processing when
-    run on less powerful devices. If it's an "all or nothing" type of processing,
-    then user-agent check or pre-flighting should be done to avoid generating an
-    audio stream with audio breakup. </p>
-  </section>
-</section>
-
 <section>
 <h3 id="JavaScriptPerformance">JavaScript Issues with real-time Processing and Synthesis: </h3>
 While processing audio in JavaScript, it is extremely challenging to get
@@ -6981,7 +6946,7 @@ battery-life issues.
   <p>Currently audio input is not specified in this document, but it will involve
   gaining access to the client machine's audio input or microphone. This will
   require asking the user for permission in an appropriate way, probably via the
-  <a href="http://developers.whatwg.org/">getUserMedia()
+  <a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">getUserMedia()
   API</a>. </p>
 </section>
 
@@ -6997,11 +6962,12 @@ battery-life issues.
 <p>This specification is the collective work of the W3C <a href="http://www.w3.org/2011/audio/">Audio Working Group</a>.</p>
 
 <p>Members of the Working Group are (at the time of writing, and by alphabetical order): <br />
-Adenot, Paul (Mozilla Foundation);
+Adenot, Paul (Mozilla Foundation) - Specification Co-editor;
 Akhgari, Ehsan (Mozilla Foundation);
-Berkovitz, Joe (Invited Expert);
+Berkovitz, Joe (Hal Leonard/Noteflight) – WG Chair;
 Bossart, Pierre (Intel Corporation);
 Carlson, Eric (Apple, Inc.);
+Choi, Hongchan (Google, Inc.);
 Geelnard, Marcus (Opera Software);
 Goode, Adam (Google, Inc.);
 Gregan, Matthew (Mozilla Foundation);
@@ -7018,9 +6984,10 @@ Raman, T.V. (Google, Inc.);
 Schepers, Doug (W3C/MIT);
 Shires, Glen (Google, Inc.);
 Smith, Michael (W3C/Keio);
-Thereaux, Olivier (British Broadcasting Corporation) – WG Chair;
+Thereaux, Olivier (British Broadcasting Corporation);
+Toy, Raymond (Google, Inc.);
 Verdie, Jean-Charles (MStar Semiconductor, Inc.);
-Wilson, Chris (Google,Inc.);
+Wilson, Chris (Google,Inc.) - Specification Co-editor;
 ZERGAOUI, Mohamed (INNOVIMAX)
 </p>
 

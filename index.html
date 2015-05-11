@@ -97,7 +97,7 @@ synthesizing audio in web applications. The primary paradigm is of an audio
 routing graph, where a number of <a><code>AudioNode</code></a> objects are connected
 together to define the overall audio rendering. The actual processing will
 primarily take place in the underlying implementation (typically optimized
-Assembly / C / C++ code), but <a href="#JavaScriptProcessing">direct
+Assembly / C / C++ code), but <a href="#the-audioworker-interface">direct
 JavaScript processing and synthesis</a> is also supported. </p>
 
 <p>The <a href="#introduction">introductory</a> section covers the motivation
@@ -184,7 +184,7 @@ so that more advanced capabilities can be added at a later time. </p>
      </li>
 
   <li>Audio stream synthesis and processing <a
-    href="#JavaScriptProcessing">directly in JavaScript</a>. </li>
+    href="#the-audioworker-interface">directly in JavaScript</a>. </li>
   <li><a href="#Spatialization">Spatialized audio</a> supporting a wide
     range of 3D games and immersive environments:
     <ul>
@@ -397,8 +397,8 @@ function setupRoutingGraph () {
   <li>A <a><code>MediaStreamAudioDestinationNode</code></a>
     interface, an <a><code>AudioNode</code></a> which is the audio destination to a
     MediaStream sent to a remote peer. </li>
-  <li>An <a><code>AudioWorker</code></a> interface representing a factory for 
-  creating <a><code>WebWorker</code></a>-based custom nodes that can  
+  <li>An <a><code>AudioWorker</code></a> interface representing a factory for
+  creating <code>WebWorker</code>-based custom nodes that can
   process audio directly in JavaScript.</li>
   <li>An <a><code>AudioWorkerNode</code></a> interface, an
     <a><code>AudioNode</code></a> representing a node processed in an AudioWorker. </li>
@@ -501,7 +501,12 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   <dt>running</dt>
   <dd>Audio is being processed.</dd>
   <dt>closed</dt>
-  <dd>The AudioContext has been released, and can no longer be used to process audio.  All system audio resources have been released.  Attempts to create new Nodes on the AudioContext will throw InvalidStateError.  (AudioBuffers may still be created, through <a>createBuffer</a> or <a>decodeAudioData</a>.)</dd>
+  <dd>The AudioContext has been released, and can no longer be used to process
+  audio.  All system audio resources have been released.  Attempts to create new
+  Nodes on the AudioContext will throw InvalidStateError.  (AudioBuffers may
+  still be created, through <a
+  href="widl-AudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">createBuffer</a>
+or <a href="widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">decodeAudioData</a>.)</dd>
 </dl>
 
 <dl title="[Constructor] interface AudioContext : EventTarget" class="idl"
@@ -617,7 +622,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
         <ol>
           <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>NotSupportedError</code>.</li>
           <li>Reject <var>promise</var> with <var>error</var>.</li>
-          <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
+          <li>If <a>errorCallback</a> is not missing, invoke <a>errorCallback</a> with <var>error</var>.</li>
           <li>Terminate this algorithm.
         </ol>
       <li> Neuter the <a>audioData</a> ArrayBuffer in such a way that JavaScript code may not
@@ -715,7 +720,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
           of the node. Otherwise if the author explicitly specifies the
           bufferSize, it must be one of the following values: 256, 512, 1024,
           2048, 4096, 8192, 16384. This value controls how frequently the
-          <a href="#audioprocess-spnode"><code>audioprocess</code></a> event is
+          <code>audioprocess</code> event is
           dispatched and how many sample-frames need to be processed each call.
           Lower values for <a><code>bufferSize</code></a>
           will result in a lower (better) <a href="#latency">latency</a>. Higher
@@ -904,7 +909,7 @@ the page goes away.
 possible, fulfilling the returned promise with the rendered result as an <code>AudioBuffer</code>.</p>
 
 <p>Each <code>OfflineAudioContext</code> instance has an associated
-<dfn id="#offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
+<dfn id="offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
 <code>false</code>.</p>
 
 <dl title='[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : AudioContext' class='idl'>
@@ -1810,7 +1815,7 @@ param.setValueCurveAtTime(curve, t6, t7 - t6);
 <p>
   Each sample of each channel of the input data of the
   <a><code>GainNode</code></a> MUST be multiplied by the <a>computedValue</a> of
-  the <a><code>gain</code></a> <a><code>AudioParam</code></a>.
+  the <a href="#widl-GainNode-gain"><code>gain</code></a> <a><code>AudioParam</code></a>.
 </p>
 
 <p>
@@ -2043,7 +2048,8 @@ invoked in the following cases:
   been completely played (if the <code>loop</code> attribute is false), or when
   the stop() method has been called and the specified time has been reached.
   Please see more details in the start() and stop() description.  start() and
-  stop() may not be issued multiple times for a given AudioBufferSourceNode.
+  stop() may not be issued multiple times for a given
+<a><code>AudioBufferSourceNode</code></a>.
 </p>
 <pre>
   numberOfInputs  : 0
@@ -2178,8 +2184,8 @@ value:
 </pre>
 
 The <code>computedPlaybackRate</code> is the effective speed at which the
-<a><code>AudioBuffer</code></a> of this <a><code>AudioBufferSourceNode</code>
-</a> MUST be played.
+<a><code>AudioBuffer</code></a> of this <a><code>AudioBufferSourceNode</code></a>
+MUST be played.
 </p>
 
 <section>
@@ -2315,8 +2321,8 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   AudioWorker can then be used to create instances of <a>AudioWorkerNode</a>, 
   which is the main-thread representation of an individual node processed by 
   that AudioWorker.</p>
-<p>These main thread objects cause the instantiation of a <a>Web Worker</a>-like 
-  thread context, which executes in the audio thread.  All audio processing by
+<p>These main thread objects cause the instantiation of a Web Worker</a>-like 
+  thread context (Described in [[!Workers]]), which executes in the audio thread.  All audio processing by
   AudioWorkerNodes run in the audio processing thread. This has a few side 
   effects that bear mentioning: blocking the audio worker's thread can cause 
   glitches in the audio, and if the audio thread is normally elevated in 
@@ -2326,7 +2332,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 <p>From inside an audio worker script, the Audio Worker factory is represented 
   by an <a><code>AudioWorkerGlobalScope</code></a> object representing the 
   node's contextual information, and individual audio nodes created by the factory
-  are represented by <a><code>AudioWorkerNodeScope</code></a> objects.</p>
+  are represented by <a><code>AudioWorkerNodeProcessor</code></a> objects.</p>
 <p>In addition, all <a>AudioWorkerNode</a>s that are created by the same
   <a>AudioWorker</a> share an <a>AudioWorkerGlobalScope</a>; this can allow 
   them to share context and data across nodes (for example, loading a single
@@ -2347,9 +2353,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
       themselves, and will cease performing any useful functions.</dd>
   <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
   <dd>postMessage may be called to send a message to the 
-    <a>AudioWorkerGlobalScope</a>, via the algorithm defined by 
-    <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
-    the Worker specification</a>.</dd>
+    <a>AudioWorkerGlobalScope</a>, via the algorithm defined by [[!Workers]].</dd>
   <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
   <dd>This array contains descriptors for each of the current parameters on 
     nodes created by this AudioWorker.  This enables users of the AudioWorker 
@@ -2377,8 +2381,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
       read-only <code>Float32Array</code> that will be present on the 
       <a><code>parameters</code></a> object exposed on subsequent 
       <a>AudioProcessEvent</a>s.</p>
-    <p>The <dfn
-      id="dfn-defaultValue">defaultValue</dfn> parameter is the default value 
+    <p>The <a><code>defaultValue</code></a> parameter is the default value 
       for the <a>AudioParam</a>'s <a>value</a> attribute, as well as 
       therefore the default value that will appear in the Float32Array in the 
       worker script (if no other parameter changes or connections affect the 
@@ -2407,8 +2410,8 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
   in IDL.
 </p>
   
-<p>As the <a>AudioWorker</a> interface inherits from <a>Worker</a>, 
-  <a>AudioWorker</a>s must implement the <a>Worker</a>
+<p>As the <a>AudioWorker</a> interface inherits from <code>Worker</code>, 
+  <a>AudioWorker</a>s must implement the <code>Worker</code>
   interface for communication with the audio worker script.
 </p>
 
@@ -2417,7 +2420,7 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 
 
 <p>This interface represents an <a><code>AudioNode</code></a> which interacts
-  with a <a>Worker</a> thread to generate, process, or analyse audio directly.
+  with a <code>Worker</code> thread to generate, process, or analyse audio directly.
   The user creates a separate audio processing worker script, which is hosted
   inside the AudioWorkerGlobalScope and runs inside the audio processing
   thread, rather than the main UI thread.  The AudioWorkerNode represents the
@@ -2488,7 +2491,7 @@ to be zero.
 <section>
 <h2>The AudioWorkerGlobalScope Interface</h2>
 
-<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived 
+<p>This interface is a <code>DedicatedWorkerGlobalScope</code>-derived 
   object representing the context in which an audio processing script is run; 
   it is designed to enable the generation, processing, and analysis of audio 
   data directly using JavaScript in a Worker thread, with shared context between
@@ -2506,7 +2509,7 @@ to be zero.
   <dt>readonly attribute float sampleRate</dt>
   <dd>
     The sample rate of the host <a>AudioContext</a> (since inside the 
-    <a>Worker</a> scope, the user will not have direct access to the 
+    <code>Worker</code> scope, the user will not have direct access to the 
     <a>AudioContext</a>.
   </dd>
   <dt>AudioParam addParameter(DOMString name, float defaultValue) </dt>
@@ -2905,7 +2908,7 @@ This is an <code>Event</code> object which is dispatched to
       tight synchronization between processing directly in JavaScript with the
       other events in the context's rendering graph.
     </dd>
-    <dt>readonly attribute AudioWorkerNodeProcessor</dt>
+    <dt>readonly attribute AudioWorkerNodeProcessor node</dt>
     <dd>The node to which this processing event is being dispatched.  Any 
       node-local data storage (e.g., the buffer for a delay node) should be 
       maintained on this object.</dd>
@@ -3832,7 +3835,8 @@ in the following operation:
   Low-order filters are the building blocks of basic tone controls (bass, mid,
   treble), graphic equalizers, and more advanced filters. Multiple
   <a><code>BiquadFilterNode</code></a> filters can be combined to form more
-  complex filters. The filter parameters such as <a><code>frequency</code></a>
+  complex filters. The filter parameters such as <a
+    href="#widl-BiquadFilterNode-freuqnecy"><code>frequency</code></a>
   can be changed over time for filter sweeps, etc. Each
   <a><code>BiquadFilterNode</code></a> can be configured as one of a number of
   common filter types as shown in the IDL below.  The default filter type is
@@ -3840,7 +3844,8 @@ in the following operation:
 </p>
 
 <p>
-  Both <a><code>frequency</code></a> and <a><code>detune</code></a> are
+  Both <a href="#widl-BiquadFilterNode-frequency"><code>frequency</code></a> and
+  <a href="#widl-BiquadFilterNode-detune"><code>detune</code></a> are
   <a>a-rate</a> parameters and are used together to determine a
   <dfn id=computedFreq-biquad>computedFrequency</dfn> value:
 </p>
@@ -4227,15 +4232,15 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
     <ul>
     <li>Let <math
     title="Fs"><mrow><msub><mi>F</mi><mn>s</mn></msub></mrow></math> be the
-    value of the <a><code>sampleRate</code></a> attribute for this
+    value of the <a href="#widl-AudioContext-sampleRate"><code>sampleRate</code></a> attribute for this
     <a>AudioContext</a>.</li>
     <li>Let <math
     title="f0"><mrow><msub><mi>f</mi><mn>0</mn></msub></mrow></math> be the
     value of the <a><code>computedFrequency</code></a>.
     <li>Let <math title="dbGain"><mi>dbGain</mi></math> be the value of the
-    <a><code>gain</code></a> <a><code>AudioParam</code></a>.</li>
+    <a href="#widl-BiquadFilterNode-gain"><code>gain</code></a> <a><code>AudioParam</code></a>.</li>
     <li>Let <math title="Q"><mi>Q</mi></math> be the value of the
-    <a><code>Q</code></a> <a><code>AudioParam</code></a>.</li>
+    <a href="#widl-BiquadFilterNode-Q"><code>Q</code></a> <a><code>AudioParam</code></a>.</li>
     <li>Let <math title="A_0"><mi>A</mi></math> be:
       <ul>
         <li>
@@ -6713,7 +6718,8 @@ Quad up-mix:
 
     <p>This is a simple and relatively inexpensive algorithm which provides basic,
     but reasonable results.  It is used for the <a><code>StereoPannerNode</code></a>,
-    and for the <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
+    and for the <a><code>PannerNode</code></a> when the <a
+      href="#widl-PannerNode-panningModel"><code>panningModel</code></a>
     attribute is set to <code>"equalpower"</code>, in which case the the
     <em>elevation</em> value is ignored.</p>
 
@@ -6721,7 +6727,8 @@ Quad up-mix:
 
     <ol>
       <li>
-        <p>Let <em>azimuth</em> be the value computed in the <a>azimuth and elevation</a>
+        <p>Let <em>azimuth</em> be the value computed in the <a
+          href="#azimuth-elevation">azimuth and elevation</a>
         section.</p>
       </li>
       <li>

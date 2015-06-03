@@ -2830,8 +2830,25 @@ default is "inverse".
     </dd>
     <dt>attribute float coneOuterGain</dt>
     <dd>
-      A parameter for directional audio sources, this is the amount of volume
-      reduction outside of the <a><code>coneOuterAngle</code></a>.  The default value is 0.
+      A parameter for directional audio sources, this is the gain
+      outside of the <a><code>coneOuterAngle</code></a>.  The default value is 0.
+      It is a linear value (not dB) in the range [0, 1]. The actual gain is computed as follows,
+      where <a><code>gain</code></a> is the gain to be applied for the cone gain and
+      <a><code>angle</code></a> is the angle between the source orientation vector and the source-listener vector:
+      <pre class="highlight">
+        var absConeInner = Math.abs(coneInnerAngle);
+        var absConeOuter = Math.abs(coneOuterAngle);
+        var absAngle = Math.abs(angle);
+        var gain;
+        if (absAngle <= absConeInner) {
+          gain = 1;
+        } else if (absAngle >= absConeOuter) {
+          gain = coneOuterGain;
+        } else {
+          var x = (absAngle - absConeInner) / (absConeOuter - absConeInner);
+          gain = (1 - x) + coneOuterGain * x;
+        }
+      </pre>
     </dd>
 </dl>
 

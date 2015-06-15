@@ -4528,27 +4528,39 @@ href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">setPe
 The <a
 href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">createPeriodicWave()</a>
 method takes two arrays to specify the Fourier coefficients of the PeriodicWave. Let \(a\) and \(b\)
-represent the real and imaginary arrays of length \(L\).  Then the basic time-domain waveform
-\(x(t)\) can be computed using
+represent the real and imaginary arrays of length \(L\).  Then the basic time-domain waveform,
+\(x(t)\), can be computed using
 
 $$
-  x(n) = \sum_{k=1}^{L-1} a[k]\cos\frac{2\pi k n}{F_s} + b[k]\sin\frac{2\pi k n}{F_s}
+  x(t) = \sum_{k=1}^{L-1} \left(a[k]\cos2\pi k t + b[k]\sin2\pi k t\right)
 $$            
-where \(F_s\) is the sampling frequency of the context. This is the basic (unnormalized) waveform.
+This is the basic (unnormalized) waveform.
+</p>
+</section>
+<section>
+<h2>Waveform Normalization</h2>
+<p>
+By default, the waveform defined in the previous section is normalized so that the maximum value is
+1. The normalization is done as follows.
 </p>
 <p>
-When normalization is applied (the default), the fixed normalization factor \(f\) is computed as
-follows: 
+Let 
 $$
-  f = \max_n |x(n)|
+  \tilde{x}(n) = \sum_{k=1}^{L-1} \left(a[k]\cos\frac{2\pi k n}{N}  + b[k]\sin\frac{2\pi k n}{N}\right)
+$$
+where \(N\) is a power of two.  (Note: \(\tilde{x}(n)\) can conveniently be computed using an
+inverse FFT.)
+The fixed normalization factor \(f\) is computed as follows: 
+$$
+  f = \max_{n = 0, \ldots, N - 1} |\tilde{x}(n)|
 $$
 Thus, the actual normalized waveform \(\hat{x}(n)\) is
 $$
-  \hat{x}(n) = \frac{x(n)}{f}
+  \hat{x}(n) = \frac{\tilde{x}(n)}{f}
 $$
+This fixed normalization factor must be applied to all generated waveforms.
 </p>
             
-</section>
 </section>
 
 <section>

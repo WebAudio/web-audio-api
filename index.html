@@ -431,6 +431,9 @@ function setupRoutingGraph () {
       <li>Allpass </li>
     </ul>
   </li>
+  <li>A <a><code>IIRFilterNode</code></a> interface, an <a><code>AudioNode</code></a> for a general
+  IIR filter.
+  </li>	  
   <li>A <a><code>DelayNode</code></a> interface, an
     <a><code>AudioNode</code></a> which applies a dynamically adjustable variable delay. </li>
   <li>A <a><code>PannerNode</code></a>
@@ -767,6 +770,23 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
     <dd>Creates a <a><code>BiquadFilterNode</code></a>
       representing a second order filter which can be configured as one of
       several common filter types.
+    </dd>
+    <dt> IIRFilterNode createIIRFilter(Float32Array b, Float32Array a) </dt>
+    <dd>Creates a <a><code>IIRFilterNode</code></a> representing a general IIR FIlter.
+      <dl class=parameters>
+        <dt> Float32Array b</dt>
+	<dd>
+          An array of the numerator coefficients for the tranfer function of the IIR filter. The
+          maximum length of this array is 20.  A NotSupportedError MUST be thrown if the array
+          length is 0 or greater than 20.
+	</dd>
+        <dt> Float32Array a</dt>
+        <dd>
+          An array of the denominator coefficients for the tranfer function of the IIR filter. The
+          maximum length of this array is 20.  A NotSupportedError MUST be thrown if the array
+          length is 0 or greater than 20.
+        </dd>
+      </dl>
     </dd>
     <dt> WaveShaperNode createWaveShaper() </dt>
     <dd>
@@ -4241,6 +4261,77 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
   </p>
 </section>
 
+</section>
+<section>
+<h2>The IIRFilterNode Interface</h2>
+<p>
+ <a><code>IIRFilterNode</code></a> is an <a><code>AudioNode</code></a> processor implementing a general
+ IIR Filter.  In general, it is best to use <a><code>BiquadFilterNode</code></a>'s to implement
+ higher-order filters for the following reasons:
+ <ul>
+   <li>Generally less sensitive to numeric issues</li>
+   <li>Filter parameters can be automated</li>
+   <li>Can be used to create all even-ordered IIR filters</li>	    
+ </ul>
+</p>
+<p>
+  However, odd-ordered filters cannot be created, so if such filters are needed or automation is not
+  needed, then IIR filters are appropriate.
+</p>
+<p>
+  Once created, the coefficients of the IIR filter cannot be changed.	  
+</p>
+<pre>
+    numberOfInputs  : 1
+    numberOfOutputs : 1
+
+    channelCountMode = "max";
+    channelInterpretation = "speakers";
+</pre>	  
+<p>
+The number of channels of the output always equals the number of channels of the input.
+</p>
+
+<dl title="interface IIRFilterNode : AudioNode" class="idl">
+  <dt>void getFrequencyResponse() </dt>
+  <dd>
+  <p>
+    Given the current filter parameter settings, calculates the
+    frequency response for the specified frequencies.
+  </p>
+  <dl class="parameters">
+    <dt>Float32Array frequencyHz</dt>
+    <dd>
+      This parameter specifies an array of frequencies at which the response
+      values will be calculated.
+    </dd>
+    <dt>Float32Array magResponse</dt>
+    <dd>
+      This parameter specifies an output array receiving the linear magnitude
+      response values.
+    </dd>
+    <dt>Float32Array phaseResponse</dt>
+   <dd>
+    This parameter specifies an output array receiving the phase response values
+    in radians.
+   </dd>
+  </dl>
+  </dd>
+</dl>
+  <section>
+    <h3>Filter Definition</h3>
+    <p>
+      The transfer function of the general IIR filter is given by
+      $$
+        H(z) = \frac{\sum_{m=0}^{M-1} b_m z^{-m}}{\sum_{n=0}^{N-1} a_n z^{-n}}
+      $$
+      where \(M\) is the length of the <code>b</code> array and \(N\) is the length of the
+      <code>a</code> array.
+    </p>
+    <p>
+      The initial filter state is the all-zeroes state.
+    </p>	  
+  </section>
 </section>
 <section>
 <h2 id="WaveShaperNode">The WaveShaperNode Interface</h2>

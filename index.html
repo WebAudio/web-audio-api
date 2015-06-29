@@ -541,12 +541,12 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   </dd>
 
   <dt>Promise&lt;void&gt; suspend()</dt>
-  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.
+  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.
 
     <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
 
   <dt>Promise&lt;void&gt; resume()</dt>
-  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.</dd>
 
   <dt>Promise&lt;void&gt; close()</dt>
   <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
@@ -907,11 +907,11 @@ the page goes away.
 
 <section>
 <h2 id="OfflineAudioContext">The OfflineAudioContext Interface</h2>
-<p><code>OfflineAudioContext</code> is a particular type of <a><code>AudioContext</code></a> for rendering/mixing-down
+<p><a><code>OfflineAudioContext</code></a> is a particular type of <a><code>AudioContext</code></a> for rendering/mixing-down
 (potentially) faster than real-time. It does not render to the audio hardware, but instead renders as quickly as
 possible, fulfilling the returned promise with the rendered result as an <code>AudioBuffer</code>.</p>
 
-<p>Each <code>OfflineAudioContext</code> instance has an associated
+<p>Each <a><code>OfflineAudioContext</code></a> instance has an associated
 <dfn id="#offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
 <code>false</code>.</p>
 
@@ -937,6 +937,10 @@ possible, fulfilling the returned promise with the rendered result as an <code>A
           <code>sampleRate</code> parameters used when this instance's constructor was called.</li>
           <li>Given the current connections and scheduled changes, start
           rendering <code>length</code> sample-frames of audio into <var>buffer</var>.</li>
+          <li>For every render quantum, check and suspend the rendering if
+            necessary.</li>
+          <li>If a suspended context is resumed, continue to render the
+            buffer.</li>
           <li>Once the rendering is complete,
             <ol>
               <li>Resolve <var>promise</var> with <var>buffer</var>.</li>
@@ -950,6 +954,46 @@ possible, fulfilling the returned promise with the rendered result as an <code>A
       <li>Return <var>promise</var>.</li>
     </ol>
   </dd>
+
+  <dt>Promise&lt;void&gt; resume()</dt>
+  <dd>
+    <p>Resumes the progression of time in an audio context that has been
+      suspended. The promise resolves immediately because the
+      <a><code>OfflineAudioContext</code></a> does not require the audio hardware. If the
+      context is not currently suspended or the rendering has not started, the
+      promise is rejected with <code>InvalidStateError</code>.</p>
+  </dd> 
+
+  <dt>Promise&lt;void&gt; suspend()</dt> 
+  <dd>
+    <p>Schedules a suspension of the time progression in the audio context at
+      the specified time and returns a promise. This is generally useful when
+      manipulating the audio graph synchronously on <a><code>OfflineAudioContext</code></a>.</p>
+    <p>Note that the maximum precision of suspension is the size of render
+      qunatum and the specified suspension time will be floored to the nearest
+      render quantum boundary. For this reason, it is not allowed to scheduled
+      multiple suspends at a same quantized frame. Also scheduling should be done
+      while the context is not running to ensure the precise suspension.</p>
+      <p>The instance will also fire an event named <code>onstatechange</code> for
+      legacy reasons.</p> 
+
+    <dl class="parameters">
+      <dt>double suspendTime</dt>
+      <dd>Schedules a suspension of the rendering at a specified time, which is
+        quantized and floored by the render quantum size. The returned promise is
+        rejected with a <code>DOMException</code> whose name is
+        <code>"InvalidStateError"</code> when the quantized frame is: 
+        <ol>
+          <li>Negative.</li>
+          <li>Less than or equal to the current time.</li>
+          <li>Greater than or equal to the total render duration.</li>
+          <li>Already scheduled by another suspend.</li>
+        </ol>
+      </dd>
+    </dl>
+  </dd>
+
+
   <dt>attribute EventHandler oncomplete</dt>
   <dd><p>An EventHandler of type <a href="#OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</a>.</p></dd>
 </dl>

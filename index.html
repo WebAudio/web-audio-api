@@ -4,7 +4,7 @@
   <title>Web Audio API</title>
   <meta charset=utf-8>
   <script src='respec-w3c-common' async class='remove'></script>
-  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=MML_HTMLorMML"></script>
+  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
   <script class='remove'>
     var respecConfig = {
         specStatus: "ED",
@@ -97,7 +97,7 @@ synthesizing audio in web applications. The primary paradigm is of an audio
 routing graph, where a number of <a><code>AudioNode</code></a> objects are connected
 together to define the overall audio rendering. The actual processing will
 primarily take place in the underlying implementation (typically optimized
-Assembly / C / C++ code), but <a href="#JavaScriptProcessing">direct
+Assembly / C / C++ code), but <a href="#the-audioworker-interface">direct
 JavaScript processing and synthesis</a> is also supported. </p>
 
 <p>The <a href="#introduction">introductory</a> section covers the motivation
@@ -184,11 +184,11 @@ so that more advanced capabilities can be added at a later time. </p>
      </li>
 
   <li>Audio stream synthesis and processing <a
-    href="#JavaScriptProcessing">directly in JavaScript</a>. </li>
+    href="#the-audioworker-interface">directly in JavaScript</a>. </li>
   <li><a href="#Spatialization">Spatialized audio</a> supporting a wide
     range of 3D games and immersive environments:
     <ul>
-      <li>Panning models: equal-power, HRTF, pass-through </li>
+      <li>Panning models: equalpower, HRTF, pass-through </li>
       <li>Distance Attenuation </li>
       <li>Sound Cones </li>
       <li>Obstruction / Occlusion </li>
@@ -397,10 +397,13 @@ function setupRoutingGraph () {
   <li>A <a><code>MediaStreamAudioDestinationNode</code></a>
     interface, an <a><code>AudioNode</code></a> which is the audio destination to a
     MediaStream sent to a remote peer. </li>
-  <li>An <a><code>AudioWorker</code></a> interface, a
-    <a><code>WebWorker</code></a> designed to enable processing audio directly in JavaScript in a Worker.</li>
+  <li>An <a><code>AudioWorker</code></a> interface representing a factory for
+  creating <code>WebWorker</code>-based custom nodes that can
+  process audio directly in JavaScript.</li>
   <li>An <a><code>AudioWorkerNode</code></a> interface, an
-    <a><code>AudioNode</code></a> for connecting the node graph to an AudioWorker. </li>
+    <a><code>AudioNode</code></a> representing a node processed in an AudioWorker. </li>
+  <li>An <a><code>AudioWorkerGlobalScope</code></a> interface, the context in which AudioWorker processing scripts run.</li>
+  <li>An <a><code>AudioWorkerNodeProcessor</code></a> interface, representing a single node instance inside an audio worker. </li>
   <li>A <a><code>ScriptProcessorNode</code></a> interface, an
     <a><code>AudioNode</code></a> for generating or processing audio directly in JavaScript. </li>
   <li>An <a><code>AudioProcessingEvent</code></a> interface,
@@ -410,7 +413,7 @@ function setupRoutingGraph () {
     for controlling an individual aspect of an <a><code>AudioNode</code></a>'s functioning, such as
     volume. </li>
   <li>An <a><code>GainNode</code></a>
-    interface, for explicit gain control. Because inputs to
+    interface, an <a><code>AudioNode</code></a> for explicit gain control. Because inputs to
     <a><code>AudioNode</code></a>s support
     multiple connections (as a unity-gain summing junction), mixers can be <a
     href="#mixer-gain-structure">easily built</a> with GainNodes.
@@ -431,22 +434,22 @@ function setupRoutingGraph () {
   <li>A <a><code>DelayNode</code></a> interface, an
     <a><code>AudioNode</code></a> which applies a dynamically adjustable variable delay. </li>
   <li>A <a><code>PannerNode</code></a>
-    interface, for spatializing / positioning audio in 3D space. </li>
+    interface, an <a><code>AudioNode</code></a> for spatializing / positioning audio in 3D space. </li>
   <li>An <a><code>AudioListener</code></a>
     interface, which works with a <a>PannerNode</a> for
     spatialization. </li>
   <li>A <a><code>StereoPannerNode</code></a>
-    interface, for equal-power positioning of audio input in a stereo stream. </li>
+    interface, an <a><code>AudioNode</code></a> for equal-power positioning of audio input in a stereo stream. </li>
   <li>A <a><code>ConvolverNode</code></a>
       interface, an <a><code>AudioNode</code></a> for applying a <a
         href="#Convolution">real-time linear effect</a> (such as the sound
     of a concert hall). </li>
-  <li>A <a><code>AnalyserNode</code></a> interface,
+  <li>A <a><code>AnalyserNode</code></a> interface, an <a><code>AudioNode</code></a>
     for use with music visualizers, or other visualization applications. </li>
-  <li>A <a><code>ChannelSplitterNode</code></a> interface,
+  <li>A <a><code>ChannelSplitterNode</code></a> interface, an <a><code>AudioNode</code></a> 
     for accessing the individual channels of an audio stream in the routing
     graph. </li>
-  <li>A <a><code>ChannelMergerNode</code></a> interface, for
+  <li>A <a><code>ChannelMergerNode</code></a> interface, an <a><code>AudioNode</code></a> for
     combining channels from multiple audio streams into a single audio stream.
   </li>
   <li>A <a><code>DynamicsCompressorNode</code></a> interface, an
@@ -455,7 +458,7 @@ function setupRoutingGraph () {
     interface, an <a><code>AudioNode</code></a> which applies a non-linear waveshaping effect for
     distortion and other more subtle warming effects. </li>
   <li>A <a><code>OscillatorNode</code></a>
-    interface, an audio source generating a periodic waveform. </li>
+    interface, an <a><code>AudioNode</code></a> for generating a periodic waveform. </li>
 </ul>
 </section>
 </section>
@@ -498,7 +501,12 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   <dt>running</dt>
   <dd>Audio is being processed.</dd>
   <dt>closed</dt>
-  <dd>The AudioContext has been released, and can no longer be used to process audio.  All system audio resources have been released.  Attempts to create new Nodes on the AudioContext will throw InvalidStateError.  (AudioBuffers may still be created, through <a>createBuffer</a> or <a>decodeAudioData</a>.)</dd>
+  <dd>The AudioContext has been released, and can no longer be used to process
+  audio.  All system audio resources have been released.  Attempts to create new
+  Nodes on the AudioContext will throw InvalidStateError.  (AudioBuffers may
+  still be created, through <a
+  href="#widl-AudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">createBuffer</a>
+or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">decodeAudioData</a>.)</dd>
 </dl>
 
 <dl title="[Constructor] interface AudioContext : EventTarget" class="idl"
@@ -541,15 +549,17 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
   </dd>
 
   <dt>Promise&lt;void&gt; suspend()</dt>
+
   <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.
 
     <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
 
   <dt>Promise&lt;void&gt; resume()</dt>
+
   <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.</dd>
 
   <dt>Promise&lt;void&gt; close()</dt>
-  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an InvalidStateError exception to be thrown if called on an OfflineAudioContext.</dd>
 
  <dt>attribute EventHandler onstatechange</dt>
   <dd>
@@ -614,7 +624,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
         <ol>
           <li>Let <var>error</var> be a <code>DOMException</code> whose name is <code>NotSupportedError</code>.</li>
           <li>Reject <var>promise</var> with <var>error</var>.</li>
-          <li>If <dfn>errorCallback</dfn> is not missing, invoke <dfn>errorCallback</dfn> with <var>error</var>.</li>
+          <li>If <a>errorCallback</a> is not missing, invoke <a>errorCallback</a> with <var>error</var>.</li>
           <li>Terminate this algorithm.
         </ol>
       <li> Neuter the <a>audioData</a> ArrayBuffer in such a way that JavaScript code may not
@@ -679,31 +689,20 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
     <dt> MediaStreamAudioDestinationNode createMediaStreamDestination() </dt>
     <dd>Creates a <a><code>MediaStreamAudioDestinationNode</code></a> </dd>
 
-    <dt> AudioWorkerNode createAudioWorker()</dt>
+    <dt>Promise&lt;AudioWorker&gt; createAudioWorker()</dt>
     <dd>
-      Creates an <a><code>AudioWorkerNode</code></a> and its associated <a><code>AudioWorkerGlobalScope</code></a>
-      for direct audio processing using JavaScript.  An IndexSizeError exception MUST
-      be thrown if <a><code>numberOfInputChannels</code></a> or
-      <a><code>numberOfOutputChannels</code></a> are outside the valid range.
+      Creates an <a><code>AudioWorker</code></a> object and loads the 
+      associated script into an <a><code>AudioWorkerGlobalScope</code>, 
+      then resolves the returned Promise.
 
       <dl class=parameters>
         <dt> DOMString scriptURL </dt>
         <dd>
-          This parameter represents the URL of the script to be loaded as an <a>AudioWorker</a>.
-        </dd>
-        <dt> optional unsigned long numberOfInputChannels = 2 </dt>
-        <dd>
-          This parameter determines the number of channels for this node's
-          input. Values of up to 32 must be supported.
-        </dd>
-        <dt> optional unsigned long numberOfOutputChannels = 2 </dt>
-        <dd>
-          This parameter determines the number of channels for this node's
-          output. Values of up to 32 must be supported.
+          This parameter represents the URL of the script to be loaded as an 
+          <a>AudioWorker</a> node factory.  See <a>AudioWorker</a> section 
+          for more detail.
         </dd>
       </dl>
-      It is invalid for both <a><code>numberOfInputChannels</code></a> and
-      <a><code>numberOfOutputChannels</code></a> to be zero.
     </dd>
 
     <dt> ScriptProcessorNode createScriptProcessor()</dt>
@@ -723,7 +722,7 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
           of the node. Otherwise if the author explicitly specifies the
           bufferSize, it must be one of the following values: 256, 512, 1024,
           2048, 4096, 8192, 16384. This value controls how frequently the
-          <a href="#audioprocess-spnode"><code>audioprocess</code></a> event is
+          <code>audioprocess</code> event is
           dispatched and how many sample-frames need to be processed each call.
           Lower values for <a><code>bufferSize</code></a>
           will result in a lower (better) <a href="#latency">latency</a>. Higher
@@ -824,8 +823,9 @@ cases, only a single <a><code>AudioContext</code></a> is used per document.</p>
       Creates a <a><code>PeriodicWave</code></a> representing a waveform
       containing arbitrary harmonic content.  The <code>real</code> and
       <code>imag</code> parameters must be of type <code>Float32Array</code>
-      (described in [[!TYPED-ARRAYS]]) of equal lengths greater than zero and less
-      than or equal to 2048 or an IndexSizeError exception MUST be thrown.  These
+      (described in [[!TYPED-ARRAYS]]) of equal lengths greater than zero or an IndexSizeError
+      exception MUST be thrown.  All implementations must support arrays up to at least 8192.
+      These
       parameters specify the Fourier coefficients of a
       <a href="https://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
       representing the partials of a periodic waveform.  The created
@@ -911,8 +911,8 @@ the page goes away.
 (potentially) faster than real-time. It does not render to the audio hardware, but instead renders as quickly as
 possible, fulfilling the returned promise with the rendered result as an <code>AudioBuffer</code>.</p>
 
-<p>Each <a><code>OfflineAudioContext</code></a> instance has an associated
-<dfn id="#offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
+<p>Each <code>OfflineAudioContext</code> instance has an associated
+<dfn id="offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
 <code>false</code>.</p>
 
 <dl title='[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : AudioContext' class='idl'>
@@ -1330,7 +1330,8 @@ way that other EventTargets accept events.
     <p>The number of channels used when up-mixing and down-mixing connections
     to any inputs to the node.  The default value is 2 except for specific
     nodes where its value is specially determined.  This attribute has no
-    effect for nodes with no inputs.  If this value is set to zero, the
+    effect for nodes with no inputs.  If this value is set to zero or to a value
+    greater than the implementation's maximum number of channels the
     implementation MUST throw a NotSupportedError exception.</p>
     <p>See the <a href="#channel-up-mixing-and-down-mixing"></a>
     section for more information on this attribute.</p>
@@ -1862,7 +1863,7 @@ param.setValueCurveAtTime(curve, t6, t7 - t6);
 <p>
   Each sample of each channel of the input data of the
   <a><code>GainNode</code></a> MUST be multiplied by the <a>computedValue</a> of
-  the <a><code>gain</code></a> <a><code>AudioParam</code></a>.
+  the <a href="#widl-GainNode-gain"><code>gain</code></a> <a><code>AudioParam</code></a>.
 </p>
 
 <p>
@@ -2095,7 +2096,8 @@ invoked in the following cases:
   been completely played (if the <code>loop</code> attribute is false), or when
   the stop() method has been called and the specified time has been reached.
   Please see more details in the start() and stop() description.  start() and
-  stop() may not be issued multiple times for a given AudioBufferSourceNode.
+  stop() may not be issued multiple times for a given
+<a><code>AudioBufferSourceNode</code></a>.
 </p>
 <pre>
   numberOfInputs  : 0
@@ -2230,8 +2232,8 @@ value:
 </pre>
 
 The <code>computedPlaybackRate</code> is the effective speed at which the
-<a><code>AudioBuffer</code></a> of this <a><code>AudioBufferSourceNode</code>
-</a> MUST be played.
+<a><code>AudioBuffer</code></a> of this <a><code>AudioBufferSourceNode</code></a>
+MUST be played.
 </p>
 
 <section>
@@ -2358,21 +2360,115 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
 </section>
 
 <section>
-<h2>The <dfn>AudioWorker</dfn></h2>
+<h2 id="AudioWorker">The <dfn>AudioWorker</dfn> interface</h2>
 
-<p>AudioWorker is not an actual class in the Web Audio API; an Audio Worker is
-  represented in the main thread by the <a>AudioWorkerNode</a> methods
-  (postMessage, onmessage and terminate, in particular). From inside an audio
-  worker script, an Audio Worker is represented by an
-  <a><code>AudioWorkerGlobalScope</code></a> object representing the node's
-  contextual information; all worker scripts are run in the audio processing
-  thread.</p>
+<p>An AudioWorker object is the main-thread representation of a worker "thread" 
+  that supports processing of audio in Javascript.  This AudioWorker object is
+  a factory that is used to create multiple audio nodes of the same type; this
+  enables easy sharing of code, program data and global state across nodes.  An 
+  AudioWorker can then be used to create instances of <a>AudioWorkerNode</a>, 
+  which is the main-thread representation of an individual node processed by 
+  that AudioWorker.</p>
+<p>These main thread objects cause the instantiation of a Web Worker</a>-like 
+  thread context (Described in [[!Workers]]), which executes in the audio thread.  All audio processing by
+  AudioWorkerNodes run in the audio processing thread. This has a few side 
+  effects that bear mentioning: blocking the audio worker's thread can cause 
+  glitches in the audio, and if the audio thread is normally elevated in 
+  thread priority (to reduce glitching possibility), it must be demoted to 
+  normal thread priority (in order to avoid escalating thread priority of 
+  user-supplied script code).</p>
+<p>From inside an audio worker script, the Audio Worker factory is represented 
+  by an <a><code>AudioWorkerGlobalScope</code></a> object representing the 
+  node's contextual information, and individual audio nodes created by the factory
+  are represented by <a><code>AudioWorkerNodeProcessor</code></a> objects.</p>
+<p>In addition, all <a>AudioWorkerNode</a>s that are created by the same
+  <a>AudioWorker</a> share an <a>AudioWorkerGlobalScope</a>; this can allow 
+  them to share context and data across nodes (for example, loading a single
+  instance of a shared database used by the individual nodes, or sharing 
+  context in order to implement oscillator synchronization).</p>
+
+
+<dl title="interface AudioWorker : Worker" class="idl">
+  <dt>void terminate()</dt>
+  <dd>The terminate() method, when invoked, must cause the 
+    <a href="http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate 
+      a worker"</a> algorithm to be run on the worker with which the object 
+      is associated.  This will cease any <a>AudioProcessEvent</a>s being
+      dispatched inside the AudioWorker's associated <a>AudioWorkerGlobalScope</a>, 
+      will cause all associated AudioWorkerNodes to cease processing, and 
+      will cause the destruction of the worker thread.  In practical terms, 
+      this means all nodes created from this AudioWorker will disconnect 
+      themselves, and will cease performing any useful functions.</dd>
+  <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
+  <dd>postMessage may be called to send a message to the 
+    <a>AudioWorkerGlobalScope</a>, via the algorithm defined by [[!Workers]].</dd>
+  <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
+  <dd>This array contains descriptors for each of the current parameters on 
+    nodes created by this AudioWorker.  This enables users of the AudioWorker 
+    to easily iterate over the AudioParam names and default values.</dd>
+  <dt>attribute EventHandler onmessage</dt>
+  <dd>The onmessage handler is called whenever the <a>AudioWorkerGlobalScope</a> 
+    posts a message back to the main thread.</dd>
+  <dt>attribute EventHandler onloaded</dt>
+  <dd>The onloaded handler is called after the script is successfully loaded and
+  its global scope code is run to initialize the <a>AudioWorkerGlobalScope</a>.</dd>
+  <dt>AudioWorkerNode createNode(int numberOfInputs, int numberOfOutputs)</dt>
+  <dd>Creates a node instance in the audio worker.</dd>
+  <dt>AudioParam addParameter(DOMString name, float defaultValue) </dt>
+  <dd>
+    <p>Causes a correspondingly-named read-only <a>AudioParam</a> to be 
+      present on any <a>AudioWorkerNode</a>s created (previously or 
+      subsequently) by this <a>AudioWorker</a>, and a correspondingly-named 
+      read-only <a>Float32Array</a> to be present on the 
+      <a><code>parameters</code></a> object exposed on the 
+      <a>AudioProcessEvent</a> on subsequent audio processing events for 
+      such nodes.  The AudioParam may immediately have its scheduling methods 
+      called, its .<a>value</a> set, or <a>AudioNode</a>s connected to it.</p>
+    <p>The <code>name</code> parameter is the name used for the read-only 
+      AudioParam added to the AudioWorkerNode, and the name used for the 
+      read-only <code>Float32Array</code> that will be present on the 
+      <a><code>parameters</code></a> object exposed on subsequent 
+      <a>AudioProcessEvent</a>s.</p>
+    <p>The <a><code>defaultValue</code></a> parameter is the default value 
+      for the <a>AudioParam</a>'s <a>value</a> attribute, as well as 
+      therefore the default value that will appear in the Float32Array in the 
+      worker script (if no other parameter changes or connections affect the 
+      value).</p>
+  </dd>
+  <dt>void removeParameter(DOMString name) </dt>
+  <dd>
+    <p>
+      Removes a previously-added parameter named <code>name</code> from all
+      <a>AudioWorkerNode</a>s associated with this <a>AudioWorker</a> and its
+      <a>AudioWorkerGlobalScope</a>.  This will also remove the correspondingly-named 
+      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
+      remove the correspondingly-named read-only <a>Float32Array</a>s from the 
+      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on 
+      subsequent audio processing events. A 
+      NotFoundError exception must be thrown if no parameter with that name 
+      exists on this <a>AudioWorker</a>.</p>
+    <p>The <code>name</code> parameter identifies the parameter to be 
+      removed.</p>
+  </dd>
+</dl>
+<p>
+  Note that <a>AudioWorkerNode</a> objects will also have read-only 
+  AudioParam objects for each named parameter added via the 
+  <code>addParameter</code> method.  As this is dynamic, it cannot be captured
+  in IDL.
+</p>
+  
+<p>As the <a>AudioWorker</a> interface inherits from <code>Worker</code>, 
+  <a>AudioWorker</a>s must implement the <code>Worker</code>
+  interface for communication with the audio worker script.
+</p>
 
 <section>
-<h2>The <dfn>AudioWorkerNode</dfn> Interface</h2>
+<h2 id="AudioWorkerNode">The <dfn>AudioWorkerNode</dfn> Interface</h2>
+
 
 <p>This interface represents an <a><code>AudioNode</code></a> which interacts
-  with a <a>Worker</a> thread to generate, process, or analyse audio directly.
+  with a <code>Worker</code> thread to generate, process, or analyse audio directly.
   The user creates a separate audio processing worker script, which is hosted
   inside the AudioWorkerGlobalScope and runs inside the audio processing
   thread, rather than the main UI thread.  The AudioWorkerNode represents the
@@ -2393,51 +2489,97 @@ href="http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cros
     channelInterpretation = "speakers";
 </pre>
 
-<p>
-<dfn id="AudioWorker-numberOfInputChannels">numberOfInputChannels</dfn> and
-<dfn id="AudioWorker-numberOfOutputChannels">numberOfOutputChannels</dfn>
-determine the number of input and output channels (and the number of channels
-present in the AudioBuffers passed to the AudioProcess event handler inside the
-<a>AudioWorkerGlobalScope</a>). It is invalid for both <a
+<p>The number of input and output channels specified in the createAudioWorkerNode() call determines the initial number of input and output channels (and the number of channels present for each input and output in the AudioBuffers passed to the AudioProcess event handler inside the <a>AudioWorkerGlobalScope</a>). It is invalid for both <a
   href="#AudioWorker-numberOfInputChannels"><code>numberOfInputChannels</code></a>
 and <a
 href="#AudioWorker-numberOfOutputChannels"><code>numberOfOutputChannels</code></a>
 to be zero.
 </p>
 
+<p>Example usage:</p>
 <pre class="highlight">
-    var node = context.createAudioWorker( "bitcrusher.js", numberOfInputChannels, numberOfOutputChannels);
+    var bitcrusherFactory = context.createAudioWorker( "bitcrusher.js" );
+    var bitcrusherNode = bitcrusherFactory.createNode();
 </pre>
 
+
 <dl title="interface AudioWorkerNode : AudioNode" class="idl">
-  <dt>void terminate()</dt>
-  <dd>The terminate() method, when invoked, must cause the
-    <a href="http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate
-      a worker"</a> algorithm to be run on the worker with which the object
-      is associated.  This will cease any <a>AudioProcessEvent</a>s being
-      dispatched to the Audio Worker, and will cause the destruction of the
-      worker thread.  In practical terms, this means the node will disconnect itself from any downstream connections.</dd>
   <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
-  <dd>postMessage may be called to send a message to the Audio Worker, via the
+  <dd>postMessage may be called to send a message to the AudioWorkerNodeProcessor, via the
     algorithm defined by <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
-    the Worker specification</a>.</dd>
+    the Worker specification</a>.  Note that this is different from calling postMessage()
+    on the AudioWorker itself, as that would affect the AudioWorkerGlobalScope.</dd>
   <dt>attribute EventHandler onmessage</dt>
-  <dd>The onmessage handler is called whenever the Audio Worker posts a
-    message back to the main thread.</dd>
-  <dt>AudioParam addParameter(DOMString name, optional float defaultValue) </dt>
+  <dd>The onmessage handler is called whenever the AudioWorkerNodeProcessor posts a 
+    node message back to the main thread.</dd>
+</dl>
+<p>
+  Note that <a>AudioWorkerNode</a> objects will also have read-only 
+  AudioParam objects for each named parameter added via the 
+  <code>addParameter</code> method on the AudioWorker.  As this is dynamic, 
+  it cannot be captured here in IDL.
+</p>
+</section>
+
+<section>
+<h2 id="AudioWorkerParamDescriptor">The <dfn>AudioWorkerParamDescriptor</dfn> Interface</h2>
+
+<p>This interface represents the description of an AudioWorkerNode AudioParam - in short, its
+  name and default value.  This enables easy iteration over the AudioParams from an
+  AudioWorkerGlobalScope (which does not have an instance of those AudioParams).</p>
+
+<dl title="interface AudioWorkerParamDescriptor" class="idl">
+  <dt>readonly attribute DOMString name</dt>
+  <dd>The name of the AudioParam.</dd>
+  <dt>readonly attribute float defaultValue</dt>
+  <dd>The default value of the AudioParam.</dd>
+</dl>
+</section>
+
+<section>
+<h2>The AudioWorkerGlobalScope Interface</h2>
+
+<p>This interface is a <code>DedicatedWorkerGlobalScope</code>-derived 
+  object representing the context in which an audio processing script is run; 
+  it is designed to enable the generation, processing, and analysis of audio 
+  data directly using JavaScript in a Worker thread, with shared context between
+  multiple instances of audio nodes. This facilitates nodes that may have 
+  substantial shared data, e.g. a convolution node.</p>
+
+-<p>The <a><code>AudioWorkerGlobalScope</code></a> handles     
+-  <dfn id="audioprocess-worker">audioprocess</dfn> events dispatched 
+-  synchronously to process audio frame blocks for nodes created by this worker.     
+-  <a href="#audioprocess-worker"><code>audioprocess</code></a> events are only   
+-  dispatched for nodes that have at least one input     
+-  or one output connected. TODO: should this be true?</p>
+
+<dl title="interface AudioWorkerGlobalScope : DedicatedWorkerGlobalScope" class="idl">
+  <dt>readonly attribute float sampleRate</dt>
   <dd>
-    <p>
-      Causes a correspondingly-named read-only <a>AudioParam</a> to be
-      present on the <a>AudioWorkerNode</a>, and a correspondingly-named
-      read-only <a>Float32Array</a> to be present on the
-      <a><code>parameters</code></a> object exposed on the
-      <a>AudioProcessEvent</a> on subsequent audio processing events.  The
-      AudioParam may immediately have its scheduling methods called, its
-      .<a>value</a> set, or AudioNodes connected to it.</p>
-    <p>The <code>name</code> parameter is the name used for the read-only
-      AudioParam added to the AudioWorkerNode, and the name used for the
-      read-only <code>Float32Array</code> that will be present on the
-      <a><code>parameters</code></a> object exposed on subsequent
+    The sample rate of the host <a>AudioContext</a> (since inside the 
+    <code>Worker</code> scope, the user will not have direct access to the 
+    <a>AudioContext</a>.
+  </dd>
+  <dt>AudioParam addParameter(DOMString name, float defaultValue) </dt>
+  <dd>
+    <p>Causes a correspondingly-named read-only <a>AudioParam</a> to be 
+      present on previously-created and subsequently-created 
+      <a>AudioWorkerNode</a>s created by this factory, and a 
+      correspondingly-named read-only <a>Float32Array</a> to be present on 
+      the <a><code>parameters</code></a> object exposed on the 
+      <a>AudioProcessEvent</a> on subsequent audio processing events for 
+      nodes created from this factory.</p>
+    <p>It is purposeful that AudioParams can be added (or removed) from
+      an Audio Worker from either the main thread or the worker script; this
+      enables immediate creation of worker-based nodes and their prototypes,
+      but also enables packaging an entire worker including its AudioParam 
+      configuration into a single script. It is recommended that nodes be
+      used only after the AudioWorkerNode's oninitialized has been called,
+      in order to allow the worker script to configure the node.</p>
+    <p>The <code>name</code> parameter is the name used for the read-only 
+      AudioParam added to the AudioWorkerNode, and the name used for the 
+      read-only <code>Float32Array</code> that will be present on the 
+      <a><code>parameters</code></a> object exposed on subsequent 
       <a>AudioProcessEvent</a>s.</p>
     <p>The <dfn
       id="dfn-defaultValue">defaultValue</dfn> parameter is the default value
@@ -2449,66 +2591,64 @@ to be zero.
   <dt>void removeParameter(DOMString name) </dt>
   <dd>
     <p>
-      Removes a previously-added parameter named <code>name</code> from the
-      <a>AudioWorkerNode</a>.  This will also remove the correspondingly-named
-      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will
-      remove the correspondingly-named read-only <a>Float32Array</a> from the
-      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on
-      subsequent audio processing events. A
-      NotFoundError exception must be thrown if no parameter with that name
+      Removes a previously-added parameter named <code>name</code> from nodes 
+      processed by this factory. This will also remove the correspondingly-named 
+      read-only <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will 
+      remove the correspondingly-named read-only <a>Float32Array</a> from the 
+      <a>AudioProcessEvent</a>'s <a><code>parameters</code></a> member on 
+      subsequent audio processing events. A 
+      NotFoundError exception MUST be thrown if no parameter with that name 
       exists on this node.</p>
     <p>The <code>name</code> parameter identifies the parameter to be
       removed.</p>
   </dd>
-</dl>
-</dl>
-<p>
-  Note that <a>AudioWorkerNode</a> objects will also have read-only
-  AudioParam objects for each named parameter added via the
-  <code>addParameter</code> method.  As this is dynamic, it cannot be captured
-  in IDL.
-</p>
 
-<!--<div title="AudioWorkerNode implements Worker" class="idl">-->
-  <p>AudioWorkerNodes must implement the <a>Worker</a>
-  interface for communication with the audio worker script.</p>
-<!--</div>-->
+  <dt>attribute EventHandler onaudioprocess</dt>   
+  <dd>A property used to set the <code>EventHandler</code> (described in [[!HTML]]) for the <a href="#audioprocess-worker">    
+    <code>audioprocess</code></a> event that is dispatched to    
+    <a><code>AudioWorkerGlobalScope</code></a> to process audio while the    
+    associated nodes are connected (to at least     
+    one input or output). An event of type <a><code>AudioProcessEvent</code></a>     
+    will be dispatched to the event handler.
+  </dd>
+  <dt>attribute EventHandler onnodecreate</dt>   
+  <dd>A property used to set the <code>EventHandler</code> (described 
+     in [[!HTML]]) for the <a href="#audioprocess-worker">    
+    <code>nodecreate</code></a> event that is dispatched to    
+    <a><code>AudioWorkerGlobalScope</code></a> when a new 
+    <a><code>AudioWorkerNode</code></a> has been created.  This enables 
+    the scope to do node-level initialization of the <a>AudioNodeProcessor</a> 
+    object.  An event of type <a><code>AudioWorkerNodeCreationEvent</code></a> 
+    will be dispatched to the event handler.
+  </dd>
+  <dt>readonly attribute AudioWorkerParamDescriptor[] parameters</dt>
+  <dd>This array contains descriptors for each of the current parameters on 
+    nodes created in this AudioWorkerGlobalScope.  This enables audio worker 
+    implementations to easily iterate over the AudioParam names and default 
+    values.</dd>
+</dl>
 </section>
 
 <section>
-<h2>The AudioWorkerGlobalScope Interface</h2>
+<h2>The AudioWorkerNodeProcessor Interface</h2>
 
-<p>This interface is a <a><code>DedicatedWorkerGlobalScope</code></a>-derived
-  object representing the context in which an audio processing script is run;
-  it is designed to enable the generation, processing, and analysis of audio
-  data directly using JavaScript in a Worker thread. </p>
+<p>An object supporting this interface represents each individual node 
+  instantiated in an <a><code>AudioWorkerGlobalScope</code></a>; 
+  it is designed to manage the data for an individual node.
+  Shared context between multiple instances of audio nodes is accessible from the 
+  <a>AudioWorkerGlobalScope</a>; this object represents the individual node and can 
+  be used for data storage or main-thread communication.</p>
 
-<p>
-The <a><code>AudioWorkerGlobalScope</code></a> has an
-<dfn id="audioprocess-worker">audioprocess</dfn> event that is dispatched
-synchronously to process audio frames.
-<a href="#audioprocess-worker"><code>audioprocess</code></a> events are only
-dispatched if the <a><code>AudioWorkerNode</code></a> has at least one input or
-one output connected.
+<dl title="interface AudioWorkerNodeProcessor : EventTarget" class="idl">
+  <dt>void postMessage(any message, optional sequence&lt;Transferable> transfer)</dt>
+  <dd>postMessage may be called to send a message to the AudioWorkerNode, via the
+    algorithm defined by <a href="http://dev.w3.org/html5/workers/#dom-worker-postmessage">
+    the Worker specification</a>.  Note that this is different from calling postMessage()
+    on the AudioWorker itself, as that would dispatch to the AudioWorkerGlobalScope.</dd>
+  <dt>attribute EventHandler onmessage</dt>
+  <dd>The onmessage handler is called whenever the AudioWorkerNode posts a 
+    node message back to the audio thread.</dd>
 
-<dl title="interface AudioWorkerGlobalScope : DedicatedWorkerGlobalScope" class="idl">
-  <dt>attribute EventHandler onaudioprocess</dt>
-  <dd>
-    A property used to set the <code>EventHandler</code> (described in <cite>
-    <a href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
-    HTML</a></cite>[[!HTML]]) for the <a href="#audioprocess-worker">
-    <code>audioprocess</code></a> event that is dispatched to
-    <a><code>AudioWorkerGlobalScope</code></a> when the associated
-    <a><code>AudioWorkerNode</code></a> is connected. An event of type
-    <a><code>AudioProcessEvent</code></a> will be dispatched to the event
-    handler.
-  </dd>
-  <dt>readonly attribute float sampleRate</dt>
-  <dd>
-    The sample rate of the host <a>AudioContext</a> (since inside the
-    <a>Worker</a> scope, the user will not have direct access to the
-    <a>AudioContext</a>.
-  </dd>
 </dl>
 </section>
 
@@ -2524,21 +2664,32 @@ one output connected.
         AudioWorker.</p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var bitcrusherNode = audioContext.createAudioWorker("bitcrusher_worker.js", 1, 1);
-
-// Custom parameter - number of bits to crush down to - default 8
-bitcrusherNode.addParameter( "bits", 8 );
+    <pre class="highlight">var bitcrusherFactory = null;
+audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
+    {  // cache 'factory' in case you want to create more nodes!
+      bitcrusherFactory = factory;
+      var bitcrusherNode = factory.createNode();
+      bitcrusherNode.bits.setValueAtTime(8,0);
+      bitcrusherNode.connect(output); 
+      input.connect(bitcrusherNode);
+    }
+  );</pre>
+    <h5>bitcrusher_worker.js</h5>
+    <pre class="highlight">// Custom parameter - number of bits to crush down to - default 8
+this.addParameter( "bits", 8 );
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
-bitcrusherNode.addParameter( "frequencyReduction", 0.5 );</pre>
-    <h5>bitcrusher_worker.js</h5>
-    <pre class="highlight">var phaser = 0;
-var lastDataValue = 0;
+this.addParameter( "frequencyReduction", 0.5 );
+
+onnodecreate=function(e) {
+  e.node.phaser = 0;
+  e.node.lastDataValue = 0;
+}
 
 onaudioprocess= function (e) {
-  for (var channel=0; channel&lt;e.inputBuffers.length; channel++) {
-    var inputBuffer = e.inputBuffers[channel];
-    var outputBuffer = e.outputBuffers[channel];
+  for (var channel=0; channel&lt;e.inputs[0].length; channel++) {
+    var inputBuffer = e.inputs[0][channel];
+    var outputBuffer = e.outputs[0][channel];
     var bufferLength = inputBuffer.length;
     var bitsArray = e.parameters.bits;
     var frequencyReductionArray = e.parameters.frequencyReduction;
@@ -2548,68 +2699,98 @@ onaudioprocess= function (e) {
       var frequencyReduction = frequencyReductionArray ? frequencyReductionArray[i] : 0.5;
 
       var step = Math.pow(1/2, bits);
-      phaser += frequencyReduction;
-      if (phaser >= 1.0) {
-          phaser -= 1.0;
-          lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
+      e.node.phaser += frequencyReduction;
+      if (e.node.phaser >= 1.0) {
+          e.node.phaser -= 1.0;
+          e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
       }
-      outputBuffer[i] = lastDataValue;
+      outputBuffer[i] = e.node.lastDataValue;
     }
   }
 };</pre>
   </section>
   <section>
-    <h4>A Volume Meter and Clip Detector</h4>
-    <p>Another common need is a clip-detecting volume meter.  This example
-      shows how to communicate basic parameters (that do not need AudioParam
-      scheduling) across to a Worker, as well as communicating data back to
-      the main thread.</p>
+    <h4>TODO: fix up this example.  A Volume Meter and Clip Detector</h4>
+    <p>Another common need is a clip-detecting volume meter.  This example 
+      shows how to communicate basic parameters (that do not need AudioParam 
+      scheduling) across to a Worker, as well as communicating data back to 
+      the main thread.  This node does not use any output. </p>
 
     <h5>Main file javascript</h5>
-    <pre class="highlight">var vuNode = audioContext.createAudioWorker("vu_meter_worker.js", 1, 1);
-
-// This handles communication back from the volume meter
-vuNode.onmessage = function (event) {
-  if (event.data instanceof Object ) {
-    if (event.data.hasOwnProperty("clip")
-      this.clip = event.data.clip;
-    if (event.data.hasOwnProperty("volume")
-      this.volume = event.data.volume;
+    <pre class="highlight">
+function setupNodeMessaging(node) {
+  // This handles communication back from the volume meter
+  node.onmessage = function (event) {
+    if (event.data instanceof Object ) {
+      if (event.data.hasOwnProperty("clip")
+        this.clip = event.data.clip;
+      if (event.data.hasOwnProperty("volume")
+        this.volume = event.data.volume;
+    }
   }
+
+  // Set up some default configuration parameters
+  node.postMessage(
+    { "smoothing": 0.9,   // Smoothing parameter
+      "clipLevel": 0.9,   // Level to consider "clipping"
+      "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
+      "updating": 100      // How frequently to update volume and clip param (ms)
+    });
+
+  // Set up volume and clip attributes.  These will be updated by our onmessage.
+  node.volume = 0;
+  node.clip = false;
 }
 
-// Set up some configuration parameters
-vuNode.postMessage(
-  { "smoothing": 0.9,   // Smoothing parameter
-    "clipLevel": 0.9,   // Level to consider "clipping"
-    "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
-    "updating": 90      // How frequently to update volume and clip param (ms)
-  });
+var vuNode = null;
 
-// Set up volume and clip attributes.  These will be updated by our onmessage.
-vuNode.volume = 0;
-vuNode.clip = false;</pre>
+audioContext.createAudioWorker("vu_meter_worker.js").then( function(factory) 
+    {  // cache 'factory' in case you want to create more nodes!
+      vuFactory = factory;
+      vuNode = factory.createNode([1], []); // we don't need an output, and let's force to mono
+      setupNodeMessaging(vuNode);
+    }
+  );
+
+window.requestAnimationFrame( function(timestamp) {
+  if (vuNode) {
+  // Draw a bar based on vuNode.volume and vuNode.clip
+  }
+});
+
+</pre>
 
     <h5>vu_meter_worker.js</h5>
-    <pre class="highlight">// how many samples between updates - default 100ms
-this.timeToNextUpdate = 0.1 * this.sampleRate;
+    <pre class="highlight">
+// Custom parameter - number of bits to crush down to - default 8
+this.addParameter( "bits", 8 );
 
-// This just handles setting attribute values
-onmessage = function ( event ) {
-  if (event.data instanceof Object ) {
-    if (event.data.hasOwnProperty("smoothing")
-      this.smoothing = event.data.smoothing;
-    if (event.data.hasOwnProperty("clipLevel")
-      this.clipLevel = event.data.clipLevel;
-    if (event.data.hasOwnProperty("clipLag")
-      this.clipLag = event.data.clipLag / 1000;  // convert to seconds
-    if (event.data.hasOwnProperty("updating")    // convert to samples
-      this.updatingInterval = event.data.updating * this.sampleRate / 1000 ;
-  }
-};
+// Custom parameter - frequency reduction, 0-1, default 0.5
+this.addParameter( "frequencyReduction", 0.5 );
+
+onnodecreate=function(e) {
+  e.node.timeToNextUpdate = 0.1 * sampleRate;
+  e.node.smoothing = 0.5;
+  e.node.clipLevel = 0.95;
+  e.node.clipLag = 1;
+  e.node.updatingInterval = 150;
+  // This just handles setting attribute values
+  e.node.onmessage = function ( event ) {
+    if (event.data instanceof Object ) {
+      if (event.data.hasOwnProperty("smoothing")
+        this.smoothing = event.data.smoothing;
+      if (event.data.hasOwnProperty("clipLevel")
+        this.clipLevel = event.data.clipLevel;
+      if (event.data.hasOwnProperty("clipLag")
+        this.clipLag = event.data.clipLag / 1000;  // convert to seconds
+      if (event.data.hasOwnProperty("updating")    // convert to samples
+        this.updatingInterval = event.data.updating * sampleRate / 1000 ;
+    }
+  };
+}
 
 onaudioprocess = function ( event ) {
-  var buf = event.inputBuffers[0];  // For simplicity, this example is only mono
+  var buf = event.inputs[0][0];  // Node forces mono
   var bufLength = buf.length;
   var sum = 0;
   var x;
@@ -2617,10 +2798,10 @@ onaudioprocess = function ( event ) {
   // Do a root-mean-square on the samples: sum up the squares...
   for (var i=0; i&lt;bufLength; i++) {
     x = buf[i];
-    if (Math.abs(x)>=this.clipLevel) {
-      this.clipping = true;
-      this.unsentClip = true;  // Make sure, for every clip, we send a message.
-      this.lastClip = event.playbackTime + (i/this.sampleRate);
+    if (Math.abs(x)>=event.node.clipLevel) {
+      event.node.clipping = true;
+      event.node.unsentClip = true;  // Make sure, for every clip, we send a message.
+      event.node.lastClip = event.playbackTime + (i/sampleRate);
     }
     sum += x * x;
   }
@@ -2631,19 +2812,42 @@ onaudioprocess = function ( event ) {
   // Now smooth this out with the smoothing factor applied
   // to the previous sample - take the max here because we
   // want "fast attack, slow release."
-  this.volume = Math.max(rms, this.volume*this.smoothing);
-  if (this.clipping &amp;&amp; (!this.unsentClip) &amp;&amp; (event.playbackTime > (this.lastClip + clipLag)))
-    this.clipping = false;
+  event.node.volume = Math.max(rms, event.node.volume*event.node.smoothing);
+  if (event.node.clipping &amp;&amp; (!event.node.unsentClip) &amp;&amp; (event.playbackTime > (this.lastClip + clipLag)))
+    event.node.clipping = false;
 
   // How long has it been since our last update?
-  this.timeToNextUpdate -= this.last
-  if (this.timeToNextUpdate&lt;0) {
-    this.timeToNextUpdate = this.updatingInterval;
-    this.postMessage(
-      { "volume": this.volume,
-        "clip": this.clipping });
-    this.unsentClip = false;
+  event.node.timeToNextUpdate -= event.node.last;
+  if (event.node.timeToNextUpdate&lt;0) {
+    event.node.timeToNextUpdate = event.node.updatingInterval;
+    event.node.postMessage(
+      { "volume": event.node.volume,
+        "clip": event.node.clipping });
+    event.node.unsentClip = false;
   }
+};</pre>
+    </section>
+  <section>
+    <h4>Reimplementing ChannelMerger</h4>
+    <p>This worker shows how to merge inputs into a single output channel.</p>
+
+    <h5>Main file javascript</h5>
+    <pre class="highlight">var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
+    <pre class="highlight">var mergerFactory = null;
+
+audioContext.createAudioWorker("merger_worker.js").then( function(factory) 
+    {  // cache 'factory' in case you want to create more nodes!
+      mergerFactory = factory;
+      var merger6channelNode = factory.createNode( [1,1,1,1,1,1], [6] );
+      // connect inputs and outputs here
+    }
+  );</pre>
+
+    <h5>merger_worker.js</h5>
+    <pre class="highlight">
+onaudioprocess= function (e) {
+  for (var input=0; input&lt;e,node.inputs.length; input++)
+    e.node.outputs[0][input].set(e.node.inputs[input][0]);
 };</pre>
     </section>
   </section>
@@ -2663,6 +2867,11 @@ directly using JavaScript.  This node type is deprecated, to be replaced by the 
     channelInterpretation = "speakers";
 </pre>
 
+<p>
+  The <code>channelCountMode</code> cannot be changed from "explicit" and the
+  <code>channelCount</code> cannot be changed.  An attempt to change either of these MUST throw an
+  InvalidStateError exception.
+</p>        
 <p>
 The <a><code>ScriptProcessorNode</code></a> is constructed with a <dfn>bufferSize</dfn> which must
 be one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384.  This
@@ -2709,6 +2918,26 @@ handler.
 </section>
 
 <section>
+<h2>The AudioWorkerNodeCreationEvent Interface</h2>
+
+<p>This is an <code>Event</code> object which is dispatched to
+  <a><code>AudioWorkerGlobalScope</code></a> objects when a new node instance
+  is created.  This allows AudioWorkers to initialize any node-local data (e.g.
+  allocating a delay or initializing local variables).
+</p>
+
+<dl title="interface AudioWorkerNodeCreationEvent : Event" class="idl">
+    <dt>readonly attribute AudioWorkerNodeProcessor node</dt>
+    <dd>The new node being created.  Any node-local data storage (e.g., the 
+      buffer for a delay node) should be created on this object.</dd>
+    <dt>readonly attribute Array inputs</dt>
+    <dd>An array of channelCounts for the inputs.</dd>
+    <dt>readonly attribute Array outputs</dt>
+    <dd>An array of channelCounts for the outputs.</dd>
+  </dl>
+</section>
+
+<section>
 <h2>The AudioProcessEvent Interface</h2>
 
 <p>
@@ -2732,26 +2961,48 @@ This is an <code>Event</code> object which is dispatched to
       tight synchronization between processing directly in JavaScript with the
       other events in the context's rendering graph.
     </dd>
-    <dt> readonly attribute Float32Array[] inputBuffers </dt>
+    <dt>readonly attribute AudioWorkerNodeProcessor node</dt>
+    <dd>The node to which this processing event is being dispatched.  Any 
+      node-local data storage (e.g., the buffer for a delay node) should be 
+      maintained on this object.</dd>
+    <dt>readonly attribute Float32Array[][] inputs</dt>
     <dd>
-      An Array of Float32Arrays, one per channel, containing the input audio
-      buffer with input data.  The number of channels will be equal to the
-      <code>numberOfInputChannels</code> parameter of the createAudioWorker()
-      method.  It is expected that the event object, the Array and the input
-      and output buffers may be reused by the processing system, in order to
-      minimize memory churn; it is not recommended to maintain global handles
-      to them.
+      <p>
+        A readonly Array of Arrays of Float32Arrays.  The top-level Array is
+        organized by input; each input may contain multiple channels; each
+        channel contains a Float32Array of sample data.  The initial size of
+        the channel array will be determined by the number of channels
+        specified for that input in the createAudioWorkerNode() method.  However,
+        an onprocess handler may alter this number of channels in the input
+        dynamically, either by adding a Float32Array of blocksize length (128)
+        or by reducing the Array (by reducing the Array.length or by using
+        Array.pop() or Array.slice().  The event object, the Array and the
+        Float32Arrays will be reused by the processing system, in order to
+        minimize memory churn.
+      </p>
+      <p>
+        Any reordering performed on the Array for an input will not reorganize the connections to the channels for subsequent events.
+      </p>
       </dd>
-    <dt> readonly attribute Float32Array[] outputBuffers </dt>
+    <dt>readonly attribute Float32Array[][] outputs</dt>
     <dd>
-      An Array of Float32Arrays, one per channel, containing the output audio
-      buffer.  The number of channels will be equal to the
-      <code>numberOfOutputChannels</code> parameter of the createAudioWorker()
-      method.  It is expected that the event object, the Array and the input
-      and output buffers may be reused by the processing system, in order to
-      minimize memory churn; it is not recommended to maintain global handles
-      to them.
-    </dd>
+      <p>
+        A readonly Array of Arrays of Float32Arrays.  The top-level Array is
+        organized by output; each output may contain multiple channels; each
+        channel contains a Float32Array of sample data.  The initial size of
+        the channel array will be determined by the number of channels
+        specified for that output in the createAudioWorkerNode() method.  However,
+        an onprocess handler may alter this number of channels in the output
+        dynamically, either by adding a Float32Array of blocksize length (128)
+        or by reducing the Array (by reducing the Array.length or by using
+        Array.pop() or Array.slice().  The event object, the Array and the
+        Float32Arrays will be reused by the processing system, in order to
+        minimize memory churn.
+      </p>
+      <p>
+        Any reordering performed on the Array for an output will not reorganize the connections to the channels for subsequent events.
+      </p>
+      </dd>
     <dt> readonly attribute object parameters</dt>
     <dd>This object attribute exposes a correspondingly-named
       read-only <a>Float32Array</a> for each parameter that has been added
@@ -2846,7 +3097,7 @@ The output of this node is hard-coded to stereo (2 channels) and
 <p>
   The <a><code>PanningModelType</code></a> enum determines which spatialization
   algorithm will be used to position the audio in 3D space. The default is
-  <code>"equal-power"</code>.
+  <code>"equalpower"</code>.
 </p>
 <dl title="enum PanningModelType" class=idl>
   <dt>equalpower</dt>
@@ -2894,7 +3145,7 @@ default is "inverse".
     <!--<dt>// Default for stereo is HRTF</dt>-->
     <dt>attribute PanningModelType panningModel</dt>
     <dd> Specifies the panning model used by this <a><code>PannerNode</code></a>. Defaults to
-    <a><code>"HRTF"</code></a>.</dd>
+    <a><code>"equalpower"</code></a>.</dd>
 
     <!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
     <dt>void setPosition(float x, float y, float z)</dt>
@@ -2984,9 +3235,10 @@ default is "inverse".
     </dd>
     <dt>attribute float coneOuterGain</dt>
     <dd>
-      A parameter for directional audio sources, this is the amount of volume
-      reduction outside of the <a><code>coneOuterAngle</code></a>.  The default
-      value is 0, and the value is used modulo 360.
+      A parameter for directional audio sources, this is the gain
+      outside of the <a><code>coneOuterAngle</code></a>.  The default value is 0.
+      It is a linear value (not dB) in the range [0, 1]. An InvalidStateError MUST be thrown if the
+      parameter is outside this range.
     </dd>
 </dl>
 
@@ -3378,27 +3630,42 @@ When the <dfn id="current-frequency-data">current frequency data</dfn> are
 computed, the following operations are to be performed:
 <ol>
   <li> <a href="#blackman-window">Apply a Blackman window</a> to the time domain input data </li>
-  <li> Apply a Fourier tranform to the windowed time domain input data to get imaginary and real frequency data </li>
+  <li> <a href="#fourier-transform">Apply a Fourier tranform</a> to the windowed time domain input data to get imaginary and real frequency data </li>
   <li> <a href="#smoothing-over-time">Smooth over time</a> the frequency domain data</li>
 </ol>
 
 <dfn id="blackman-window">Applying a Blackman window</dfn> consists in the
-following operation on the input time domain data <code>buffer</code>:
+following operation on the input time domain data.  Let \(x[n]\) for \(n = 0, \ldots, N - 1\) be the
+time domain data, where \(N\) is the value of the <code>.fftSize</code> attribute. The Blackman
+window is defined by
+$$
+  \begin{align*}
+    \alpha &= \mbox{0.16} \\
+    a_0 &= \frac{1-\alpha}{2} \\
+    a_1 &= \frac{1}{2} \\
+    a_2 &= \frac{\alpha}{2} \\
+    w[n] &= a_0 - a_1 \cos\frac{2\pi n}{N} + a_2 \cos\frac{4\pi n}{N}, \mbox{ for } n = 0, \ldots, N
+    - 1
+  \end{align*}
+$$
+<p>
+  The windowed signal \(\hat{x}[n]\) is
+  $$
+    \hat{x}[n] = x[n] w[n], \mbox{ for } n = 0, \ldots, N - 1	    
+  $$
+</p>	  
 
-    <pre class="highlight">
-function blackmanWindow(buffer) {
-  var alpha = 0.16;
-  var a0 = 0.5 * (1.0 - alpha);
-  var a1 = 0.5;
-  var a2 = 0.5 * alpha;
-
-  for (var i = 0; i &lt; buffer.length; i++) {
-    var x = i / buffer.length;
-    buffer[i] *= a0 - a1 * Math.cos(2 * Math.PI * x) + a2 * Math.cos(4 * Math.PI * x);
-  }
-}
-    </pre>
-
+<p>
+<dfn id="fourier-transform">Applying a Fourier tranform</dfn> consists of computing the Fourier
+transform in the following way.  Let \(X[k]\) be the complex frequency domain data and \(\hat{x}[n]\) be
+the windowed time domain data computed above.  Then
+$$
+  X[k] = \sum_{n = 0}^{N - 1} \hat{x}[n] e^{\frac{-2\pi i k n}{N}}
+$$
+for \(k = 0, \dots, N/2-1\) where \(N\) is the value of the <code>.fftSize</code> attribute.  The
+desired frequency domain data is \(\left|X[k]\right|\), the magnitude of the complex values.
+</p>
+<p>
 <dfn id="smoothing-over-time">Smoothing over time</dfn> frequency data consists
 in the following operation:
 <ul>
@@ -3443,7 +3710,7 @@ in the following operation:
     }
   }
 </pre>
-
+</p>
 </section>
 </section>
 
@@ -3637,7 +3904,8 @@ in the following operation:
   Low-order filters are the building blocks of basic tone controls (bass, mid,
   treble), graphic equalizers, and more advanced filters. Multiple
   <a><code>BiquadFilterNode</code></a> filters can be combined to form more
-  complex filters. The filter parameters such as <a><code>frequency</code></a>
+  complex filters. The filter parameters such as <a
+    href="#widl-BiquadFilterNode-freuqnecy"><code>frequency</code></a>
   can be changed over time for filter sweeps, etc. Each
   <a><code>BiquadFilterNode</code></a> can be configured as one of a number of
   common filter types as shown in the IDL below.  The default filter type is
@@ -3645,7 +3913,8 @@ in the following operation:
 </p>
 
 <p>
-  Both <a><code>frequency</code></a> and <a><code>detune</code></a> are
+  Both <a href="#widl-BiquadFilterNode-frequency"><code>frequency</code></a> and
+  <a href="#widl-BiquadFilterNode-detune"><code>detune</code></a> are
   <a>a-rate</a> parameters and are used together to determine a
   <dfn id=computedFreq-biquad>computedFrequency</dfn> value:
 </p>
@@ -3827,7 +4096,7 @@ The number of channels of the output always equals the number of channels of the
 </dl>
 
 <p>
-All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
+All attributes of the <a><code>BiquadFilterNode</code></a> are <a>a-rate</a>
 <a><code>AudioParam</code></a>.
 </p>
 
@@ -3894,132 +4163,8 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
 
   <p>
     The transfer function for the filters implemented by the
-    <a><code>BiquadFilterNode</code></a> is:
-
-    <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-      <mi>H</mi>
-      <mrow>
-        <mo>(</mo>
-        <mi>z</mi>
-        <mo>)</mo>
-      </mrow>
-      <mo>=</mo>
-      <mfrac>
-        <mrow>
-          <mrow>
-            <mo>(</mo>
-            <mfrac>
-              <msub>
-                <mi>b</mi>
-                <mn>0</mn>
-              </msub>
-              <msub>
-                <mi>a</mi>
-                <mn>0</mn>
-              </msub>
-            </mfrac>
-            <mo>)</mo>
-          </mrow>
-          <mo>+</mo>
-          <mrow>
-            <mo>(</mo>
-            <mfrac>
-              <msub>
-                <mi>b</mi>
-                <mn>1</mn>
-              </msub>
-              <msub>
-                <mi>a</mi>
-                <mn>0</mn>
-              </msub>
-            </mfrac>
-            <mo>)</mo>
-          </mrow>
-          <mo>&#x22C5;</mo>
-          <msup>
-            <mi>z</mi>
-            <mrow>
-              <mo>-</mo>
-              <mn>1</mn>
-            </mrow>
-          </msup>
-          <mo>+</mo>
-          <mrow>
-            <mo>(</mo>
-            <mfrac>
-              <msub>
-                <mi>b</mi>
-                <mn>2</mn>
-              </msub>
-              <msub>
-                <mi>a</mi>
-                <mn>0</mn>
-              </msub>
-            </mfrac>
-            <mo>)</mo>
-          </mrow>
-          <mo>&#x22C5;</mo>
-          <msup>
-            <mi>z</mi>
-            <mrow>
-              <mo>-</mo>
-              <mn>2</mn>
-            </mrow>
-          </msup>
-        </mrow>
-        <mrow>
-          <mn>1</mn>
-          <mo>+</mo>
-          <mrow>
-            <mo>(</mo>
-            <mfrac>
-              <msub>
-                <mi>a</mi>
-                <mn>1</mn>
-              </msub>
-              <msub>
-                <mi>a</mi>
-                <mn>0</mn>
-              </msub>
-            </mfrac>
-            <mo>)</mo>
-          </mrow>
-          <mo>&#x22C5;</mo>
-          <msup>
-            <mi>z</mi>
-            <mrow>
-              <mo>-</mo>
-              <mn>1</mn>
-            </mrow>
-          </msup>
-          <mo>+</mo>
-          <mrow>
-            <mo>(</mo>
-            <mfrac>
-              <msub>
-                <mi>a</mi>
-                <mn>2</mn>
-              </msub>
-              <msub>
-                <mi>a</mi>
-                <mn>0</mn>
-              </msub>
-            </mfrac>
-            <mo>)</mo>
-          </mrow>
-          <mo>&#x22C5;</mo>
-          <msup>
-            <mi>z</mi>
-            <mrow>
-              <mo>-</mo>
-              <mn>2</mn>
-            </mrow>
-          </msup>
-        </mrow>
-      </mfrac>
-      <mo>&#xA0;</mo>
-      <mo>&#xA0;</mo>
-    </math>
+    <a><code>BiquadFilterNode</code></a> is: 
+    $$H(z) = \frac{\frac{b_0}{a_0} + \frac{b_1}{a_0}z^{-1} + \frac{b_2}{a_0}z^{-2}}{1+\frac{a_1}{a_0}z^{-1}+\frac{a_2}{a_0}z^{-2}}$$
 
     The initial filter state is 0.
   </p>
@@ -4030,1505 +4175,134 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
     computation, based on the <a>computedValue</a> of the
     <a><code>AudioParam</code></a>s of the <a><code>BiquadFilterNode</code></a>.
     <ul>
-    <li>Let <math
-    title="Fs"><mrow><msub><mi>F</mi><mn>s</mn></msub></mrow></math> be the
-    value of the <a><code>sampleRate</code></a> attribute for this
+    <li>Let \(F_s\) be the
+    value of the <a href="#widl-AudioContext-sampleRate"><code>sampleRate</code></a> attribute for this
     <a>AudioContext</a>.</li>
-    <li>Let <math
-    title="f0"><mrow><msub><mi>f</mi><mn>0</mn></msub></mrow></math> be the
+    <li>Let \(f_0\) be the
     value of the <a><code>computedFrequency</code></a>.
-    <li>Let <math title="dbGain"><mi>dbGain</mi></math> be the value of the
-    <a><code>gain</code></a> <a><code>AudioParam</code></a>.</li>
-    <li>Let <math title="Q"><mi>Q</mi></math> be the value of the
-    <a><code>Q</code></a> <a><code>AudioParam</code></a>.</li>
-    <li>Let <math title="A_0"><mi>A</mi></math> be:
-      <ul>
-        <li>
-          <math><msup><mn>10</mn><mrow><mfrac><mo>dBgain</mo><mn>40</mn></mfrac>
-          </mrow></msup></math> for the filter types <code>peaking</code>,
-          <code>highshelf</code> and <code>lowshelf</code> ;
-        </li>
-        <li>
-          <math><msqrt><mrow><msup><mn>10</mn><mrow><mfrac><mo>dBgain</mo><mn>20
-          </mn></mfrac></mrow></msup></mrow></msqrt></math> otherwise.
-        </li>
-      </ul>
-    </li>
-    <li>Let <math title="A_1"><msub><mi>A</mi><mn>1</mn></msub></math> be
-    <li>Let <math title="omega0"><msub><mi>ω</mi><mn>0</mn></msub></math> be
-    <math><mn>2</mn><mo>⋅</mo><mi>π</mi><mo>⋅</mo><mfrac><msub><mi>f</mi><mn>0</mn></msub><msub><mi>F</mi><mi>s</mi></msub></mfrac></math>.</li>
-    <li>Let <math title="Q_Q"><msub><mi>α</mi><mn>Q</mn></msub></math> be
-    <math><mfrac><mrow><mi>sin</mi><mrow><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo></mrow></mrow><mrow><mn>2</mn><mo>⋅</mo><mi>Q</mi></mrow></mfrac></math></li>
-    <li>Let <math title="Q_BW"><msub><mi>α</mi><mn>BW</mn></msub></math> be
-    <math>
-      <mrow>
-        <mi>sin</mi>
-        <mrow>
-          <mo>(</mo>
-          <msub>
-            <mi>ω</mi>
-            <mn>0</mn>
-          </msub>
-          <mo>)</mo>
-        </mrow>
-      </mrow>
-      <mo>&#x22C5;</mo>
-      <mrow>
-        <mi>sinh</mi>
-        <mrow>
-          <mo>(</mo>
-          <mfrac>
-            <mrow>
-              <mi>ln</mi>
-              <mrow>
-                <mo>(</mo>
-                <mn>2</mn>
-                <mo>)</mo>
-              </mrow>
-            </mrow>
-            <mn>2</mn>
-          </mfrac>
-          <mo>&#x22C5;</mo>
-          <mi>Q</mi>
-          <mo>&#x22C5;</mo>
-          <mfrac>
-            <msub>
-              <mi>ω</mi>
-              <mn>0</mn>
-            </msub>
-            <mrow>
-              <mi>sin</mi>
-              <mrow>
-                <mo>(</mo>
-                <msub>
-                  <mi>ω</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>)</mo>
-              </mrow>
-            </mrow>
-          </mfrac>
-          <mo>)</mo>
-        </mrow>
-      </mrow>
-    </math>
-            </li>
-    <li>Let <math title="Q_S"><msub><mi>α</mi><mn>S</mn></msub></math> be
-    <math>
-      <mfrac>
-        <mrow>
-          <mi>sin</mi>
-          <mrow>
-            <mo>(</mo>
-            <msub>
-              <mi>ω</mi>
-              <mn>0</mn>
-            </msub>
-            <mo>)</mo>
-          </mrow>
-        </mrow>
-        <mn>2</mn>
-      </mfrac>
-      <mo>&#x22C5;</mo>
-      <msqrt>
-        <mrow>
-          <mrow>
-            <mo>(</mo>
-            <mi>A</mi>
-            <mo>+</mo>
-            <mfrac>
-              <mn>1</mn>
-              <mi>A</mi>
-            </mfrac>
-            <mo>)</mo>
-          </mrow>
-          <mo>&#x22C5;</mo>
-          <mrow>
-            <mo>(</mo>
-            <mfrac>
-              <mn>1</mn>
-              <mi>Q</mi>
-            </mfrac>
-            <mo>-</mo>
-            <mn>1</mn>
-            <mo>)</mo>
-          </mrow>
-          <mo>+</mo>
-          <mn>2</mn>
-        </mrow>
-      </msqrt>
-    </math>
-    </li>
+    <li>Let \(G\) be the value of the
+    <a href="#widl-BiquadFilterNode-gain"><code>gain</code></a> <a><code>AudioParam</code></a>.</li>
+    <li>Let \(Q\) be the value of the
+    <a href="#widl-BiquadFilterNode-Q"><code>Q</code></a> <a><code>AudioParam</code></a>.</li>
+    <li>Finally let
+       <!-- Should \alpha_S be simplified since S is always 1?-->		  
+       $$\begin{align*}
+	    A &= 10^{\frac{G}{40}} \\
+	    \omega_0 &= 2\pi\frac{f_0}{F_s} \\
+            \alpha_Q &= \frac{\sin\omega_0}{2Q} \\
+            \alpha_B &= \frac{\sin\omega_0}{2} \sqrt{\frac{4-\sqrt{16-\frac{16}{G^2}}}{2}} \\
+            S &= 1 \\
+            \alpha_S &= \frac{\sin\omega_0}{2}\sqrt{\left(A+\frac{1}{A}\right)\left(\frac{1}{S}-1\right)+2}
+         \end{align*} $$
     </ul>
   </p>
 
   <p>
-  The six coefficients (
-    <math><msub><mi>b</mi><mn>0</mn></msub></math>,
-    <math><msub><mi>b</mi><mn>1</mn></msub></math>,
-    <math><msub><mi>b</mi><mn>2</mn></msub></math>,
-    <math><msub><mi>a</mi><mn>0</mn></msub></math>,
-    <math><msub><mi>a</mi><mn>1</mn></msub></math>,
-    <math><msub><mi>a</mi><mn>2</mn></msub></math>) for each filter type, are:
+  The six coefficients (\(b_0, b_1, b_2, a_0, a_1, a_2\)) for each filter type, are:
     <dl>
       <dt><code>lowpass</code></dt>
       <dd>
-        <math title="{:(b0 = (1 - cos(ω_0))/2), (b1 = 1 - cos(ω_0)), (b2 = (1 - cos(ω_0))/2), (a0 = 1 + alpha_Q), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_Q):}" display="block">
-          <mrow>
-            <mtable columnalign="left">
-              <mtr>
-                <mtd />
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>b</mi>
-                    <mn>0</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mfrac>
-                    <mrow>
-                      <mn>1</mn>
-                      <mo>-</mo>
-                      <mrow>
-                        <mo>cos</mo>
-                        <mrow>
-                          <mo>(</mo>
-                          <msub>
-                            <mi>ω</mi>
-                            <mn>0</mn>
-                          </msub>
-                          <mo>)</mo>
-                        </mrow>
-                      </mrow>
-                    </mrow>
-                    <mn>2</mn>
-                  </mfrac>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>b</mi>
-                    <mn>1</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mn>1</mn>
-                  <mo>-</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>b</mi>
-                    <mn>2</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mfrac>
-                    <mrow>
-                      <mn>1</mn>
-                      <mo>-</mo>
-                      <mrow>
-                        <mo>cos</mo>
-                        <mrow>
-                          <mo>(</mo>
-                          <msub>
-                            <mi>ω</mi>
-                            <mn>0</mn>
-                          </msub>
-                          <mo>)</mo>
-                        </mrow>
-                      </mrow>
-                    </mrow>
-                    <mn>2</mn>
-                  </mfrac>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>a</mi>
-                    <mn>0</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mn>1</mn>
-                  <mo>+</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>Q</mn>
-                  </msub>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>a</mi>
-                    <mn>1</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mo>-</mo>
-                  <mn>2</mn>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>a</mi>
-                    <mn>2</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mn>1</mn>
-                  <mo>-</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>Q</mn>
-                  </msub>
-                </mtd>
-              </mtr>
-            </mtable>
-          </mrow>
-    </math>
+	$$
+	  \begin{align*}
+		b_0 &= \frac{1 - \cos\omega_0}{2} \\
+		b_1 &= 1 - \cos\omega_0 \\
+		b_2 &= \frac{1 - \cos\omega_0}{2} \\
+		a_0 &= 1 + \alpha_B \\
+		a_1 &= -2 \cos\omega_0 \\
+		a_2 &= 1 - \alpha_B
+	  \end{align*}
+	$$
       </dd>
       <dt><code>highpass</code></dt>
       <dd>
-        <math title="{: (H(s) = s^2 / (s^2 + s/Q + 1)), (), (b0 = (1 +
-        cos(ω_0))/2), (b1 = -(1 + cos(ω_0))), (b2 = (1 + cos(ω_0))/2), (a0 = 1 +
-        alpha_Q), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_Q) :}" display="block">
-        <mrow>
-          <mtable columnalign="left">
-            <mtr>
-              <mtd />
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mfrac>
-                  <mrow>
-                    <mn>1</mn>
-                    <mo>+</mo>
-                    <mrow>
-                      <mo>cos</mo>
-                      <mrow>
-                        <mo>(</mo>
-                        <msub>
-                          <mi>ω</mi>
-                          <mn>0</mn>
-                        </msub>
-                        <mo>)</mo>
-                      </mrow>
-                    </mrow>
-                  </mrow>
-                  <mn>2</mn>
-                </mfrac>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mn>1</mn>
-                  <mo>+</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mfrac>
-                  <mrow>
-                    <mn>1</mn>
-                    <mo>+</mo>
-                    <mrow>
-                      <mo>cos</mo>
-                      <mrow>
-                        <mo>(</mo>
-                        <msub>
-                          <mi>ω</mi>
-                          <mn>0</mn>
-                        </msub>
-                        <mo>)</mo>
-                      </mrow>
-                    </mrow>
-                  </mrow>
-                  <mn>2</mn>
-                </mfrac>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>+</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>Q</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>-</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>Q</mn>
-                </msub>
-              </mtd>
-            </mtr>
-          </mtable>
-        </mrow>
-        </math>
+	$$
+	  \begin{align*}
+		b_0 &= \frac{1 + \cos\omega_0}{2} \\
+		b_1 &= -(1 + \cos\omega_0) \\
+		b_2 &= \frac{1 + \cos\omega_0}{2} \\
+		a_0 &= 1 + \alpha_B \\
+		a_1 &= -2 \cos\omega_0 \\
+		a_2 &= 1 - \alpha_B
+	  \end{align*}
+	$$
       </dd>
       <dt><code>bandpass</code></dt>
       <dd>
-        <math title="{: (H(s) = (s/Q) / (s^2 + s/Q + 1)), (), (b0 = alpha_BW), (b1 = 0), (b2 = -alpha_BW), (a0 = 1 + alpha_BW), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_BW) :}" display="block">
-          <mrow>
-            <mtable columnalign="left">
-              <mtr>
-                <mtd />
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>b</mi>
-                    <mn>0</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>BW</mn>
-                  </msub>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>b</mi>
-                    <mn>1</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mn>0</mn>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>b</mi>
-                    <mn>2</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mo>-</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>BW</mn>
-                  </msub>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>a</mi>
-                    <mn>0</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mn>1</mn>
-                  <mo>+</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>BW</mn>
-                  </msub>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>a</mi>
-                    <mn>1</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mo>-</mo>
-                  <mn>2</mn>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                </mtd>
-              </mtr>
-              <mtr>
-                <mtd>
-                  <msub>
-                    <mi>a</mi>
-                    <mn>2</mn>
-                  </msub>
-                  <mo>=</mo>
-                  <mn>1</mn>
-                  <mo>-</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>BW</mn>
-                  </msub>
-                </mtd>
-              </mtr>
-            </mtable>
-          </mrow>
-        </math>
+	$$
+	  \begin{align*}
+		b_0 &= \alpha_Q \\
+		b_1 &= 0 \\
+		b_2 &= -\alpha_Q \\
+		a_0 &= 1 + \alpha_Q \\
+		a_1 &= -2 \cos\omega_0 \\
+		a_2 &= 1 - \alpha_Q
+	  \end{align*}
+	$$
       </dd>
       <dt><code>notch</code></dt>
       <dd>
-        <math title="{: (H(s) = (s^2 + 1) / (s^2 + s/Q + 1)), (), (b0 = 1), (b1 = -2*cos(ω_0)), (b2 = 1), (a0 = 1 + alpha_BW), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_BW) :}" display="block">
-        <mrow>
-          <mtable columnalign="left">
-            <mtr>
-              <mtd />
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>+</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>BW</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>-</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>BW</mn>
-                </msub>
-              </mtd>
-            </mtr>
-          </mtable>
-        </mrow>
-        </math>
+	$$
+	  \begin{align*}
+		b_0 &= 1 \\
+		b_1 &= -2\cos\omega_0 \\
+		b_2 &= 1 \\
+		a_0 &= 1 + \alpha_Q \\
+		a_1 &= -2 \cos\omega_0 \\
+		a_2 &= 1 - \alpha_Q
+	  \end{align*}
+	$$
       </dd>
       <dt><code>allpass</code></dt>
       <dd>
-        <math title="{: (H(s) = (s^2 - s/Q + 1) / (s^2 + s/Q + 1)), (), (b0 = 1 - alpha_Q), (b1 = -2*cos(ω_0)), (b2 = 1 + alpha_Q), (a0 = 1 + alpha_Q), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_Q) :}" display="block">
-        <mrow>
-          <mtable columnalign="left">
-            <mtr>
-              <mtd />
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>-</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>Q</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>+</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>Q</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>+</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>Q</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>-</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>Q</mn>
-                </msub>
-              </mtd>
-            </mtr>
-          </mtable>
-        </mrow>
-        </math>
+	$$
+	  \begin{align*}
+		b_0 &= 1 - \alpha_Q \\
+		b_1 &= -2\cos\omega_0 \\
+		b_2 &= 1 + \alpha_Q \\
+		a_0 &= 1 + \alpha_Q \\
+		a_1 &= -2 \cos\omega_0 \\
+		a_2 &= 1 - \alpha_Q
+	  \end{align*}
+	$$
       </dd>
       <dt><code>peaking</code></dt>
       <dd>
-        <math title="{: (H(s) = (s^2 + s*(A/Q) + 1) / (s^2 + s/(A*Q) + 1)), (), (b0 = 1 + alpha_BW*A), (b1 = -2*cos(ω_0)), (b2 = 1 - alpha_BW*A), (a0 = 1 + alpha_BW/A), (a1 = -2*cos(ω_0)), (a2 = 1 - alpha_BW/A) :}" display="block">
-        <mrow>
-          <mtable columnalign="left">
-            <mtr>
-              <mtd />
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>+</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>BW</mn>
-                </msub>
-                <mo>⋅</mo>
-                <mi>A</mi>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>-</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>BW</mn>
-                </msub>
-                <mo>⋅</mo>
-                <mi>A</mi>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>+</mo>
-                <mfrac>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>BW</mn>
-                  </msub>
-                  <mi>A</mi>
-                </mfrac>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>1</mn>
-                <mo>-</mo>
-                <mfrac>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>BW</mn>
-                  </msub>
-                  <mi>A</mi>
-                </mfrac>
-              </mtd>
-            </mtr>
-          </mtable>
-        </mrow>
-        </math>
+	$$
+	  \begin{align*}
+		b_0 &= 1 + \alpha_Q\, A \\
+		b_1 &= -2\cos\omega_0 \\
+		b_2 &= 1 - \alpha_Q\,A \\
+		a_0 &= 1 + \frac{\alpha_Q}{A} \\
+		a_1 &= -2 \cos\omega_0 \\
+		a_2 &= 1 - \frac{\alpha_Q}{A}
+	  \end{align*}
+	$$
       </dd>
       <dt><code>lowshelf</code></dt>
       <dd>
-        <math title="{: (H(s) = A * (s^2 + (sqrt(A)/Q)*s + A)/(A*s^2 + (sqrt(A)/Q)*s + 1)), (), (b0 = A*( (A+1) - (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S )), (b1 = 2*A*( (A-1) - (A+1)*cos(ω_0) )), (b2 = A*( (A+1) - (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S )), (a0 = (A+1) + (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S), (a1 = -2*( (A-1) + (A+1)*cos(ω_0))), (a2 = (A+1) + (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S) :}" display="block">
-        <mrow>
-          <mtable columnalign="left">
-            <mtr>
-              <mtd />
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mi>A</mi>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>-</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>+</mo>
-                  <mn>2</mn>
-                  <mo>⋅</mo>
-                  <msqrt>
-                    <mrow>
-                      <mi>A</mi>
-                    </mrow>
-                  </msqrt>
-                  <mo>⋅</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>S</mn>
-                  </msub>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mi>A</mi>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>-</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mi>A</mi>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>-</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>-</mo>
-                  <mn>2</mn>
-                  <mo>⋅</mo>
-                  <msqrt>
-                    <mrow>
-                      <mi>A</mi>
-                    </mrow>
-                  </msqrt>
-                  <mo>⋅</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>S</mn>
-                  </msub>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>+</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>+</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>-</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-                <mo>+</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <msqrt>
-                  <mrow>
-                    <mi>A</mi>
-                  </mrow>
-                </msqrt>
-                <mo>⋅</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>S</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>+</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>+</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>+</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>-</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <msqrt>
-                  <mrow>
-                    <mi>A</mi>
-                  </mrow>
-                </msqrt>
-                <mo>⋅</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>S</mn>
-                </msub>
-              </mtd>
-            </mtr>
-          </mtable>
-        </mrow>
-        </math>
+	$$
+	  \begin{align*}
+		b_0 &= A \left[ (A+1) - (A-1) \cos\omega_0 + 2 \alpha_S \sqrt{A})\right] \\
+		b_1 &= 2 A \left[ (A-1) - (A+1) \cos\omega_0 )\right] \\
+		b_2 &= A \left[ (A+1) - (A-1) \cos\omega_0 - 2 \alpha_S \sqrt{A}) \right] \\
+		a_0 &= (A+1) + (A-1) \cos\omega_0 + 2  \alpha_S \sqrt{A} \\
+		a_1 &= -2 \left[ (A-1) + (A+1) \cos\omega_0\right] \\
+		a_2 &= (A+1) + (A-1) \cos\omega_0 - 2 \alpha_S \sqrt{A}) 
+	  \end{align*}
+	$$
       </dd>
     <dt><code>highshelf</code></dt>
     <dd>
-      <math title="{: (H(s) = A * (A*s^2 + (sqrt(A)/Q)*s + 1)/(s^2 + (sqrt(A)/Q)*s + A)), (), (b0 = A*( (A+1) + (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S )), (b1 = -2*A*( (A-1) + (A+1)*cos(ω_0) )), (b2 = A*( (A+1) + (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S )), (a0 = (A+1) - (A-1)*cos(ω_0) + 2*sqrt(A)*alpha_S), (a1 = 2*( (A-1) - (A+1)*cos(ω_0) )), (a2 = (A+1) - (A-1)*cos(ω_0) - 2*sqrt(A)*alpha_S) :}" display="block">
-        <mrow>
-          <mtable columnalign="left">
-            <mtr>
-              <mtd />
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mi>A</mi>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>+</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>+</mo>
-                  <mn>2</mn>
-                  <mo>⋅</mo>
-                  <msqrt>
-                    <mrow>
-                      <mi>A</mi>
-                    </mrow>
-                  </msqrt>
-                  <mo>⋅</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>S</mn>
-                  </msub>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mi>A</mi>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>+</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>b</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mi>A</mi>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>+</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>-</mo>
-                  <mn>2</mn>
-                  <mo>⋅</mo>
-                  <msqrt>
-                    <mrow>
-                      <mi>A</mi>
-                    </mrow>
-                  </msqrt>
-                  <mo>⋅</mo>
-                  <msub>
-                  <mi>α</mi>
-                  <mn>S</mn>
-                  </msub>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>0</mn>
-                </msub>
-                <mo>=</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>+</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>-</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>-</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-                <mo>+</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <msqrt>
-                  <mrow>
-                    <mi>A</mi>
-                  </mrow>
-                </msqrt>
-                <mo>⋅</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>S</mn>
-                </msub>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>1</mn>
-                </msub>
-                <mo>=</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>-</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>-</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <mi>A</mi>
-                    <mo>+</mo>
-                    <mn>1</mn>
-                    <mo>)</mo>
-                  </mrow>
-                  <mo>⋅</mo>
-                  <mrow>
-                    <mo>cos</mo>
-                    <mrow>
-                      <mo>(</mo>
-                      <msub>
-                        <mi>ω</mi>
-                        <mn>0</mn>
-                      </msub>
-                      <mo>)</mo>
-                    </mrow>
-                  </mrow>
-                  <mo>)</mo>
-                </mrow>
-              </mtd>
-            </mtr>
-            <mtr>
-              <mtd>
-                <msub>
-                  <mi>a</mi>
-                  <mn>2</mn>
-                </msub>
-                <mo>=</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>+</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>-</mo>
-                <mrow>
-                  <mo>(</mo>
-                  <mi>A</mi>
-                  <mo>-</mo>
-                  <mn>1</mn>
-                  <mo>)</mo>
-                </mrow>
-                <mo>⋅</mo>
-                <mrow>
-                  <mo>cos</mo>
-                  <mrow>
-                    <mo>(</mo>
-                    <msub>
-                      <mi>ω</mi>
-                      <mn>0</mn>
-                    </msub>
-                    <mo>)</mo>
-                  </mrow>
-                </mrow>
-                <mo>-</mo>
-                <mn>2</mn>
-                <mo>⋅</mo>
-                <msqrt>
-                  <mrow>
-                    <mi>A</mi>
-                  </mrow>
-                </msqrt>
-                <mo>⋅</mo>
-                <msub>
-                <mi>α</mi>
-                <mn>S</mn>
-                </msub>
-              </mtd>
-            </mtr>
-          </mtable>
-        </mrow>
-      </math>
+	$$
+	  \begin{align*}
+		b_0 &= A\left[ (A+1) + (A-1)\cos\omega_0 + 2\alpha_S\sqrt{A} )\right] \\
+		b_1 &= -2A\left[ (A-1) + (A+1)\cos\omega_0 )\right] \\
+		b_2 &= A\left[ (A+1) + (A-1)\cos\omega_0 - 2\alpha_S\sqrt{A} )\right] \\
+		a_0 &= (A+1) - (A-1)\cos\omega_0 + 2\alpha_S\sqrt{A} \\
+		a_1 &= 2\left[ (A-1) - (A+1)\cos\omega_0\right] \\
+		a_2 &= (A+1) - (A-1)\cos\omega_0 - 2\alpha_S\sqrt{A}
+	  \end{align*}
+	$$
     </dd>
   </dl>
   </p>
@@ -5719,7 +4493,8 @@ to determine a <em>computedFrequency</em> value:
     <dt> attribute OscillatorType type </dt>
     <dd>
       The shape of the periodic waveform.  It may directly be set to any of the
-      type constant values except for "custom".  The <a
+      type constant values except for "custom".  Doing so MUST throw an InvalidStateError
+      exception. The <a
       href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave"><code>setPeriodicWave()</code></a> method can be
       used to set a custom waveform, which results in this attribute being set to
       "custom".  The default value is "sine". When this attribute is set, the
@@ -5761,7 +4536,7 @@ to determine a <em>computedFrequency</em> value:
 </dl>
 
 <section>
-<h2>Basic waveform phase</h2>
+<h2>Basic Waveform Phase</h2>
 <p>
   The idealized mathematical waveforms for the various oscillator types are defined here. In summary,
   all waveforms are defined mathematically to be an odd function with a positive slope at time
@@ -5770,24 +4545,39 @@ to determine a <em>computedFrequency</em> value:
 <dl>
   <dt> "sine" </dt>
   <dd>
-    The waveform for sine oscillator is sin(t).
+    The waveform for sine oscillator is $$x(t) = \sin t$$.
   </dd>
   <dt>"square"</dt>
   <dd>
-    The waveform for the square wave oscillator is 1 for 0&le; t &lt; &pi; and
-    -1 for -&pi; &lt; t &lt; 0.
+    The waveform for the square wave oscillator is 
+    $$
+      x(t) =
+        \begin{cases}
+          1 & \mbox{for } 0&le; t &lt; \pi \\
+          -1 & \mbox{for } -\pi &lt; t &lt; 0.
+        \end{cases}
+    $$
   </dd>
   <dt>"sawtooth"</dt>
   <dd>
-    The waveform for the sawtooth oscillator is the ramp t/&pi; for -&pi; &lt; t
-    &le; &pi;
+    The waveform for the sawtooth oscillator is the ramp
+    $$
+      x(t) = \frac{t}{\pi} \mbox{ for } -\pi &lt; t &le; \pi;
+    $$
   </dd>
   <dt>"triangle"</dt>
   <dd>
-    The waveform for the triangle oscillator is 2/&pi;*t for 0 &le; t &le;
-    &pi;/2 and 1-2/&pi;*(t-&pi;/2) for &pi;/2 &lt; t &le; &pi;. This is extended
-    to all t by using the fact that the waveform is an odd function with period
-    2&pi;.
+    The waveform for the triangle oscillator is 
+    $$
+      x(t) = 
+        \begin{cases}
+          \frac{2}{\pi} t & \mbox{for } 0 &le; t &le; \frac{\pi}{2} \\
+          1-\frac{2}{\pi} (t-\frac{\pi}{2}) & \mbox{for } \frac{\pi}{2} &lt; t &le; \pi. 
+        \end{cases}
+    $$
+    This is extended
+    to all \(t\) by using the fact that the waveform is an odd function with period
+    \(2\pi\).
   </dd>
 </dl>
 </section>
@@ -5897,7 +4687,7 @@ as other architectures. </p>
   </figure>
 
   <p>In cases where the channel layouts of the outputs do not match, a mix
-  (usually up-mix) will occur according to the <a href="UpMix">mixing rules</a>.
+  (usually up-mix) will occur according to the <a href="#channel-up-mixing-and-down-mixing">mixing rules</a>.
   </p>
 
   <p>
@@ -6518,7 +5308,8 @@ Quad up-mix:
 
     <p>This is a simple and relatively inexpensive algorithm which provides basic,
     but reasonable results.  It is used for the <a><code>StereoPannerNode</code></a>,
-    and for the <a><code>PannerNode</code></a> when the <a><code>panningModel</code></a>
+    and for the <a><code>PannerNode</code></a> when the <a
+      href="#widl-PannerNode-panningModel"><code>panningModel</code></a>
     attribute is set to <code>"equalpower"</code>, in which case the the
     <em>elevation</em> value is ignored.</p>
 
@@ -6526,7 +5317,8 @@ Quad up-mix:
 
     <ol>
       <li>
-        <p>Let <em>azimuth</em> be the value computed in the <a>azimuth and elevation</a>
+        <p>Let <em>azimuth</em> be the value computed in the <a
+          href="#azimuth-elevation">azimuth and elevation</a>
         section.</p>
       </li>
       <li>
@@ -6631,7 +5423,7 @@ if (pan &lt;= 0) {
     <p>This requires a set of <a href="https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
     (Head-related Transfer Function) impulse responses recorded at a variety
     of azimuths and elevations. The implementation requires a highly optimized
-    convolution function. It is somewhat more costly than "equal-power", but
+    convolution function. It is somewhat more costly than "equalpower", but
     provides more perceptually spatialized sound.</p>
     <figure>
       <img alt="HRTF panner" src="images/HRTF_panner.png" />

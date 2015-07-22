@@ -830,14 +830,16 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
       <a href="https://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
       representing the partials of a periodic waveform.  The created
       <a><code>PeriodicWave</code></a> will be used with an
-      <a><code>OscillatorNode</code></a> and will represent a <em>normalized</em>
+      <a><code>OscillatorNode</code></a> and, by default,  will represent a <em>normalized</em>
       time-domain waveform having maximum absolute peak value of 1.  Another way of
       saying this is that the generated waveform of an
       <a><code>OscillatorNode</code></a> will have maximum peak value at 0dBFS.
       Conveniently, this corresponds to the full-range of the signal values used by
-      the Web Audio API.  Because the PeriodicWave will be normalized on creation,
+      the Web Audio API.  Because the PeriodicWave is normalized by default on creation,
       the <code>real</code> and <code>imag</code> parameters represent
-      <em>relative</em> values.
+      <em>relative</em> values. If normalization is disabled via the <code>disableNormalization</code>
+      parameter, this normalization is disabled, and the time-domain waveform has the amplitudes as
+      given by the Fourier coefficients.
     <p>
       As <a>PeriodicWave</a> objects maintain their own representation, any
       modification of the arrays uses as the <code>real</code> and
@@ -866,6 +868,11 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
         not exist in the Fourier series.  The second element (index 1) represents
         the fundamental frequency.  The third element represents the first
         overtone, and so on.
+      </dd>
+      <dt>optional PeriodicWaveConstraints constraints</dt>
+      <dd>
+        If not given, the waveform is normalized. Otherwise, the waveform is normalized according
+        the value given by <code>constraints</code>.
       </dd>
     </dl>
     </dd>
@@ -4589,8 +4596,59 @@ href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">setPe
 <dl title="interface PeriodicWave" class="idl">
 </dl>
 
+<section>
+<h2>PeriodicWaveConstraints</h2>
+The <code>PeriodicWaveConstraints</code> dictionary is used to specify how the waveform is
+normalized.
+<dl title="dictionary PeriodicWaveConstraints" class="idl">
+  <dt> boolean disableNormalization = false</dt>
+  <dd>
+    Controls whether the periodic wave is normalized or not.  If <code>true</code>, the waveform is
+    not normalized; otherwise, the waveform is normalized.
+  </dd>
+</dl>
 </section>
+<section>
+<h2>Waveform Generation</h2>
+<p>
+The <a
+href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">createPeriodicWave()</a>
+method takes two arrays to specify the Fourier coefficients of the PeriodicWave. Let \(a\) and \(b\)
+represent the real and imaginary arrays of length \(L\).  Then the basic time-domain waveform,
+\(x(t)\), can be computed using
 
+$$
+  x(t) = \sum_{k=1}^{L-1} \left(a[k]\cos2\pi k t + b[k]\sin2\pi k t\right)
+$$            
+This is the basic (unnormalized) waveform.
+</p>
+</section>
+<section>
+<h2>Waveform Normalization</h2>
+<p>
+By default, the waveform defined in the previous section is normalized so that the maximum value is
+1. The normalization is done as follows.
+</p>
+<p>
+Let 
+$$
+  \tilde{x}(n) = \sum_{k=1}^{L-1} \left(a[k]\cos\frac{2\pi k n}{N}  + b[k]\sin\frac{2\pi k n}{N}\right)
+$$
+where \(N\) is a power of two.  (Note: \(\tilde{x}(n)\) can conveniently be computed using an
+inverse FFT.)
+The fixed normalization factor \(f\) is computed as follows: 
+$$
+  f = \max_{n = 0, \ldots, N - 1} |\tilde{x}(n)|
+$$
+Thus, the actual normalized waveform \(\hat{x}(n)\) is
+$$
+  \hat{x}(n) = \frac{\tilde{x}(n)}{f}
+$$
+This fixed normalization factor must be applied to all generated waveforms.
+</p>
+            
+</section>
+</section>
 <section>
 <h2 id="MediaStreamAudioSourceNode"> The MediaStreamAudioSourceNode Interface</h2>
 

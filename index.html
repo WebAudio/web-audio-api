@@ -552,15 +552,17 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
   </dd>
 
   <dt>Promise&lt;void&gt; suspend()</dt>
-  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.
+
+  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.
 
     <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
 
   <dt>Promise&lt;void&gt; resume()</dt>
-  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+
+  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.</dd>
 
   <dt>Promise&lt;void&gt; close()</dt>
-  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  This method will cause an INVALID_STATE_ERR exception to be thrown if called on an OfflineAudioContext.</dd>
+  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  If this is called on <a>OfflineAudioContext</a>, then return a promise rejected with a <code>DOMException</code> whose name is <code>InvalidStateError</code>.</dd>
 
  <dt>attribute EventHandler onstatechange</dt>
   <dd>
@@ -848,14 +850,16 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
       <a href="https://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
       representing the partials of a periodic waveform.  The created
       <a><code>PeriodicWave</code></a> will be used with an
-      <a><code>OscillatorNode</code></a> and will represent a <em>normalized</em>
+      <a><code>OscillatorNode</code></a> and, by default,  will represent a <em>normalized</em>
       time-domain waveform having maximum absolute peak value of 1.  Another way of
       saying this is that the generated waveform of an
       <a><code>OscillatorNode</code></a> will have maximum peak value at 0dBFS.
       Conveniently, this corresponds to the full-range of the signal values used by
-      the Web Audio API.  Because the PeriodicWave will be normalized on creation,
+      the Web Audio API.  Because the PeriodicWave is normalized by default on creation,
       the <code>real</code> and <code>imag</code> parameters represent
-      <em>relative</em> values.
+      <em>relative</em> values. If normalization is disabled via the <code>disableNormalization</code>
+      parameter, this normalization is disabled, and the time-domain waveform has the amplitudes as
+      given by the Fourier coefficients.
     <p>
       As <a>PeriodicWave</a> objects maintain their own representation, any
       modification of the arrays uses as the <code>real</code> and
@@ -884,6 +888,11 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
         not exist in the Fourier series.  The second element (index 1) represents
         the fundamental frequency.  The third element represents the first
         overtone, and so on.
+      </dd>
+      <dt>optional PeriodicWaveConstraints constraints</dt>
+      <dd>
+        If not given, the waveform is normalized. Otherwise, the waveform is normalized according
+        the value given by <code>constraints</code>.
       </dd>
     </dl>
     </dd>
@@ -925,13 +934,9 @@ the page goes away.
 
 <section>
 <h2 id="OfflineAudioContext">The OfflineAudioContext Interface</h2>
-<p><code>OfflineAudioContext</code> is a particular type of <a><code>AudioContext</code></a> for rendering/mixing-down
+<p><a><code>OfflineAudioContext</code></a> is a particular type of <a><code>AudioContext</code></a> for rendering/mixing-down
 (potentially) faster than real-time. It does not render to the audio hardware, but instead renders as quickly as
 possible, fulfilling the returned promise with the rendered result as an <code>AudioBuffer</code>.</p>
-
-<p>Each <code>OfflineAudioContext</code> instance has an associated
-<dfn id="offline-audio-context-rendering-started-flag">rendering started flag</dfn> that is initially
-<code>false</code>.</p>
 
 <dl title='[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : AudioContext' class='idl'>
   <dt>Promise&lt;AudioBuffer&gt; startRendering()</dt>
@@ -941,11 +946,8 @@ possible, fulfilling the returned promise with the rendered result as an <code>A
     will also fire an event named <code>complete</code> for legacy reasons.</p>
     <p>The following steps must be performed:</p>
     <ol>
-      <li>If this instance's <a href="#offline-audio-context-rendering-started-flag">rendering started flag</a> is
-      <code>true</code>, return a promise rejected with a <code>DOMException</code> whose name is
-      <code>"InvalidStateError"</code>.</li>
-      <li>Set this instance's <a href="#offline-audio-context-rendering-started-flag">rendering started flag</a> to
-      <code>true</code>.</li>
+      <li>If <code>startRendering</code> has already been called previously,
+        then return a promise rejected with <code>InvalidStateError</code>.</li>
       <li>Let <var>promise</var> be a new promise.</li>
       <li>Asynchronously perform the following steps:
         <ol>
@@ -955,10 +957,14 @@ possible, fulfilling the returned promise with the rendered result as an <code>A
           <code>sampleRate</code> parameters used when this instance's constructor was called.</li>
           <li>Given the current connections and scheduled changes, start
           rendering <code>length</code> sample-frames of audio into <var>buffer</var>.</li>
+          <li>For every render quantum, check and suspend the rendering if
+            necessary.</li>
+          <li>If a suspended context is resumed, continue to render the
+            buffer.</li>
           <li>Once the rendering is complete,
             <ol>
               <li>Resolve <var>promise</var> with <var>buffer</var>.</li>
-              <li>Fire a simple event named <code>complete</code> at this instance, using an instance of
+              <li>Fire an event named <code>complete</code> at this instance, using an instance of
               <a><code>OfflineAudioCompletionEvent</code></a> whose
               <code>renderedBuffer</code> property is set to <var>buffer</var>.</li>
             </ol>
@@ -968,6 +974,44 @@ possible, fulfilling the returned promise with the rendered result as an <code>A
       <li>Return <var>promise</var>.</li>
     </ol>
   </dd>
+
+  <dt>Promise&lt;void&gt; resume()</dt>
+  <dd>
+    <p>Resumes the progression of time in an audio context that has been
+      suspended. The promise resolves immediately because the
+      <a><code>OfflineAudioContext</code></a> does not require the audio hardware. If the
+      context is not currently suspended or the rendering has not started, the
+      promise is rejected with <code>InvalidStateError</code>.</p>
+  </dd> 
+
+  <dt>Promise&lt;void&gt; suspend()</dt> 
+  <dd>
+    <p>Schedules a suspension of the time progression in the audio context at
+      the specified time and returns a promise. This is generally useful when
+      manipulating the audio graph synchronously on <a><code>OfflineAudioContext</code></a>.</p>
+    <p>Note that the maximum precision of suspension is the size of the render
+      quantum and the specified suspension time will be rounded down to the nearest
+      render quantum boundary. For this reason, it is not allowed to schedule
+      multiple suspends at the same quantized frame. Also scheduling should be done
+      while the context is not running to ensure the precise suspension.</p>
+      
+    <dl class="parameters">
+      <dt>double suspendTime</dt>
+      <dd>Schedules a suspension of the rendering at the specified time, which is
+        quantized and rounded down to the render quantum size. If the quantized 
+        frame number
+        <ol>
+          <li>is negative or</li>
+          <li>is less than or equal to the current time or</li>
+          <li>is greater than or equal to the total render duration or</li>
+          <li>is scheduled by another suspend for the same time,</li>
+        </ol>
+        then the promise is rejected with <code>InvalidStateError</code>.
+      </dd>
+    </dl>
+  </dd>
+
+
   <dt>attribute EventHandler oncomplete</dt>
   <dd><p>An EventHandler of type <a href="#OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</a>.</p></dd>
 </dl>
@@ -1304,7 +1348,8 @@ way that other EventTargets accept events.
     <p>The number of channels used when up-mixing and down-mixing connections
     to any inputs to the node.  The default value is 2 except for specific
     nodes where its value is specially determined.  This attribute has no
-    effect for nodes with no inputs.  If this value is set to zero, the
+    effect for nodes with no inputs.  If this value is set to zero or to a value
+    greater than the implementation's maximum number of channels the
     implementation MUST throw a NotSupportedError exception.</p>
     <p>See the <a href="#channel-up-mixing-and-down-mixing"></a>
     section for more information on this attribute.</p>
@@ -1338,6 +1383,7 @@ way that other EventTargets accept events.
 <section>
   <h3 id="lifetime-AudioNode" class="informative">Lifetime</h3>
 
+  <p><i>This section is informative.</i></p>
   <p>
     An implementation may choose any method to avoid unnecessary resource usage
     and unbounded memory growth of unused/finished nodes.  The following is a
@@ -1509,8 +1555,8 @@ The following rules will apply when calling these methods:
     before events whose times are after the event.
   </li>
   <li>
-    If setValueCurveAtTime() is called for time T and duration D and there are any
-    events having a time greater than T, but less than T + D, then a
+    If setValueCurveAtTime() is called for time \(T\) and duration \(D\) and there are any
+    events having a time greater than \(T\), but less than \(T + D\), then a
     NotSupportedError exception MUST be thrown.  In other words, it's not ok to
     schedule a value curve during a time period containing other events.
   </li>
@@ -1551,18 +1597,19 @@ The following rules will apply when calling these methods:
       thrown if <code>startTime</code> is negative or is not a finite number.
     </p>
     <p>
-      If there are no more events after this <em>SetValue</em> event, then for t
-      &gt;= <code>startTime</code>,  v(t) = value.  In other words, the value
+      If there are no more events after this <em>SetValue</em> event, then for
+      \(t \geq T_0\),  \(v(t) = V\), where \(T_0\) is the <code>startTime</code> parameter and \(V\)
+      is the <code>value</code> parameter.  In other words, the value
       will remain constant.
     </p>
     <p>
-      If the next event (having time T1) after this <em>SetValue</em> event is
+      If the next event (having time \(T_1\)) after this <em>SetValue</em> event is
       not of type <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>,
-      then, for t:
+      then, for \(T_0 \leq t &lt; T_1\):
+      $$
+        v(t) = V
+      $$
     </p>
-    <pre>
-      startTime &lt;= t &lt; T1,  v(t) = value
-    </pre>
     <p>
        In other words, the value will remain constant during this time interval,
        allowing the creation of "step" functions.
@@ -1591,20 +1638,20 @@ The following rules will apply when calling these methods:
     </p>
 
     <p>
-      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
-      of the previous event and T1 is the <code>endTime</code> parameter passed
+      The value during the time interval \(T_0 \leq t &lt; T_1\) (where \(T_0\) is the time
+      of the previous event and \(T_1\) is the <code>endTime</code> parameter passed
       into this method) will be calculated as:
+      $$
+      v(t) = V_0 + (V_1 - V_0) \frac{t - T_0}{T_1 - T_0}
+      $$
     </p>
-    <pre>
-      v(t) = V0 + (V1 - V0) * ((t - T0) / (T1 - T0))
-    </pre>
     <p>
-      Where V0 is the value at the time T0 and V1 is the value parameter passed
+      Where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the <code>value</code> parameter passed
       into this method.
     </p>
     <p>
-      If there are no more events after this LinearRampToValue event then for t
-      &gt;= T1, v(t) = V1.
+      If there are no more events after this LinearRampToValue event then for 
+      \(t \geq T_1\), \(v(t) = V_1\).
     </p>
   </dd>
   <dt> void exponentialRampToValueAtTime(float value, double endTime) </dt>
@@ -1629,20 +1676,20 @@ The following rules will apply when calling these methods:
       negative or is not a finite number.
     </p>
     <p>
-      The value during the time interval T0 &lt;= t &lt; T1 (where T0 is the time
-      of the previous event and T1 is the endTime parameter passed into this
+      The value during the time interval \(T_0 \leq t &lt; T_1\) (where \(T_0\) is the time
+      of the previous event and \(T_1\) is the <code>endTime</code> parameter passed into this
       method) will be calculated as:
+      $$
+        v(t) = V_0 \left(\frac{V_1}{V_0}\right)^\frac{t - T_0}{T_1 - T_0}
+      $$
     </p>
-    <pre>
-        v(t) = V0 * (V1 / V0) ^ ((t - T0) / (T1 - T0))
-    </pre>
     <p>
-      Where V0 is the value at the time T0 and V1 is the value parameter passed into
+      where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the <code>value</code> parameter passed into
       this method.
     </p>
     <p>
-      If there are no more events after this ExponentialRampToValue event then for t
-      &gt;= T1, v(t) = V1
+      If there are no more events after this ExponentialRampToValue event then for
+      \(t \geq T_1\), \(v(t) = V_1\).
     </p>
   </dd>
   <dt> void setTargetAtTime(float target, double startTime, float timeConstant) </dt>
@@ -1673,22 +1720,22 @@ The following rules will apply when calling these methods:
     </p>
     <p>
       More precisely, <em>timeConstant</em> is the time it takes a first-order
-      linear continuous time-invariant system to reach the value 1 - 1/e (around
+      linear continuous time-invariant system to reach the value \(1 - 1/e\) (around
       63.2%) given a step input response (transition from 0 to 1 value).
     </p>
     <p>
-      During the time interval: <em>T0</em> &lt;= t &lt; <em>T1</em>, where T0
-      is the <code>startTime</code> parameter and T1 represents the time of the
-      event following this event (or <em>infinity</em> if there are no following
+      During the time interval: \(T_0 \leq t &lt; T_1\), where \(T_0\)
+      is the <code>startTime</code> parameter and \(T_1\) represents the time of the
+      event following this event (or \(\infty\) if there are no following
       events):
+      $$
+        v(t) = V_1 + (V_0 - V_1)\, e^{-\left(\frac{t - T_0}{\tau}\right)}
+      $$
     </p>
-    <pre>
-    v(t) = V1 + (V0 - V1) * exp(-(t - T0) / <em>timeConstant</em>)
-    </pre>
     <p>
-      Where V0 is the initial value (the .value attribute) at T0 (the
-      <code>startTime</code> parameter) and V1 is equal to the <em>target</em>
-      parameter.
+      where \(V_0\) is the initial value (the <code>.value</code> attribute) at \(T_0\) (the
+      <code>startTime</code> parameter), \(V_1\) is equal to the <code>target</code>
+      parameter, and \(\tau\) is the <code>timeConstant</code> parameter.
     </p>
     </dd>
   <dt> void setValueCurveAtTime(Float32Array values, double startTime, double duration) </dt>
@@ -2841,6 +2888,11 @@ directly using JavaScript.  This node type is deprecated, to be replaced by the 
 </pre>
 
 <p>
+  The <code>channelCountMode</code> cannot be changed from "explicit" and the
+  <code>channelCount</code> cannot be changed.  An attempt to change either of these MUST throw an
+  InvalidStateError exception.
+</p>        
+<p>
 The <a><code>ScriptProcessorNode</code></a> is constructed with a <dfn>bufferSize</dfn> which must
 be one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384.  This
 value controls how frequently the <a href="#audioprocess-spnode">audioprocess
@@ -3085,26 +3137,32 @@ The <a><code>DistanceModelType</code></a> enum determines which algorithm will b
 reduce the volume of an audio source as it moves away from the listener.  The
 default is "inverse".
 </p>
+<p>
+  In the description of each distance model below, let \(d\) be the distance between the listener
+  and the panner; \(d_{ref}\) be the value of the <code>refDistance</code> attribute; \(d_{max}\) be
+  the value of the <code>maxDistance</code> attribute; and \(f\) be the value of the
+  <code>rolloffFactor</code> attribute.
+</p>        
 <dl title="enum DistanceModelType" class=idl>
   <dt>linear</dt>
   <dd>
   A linear distance model which calculates <em>distanceGain</em> according to:
-  <pre>
-    1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)
-  </pre>
+  $$
+    1 - f\frac{d - d_{ref}}{d_{max} - d_{ref}}
+  $$
   </dd>
   <dt>inverse</dt>
   <dd>
   <p>An inverse distance model which calculates <em>distanceGain</em> according to: </p>
-  <pre>
-    refDistance / (refDistance + rolloffFactor * (distance - refDistance))
-  </pre>
+  $$
+    \frac{d_{ref}}{d_{ref} + f (d - d_{ref})}
+  $$
   </dd>
   <dt>exponential</dt>
   <dd><p>An exponential distance model which calculates <em>distanceGain</em> according to: </p>
-  <pre>
-    pow(distance / refDistance, -rolloffFactor)
-  </pre>
+  $$
+    \left(\frac{d}{d_{ref}}\right)^{-f}
+  $$
   </dd>
 </dl>
 
@@ -3494,6 +3552,9 @@ float calculateNormalizationScale(buffer)
         excess elements will be dropped. If the array has more elements than
         the <a><code>frequencyBinCount</code></a>, the excess elements will be ignored.
       </p>
+      <p>
+        The frequency data are in dB units.
+      </p>
       <dl class="parameters">
         <dt>Float32Array array</dt>
         <dd>
@@ -3598,72 +3659,87 @@ When the <dfn id="current-frequency-data">current frequency data</dfn> are
 computed, the following operations are to be performed:
 <ol>
   <li> <a href="#blackman-window">Apply a Blackman window</a> to the time domain input data </li>
-  <li> Apply a Fourier tranform to the windowed time domain input data to get imaginary and real frequency data </li>
+  <li> <a href="#fourier-transform">Apply a Fourier tranform</a> to the windowed time domain input data to get imaginary and real frequency data </li>
   <li> <a href="#smoothing-over-time">Smooth over time</a> the frequency domain data</li>
+  <li> <a href="#conversion-to-db">Conversion to dB</a>.</li>
 </ol>
 
+<p>
+  In the following, let \(N\) be the value of the <code>.fftSize</code> attribute of this <code>AnalyserNode</code>.
+</p>
+
 <dfn id="blackman-window">Applying a Blackman window</dfn> consists in the
-following operation on the input time domain data <code>buffer</code>:
+following operation on the input time domain data.  Let \(x[n]\) for \(n = 0, \ldots, N - 1\) be the
+time domain data. The Blackman
+window is defined by
+$$
+  \begin{align*}
+    \alpha &= \mbox{0.16} \\
+    a_0 &= \frac{1-\alpha}{2} \\
+    a_1 &= \frac{1}{2} \\
+    a_2 &= \frac{\alpha}{2} \\
+    w[n] &= a_0 - a_1 \cos\frac{2\pi n}{N} + a_2 \cos\frac{4\pi n}{N}, \mbox{ for } n = 0, \ldots, N
+    - 1
+  \end{align*}
+$$
+<p>
+  The windowed signal \(\hat{x}[n]\) is
+  $$
+    \hat{x}[n] = x[n] w[n], \mbox{ for } n = 0, \ldots, N - 1	    
+  $$
+</p>	  
 
-    <pre class="highlight">
-function blackmanWindow(buffer) {
-  var alpha = 0.16;
-  var a0 = 0.5 * (1.0 - alpha);
-  var a1 = 0.5;
-  var a2 = 0.5 * alpha;
-
-  for (var i = 0; i &lt; buffer.length; i++) {
-    var x = i / buffer.length;
-    buffer[i] *= a0 - a1 * Math.cos(2 * Math.PI * x) + a2 * Math.cos(4 * Math.PI * x);
-  }
-}
-    </pre>
-
+<p>
+<dfn id="fourier-transform">Applying a Fourier tranform</dfn> consists of computing the Fourier
+transform in the following way.  Let \(X[k]\) be the complex frequency domain data and \(\hat{x}[n]\) be
+the windowed time domain data computed above.  Then
+$$
+  X[k] = \sum_{n = 0}^{N - 1} \hat{x}[n] e^{\frac{-2\pi i k n}{N}}
+$$
+for \(k = 0, \dots, N/2-1\).
+</p>
+<p>
 <dfn id="smoothing-over-time">Smoothing over time</dfn> frequency data consists
 in the following operation:
 <ul>
 <li>
-  Let <code>fftSize</code> be the value of <a
-    href="#widl-AnalyserNode-fftSize"><code>fftSize</code></a> for this
-  <a>AnalyserNode</a>.
-</li>
-<li>
-  Let <code>outputBuffer</code> be an array that contains
-  the frequency data that will be made available to the author via <a
-    href="#widl-AnalyserNode-getFloatFrequencyData-void-Float32Array-array"><code>getFloatFrequencyData</code></a>,
-  or <a
-  href="#widl-AnalyserNode-getByteFrequencyData-void-Uint8Array-array"><code>getByteFrequencyData</code></a>.
-</li>
-<li>
-  Let <code>lastOutputBuffer</code> be the result of this operation on the
+  Let \(\hat{X}_{-1}[k]\) be the result of this operation on the
   <a>previous block</a>. The <dfn>previous block</dfn> is defined as being the
-  buffer returned by the previous <a href="#smoothing-over-time">smoothing over
-  time</a> operation, or an array of <code>fftSize</code> zeros if this is the
+  buffer computed by the previous <a href="#smoothing-over-time">smoothing over
+  time</a> operation, or an array of \(N\) zeros if this is the
   first time we are <a href="#smoothing-over-time">smoothing over time</a>.
 </li>
 <li>
-  Let <code>smoothingConstant</code> be the value of the <a
+  Let \(\tau\) be the value of the <a
   href="#widl-AnalyserNode-smoothingTimeConstant"><code>smoothingTimeConstant</code></a> attribute for
   this <a><code>AnalyserNode</code></a>.
 </li>
 <li>
-  Let <code>real</code> and <code>imag</code> be two arrays of length
-  <code>fftSize</code>, that contain the result of the previously applied Fourier
-  transform.
+  Let \(X[k]\) be the result of <a href="#fourier-transform">applying a Fourier transform</a> of the
+  current block.
 </li>
 </ul>
+<p>
+Then the smoothed value, \(\hat{X}[k]\), is computed by
+$$
+  \hat{X}[k] = \tau\, \hat{X}_{-1}[k] + (1 - \tau)\, |X[k]|
+$$
+for \(k = 0, \ldots, N - 1\).
+</p>	    
 
-<pre class="highlight">
-  function smoothingOverTime(outputBuffer, lastOutputBuffer,
-                             smoothingConstant,
-                             real, imag, fftSize) {
-    for (var i = 0; i &lt; outputBuffer.length; i++) {
-      var magnitude = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]) / fftSize;
-      outputBuffer[i] = smoothingTimeConstant * lastOutputBuffer[i] + (1.0 - smoothingTimeConstant) * magnitude;
-    }
-  }
-</pre>
-
+<dfn id="conversion-to-db">Conversion to dB</dfn> consists of the following operation, where
+\(\hat{X}[k]\) is computed in <a href="#smoothing-over-time">smoothing over time</a>:
+$$
+  Y[k] = 20\log_{10}\hat{X}[k]
+$$
+for \(k = 0, \ldots, N-1\).
+<p>
+  This array, \(Y[k]\), is copied to the output array for <code>getFloatFrequencyData</code>.  For
+  <code>getByteFrequencyData</code>, the \(Y[k]\) is clipped to lie between <code>minDecibels</code>
+  and <code>maxDecibels</code> and then scaled to fit in an unsigned byte such that
+  <code>minDecibels</code> is represented by the value 0 and <code>maxDecibels</code> is represented
+  by the value 255.
+</p>	    
 </section>
 </section>
 
@@ -4049,7 +4125,7 @@ The number of channels of the output always equals the number of channels of the
 </dl>
 
 <p>
-All attributes of the <a><code>BiquadFilterNode</code></a> are <a>k-rate</a>
+All attributes of the <a><code>BiquadFilterNode</code></a> are <a>a-rate</a>
 <a><code>AudioParam</code></a>.
 </p>
 
@@ -4397,7 +4473,7 @@ may be specified.
       for a signal at zero.
     </p>
     <p>
-      A <code>InvalidAccessError</code> MUST be thrown if this attribute is set
+      A <code>InvalidStateError</code> MUST be thrown if this attribute is set
       with a <code>Float32Array</code> that has a <code>length</code> less than
       2.
     </p>
@@ -4517,7 +4593,8 @@ to determine a <em>computedFrequency</em> value:
     <dt> attribute OscillatorType type </dt>
     <dd>
       The shape of the periodic waveform.  It may directly be set to any of the
-      type constant values except for "custom".  The <a
+      type constant values except for "custom".  Doing so MUST throw an InvalidStateError
+      exception. The <a
       href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave"><code>setPeriodicWave()</code></a> method can be
       used to set a custom waveform, which results in this attribute being set to
       "custom".  The default value is "sine". When this attribute is set, the
@@ -4559,7 +4636,7 @@ to determine a <em>computedFrequency</em> value:
 </dl>
 
 <section>
-<h2>Basic waveform phase</h2>
+<h2>Basic Waveform Phase</h2>
 <p>
   The idealized mathematical waveforms for the various oscillator types are defined here. In summary,
   all waveforms are defined mathematically to be an odd function with a positive slope at time
@@ -4568,24 +4645,39 @@ to determine a <em>computedFrequency</em> value:
 <dl>
   <dt> "sine" </dt>
   <dd>
-    The waveform for sine oscillator is sin(t).
+    The waveform for sine oscillator is $$x(t) = \sin t$$.
   </dd>
   <dt>"square"</dt>
   <dd>
-    The waveform for the square wave oscillator is 1 for 0&le; t &lt; &pi; and
-    -1 for -&pi; &lt; t &lt; 0.
+    The waveform for the square wave oscillator is 
+    $$
+      x(t) =
+        \begin{cases}
+          1 & \mbox{for } 0&le; t &lt; \pi \\
+          -1 & \mbox{for } -\pi &lt; t &lt; 0.
+        \end{cases}
+    $$
   </dd>
   <dt>"sawtooth"</dt>
   <dd>
-    The waveform for the sawtooth oscillator is the ramp t/&pi; for -&pi; &lt; t
-    &le; &pi;
+    The waveform for the sawtooth oscillator is the ramp
+    $$
+      x(t) = \frac{t}{\pi} \mbox{ for } -\pi &lt; t &le; \pi;
+    $$
   </dd>
   <dt>"triangle"</dt>
   <dd>
-    The waveform for the triangle oscillator is 2/&pi;*t for 0 &le; t &le;
-    &pi;/2 and 1-2/&pi;*(t-&pi;/2) for &pi;/2 &lt; t &le; &pi;. This is extended
-    to all t by using the fact that the waveform is an odd function with period
-    2&pi;.
+    The waveform for the triangle oscillator is 
+    $$
+      x(t) = 
+        \begin{cases}
+          \frac{2}{\pi} t & \mbox{for } 0 &le; t &le; \frac{\pi}{2} \\
+          1-\frac{2}{\pi} (t-\frac{\pi}{2}) & \mbox{for } \frac{\pi}{2} &lt; t &le; \pi. 
+        \end{cases}
+    $$
+    This is extended
+    to all \(t\) by using the fact that the waveform is an odd function with period
+    \(2\pi\).
   </dd>
 </dl>
 </section>
@@ -4605,8 +4697,59 @@ href="#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">setPe
 <dl title="interface PeriodicWave" class="idl">
 </dl>
 
+<section>
+<h2>PeriodicWaveConstraints</h2>
+The <code>PeriodicWaveConstraints</code> dictionary is used to specify how the waveform is
+normalized.
+<dl title="dictionary PeriodicWaveConstraints" class="idl">
+  <dt> boolean disableNormalization = false</dt>
+  <dd>
+    Controls whether the periodic wave is normalized or not.  If <code>true</code>, the waveform is
+    not normalized; otherwise, the waveform is normalized.
+  </dd>
+</dl>
 </section>
+<section>
+<h2>Waveform Generation</h2>
+<p>
+The <a
+href="#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">createPeriodicWave()</a>
+method takes two arrays to specify the Fourier coefficients of the PeriodicWave. Let \(a\) and \(b\)
+represent the real and imaginary arrays of length \(L\).  Then the basic time-domain waveform,
+\(x(t)\), can be computed using
 
+$$
+  x(t) = \sum_{k=1}^{L-1} \left(a[k]\cos2\pi k t + b[k]\sin2\pi k t\right)
+$$            
+This is the basic (unnormalized) waveform.
+</p>
+</section>
+<section>
+<h2>Waveform Normalization</h2>
+<p>
+By default, the waveform defined in the previous section is normalized so that the maximum value is
+1. The normalization is done as follows.
+</p>
+<p>
+Let 
+$$
+  \tilde{x}(n) = \sum_{k=1}^{L-1} \left(a[k]\cos\frac{2\pi k n}{N}  + b[k]\sin\frac{2\pi k n}{N}\right)
+$$
+where \(N\) is a power of two.  (Note: \(\tilde{x}(n)\) can conveniently be computed using an
+inverse FFT.)
+The fixed normalization factor \(f\) is computed as follows: 
+$$
+  f = \max_{n = 0, \ldots, N - 1} |\tilde{x}(n)|
+$$
+Thus, the actual normalized waveform \(\hat{x}(n)\) is
+$$
+  \hat{x}(n) = \frac{\tilde{x}(n)}{f}
+$$
+This fixed normalization factor must be applied to all generated waveforms.
+</p>
+            
+</section>
+</section>
 <section>
 <h2 id="MediaStreamAudioSourceNode"> The MediaStreamAudioSourceNode Interface</h2>
 

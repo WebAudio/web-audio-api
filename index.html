@@ -774,19 +774,21 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
       several common filter types.
     </dd>
     <dt> IIRFilterNode createIIRFilter(Float32Array b, Float32Array a) </dt>
-    <dd>Creates a <a><code>IIRFilterNode</code></a> representing a general IIR FIlter.
+    <dd>Creates an <a><code>IIRFilterNode</code></a> representing a general IIR Filter.
       <dl class=parameters>
         <dt> Float32Array b</dt>
 	<dd>
           An array of the numerator coefficients for the tranfer function of the IIR filter. The
-          maximum length of this array is 20.  A NotSupportedError MUST be thrown if the array
+          maximum length of this array is 20.  If all of the values are zero, an InvalidStateError
+          MUST be thrown.  A NotSupportedError MUST be thrown if the array
           length is 0 or greater than 20.
 	</dd>
         <dt> Float32Array a</dt>
         <dd>
           An array of the denominator coefficients for the tranfer function of the IIR filter. The
-          maximum length of this array is 20.  A NotSupportedError MUST be thrown if the array
-          length is 0 or greater than 20.
+          maximum length of this array is 20.  If the first element of the array is 0, an
+          InvalidStateError MUST be thrown.  A NotSupportedError MUST be thrown if the array length
+          is 0 or greater than 20. 
         </dd>
       </dl>
     </dd>
@@ -4399,10 +4401,17 @@ The number of channels of the output always equals the number of channels of the
     <p>
       The transfer function of the general IIR filter is given by
       $$
-        H(z) = \frac{\sum_{m=0}^{M-1} b_m z^{-m}}{\sum_{n=0}^{N-1} a_n z^{-n}}
+        H(z) = \frac{\sum_{m=0}^{M} b_m z^{-m}}{\sum_{n=0}^{N} a_n z^{-n}}
       $$
-      where \(M\) is the length of the <code>b</code> array and \(N\) is the length of the
-      <code>a</code> array.
+      where \(M + 1\) is the length of the <code>b</code> array and \(N + 1\) is the length of the
+      <code>a</code> array.  The coefficient \(a_0\) cannot be 0.  At least one of \(b_m\) must be
+      non-zero. 
+    </p>
+    <p>
+      Equivalently, the time-domain equation is
+      $$
+        \sum_{k=0}^{N} a_k y(n-k) = \sum_{k=0}^{M} b_k x(n-k)
+      $$
     </p>
     <p>
       The initial filter state is the all-zeroes state.

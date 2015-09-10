@@ -431,6 +431,9 @@ function setupRoutingGraph () {
       <li>Allpass </li>
     </ul>
   </li>
+  <li>A <a><code>IIRFilterNode</code></a> interface, an <a><code>AudioNode</code></a> for a general
+  IIR filter.
+  </li>	  
   <li>A <a><code>DelayNode</code></a> interface, an
     <a><code>AudioNode</code></a> which applies a dynamically adjustable variable delay. </li>
   <li>A <a><code>PannerNode</code></a>
@@ -769,6 +772,25 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
     <dd>Creates a <a><code>BiquadFilterNode</code></a>
       representing a second order filter which can be configured as one of
       several common filter types.
+    </dd>
+    <dt> IIRFilterNode createIIRFilter(Float32Array b, Float32Array a) </dt>
+    <dd>Creates an <a><code>IIRFilterNode</code></a> representing a general IIR Filter.
+      <dl class=parameters>
+        <dt> Float32Array feedforward</dt>
+	<dd>
+          An array of the feedforward (numerator) coefficients for the transfer function of the IIR
+          filter. The maximum length of this array is 20.  If all of the values are zero, an
+          InvalidStateError MUST be thrown.  A NotSupportedError MUST be thrown if the array length
+          is 0 or greater than 20.
+	</dd>
+        <dt> Float32Array feedback</dt>
+        <dd>
+          An array of the feedback (denominator) coefficients for the tranfer function of the IIR
+          filter. The maximum length of this array is 20.  If the first element of the array is 0,
+          an InvalidStateError MUST be thrown.  A NotSupportedError MUST be thrown if the array
+          length is 0 or greater than 20.
+        </dd>
+      </dl>
     </dd>
     <dt> WaveShaperNode createWaveShaper() </dt>
     <dd>
@@ -4348,6 +4370,89 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>a-rate</a>
   </p>
 </section>
 
+</section>
+<section>
+<h2>The IIRFilterNode Interface</h2>
+<p>
+ <a><code>IIRFilterNode</code></a> is an <a><code>AudioNode</code></a> processor implementing a general
+ IIR Filter.  In general, it is best to use <a><code>BiquadFilterNode</code></a>'s to implement
+ higher-order filters for the following reasons:
+ <ul>
+   <li>Generally less sensitive to numeric issues</li>
+   <li>Filter parameters can be automated</li>
+   <li>Can be used to create all even-ordered IIR filters</li>	    
+ </ul>
+</p>
+<p>
+  However, odd-ordered filters cannot be created, so if such filters are needed or automation is not
+  needed, then IIR filters may be appropriate.
+</p>
+<p>
+  Once created, the coefficients of the IIR filter cannot be changed.	  
+</p>
+<pre>
+    numberOfInputs  : 1
+    numberOfOutputs : 1
+
+    channelCountMode = "max";
+    channelInterpretation = "speakers";
+</pre>	  
+<p>
+The number of channels of the output always equals the number of channels of the input.
+</p>
+
+<dl title="interface IIRFilterNode : AudioNode" class="idl">
+  <dt>void getFrequencyResponse() </dt>
+  <dd>
+  <p>
+    Given the current filter parameter settings, calculates the
+    frequency response for the specified frequencies.
+  </p>
+  <dl class="parameters">
+    <dt>Float32Array frequencyHz</dt>
+    <dd>
+      This parameter specifies an array of frequencies at which the response
+      values will be calculated.
+    </dd>
+    <dt>Float32Array magResponse</dt>
+    <dd>
+      This parameter specifies an output array receiving the linear magnitude
+      response values.  If this array is shorter than <code>frequencyHz</code> a NotSupportedError
+      MUST be signaled. 
+    </dd>
+    <dt>Float32Array phaseResponse</dt>
+    <dd>
+      This parameter specifies an output array receiving the phase response values
+      in radians.  If this array is shorter than <code>frequencyHz</code> a NotSupportedError
+      MUST be signaled.
+    </dd>
+  </dl>
+  </dd>
+</dl>
+  <section>
+    <h3>Filter Definition</h3>
+    <p>
+      Let \(b_m\) be the <code>feedforward</code> coefficients and \(a_n\) be the
+      <code>feedback</code> coefficients specified by <a
+href="#widl-AudioContext-createIIRFilter-IIRFilterNode-Float32Array-feedforward-Float32Array-feedback"><code>createIIRFilter</code></a>.
+      Then the transfer function of the general IIR filter is given by
+      $$
+        H(z) = \frac{\sum_{m=0}^{M} b_m z^{-m}}{\sum_{n=0}^{N} a_n z^{-n}}
+      $$
+      where \(M + 1\) is the length of the \(b\) array and \(N + 1\) is the length of the
+      \(a\) array.  The coefficient \(a_0\) cannot be 0.  At least one of \(b_m\) must be
+      non-zero. 
+    </p>
+    <p>
+      Equivalently, the time-domain equation is
+      $$
+        \sum_{k=0}^{N} a_k y(n-k) = \sum_{k=0}^{M} b_k x(n-k)
+      $$
+    </p>
+    <p>
+      The initial filter state is the all-zeroes state.
+    </p>	  
+  </section>
 </section>
 <section>
 <h2 id="WaveShaperNode">The WaveShaperNode Interface</h2>

@@ -534,10 +534,10 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
   <dt> readonly attribute double currentTime</dt>
   <dd><p>This is a time in seconds which starts at zero when the context is
     created and increases in real-time. All scheduled times are relative to
-    it. This is not a "transport" time which can be started, paused, and
-    re-positioned. It is always moving forward. A GarageBand-like timeline
-    transport system can be very easily built on top of this (in JavaScript).
-    This time corresponds to an ever-increasing hardware timestamp. </p>
+    it. When the <a><code>AudioContext</code></a> is in the <a
+    href=#idl-def-AudioContextState.running"><code>running</code></a> state, the
+  value of this attribute is always moving forward, monotonically increasing.
+  </p>
   </dd>
   <dt> readonly attribute AudioListener listener </dt>
   <dd><p>An <a href="#AudioListener"><code>AudioListener</code></a>
@@ -554,16 +554,59 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
 
   <dt>Promise&lt;void&gt; suspend()</dt>
 
-  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.
+  <dd>
+    <p>
+    Suspends the progression of <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a>, allows any current
+    context processing blocks that are already processed to be played to the
+    destination, and then allows the system to release its claim on audio
+    hardware.  This is generally useful when the application knows it will not
+    need the <a>AudioContext</a> for some time, and wishes to let the audio hardware
+    power down.  The promise resolves when the frame buffer is empty (has been
+    handed off to the hardware), or immediately (with no other effect) if the
+    context is already suspended.  The promise is rejected if the context has been
+    closed.
+    </p>
 
-    <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
+    <p>
+      While the system is suspended, MediaStreams will have their output ignored;
+      that is, data will be lost by the real time nature of media streams.
+      HTMLMediaElements will similarly have their output ignored until the system is
+      resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their
+      onaudioprocess events while suspended, but will resume when resumed.  For the
+      purpose of AnalyserNode window functions, the data is considered as a
+      continuous stream - i.e. the resume()/suspend() does not cause silence to
+      appear in the AnalyserNode's stream of data.
+    </p>
+  </dd>
 
   <dt>Promise&lt;void&gt; resume()</dt>
 
-  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.</dd>
+  <dd>
+    Resumes the progression of the <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a> in an audio context
+    that has been suspended, which may involve re-priming the frame buffer
+    contents.  The promise resolves when the system has re-acquired (if
+    necessary) access to audio hardware and has begun streaming to the
+    destination, or immediately (with no other effect) if the context is already
+    running.  The promise is rejected if the context has been closed.  If the
+    context is not currently suspended, the promise will resolve.
+  </dd>
 
   <dt>Promise&lt;void&gt; close()</dt>
-  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  If this is called on <a>OfflineAudioContext</a>, then return a promise rejected with a <code>DOMException</code> whose name is <code>InvalidStateError</code>.</dd>
+  <dd>
+    Closes the audio context, releasing any system audio resources used by the
+    <a>AudioContext</a>.  This will not automatically release all
+    AudioContext-created objects, unless other references have been released as
+    well; however, it will forcibly release any system audio resources that
+    might prevent additional AudioContexts from being created and used, suspend
+    the progression of the <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a>, and stop processing
+    audio data.  The promise resolves when all AudioContext-creation-blocking
+    resources have been released.  If this is called on
+    <a>OfflineAudioContext</a>, then return a promise rejected with a
+    <code>DOMException</code> whose name is <code>InvalidStateError</code>.
+  </dd>
 
  <dt>attribute EventHandler onstatechange</dt>
   <dd>

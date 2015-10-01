@@ -127,7 +127,8 @@ specification to include the capabilities found in modern game audio engines as
 well as some of the mixing, processing, and filtering tasks that are found in
 modern desktop audio production applications. </p>
 
-<p>The APIs have been designed with a wide variety of use cases in mind. Ideally, it should
+<p>The APIs have been designed with a wide variety of use cases 
+[[webaudio-usecases]] in mind. Ideally, it should
 be able to support <i>any</i> use case which could reasonably be implemented
 with an optimized C++ engine controlled via JavaScript and run in a browser.
 That said, modern desktop audio software can have very advanced capabilities,
@@ -533,10 +534,10 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
   <dt> readonly attribute double currentTime</dt>
   <dd><p>This is a time in seconds which starts at zero when the context is
     created and increases in real-time. All scheduled times are relative to
-    it. This is not a "transport" time which can be started, paused, and
-    re-positioned. It is always moving forward. A GarageBand-like timeline
-    transport system can be very easily built on top of this (in JavaScript).
-    This time corresponds to an ever-increasing hardware timestamp. </p>
+    it. When the <a><code>AudioContext</code></a> is in the <a
+    href=#idl-def-AudioContextState.running"><code>running</code></a> state, the
+  value of this attribute is always moving forward, monotonically increasing.
+  </p>
   </dd>
   <dt> readonly attribute AudioListener listener </dt>
   <dd><p>An <a href="#AudioListener"><code>AudioListener</code></a>
@@ -553,16 +554,59 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
 
   <dt>Promise&lt;void&gt; suspend()</dt>
 
-  <dd>Suspends the progression of time in the audio context, allows any current context processing blocks that are already processed to be played to the destination, and then allows the system to release its claim on audio hardware.  This is generally useful when the application knows it will not need the AudioContext for some time, and wishes to let the audio hardware power down.  The promise resolves when the frame buffer is empty (has been handed off to the hardware), or immediately (with no other effect) if the context is already suspended.  The promise is rejected if the context has been closed.
+  <dd>
+    <p>
+    Suspends the progression of <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a>, allows any current
+    context processing blocks that are already processed to be played to the
+    destination, and then allows the system to release its claim on audio
+    hardware.  This is generally useful when the application knows it will not
+    need the <a>AudioContext</a> for some time, and wishes to let the audio hardware
+    power down.  The promise resolves when the frame buffer is empty (has been
+    handed off to the hardware), or immediately (with no other effect) if the
+    context is already suspended.  The promise is rejected if the context has been
+    closed.
+    </p>
 
-    <p>While the system is suspended, MediaStreams will have their output ignored; that is, data will be lost by the real time nature of media streams.  HTMLMediaElements will similarly have their output ignored until the system is resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their onaudioprocess events while suspended, but will resume when resumed.  For the purpose of AnalyserNode window functions, the data is considered as a continuous stream - i.e. the resume()/suspend() does not cause silence to appear in the AnalyserNode's stream of data.</p></dd>
+    <p>
+      While the system is suspended, MediaStreams will have their output ignored;
+      that is, data will be lost by the real time nature of media streams.
+      HTMLMediaElements will similarly have their output ignored until the system is
+      resumed.  Audio Workers and ScriptProcessorNodes will simply not fire their
+      onaudioprocess events while suspended, but will resume when resumed.  For the
+      purpose of AnalyserNode window functions, the data is considered as a
+      continuous stream - i.e. the resume()/suspend() does not cause silence to
+      appear in the AnalyserNode's stream of data.
+    </p>
+  </dd>
 
   <dt>Promise&lt;void&gt; resume()</dt>
 
-  <dd>Resumes the progression of time in an audio context that has been suspended, which may involve re-priming the frame buffer contents.  The promise resolves when the system has re-acquired (if necessary) access to audio hardware and has begun streaming to the destination, or immediately (with no other effect) if the context is already running.  The promise is rejected if the context has been closed.  If the context is not currently suspended, the promise will resolve.</dd>
+  <dd>
+    Resumes the progression of the <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a> in an audio context
+    that has been suspended, which may involve re-priming the frame buffer
+    contents.  The promise resolves when the system has re-acquired (if
+    necessary) access to audio hardware and has begun streaming to the
+    destination, or immediately (with no other effect) if the context is already
+    running.  The promise is rejected if the context has been closed.  If the
+    context is not currently suspended, the promise will resolve.
+  </dd>
 
   <dt>Promise&lt;void&gt; close()</dt>
-  <dd>Closes the audio context, releasing any system audio resources used by the <a>AudioContext</a>.  This will not automatically release all AudioContext-created objects, unless other references have been released as well; however, it will forcibly release any system audio resources that might prevent additional AudioContexts from being created and used, suspend the progression of audio time in the audio context, and stop processing audio data.  The promise resolves when all AudioContext-creation-blocking resources have been released.  If this is called on <a>OfflineAudioContext</a>, then return a promise rejected with a <code>DOMException</code> whose name is <code>InvalidStateError</code>.</dd>
+  <dd>
+    Closes the audio context, releasing any system audio resources used by the
+    <a>AudioContext</a>.  This will not automatically release all
+    AudioContext-created objects, unless other references have been released as
+    well; however, it will forcibly release any system audio resources that
+    might prevent additional AudioContexts from being created and used, suspend
+    the progression of the <a><code>AudioContext</code></a>'s <a
+      href="#widl-AudioContext-currentTime">currentTime</a>, and stop processing
+    audio data.  The promise resolves when all AudioContext-creation-blocking
+    resources have been released.  If this is called on
+    <a>OfflineAudioContext</a>, then return a promise rejected with a
+    <code>DOMException</code> whose name is <code>InvalidStateError</code>.
+  </dd>
 
  <dt>attribute EventHandler onstatechange</dt>
   <dd>
@@ -597,7 +641,10 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
     The ArrayBuffer can, for example, be loaded from an XMLHttpRequest's
     <code>response</code> attribute after setting the <code>responseType</code>
     to "arraybuffer".  Audio file data can be in any of the formats supported by
-    the <code>audio</code> or <code>video</code> elements.
+    the <code>HTMLMediaElement</code> elements.
+    passed to <a
+    href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">decodeAudioData</a>
+  has its content-type determined by sniffing, as described in [[mimesniff]].
     <dl class=parameters>
       <dt> ArrayBuffer audioData </dt>
       <dd> An ArrayBuffer containing compressed audio data </dd>
@@ -733,7 +780,8 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
           <a href="#audio-glitching">glitches</a>.
           It is recommended for authors to not specify this buffer size and
           allow the implementation to pick a good buffer size to balance between
-          <a href="#latency">latency</a> and audio quality.
+          <a href="#latency">latency</a> and audio quality. If the value of this parameter is not one of the allowed
+          power-of-2 values listed above, an IndexSizeError MUST be thrown.
           </dd>
         <dt> optional unsigned long numberOfInputChannels = 2 </dt>
         <dd>
@@ -747,7 +795,7 @@ or <a href="#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-
         </dd>
       </dl>
       It is invalid for both <a><code>numberOfInputChannels</code></a> and
-      <a><code>numberOfOutputChannels</code></a> to be zero.
+      <a><code>numberOfOutputChannels</code></a> to be zero. In this case an IndexSizeError MUST be thrown.
     </dd>
 
     <dt> AnalyserNode createAnalyser() </dt>
@@ -1079,6 +1127,9 @@ Please see <a href="#mixer-gain-structure"></a> for more informative details,
 and the <a href="#channel-up-mixing-and-down-mixing"></a>
   section for normative requirements.
 
+</p>
+
+<p>The processing of inputs and the internal operations of an <a>AudioNode</a> take place continuously with respect to <a>AudioContext</a> time, regardless of whether the node has connected outputs, and regardless of whether these outputs ultimately reach an <a>AudioContext</a>'s <a>AudioDestinationNode</a>.
 </p>
 
 <p>
@@ -1416,6 +1467,8 @@ way that other EventTargets accept events.
   <a><code>AudioDestinationNode</code></a> of the <a><code>AudioContext</code></a> will stay alive as long as the <a><code>AudioContext</code></a> is alive.
   </p>
 
+  <p class="note">The uninterrupted operation of <a>AudioNode</a>s implies that as long as live references exist to a node, the node will continue processing its inputs and evolving its internal state even if it is disconnected from the audio graph. Since this processing will consume CPU and power, developers should carefully consider the resource usage of disconnected nodes. In particular, it is a good idea to minimize resource consumption by explicitly putting disconnected nodes into a stopped state when possible.</p>
+
   <p>
   When an <a><code>AudioNode</code></a> has no references it will be deleted.  Before it is deleted, it will disconnect itself
   from any other <a><code>AudioNode</code></a>s which it is connected to.  In this way it releases all connection references (3) it has to other nodes.
@@ -1424,6 +1477,7 @@ way that other EventTargets accept events.
   <p>
   Regardless of any of the above references, it can be assumed that the <a><code>AudioNode</code></a> will be deleted when its <a><code>AudioContext</code></a> is deleted.
   </p>
+
 </section>
 </section>
 
@@ -1537,7 +1591,7 @@ through the <code>destination</code> attribute of <a><code>AudioContext</code></
 
 <ul>
 <li><a href="#widl-AudioParam-setValueAtTime-void-float-value-double-startTime">setValueAtTime()</a> - <em>SetValue</em></li>
-<li><a href="#widl-AudioParam-exponentialRampToValueAtTime-void-float-value-double-endTime">linearRampToValueAtTime()</a> - <em>LinearRampToValue</em></li>
+<li><a href="#widl-AudioParam-linearRampToValueAtTime-void-float-value-double-endTime">linearRampToValueAtTime()</a> - <em>LinearRampToValue</em></li>
 <li><a href="#widl-AudioParam-exponentialRampToValueAtTime-void-float-value-double-endTime">exponentialRampToValueAtTime()</a> - <em>ExponentialRampToValue</em></li>
 <li><a href="#widl-AudioParam-setTargetAtTime-void-float-target-double-startTime-float-timeConstant">setTargetAtTime()</a> - <em>SetTarget</em></li>
 <li><a href="#widl-AudioParam-setValueCurveAtTime-void-Float32Array-values-double-startTime-double-duration">setValueCurveAtTime()</a> - <em>SetValueCurve</em></li>
@@ -1578,6 +1632,9 @@ The following rules will apply when calling these methods:
       when there are any automation events scheduled then it will be ignored and
       no exception will be thrown.
     </p>
+    <p>
+      The effect of setting this attribute is equivalent to calling <code>setValueAtTime()</code> with the current <code>AudioContext</code>'s <code>currentTime</code> and the requested value. Subsequent accesses to this attribute's getter will return the same value.
+    </p>
   </dd>
   <dt> readonly attribute float defaultValue </dt>
   <dd>
@@ -1598,7 +1655,7 @@ The following rules will apply when calling these methods:
       <dd>
         The time in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a
         href="#widl-AudioContext-currentTime">currentTime</a> attribute at which the parameter
-        changes to the given value.  An InvalidAccessError exception MUST be thrown if
+        changes to the given value.  A TypeError exception MUST be thrown if
         <code>startTime</code> is negative or is not a finite number.
       </dd>
     </dl>
@@ -1644,7 +1701,7 @@ The following rules will apply when calling these methods:
       <dd>
         The time in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a
         href="#widl-AudioContext-currentTime">currentTime</a> attribute at which the automation
-        ends.  An InvalidAccessError exception MUST be thrown if <code>endTime</code> is negative or
+        ends.  A TypeError exception MUST be thrown if <code>endTime</code> is negative or
         is not a finite number.
       </dd>
     </dl>
@@ -1696,11 +1753,11 @@ The following rules will apply when calling these methods:
         exception MUST be thrown if this value is less than or equal to 0, or if the value at the
         time of the previous event is less than or equal to 0.
       </dd>
-      <dt>double endtime</dt>              
+      <dt>double endTime</dt>
       <dd>
         The time in the same time coordinate system as the <a><code>AudioContext</code></a>'s <a
         href="#widl-AudioContext-currentTime">currentTime</a> attribute where the exponential ramp
-        ends.  An InvalidAccessError exception MUST be thrown if <code>endTime</code> is negative or
+        ends.  A TypeError exception MUST be thrown if <code>endTime</code> is negative or
         is not a finite number.
       </dd>
     <dl>
@@ -1725,7 +1782,7 @@ The following rules will apply when calling these methods:
       <dd>
         The time at which the exponential approach will begin, in the same time coordinate system as
         the <a><code>AudioContext</code></a>'s <a
-        href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError
+        href="#widl-AudioContext-currentTime">currentTime</a> attribute.  A TypeError
         exception MUST be thrown if <code>start</code> is negative or is not a finite number.
       </dd>
       <dt>float timeConstant</dt>              
@@ -1774,7 +1831,7 @@ The following rules will apply when calling these methods:
           The start time in the same time coordinate system as the
           <a><code>AudioContext</code></a>'s <a
           href="#widl-AudioContext-currentTime">currentTime</a> attribute at which the value curve
-          will be applied.  An InvalidAccessError exception MUST be thrown if <code>startTime</code>
+          will be applied.  A TypeError exception MUST be thrown if <code>startTime</code>
           is negative or is not a finite number.
         </dd>
         <dt>double duration</dt>
@@ -1814,7 +1871,7 @@ The following rules will apply when calling these methods:
           The starting time at and after which any previously scheduled parameter changes will be
           cancelled.  It is a time in the same time coordinate system as the
           <a><code>AudioContext</code></a>'s <a
-          href="#widl-AudioContext-currentTime">currentTime</a> attribute.  An InvalidAccessError
+          href="#widl-AudioContext-currentTime">currentTime</a> attribute.  A TypeError
           exception MUST be thrown if <code>startTime</code> is negative or is not a finite number.
         </dd>
       </dl>
@@ -1857,32 +1914,43 @@ The <em>computedValue</em> is the sum of the <em>intrinsic</em> value and the va
 <h3 id="example1-AudioParam">AudioParam Automation Example</h3>
 
 <figure>
+  <!-- The image here was created from
+  http://googlechrome.github.io/web-audio-samples/samples/audio/timeline.html -->
   <img alt="AudioParam automation" src="images/audioparam-automation1.png">
   <figcaption>An example of parameter automation.</figcaption>
 </figure>
 <pre class="code example"><code class="es-code highlight">
-var t0 = 0;
-var t1 = 0.1;
-var t2 = 0.2;
-var t3 = 0.3;
-var t4 = 0.4;
-var t5 = 0.6;
-var t6 = 0.7;
-var t7 = 1.0;
-
 var curveLength = 44100;
 var curve = new Float32Array(curveLength);
 for (var i = 0; i &lt; curveLength; ++i)
     curve[i] = Math.sin(Math.PI * i / curveLength);
 
+var t0 = 0;
+var t1 = 0.1;
+var t2 = 0.2;
+var t3 = 0.3;
+var t4 = 0.325;
+var t5 = 0.5;
+var t6 = 0.6;
+var t7 = 0.7;
+var t8 = 1.0;
+var timeConstant = 0.1;
+
 param.setValueAtTime(0.2, t0);
 param.setValueAtTime(0.3, t1);
 param.setValueAtTime(0.4, t2);
 param.linearRampToValueAtTime(1, t3);
-param.linearRampToValueAtTime(0.15, t4);
-param.exponentialRampToValueAtTime(0.75, t5);
-param.exponentialRampToValueAtTime(0.05, t6);
-param.setValueCurveAtTime(curve, t6, t7 - t6);
+param.linearRampToValueAtTime(0.8, t4);
+param.setTargetAtTime(.5, t4, timeConstant);
+// Compute where the setTargetAtTime will be at time t5 so we can make
+// the following exponential start at the right point so there's no
+// jump discontinuity.  From the spec, we have
+//   v(t) = 0.5 + (0.8 - 0.5)*exp(-(t-t4)/timeConstant)
+// Thus v(t5) = 0.5 + (0.8 - 0.5)*exp(-(t5-t4)/timeConstant)
+param.setValueAtTime(0.5 + (0.8 - 0.5)*Math.exp(-(t5 - t4)/timeConstant), t5);
+param.exponentialRampToValueAtTime(0.75, t6);
+param.exponentialRampToValueAtTime(0.05, t7);
+param.setValueCurveAtTime(curve, t7, t8 - t7);
 </code></pre>
 </section>
 </section>
@@ -1907,12 +1975,6 @@ param.setValueCurveAtTime(curve, t6, t7 - t6);
   Each sample of each channel of the input data of the
   <a><code>GainNode</code></a> MUST be multiplied by the <a>computedValue</a> of
   the <a href="#widl-GainNode-gain"><code>gain</code></a> <a><code>AudioParam</code></a>.
-</p>
-
-<p>
-  The implementation must make gain changes to the audio stream smoothly,
-  without introducing noticeable clicks or glitches. This process is called
-  "de-zippering".
 </p>
 
 <dl title="interface GainNode : AudioNode" class="idl">
@@ -1950,9 +2012,14 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
   time <em>t</em>, input signal <em>input(t)</em>, delay time
   <em>delayTime(t)</em> and output signal <em>output(t)</em>, the output will be
   <em> output(t) = input(t - delayTime(t))</em>. The default
-  <code>delayTime</code> is 0 seconds (no delay). When the delay time is
-  changed, the implementation must make the transition smoothly, without
-  introducing noticeable clicks or glitches to the audio stream.
+  <code>delayTime</code> is 0 seconds (no delay).
+</p>
+
+<p>
+  When the number of channels in a <a>DelayNode</a>'s input changes (thus changing the output channel count also),
+  there may be delayed audio samples which have not yet been output by the node and are part of its internal state. If these samples were
+  received earlier with a different channel count, they must be upmixed or downmixed before being combined with
+  newly received input so that all internal delay-line mixing takes place using the single prevailing channel layout.
 </p>
 
 <dl title="interface DelayNode : AudioNode" class="idl">
@@ -2030,7 +2097,7 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
       <dl class="parameters">
         <dt>Float32Array destination</dt>
         <dd>The array the channel data will be copied to.</dd>
-        <dt>long channelNumber</dt>
+        <dt>unsigned long channelNumber</dt>
         <dd>
           The index of the channel to copy the data from. If
           <code>channelNumber</code> is greater or equal than the number of
@@ -2053,7 +2120,7 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
       <dl class="parameters">
         <dt>Float32Array source</dt>
         <dd>The array the channel data will be copied from.</dd>
-        <dt>long channelNumber</dt>
+        <dt>unsigned long channelNumber</dt>
         <dd>
           The index of the channel to copy the data to. If
           <code>channelNumber</code> is greater or equal than the number of
@@ -2090,6 +2157,7 @@ interface is an <a><code>AudioNode</code></a> with a single input and single out
   invoker.
 </p>
 
+
 <p>
 When an <dfn id="acquire-the-content">acquire the content</dfn> operation occurs on an
 <a>AudioBuffer</a>, run the following steps:
@@ -2123,6 +2191,15 @@ invoked in the following cases:
   <a href="#acquire-the-content">acquires the contents</a> of its
   <code>outputBuffer</code>.</li>
 </ul>
+
+<p class="note">
+  This means that <code>copyToChannel</code> cannot be used to change the
+  content of an <a>AudioBuffer</a> currently in use by an <code>AudioNode</code>
+  that has <a href="#acquire-the-content">acquired the content of an
+  AudioBuffer</a>, since the <a>AudioNode</a> will continue to use the data
+ previously acquired.
+</p>
+
 
 
 </section>
@@ -2210,16 +2287,16 @@ invoked in the following cases:
         the <a><code>AudioContext</code></a>'s <a href="#widl-AudioContext-currentTime">currentTime</a> 
         attribute. If 0 is passed in for this value or if the
         value is less than <b>currentTime</b>, then the sound will start playing
-        immediately.  An InvalidAccessError exception MUST be
-        thrown if <code>when</code> is negative or is not a finite number.
+        immediately.  A TypeError exception MUST be
+        thrown if <code>when</code> is negative.
       </dd>
       <dt>optional double offset = 0</dt>
       <dd>
         The <dfn id="dfn-offset">offset</dfn> parameter describes the offset
         time in the buffer (in seconds) where playback will begin. If 0 is
         passed in for this value, then playback will start from the beginning of
-        the buffer.  An InvalidAccessError exception MUST be thrown if
-        <code>offset</code> is negative or is not a finite number.
+        the buffer.  A TypeError exception MUST be thrown if
+        <code>offset</code> is negative.
       </dd>
       <dt>optional double duration</dt>
       <dd>
@@ -2229,8 +2306,8 @@ invoked in the following cases:
         AudioBuffer minus the <code>offset</code> parameter.  Thus if neither
         <code>offset</code> nor <code>duration</code> are specified then the
         implied duration is the total duration of the AudioBuffer.  An
-        InvalidAccessError exception MUST be thrown if <code>duration</code>
-        is negative or is not a finite number.
+        TypeError exception MUST be thrown if <code>duration</code>
+        is negative.
       </dd>
     </dl>
   </dd>
@@ -2247,8 +2324,8 @@ invoked in the following cases:
         <a href="#widl-AudioContext-currentTime">currentTime</a> attribute.  If 0
         is passed in for this value or if the value
         is less than <a><code>currentTime</code></a>, then the sound will stop playing
-        immediately.  An InvalidAccessError exception MUST be thrown if
-        <code>when</code> is negative or is not a finite number.  If <code>stop</code>
+        immediately.  A TypeError exception MUST be thrown if
+        <code>when</code> is negative.  If <code>stop</code>
         is called again after already have been
         called, the last invocation will be the only one applied; stop times set by previous
         calls will not be applied, unless the buffer has already stopped prior to any
@@ -2277,14 +2354,22 @@ invoked in the following cases:
 Both <code>playbackRate</code> and <code>detune</code> are <a>k-rate</a>
 parameters and are used together to determine a <em>computedPlaybackRate</em>
 value:
+</p>
 
 <pre class=highlight>
   computedPlaybackRate(t) = playbackRate(t) * pow(2, detune(t) / 1200)
 </pre>
 
+<p>
 The <code>computedPlaybackRate</code> is the effective speed at which the
 <a><code>AudioBuffer</code></a> of this <a><code>AudioBufferSourceNode</code></a>
 MUST be played.
+</p>
+
+<p>
+This MUST be implemented by <em>resampling</em> the input data using a
+resampling ratio of 1 / <code>computedPlaybackRate</code>, hence
+changing both the pitch and speed of the audio.
 </p>
 
 <section>
@@ -4217,7 +4302,7 @@ All attributes of the <a><code>BiquadFilterNode</code></a> are <a>a-rate</a>
     through the <a><code>BiquadFilterNode</code></a> each having very different
     characteristics. The formulas in this section describe the filters that a
     <a>conforming implementation</a> MUST implement, as they determine the
-    characteristics of the different filter type. They are derived from formulas
+    characteristics of the different filter types. They are inspired by formulas
     found in the <a href
     ="http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt">Audio EQ
     Cookbook</a>.
@@ -5885,7 +5970,7 @@ clamped to [0, 1].
 </section>
 
 <section>
-<h3>Audio buffer copying</h3>
+<h3>Audio Buffer Copying</h3>
 <p>
   When an <a href="#acquire-the-content">acquire the content</a> operation is
   performed on an <a>AudioBuffer</a>, the entire operation can usually be
@@ -5914,6 +5999,20 @@ clamped to [0, 1].
 </p>
 </section>
 
+<section class=informative>
+<h3>AudioParam Transitions</h3>
+<p>
+  While no automatic smoothing is done when directly setting the
+  <a href="#widl-AudioParam-value"><code>value</code></a> attribute of an <a><code>AudioParam</code></a>, for
+  certain parameters, smooth transition are preferable to directly setting
+  the value.
+</p>
+<p>
+  Using the <a href="#widl-AudioParam-setTargetAtTime-void-float-target-double-startTime-float-timeConstant"><code>setTargetAtTime</code></a> method with a low
+  <code>timeConstant</code> allows authors to a perform smooth transition.
+</p>
+</section>
+
 <section>
   <h3>Audio Glitching</h3>
 
@@ -5927,7 +6026,7 @@ clamped to [0, 1].
 </section>
 
 <section>
-<h3 id="JavaScriptPerformance">JavaScript Issues with real-time Processing and Synthesis: </h3>
+<h3 id="JavaScriptPerformance">JavaScript Issues with Real-Time Processing and Synthesis: </h3>
 While processing audio in JavaScript, it is extremely challenging to get
 reliable, glitch-free audio while achieving a reasonably low-latency,
 especially under heavy processor load.
@@ -5985,7 +6084,7 @@ battery-life issues.
 <section>
   <h2 id="requirements">Requirements and Use Cases</h2>
 
-  <p>Please see <a href="#ExampleApplications">Example Applications</a>
+  <p>Please see [[webaudio-usecases]].
   </p>
 </section>
 
@@ -6003,6 +6102,7 @@ Choi, Hongchan (Google, Inc.);
 Geelnard, Marcus (Opera Software);
 Goode, Adam (Google, Inc.);
 Gregan, Matthew (Mozilla Foundation);
+Hofmann, Bill (Dolby Laboratories);
 Jägenstedt, Philip (Opera Software);
 Kalliokoski, Jussi (Invited Expert);
 Lilley, Chris (W3C Staff);

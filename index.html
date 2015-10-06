@@ -365,6 +365,39 @@ function setupRoutingGraph () {
     source3.start(0);
 }
 </pre>
+
+
+<p>Modular routing also permits the output of <a><code>AudioNode</code></a>s to be routed to an <a><code>AudioParam</code></a> parameter that controls the behavior of a different <a><code>AudioNode</code></a>. In this scenario, the output of a node can act as a modulation signal rather than an input signal.</p>
+<figure>
+  <img alt="modular routing3" src="images/modular-routing3.png" />
+  <figcaption>Modular routing illustrating one Oscillator modulating the frequency of another.</figcaption>
+</figure>
+
+<pre class="highlight example">
+function setupRoutingGraph() {
+  var context = new AudioContext();
+
+  // Create the low frequency oscillator that supplies the modulation signal
+  var lfo = context.createOscillator();
+  lfo.frequency.value = 1.0;
+
+  // Create the high frequency oscillator to be modulated
+  var hfo = context.createOscillator();
+  hfo.frequency.value = 440.0;
+
+  // Create a gain node whose gain determines the amplitude of the modulation signal
+  var modulationGain = context.createGain();
+  modulationGain.gain.value = 50;
+
+  // Configure the graph and start the oscillators
+  lfo.connect(modulationGain);
+  modulationGain.connect(hfo.detune);
+  hfo.connect(context.destination);
+  hfo.start(0);
+  lfo.start(0);
+}
+</pre>
+
 </section>
 </section>
 

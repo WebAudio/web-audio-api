@@ -1,3 +1,9 @@
+# This helper Makefile assumes GNU Make and supports those target:
+# check       : Makes sure the document is tidied
+# tidy        : Tidied the document, in place
+# install_tidy: installs tidy (the modern, HTML5 version) on a standard UNIX
+#               environment. This requires CMake and git in the PATH.
+
 support_dir ?= $(CURDIR)/.support
 tidy ?= $(shell which tidy 2>/dev/null)
 ifeq (,$(tidy))
@@ -12,7 +18,7 @@ check: install_tidy
 .PHONY: tidy
 tidy: install_tidy
 	$(tidy) -quiet -config tidyconf.txt -modify index.html || true
-	sed -i~t -f fixup.sed index.html && rm -f index.html~t
+	sed -i.old -f fixup.sed index.html && rm -f index.html.old
 
 .PHONY: install_tidy
 install_tidy: $(tidy)

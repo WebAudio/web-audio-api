@@ -752,6 +752,7 @@ function setupRoutingGraph() {
               that all <a><code>AudioNode</code></a>s in the context run at
               this rate. In making this assumption, sample-rate converters or
               "varispeed" processors are not supported in real-time processing.
+              The <dfn>Nyquist frequency</dfn> is half this sample-rate value.
             </p>
           </dd>
           <dt>
@@ -2360,7 +2361,7 @@ function setupRoutingGraph() {
           change the event list by adding a new event into the list of a type
           specific to the method. Each event has a time associated with it, and
           the events will always be kept in time-order in the list. These
-          methods will be called <em>automation</em> methods:
+          methods will be called <dfn>automation methods</dfn>:
         </p>
         <ul>
           <li>
@@ -2808,10 +2809,14 @@ function setupRoutingGraph() {
             is not already mono, then mix it together with other such outputs.
             If there are no <a><code>AudioNode</code></a>s connected to it,
             then this value is 0, having no effect on the
-            <em>computedValue</em>.
+            <a>computedValue</a>.
             </li>
-            <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
-            value and the value calculated from (2).
+            <li>
+            The <dfn>nominal range</dfn> for a parameter are the lower and
+            higher values this parameter can effectively have.
+            The <a>computedValue</a> is the sum of the <em>intrinsic</em> value
+            and the value calculated from (2), and must be clamped to the
+            <a>nominal range</a> for this parameter.
             </li>
           </ol>
         </section>
@@ -2896,11 +2901,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             Represents the amount of gain to apply. Its default
-            <code>value</code> is 1 (no gain change). The nominal
-            <code>minValue</code> is 0, but may be set negative for phase
-            inversion. The nominal <code>maxValue</code> is 1, but higher
-            values are allowed (no exception thrown).This parameter is
-            <a>a-rate</a>
+            <code>value</code> is 1 (no gain change). This parameter is
+            <a>a-rate</a>. Its <a>nominal range</a> is [-Infinity, +Infinity].
           </dd>
         </dl>
       </section>
@@ -2958,6 +2960,12 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               If <a><code>DelayNode</code></a> is part of a <a>cycle</a>, then
               the value of the <a><code>delayTime</code></a> attribute is
               clamped to a minimum of 128 frames (one block).
+            </p>
+            <p>
+              Its <a> nominal range </a> is [0, maxDelayTime], where
+              <code>maxDelayTime</code> is the value passed to the
+              <code>createDelay</code> method on the
+              <a><code>AudioContext</code></a>.
             </p>
             <p>
               This parameter is <a>a-rate</a>.
@@ -3224,14 +3232,15 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <dd>
             The speed at which to render the audio stream. Its default
             <code>value</code> is 1. This parameter is <a>k-rate</a>.
+            Its <a>nominal range</a> is [-100, 100].
           </dd>
           <dt>
             readonly attribute AudioParam detune
           </dt>
           <dd>
             An aditional parameter to modulate the speed at which is rendered
-            the audio stream. Its default value is 0. Its nominal range is
-            [-1200; 1200]. This parameter is <a>k-rate</a>.
+            the audio stream. Its default value is 0. Its <a>nominal range</a>
+            is [-1200; 1200]. This parameter is <a>k-rate</a>.
           </dd>
           <dt>
             attribute boolean loop
@@ -5130,8 +5139,8 @@ the event handler.
           <dd>
             The position of the input in the output's stereo image. -1
             represents full left, +1 represents full right. Its default value
-            is 0, and its nominal range is from -1 to 1. This parameter is a
-            <a>a-rate</a>.
+            is 0, and its <a>nominal range</a> is from -1 to 1. This parameter
+            is a <a>a-rate</a>.
           </dd>
         </dl>
         <section class="informative">
@@ -5793,8 +5802,8 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The decibel value above which the compression will start taking
-            effect. Its default <code>value</code> is -24, with a nominal range
-            of -100 to 0.
+            effect. Its default <code>value</code> is -24. Its <a>nominal
+              range</a> is [-100, 0].
           </dd>
           <dt>
             readonly attribute AudioParam knee
@@ -5802,14 +5811,14 @@ function calculateNormalizationScale(buffer)
           <dd>
             A decibel value representing the range above the threshold where
             the curve smoothly transitions to the "ratio" portion. Its default
-            <code>value</code> is 30, with a nominal range of 0 to 40.
+            <code>value</code> is 30. Its <a>nominal range</a> is [0, 40].
           </dd>
           <dt>
             readonly attribute AudioParam ratio
           </dt>
           <dd>
             The amount of dB change in input for a 1 dB change in output. Its
-            default <code>value</code> is 12, with a nominal range of 1 to 20.
+            default <code>value</code> is 12. Its <a>nominal range</a> is [1, 20].
           </dd>
           <dt>
             readonly attribute float reduction
@@ -5825,16 +5834,16 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The amount of time (in seconds) to reduce the gain by 10dB. Its
-            default <code>value</code> is 0.003, with a nominal range of 0 to
-            1.
+            default <code>value</code> is 0.003. Its <a>nominal range</a> is [0,
+            1].
           </dd>
           <dt>
             readonly attribute AudioParam release
           </dt>
           <dd>
             The amount of time (in seconds) to increase the gain by 10dB. Its
-            default <code>value</code> is 0.250, with a nominal range of 0 to
-            1.
+            default <code>value</code> is 0.250. Its <a>nominal range</a> is [0,
+            1].
           </dd>
         </dl>
       </section>
@@ -6185,8 +6194,8 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The frequency at which the <a><code>BiquadFilterNode</code></a>
-            will operate, in Hz. Its default value is 350Hz, and its nominal
-            range is from 10Hz to half the Nyquist frequency.
+            will operate, in Hz. Its default value is 350Hz. Its nominal
+            range is [10, <a>Nyquist frequency</a>].
           </dd>
           <dt>
             readonly attribute AudioParam detune
@@ -6200,14 +6209,15 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a> factor
-            has a default value of 1, with a nominal range of 0.0001 to 1000.
+            has a default value of 1. Its <a>nominal range</a> is [0.0001,
+            1000].
           </dd>
           <dt>
             readonly attribute AudioParam gain
           </dt>
           <dd>
-            The gain has a default value of 0, with a nominal range of -40 to
-            40.
+            The gain has a default value of 0. Its <a>nominal range</a> is [-40,
+            40].
           </dd>
           <dt>
             void getFrequencyResponse()
@@ -6746,12 +6756,12 @@ $$
           considered in the frequency domain. When this waveform is sampled as
           a discrete-time digital audio signal at a particular sample-rate,
           then care must be taken to discard (filter out) the high-frequency
-          information higher than the <em>Nyquist</em> frequency (half the
-          sample-rate) before converting the waveform to a digital form. If
-          this is not done, then <em>aliasing</em> of higher frequencies (than
-          the Nyquist frequency) will fold back as mirror images into
-          frequencies lower than the Nyquist frequency. In many cases this will
-          cause audibly objectionable artifacts. This is a basic and well
+          information higher than the <a>Nyquist frequency</a> before converting
+          the waveform to a digital form. If this is not done, then
+          <em>aliasing</em> of higher frequencies (than the <a>Nyquist
+          frequency</a>) will fold back as mirror images into frequencies
+          lower than the <a>Nyquist frequency</a>. In many cases this will cause
+          audibly objectionable artifacts. This is a basic and well
           understood principle of audio DSP.
         </p>
         <p>
@@ -6833,7 +6843,9 @@ $$
           </dt>
           <dd>
             The frequency (in Hertz) of the periodic waveform. Its default
-            <code>value</code> is 440. This parameter is <a>a-rate</a>.
+            <code>value</code> is 440. This parameter is <a>a-rate</a>. Its
+            <a>nominal range</a> is [-<a>Nyquist frequency</a>; <a>Nyquist
+            frequency</a>].
           </dd>
           <dt>
             readonly attribute AudioParam detune
@@ -6841,7 +6853,8 @@ $$
           <dd>
             A detuning value (in Cents) which will offset the
             <a><code>frequency</code></a> by the given amount. Its default
-            <code>value</code> is 0. This parameter is <a>a-rate</a>.
+            <code>value</code> is 0. This parameter is <a>a-rate</a>. Its
+            <a>nominal range</a> is [-1200, 1200].
           </dd>
           <dt>
             void start(optional double when = 0)

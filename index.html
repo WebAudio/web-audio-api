@@ -705,7 +705,9 @@ function setupRoutingGraph() {
           <dd>
             <p>
               This is a time in seconds which starts at zero when the context
-              is created and increases in real-time. All scheduled times are
+              is created and increases in real-time. At any given point, its value
+              represents the starting time of the next block of audio to be processed
+              by the context's rendering graph. All scheduled times are
               relative to it. When the <a><code>AudioContext</code></a> is in
               the <a href=
               "#idl-def-AudioContextState.running"><code>running</code></a>
@@ -4046,12 +4048,11 @@ onaudioprocess= function (e) {
             readonly attribute double playbackTime
           </dt>
           <dd>
-            The time when the audio will be played in the same time coordinate
-            system as the <a><code>AudioContext</code></a>'s <a href=
-            "#widl-AudioContext-currentTime">currentTime</a>.
-            <code>playbackTime</code> allows for very tight synchronization
-            between processing directly in JavaScript with the other events in
-            the context's rendering graph.
+            The starting time of the block of audio being processed in response to this
+            event. By definition this will be equal to the value of
+            <a><code>AudioContext</code></a>'s <a href=
+            "#widl-AudioContext-currentTime">currentTime</a> attribute that was most recently
+            observable in the control thread.
           </dd>
           <dt>
             readonly attribute AudioWorkerNodeProcessor node
@@ -4147,9 +4148,6 @@ onaudioprocess= function (e) {
             The time when the audio will be played in the same time coordinate
             system as the <a><code>AudioContext</code></a>'s <a href=
             "#widl-AudioContext-currentTime">currentTime</a>.
-            <code>playbackTime</code> allows for very tight synchronization
-            between processing directly in JavaScript with the other events in
-            the context's rendering graph.
           </dd>
           <dt>
             readonly attribute AudioBuffer inputBuffer
@@ -7380,7 +7378,7 @@ if (pan &lt;= 0) {
       <h2 id="Performance">
         Performance Considerations
       </h2>
-      <section>
+      <section class="informative">
         <h3>
           Latency
         </h3>
@@ -7399,7 +7397,7 @@ if (pan &lt;= 0) {
           This time delay is called latency and is caused by several factors
           (input device latency, internal buffering latency, DSP processing
           latency, output device latency, distance of user's ears from
-          speakers, etc.), and is cummulative. The larger this latency is, the
+          speakers, etc.), and is cumulative. The larger this latency is, the
           less satisfying the user's experience is going to be. In the extreme,
           it can make musical production or game-play impossible. At moderate
           levels it can affect timing and give the impression of sounds lagging
@@ -7409,6 +7407,16 @@ if (pan &lt;= 0) {
           cheapens the users experience much in the same way that very low
           animation frame-rates do. Depending on the application, a reasonable
           latency can be from as low as 3-6 milliseconds to 25-50 milliseconds.
+        </p>
+        <p>
+          Implementations will generally seek to minimize overall latency.
+        </p>
+        <p>
+          Along with minimizing overall latency, implementations will generally seek to minimize
+          the difference between an <a><code>AudioContext</code></a>'s <code>currentTime</code>
+          and a <a><code>AudioProcessingEvent</code></a>'s <code>playbackTime</code>.
+          Deprecation of <a><code>ScriptProcessorNode</code></a> will make this
+          consideration less important over time.
         </p>
       </section>
       <section>

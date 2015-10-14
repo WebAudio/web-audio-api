@@ -2812,11 +2812,20 @@ function setupRoutingGraph() {
             <a>computedValue</a>.
             </li>
             <li>
-            The <dfn>nominal range</dfn> for a parameter are the lower and
-            higher values this parameter can effectively have.
-            The <a>computedValue</a> is the sum of the <em>intrinsic</em> value
-            and the value calculated from (2), and must be clamped to the
-            <a>nominal range</a> for this parameter.
+              The <dfn>nominal range</dfn> for a <a>computedValue</a> are the
+              lower and higher values this parameter can effectively have. The
+              <a>computedValue</a> is the sum of the <em>intrinsic</em> value
+              and the value calculated from (2).
+              <dfn data-lt="simple audioparam">Simple parameters</dfn> (the
+              default) are used on their own to compute the output of an
+              <a>AudioNode</a>. They have their <a>computedValue</a> clamped
+              to the <a>nominal range</a> for this parameter. <dfn
+                data-lt="compound audioparam">Compound parameters</dfn>
+              are <a>AudioParam</a> that is used with other <a>AudioParam</a>s
+              to compute a value that is then used as an input to compute the
+              output of an <a>AudioNode</a>.  <a>Compound parameters</a> have
+              their value clamped after having been computed from the different
+              <a>AudioParam</a> value they are composed of.
             </li>
           </ol>
         </section>
@@ -3231,16 +3240,17 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             The speed at which to render the audio stream. Its default
-            <code>value</code> is 1. This parameter is <a>k-rate</a>.
-            Its <a>nominal range</a> is [-100, 100].
+            <code>value</code> is 1. This parameter is <a>k-rate</a>.  This
+            parameters is a <a>compound parameter</a> with <code>detune</code>.
           </dd>
           <dt>
             readonly attribute AudioParam detune
           </dt>
           <dd>
             An aditional parameter to modulate the speed at which is rendered
-            the audio stream. Its default value is 0. Its <a>nominal range</a>
-            is [-1200, 1200]. This parameter is <a>k-rate</a>.
+            the audio stream. Its default value is 0. This parameter is
+            <a>k-rate</a>. This parameter is a <a>compound parameter</a> with
+            <code>playbackRate</code>.
           </dd>
           <dt>
             attribute boolean loop
@@ -3392,16 +3402,17 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </dl>
         <p>
           Both <code>playbackRate</code> and <code>detune</code> are
-          <a>k-rate</a> parameters and are used together to determine a
-          <em>computedPlaybackRate</em> value:
+          <a>k-rate</a> parameters that form a <a>compound parameter</a> and
+          are used together to determine a <em>computedPlaybackRate</em> value:
         </p>
         <pre class="highlight">
   computedPlaybackRate(t) = playbackRate(t) * pow(2, detune(t) / 1200)
-</pre>
+        </pre>
         <p>
           The <code>computedPlaybackRate</code> is the effective speed at which
           the <a><code>AudioBuffer</code></a> of this
-          <a><code>AudioBufferSourceNode</code></a> MUST be played.
+          <a><code>AudioBufferSourceNode</code></a> MUST be played. Its nominal
+          range is [-100; 100].
         </p>
         <p>
           This MUST be implemented by <em>resampling</em> the input data using
@@ -5870,13 +5881,18 @@ function calculateNormalizationScale(buffer)
         <p>
           Both <a href=
           "#widl-BiquadFilterNode-frequency"><code>frequency</code></a> and
-          <a href="#widl-BiquadFilterNode-detune"><code>detune</code></a> are
-          <a>a-rate</a> parameters and are used together to determine a
-          <dfn id="computedFreq-biquad">computedFrequency</dfn> value:
+          <a href="#widl-BiquadFilterNode-detune"><code>detune</code></a> form a
+          <a>compound parameter</a> and are both <a>a-rate</a>. They are used
+          together to determine a <dfn id="computedFreq-biquad">
+          computedFrequency</dfn> value:
         </p>
         <pre class="highlight">
   computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
 </pre>
+        <p>
+          The nominal range for this <a>compound parameter</a> is [-<a>Nyquist
+          frequency</a>, <a>Nyquist frequency</a>].
+        </p>
         <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -6194,15 +6210,15 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The frequency at which the <a><code>BiquadFilterNode</code></a>
-            will operate, in Hz. Its default value is 350Hz. Its nominal
-            range is [10, <a>Nyquist frequency</a>].
+            will operate, in Hz. Its default value is 350Hz. It forms a
+            <a>compound parameter</a> with <code>detune</code>.
           </dd>
           <dt>
             readonly attribute AudioParam detune
           </dt>
           <dd>
             A detune value, in cents, for the frequency. Its default value is
-            0.
+            0. It forms a compound parameter with <code>frequency</code>.
           </dd>
           <dt>
             readonly attribute AudioParam Q
@@ -6778,15 +6794,17 @@ $$
           less-costly approaches on lower-end hardware.
         </p>
         <p>
-          Both .frequency and .detune are <a>a-rate</a> parameters and are used
+          Both <code>frequency</code> and <code>detune</code> are <a>a-rate</a>
+          parameters, and form a <a>compound parameter</a>. They are used
           together to determine a <em>computedFrequency</em> value:
         </p>
         <pre class="highlight">
   computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
-</pre>
+        </pre>
         <p>
           The OscillatorNode's instantaneous phase at each time is the time
-          integral of <em>computedFrequency</em>.
+          integral of <em>computedFrequency</em>. Its <a>nominal range</a> is
+          [-<a>Nyquist frequency</a>, <a>Nyquist frequency</a>].
         </p>
         <pre>
   numberOfInputs  : 0
@@ -6843,9 +6861,8 @@ $$
           </dt>
           <dd>
             The frequency (in Hertz) of the periodic waveform. Its default
-            <code>value</code> is 440. This parameter is <a>a-rate</a>. Its
-            <a>nominal range</a> is (-<a>Nyquist frequency</a>; <a>Nyquist
-            frequency</a>).
+            <code>value</code> is 440. This parameter is <a>a-rate</a>. It forms
+            a <a>compound parameter</a> with <code>detune</code>.
           </dd>
           <dt>
             readonly attribute AudioParam detune
@@ -6853,8 +6870,8 @@ $$
           <dd>
             A detuning value (in Cents) which will offset the
             <a><code>frequency</code></a> by the given amount. Its default
-            <code>value</code> is 0. This parameter is <a>a-rate</a>. Its
-            <a>nominal range</a> is [-1200, 1200].
+            <code>value</code> is 0. This parameter is <a>a-rate</a>. It forms a
+            compound parameter with <code>frequency</code>.
           </dd>
           <dt>
             void start(optional double when = 0)

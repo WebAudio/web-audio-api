@@ -2784,8 +2784,18 @@ function setupRoutingGraph() {
             Computation of Value
           </h3>
           <p>
-            <dfn>computedValue</dfn> is the final value controlling the audio
-            DSP and is computed by the audio rendering thread during each
+          There are two different kind of <a>AudioParam</a>s, <a>simple
+          parameters</a> and <a>compound parameters</a>.
+          <dfn data-lt="simple parameter">Simple parameters</dfn> (the default)
+          are used on their own to compute the final audio output of an
+          <a>AudioNode</a>.  <dfn data-lt="compound parameter">Compound
+          parameters</dfn> are <a>AudioParam</a> that are used with other
+          <a>AudioParam</a>s to compute a value that is then used as an input to
+          compute the output of an <a>AudioNode</a>.
+          </p>
+          <p>
+            The <dfn>computedValue</dfn> is the final value controlling the
+            audio DSP and is computed by the audio rendering thread during each
             rendering time quantum. It must be internally computed as follows:
           </p>
           <ol>
@@ -2812,22 +2822,22 @@ function setupRoutingGraph() {
             <a>computedValue</a>.
             </li>
             <li>
-              The <dfn>nominal range</dfn> for a <a>computedValue</a> are the
-              lower and higher values this parameter can effectively have. The
-              <a>computedValue</a> is the sum of the <em>intrinsic</em> value
+              The <a>computedValue</a> is the sum of the <em>intrinsic</em> value
               and the value calculated from (2).
-              <dfn data-lt="simple audioparam">Simple parameters</dfn> (the
-              default) are used on their own to compute the output of an
-              <a>AudioNode</a>. They have their <a>computedValue</a> clamped
-              to the <a>nominal range</a> for this parameter. <dfn
-                data-lt="compound audioparam">Compound parameters</dfn>
-              are <a>AudioParam</a> that is used with other <a>AudioParam</a>s
-              to compute a value that is then used as an input to compute the
-              output of an <a>AudioNode</a>.  <a>Compound parameters</a> have
-              their value clamped after having been computed from the different
-              <a>AudioParam</a> value they are composed of.
+            </li>
+            <li> If this <a>AudioParam</a> is a <a>compound parameter</a>,
+            compute its final value with other <a>AudioParam</a>s.
             </li>
           </ol>
+          <p>
+          The <dfn>nominal range</dfn> for a <a>computedValue</a> are the
+          lower and higher values this parameter can effectively have.
+          For <a>simple parameters</a>, the <a>computedValue</a> is clamped to
+          the <a>nominal range</a> for this parameter.
+          <a>Compound parameters</a> have their final value clamped to their
+          <a>nominal range</a> after having been computed from the different
+          <a>AudioParam</a> value they are composed of.
+          </p>
         </section>
         <section>
           <h3 id="example1-AudioParam">
@@ -2911,7 +2921,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <dd>
             Represents the amount of gain to apply. Its default
             <code>value</code> is 1 (no gain change). This parameter is
-            <a>a-rate</a>. Its <a>nominal range</a> is (-Infinity, +Infinity).
+            <a>a-rate</a>. Its <a>nominal range</a> is (-\(\infty\), +\(\infty\)).
           </dd>
         </dl>
       </section>
@@ -3240,7 +3250,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             The speed at which to render the audio stream. Its default
-            <code>value</code> is 1. This parameter is <a>k-rate</a>.  This
+            <code>value</code> is 1. This parameter is <a>k-rate</a>. This
             parameters is a <a>compound parameter</a> with <code>detune</code>.
           </dd>
           <dt>
@@ -6218,7 +6228,7 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             A detune value, in cents, for the frequency. Its default value is
-            0. It forms a compound parameter with <code>frequency</code>.
+            0. It forms a <a>compound parameter</a> with <code>frequency</code>.
           </dd>
           <dt>
             readonly attribute AudioParam Q
@@ -6871,7 +6881,7 @@ $$
             A detuning value (in Cents) which will offset the
             <a><code>frequency</code></a> by the given amount. Its default
             <code>value</code> is 0. This parameter is <a>a-rate</a>. It forms a
-            compound parameter with <code>frequency</code>.
+            <a>compound parameter</a> with <code>frequency</code>.
           </dd>
           <dt>
             void start(optional double when = 0)

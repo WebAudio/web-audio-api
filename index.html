@@ -804,27 +804,7 @@ function setupRoutingGraph() {
             readonly attribute AudioContextState state
           </dt>
           <dd>
-            Describes the current state of the AudioContext. The context state
-            MUST begin in "suspended", and transitions to "running" when system
-            resources are acquired and audio has begun processing. For
-            OfflineAudioContexts, the state will remain in "suspended" until
-            <code>startRendering()</code> is called, at which point it will
-            transition to "running", and then to "closed" once audio processing
-            has completed and oncomplete has been fired.
-            <p>
-              When the state is "suspended", a call to <code>resume()</code>
-              will cause a transition to "running", or a call to
-              <code>close()</code> will cause a transition to "closed".
-            </p>
-            <p>
-              When the state is "running", a call to <code>suspend()</code>
-              will cause a transition to "suspended", or a call to
-              <code>close()</code> will cause a transition to "closed".
-            </p>
-            <p>
-              When the state is "closed", no further state transitions are
-              possible.
-            </p>
+             Describes the current state of the <a>AudioContext</a>, on the <a>control thread</a>.
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -897,18 +877,68 @@ function setupRoutingGraph() {
               </li>
             </ol>
             <p>
-              While an <a>AudioContext</a> is suspended,
-              <code>MediaStream</code>s will have their output ignored; that
-              is, data will be lost by the real time nature of media streams.
-              <code>HTMLMediaElement</code>s will similarly have their output
-              ignored until the system is resumed. <a>AudioWorker</a>s and
-              <a>ScriptProcessorNode</a>s will simply not fire their
-              <code>onaudioprocess</code> events while suspended, but will
-              resume when resumed. For the purpose of <a>AnalyserNode</a>
-              window functions, the data is considered as a continuous stream -
-              i.e. the <code>resume()</code>/<code>suspend()</code> does not
-              cause silence to appear in the <a>AnalyserNode</a>'s stream of
-              data.
+              <span class=synchronous>When suspend is called, execute these
+                steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.</li>
+              <li>
+                If the <em>control thread state</em> flag on the
+                <a>AudioContext</a> is <code>"closed"</code> reject the promise
+                with <code>InvalidStateError</code>, abort these steps,
+                returning <em>promise</em>.
+              </li>
+              <li>
+                If the <a href="#widl-AudioContext-state">state</a> attribute of
+                the <a>AudioContext</a> is already <code>"suspended"</code>,
+                resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>
+                Set the <em>control thread state</em> flag on the
+                <a>AudioContext</a> to <code>"suspended"</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to suspend the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.</li>
+          </ol>
+
+            <p>
+              Running a <a>control message</a> to suspend an <a>AudioContext</a>
+              means running these steps on the <a>rendering thread</a>:
+            </p>
+            <ol>
+              <li> Attempt to <a>release system resources</a>. </li> <li> Queue
+              a task on the <a>control thread</a>'s event loop, to execute these
+              steps:
+              <ol>
+                <li> Resolve <em>promise</em>.</li>
+                <li> If the <a href="#widl-audiocontext-state">state</a>
+                attribute of the <a>AudioContext</a> is not already
+                <code>"suspended"</code>:
+                <ol>
+                  <li> Set the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> to
+                  <code>"suspended"</code>.</li>
+                  <li> Queue a task to fire a simple event named
+                  <code>"statechanged"</code> at the <a>AudioContext</a></li>
+                </ol>
+              </ol>
+              </li>
+            </ol>
+
+            <p>
+              While an <a>AudioContext</a> is suspended, <code>MediaStream</code>s will
+              have their output ignored; that is, data will be lost by the real time
+              nature of media streams.  <code>HTMLMediaElement</code>s will similarly
+              have their output ignored until the system is resumed.
+              <a>AudioWorker</a>s and <a>ScriptProcessorNode</a>s will simply not fire
+              their <code>onaudioprocess</code> events while suspended, but will resume
+              when resumed.  For the purpose of <a>AnalyserNode</a> window functions,
+              the data is considered as a continuous stream - i.e. the
+              <code>resume()</code>/<code>suspend()</code> does not cause silence to
+              appear in the <a>AnalyserNode</a>'s stream of data.
             </p>
           </dd>
           <dt>
@@ -1055,8 +1085,9 @@ function setupRoutingGraph() {
               suspending.
             </p>
           </dd>
+
           <dt>
-            attribute EventHandler onstatechange
+          attribute EventHandler onstatechange
           </dt>
           <dd>
             A property used to set the <code>EventHandler</code> for an event
@@ -1197,7 +1228,7 @@ function setupRoutingGraph() {
                         <code>AudioContext</code></a> if it is different from
                         the sample-rate of <a>audioData</a>.
                       </li>
-                      <li>On the main thread's event loop:
+                      <li>On the control thread's event loop:
                         <ol>
                           <li>Let <var>buffer</var> be an
                           <code>AudioBuffer</code> containing the final result
@@ -3651,7 +3682,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           AudioWorker.
         </p>
         <p>
-          These main thread objects cause the instantiation of a Web
+          These control thread objects cause the instantiation of a Web
           Worker-like thread context (Described in [[!Workers]]), which
           executes in the audio thread. All audio processing by
           AudioWorkerNodes run in the audio processing thread. This has a few
@@ -4140,7 +4171,7 @@ onaudioprocess= function (e) {
               Another common need is a clip-detecting volume meter. This
               example shows how to communicate basic parameters (that do not
               need AudioParam scheduling) across to a Worker, as well as
-              communicating data back to the main thread. This node does not
+              communicating data back to the control thread. This node does not
               use any output.
             </p>
             <h5>
@@ -7242,7 +7273,7 @@ waveform is an odd function with period \(2\pi\).
         </p>
         <p>
           Communication from the <a>control thread</a> to the <a>rendering
-          thread</a> is done using <a>Control message</a> passing.
+          thread</a> is done using <a>control message</a> passing.
           Communication in the other direction is done using regular event loop
           tasks.
         </p>

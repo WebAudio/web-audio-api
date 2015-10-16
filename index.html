@@ -523,14 +523,6 @@ function setupRoutingGraph() {
           <li>An <a><code>AudioWorkerNodeProcessor</code></a> interface,
           representing a single node instance inside an audio worker.
           </li>
-          <li>A <a><code>ScriptProcessorNode</code></a> interface, an <a><code>
-            AudioNode</code></a> for generating or processing audio directly in
-            JavaScript.
-          </li>
-          <li>An <a><code>AudioProcessingEvent</code></a> interface, which is
-          an event type used with <a><code>ScriptProcessorNode</code></a>
-          objects.
-          </li>
           <li>An <a><code>AudioParam</code></a> interface, for controlling an
           individual aspect of an <a><code>AudioNode</code></a>'s functioning,
           such as volume.
@@ -569,12 +561,11 @@ function setupRoutingGraph() {
           <a><code>AudioNode</code></a> which applies a dynamically adjustable
           variable delay.
           </li>
-          <li>A <a><code>PannerNode</code></a> interface, an
-          <a><code>AudioNode</code></a> for spatializing / positioning audio in
-          3D space.
+          <li>A <a><code>SpatialPannerNode</code></a> interface, an
+          <a><code>AudioNode</code></a> for positioning audio in 3D space.
           </li>
-          <li>An <a><code>AudioListener</code></a> interface, which works with
-          a <a>PannerNode</a> for spatialization.
+          <li>A <a><code>SpatialListener</code></a> interface, which works with
+          a <a>SpatialPannerNode</a> for spatialization.
           </li>
           <li>A <a><code>StereoPannerNode</code></a> interface, an
           <a><code>AudioNode</code></a> for equal-power positioning of audio
@@ -605,6 +596,30 @@ function setupRoutingGraph() {
           </li>
           <li>A <a><code>OscillatorNode</code></a> interface, an
           <a><code>AudioNode</code></a> for generating a periodic waveform.
+          </li>
+        </ul>
+        <p>
+          There are also several features that have been deprecated from the 
+          Web Audio API but not yet removed, pending implementation experience 
+          of their replacements:
+        </p>
+        <ul>
+          <li>A <a><code>PannerNode</code></a> interface, an
+          <a><code>AudioNode</code></a> for spatializing / positioning audio in
+          3D space.  This has been replaced by 
+          <a><code>SpatialPannerNode</code></a>, and 
+          <a><code>StereoPanner</code></a> for simpler scenarios.
+          </li>
+          <li>An <a><code>AudioListener</code></a> interface, which works with
+          a <a>PannerNode</a> for spatialization.
+          </li>
+          <li>A <a><code>ScriptProcessorNode</code></a> interface, an <a><code>
+            AudioNode</code></a> for generating or processing audio directly in
+            JavaScript.
+          </li>
+          <li>An <a><code>AudioProcessingEvent</code></a> interface, which is
+          an event type used with <a><code>ScriptProcessorNode</code></a>
+          objects.
           </li>
         </ul>
       </section>
@@ -1177,7 +1192,14 @@ function setupRoutingGraph() {
             PannerNode createPanner()
           </dt>
           <dd>
-            Creates a <a><code>PannerNode</code></a>.
+            This method is DEPRECATED, as it is intended to be replaced by createSpatialPanner or createStereoPanner, depending on the 
+            scenario.  Creates a <a><code>PannerNode</code></a>.
+          </dd>
+          <dt>
+            SpatialPannerNode createSpatialPanner()
+          </dt>
+          <dd>
+            Creates a <a><code>SpatialPannerNode</code></a>.
           </dd>
           <dt>
             StereoPannerNode createStereoPanner()
@@ -4487,29 +4509,16 @@ onaudioprocess= function (e) {
           The AudioListener Interface
         </h2>
         <p>
-          This interface represents the position and orientation of the person
-          listening to the audio scene. All <a><code>PannerNode</code></a>
-          objects spatialize in relation to the
-          <a><code>AudioContext</code></a>'s <a href=
+          This interface interface is DEPRECATED, as it will be replaced by the 
+          <a><code>SpatialListener</code></a>. This interface represents the 
+          position and orientation of the person listening to the audio scene. 
+          All <a><code>PannerNode</code></a> objects spatialize in relation to 
+          the <a><code>AudioContext</code></a>'s <a href=
           "widl-AudioContext-listener"><code>listener</code></a>. See <a href=
           "#Spatialization">the Spatialization/Panning section</a> for more
           details about spatialization.
         </p>
         <dl title="interface AudioListener" class="idl">
-          <dt>
-            attribute float dopplerFactor
-          </dt>
-          <dd>
-            A constant used to determine the amount of pitch shift to use when
-            rendering a doppler effect. The default value is 1.
-          </dd>
-          <dt>
-            attribute float speedOfSound
-          </dt>
-          <dd>
-            The speed of sound used for calculating doppler shift. The default
-            value is 343.3.
-          </dd><!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
           <dt>
             void setPosition(float x, float y, float z)
           </dt>
@@ -4554,26 +4563,264 @@ onaudioprocess= function (e) {
               (0,1,0).
             </p>
           </dd>
-          <dt>
-            void setVelocity(float x, float y, float z)
-          </dt>
+        </dl>
+      </section>
+      <section>
+        <h2>The SpatialPannerNode Interface</h2>
+        <p>
+          This interface represents a processing node which <a 
+          href="#Spatialization">positions</a> an incoming audio stream in
+          three-dimensional space. The spatialization is in relation to the 
+          <a>AudioContext</a>'s <a><code>SpatialListener</code></a> 
+          (<code>listener</code> attribute). 
+        </p>
+        <p>
+          It should be explicitly noticed that the auditory effects of this spatialization may not work well unless the SpatialPanner is directly connected to the destination node; subsequent processing (after the SpatialPanner, before the destination) may disrupt the effects.
+        </p>
+        <pre>    numberOfInputs  : 1
+    numberOfOutputs : 1
+    channelCount = 2;
+    channelCountMode = "clamped-max";
+    channelInterpretation = "speakers";</pre>
+        <p>
+          The input of this node is either mono (1 channel) or stereo (2 
+          channels) and cannot be increased.  Connections from nodes with more 
+          channels will be 
+          <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
+          appropriately</a>, but a NotSupportedError MUST be thrown if an 
+          attempt is made to set channelCount to a value greater than 2 or if 
+          channelCountMode is set to "max".  The output of this node will be 
+          stereo (2 channels) and currently cannot be configured.
+        </p>
+        <p>
+          The <a><code>PanningModelType</code></a> enum determines which 
+          spatialization algorithm will be used to position the audio in 3D 
+          space. The default is <code>"equal-power"</code>.
+        </p>
+
+        <dl title="enum PanningModelType" class=idl>
+          <dt>equalpower</dt>
           <dd>
-            <p>
-              Sets the velocity vector of the listener. This vector controls
-              both the direction of travel and the speed in 3D space. This
-              velocity relative to an audio source's velocity is used to
-              determine how much doppler shift (pitch change) to apply. The
-              units used for this vector is <em>meters / second</em> and is
-              independent of the units used for position and orientation
-              vectors.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters describe a direction vector
-              indicating direction of travel and intensity.
-            </p>
-            <p>
-              The default value is (0,0,0)
-            </p>
+            A simple and efficient spatialization algorithm using equal-power panning.
+          </dd>
+          <dt>HRTF</dt>
+          <dd>
+            A higher quality spatialization algorithm using a convolution with measured
+            impulse responses from human subjects. This panning method renders stereo
+            output.
+          </dd>
+        </dl>
+
+        <p>
+          The <a><code>DistanceModelType</code></a> enum determines which algorithm 
+          will be used to reduce the volume of an audio source as it moves away from 
+          the listener.  The default is "inverse".
+        </p>
+
+        <dl title="enum DistanceModelType" class=idl>
+          <dt>linear</dt>
+          <dd>
+            A linear distance model which calculates <em>distanceGain</em> 
+            according to:
+            <pre>1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)</pre>
+          </dd>
+          <dt>inverse</dt>
+          <dd>
+            An inverse distance model which calculates <em>distanceGain</em> 
+            according to: 
+            <pre>refDistance / (refDistance + rolloffFactor * (distance - refDistance))</pre>
+          </dd>
+          <dt>exponential</dt>
+          <dd>An exponential distance model which calculates 
+            <em>distanceGain</em> according to:
+              <pre>pow(distance / refDistance, -rolloffFactor)</pre>
+          </dd>
+        </dl>
+
+        <dl title="interface SpatialPannerNode : AudioNode" class=idl>
+          <dt>attribute PanningModelType panningModel</dt>
+          <dd>
+              Specifies the panning model used by this 
+              <a><code>PannerNode</code></a>. Defaults to 
+              <a><code>"equal-power"</code></a>.
+          </dd>
+
+          <dt>readonly attribute AudioParam positionX</dt>
+          <dd>
+            Sets the x coordinate position of the audio source in a 3D 
+            Cartesian system. The default value is 0.  This parameter is 
+            a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam positionY</dt>
+          <dd>
+            Sets the y coordinate position of the audio source in a 3D 
+            Cartesian system.  The default value is 0.  This parameter is 
+            a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam positionZ</dt>
+          <dd>
+            Sets the z coordinate position of the audio source in a 3D 
+            Cartesian system.  The default value is 0.  This parameter is 
+            a-rate.
+          </dd>
+
+          <dt>readonly attribute AudioParam orientationX</dt>
+          <dd>
+            The <code>orientationX, orientationY, orientationZ</code> 
+            parameters represent a direction vector in 3D space.
+          </dd>
+          <dd>
+            Describes the x component of the vector of the direction the audio 
+            source is pointing in 3D Cartesian coordinate space. Depending 
+            on how directional the sound is (controlled by the <b>cone</b> 
+            attributes), a sound pointing away from the listener can be very 
+            quiet or completely silent.  The default value is 1.  This 
+            parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam orientationY</dt>
+          <dd>
+            Describes the y component of the vector of the direction the audio 
+            source is pointing in 3D cartesian coordinate space.  The default 
+            value is 0.  This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam orientationZ</dt>
+          <dd>
+            Describes the Z component of the vector of the direction the audio 
+            source is pointing in 3D cartesian coordinate space.  The default 
+            value is 0.  This parameter is a-rate.
+          </dd>
+
+          <dt>attribute DistanceModelType distanceModel</dt>
+          <dd>
+              Specifies the distance model used by this
+              <a><code>PannerNode</code></a>. Defaults to 
+              <a><code>"inverse"</code></a>.
+          </dd>
+          <dt>attribute float refDistance</dt>
+          <dd>
+              A reference distance for reducing volume as source move further
+              from the listener.  The default value is 1.
+          </dd>
+          <dt>attribute float maxDistance</dt>
+          <dd>
+              The maximum distance between source and listener, after which 
+              the volume will not be reduced any further.  The default value 
+              is 10000.
+          </dd>
+          <dt>attribute float rolloffFactor</dt>
+          <dd>
+              Describes how quickly the volume is reduced as source moves away 
+              from listener.  The default value is 1.
+          </dd>
+          <dt>attribute float coneInnerAngle</dt>
+          <dd>
+            A parameter for directional audio sources, this is an angle, in 
+            degrees, inside of which there will be no volume reduction.  The 
+            default value is 360.
+          </dd>
+          <dt>attribute float coneOuterAngle</dt>
+          <dd>
+            A parameter for directional audio sources, this is an angle, in 
+            degrees, outside of which the volume will be reduced to a constant 
+            value of <a><code>coneOuterGain</code></a>.  The default value is 
+            360.
+          </dd>
+          <dt>attribute float coneOuterGain</dt>
+          <dd>
+            A parameter for directional audio sources, this is the amount of 
+            volume reduction outside of the 
+            <a><code>coneOuterAngle</code></a>. The default value is 0.
+          </dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2 id="SpatialListener">The SpatialListener Interface</h2>
+        <p>
+          This interface represents the position and orientation of the 
+          person listening to the audio scene. All 
+          <a><code>SpatialPannerNode</code></a> objects spatialize in 
+          relation to the <a><code>AudioContext</code></a>'s 
+          <a href="widl-AudioContext-spatialListener"><code>spatialListener</code></a>. 
+          See <a href="#Spatialization">the Spatialization/Panning 
+          section</a> for more details about spatialization.
+        </p>
+
+        <dl title="interface SpatialListener" class="idl">
+          <dt>readonly attribute AudioParam positionX</dt>
+          <dd>
+            Sets the x coordinate position of the audio listener in a 3D 
+            Cartesian coordinate space.
+            <a><code>SpatialPannerNode</code></a> objects use this position 
+            relative to individual audio sources for spatialization.  The 
+            default value is 0.  This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam positionY</dt>
+          <dd>
+            Sets the y coordinate position of the audio listener in a 3D 
+            Cartesian coordinate space. The default value is 0.  This 
+            parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam positionZ</dt>
+          <dd>
+            Sets the z coordinate position of the audio listener in a 3D 
+            Cartesian coordinate space.  The default value is 0.  This 
+            parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam forwardX</dt>
+          <dd>
+            The <code>forwardX, forwardY, forwardZ</code> 
+            parameters represent a direction vector in 3D space.  Both a 
+            <code>forward</code> vector and an <code>up</code> vector are used
+            to determine the orientation of the listener.  In simple human terms, 
+            the <code>forward</code> vector represents which direction the 
+            person's nose is pointing.  The <code>up</code> vector represents the 
+            direction the top of a person's head is pointing.  These values are 
+            expected to be linearly independent (at right angles to each other),
+            and unpredictable behavior may result if they are not.  
+            For normative requirements of how these values are to be interpreted, 
+            see the <a href="#Spatialization">spatialization section</a>.
+          </dd>
+          <dd>
+            Sets the x coordinate component of the forward direction the listener 
+            is pointing in 3D Cartesian coordinate space.  The default value is 0. 
+            This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam forwardY</dt>
+          <dd>
+            Sets the y coordinate component of the forward direction the listener 
+            is pointing in 3D Cartesian coordinate space.  The default value is 0.
+            This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam forwardZ</dt>
+          <dd>
+            Sets the z coordinate component of the forward direction the listener 
+            is pointing in 3D Cartesian coordinate space.  The default value is 0.
+            This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam upX</dt>
+          <dd>
+            The <code>upX, upY, upZ</code> parameters represent a direction 
+            vector in 3D space, indicating the direction of "up" to the listener.
+            For normative requirements of how these values are to be interpreted, 
+            see the <a href="#Spatialization">spatialization section</a>.
+          </dd>
+          <dd>
+            Sets the x coordinate component of the up direction the listener 
+            is pointing in 3D Cartesian coordinate space.  The default value is 0.
+            This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam upY</dt>
+          <dd>
+            Sets the y coordinate component of the up direction the listener 
+            is pointing in 3D Cartesian coordinate space.  The default value is 0.
+            This parameter is a-rate.
+          </dd>
+          <dt>readonly attribute AudioParam upZ</dt>
+          <dd>
+            Sets the z coordinate component of the up direction the listener 
+            is pointing in 3D Cartesian coordinate space.  The default value is 0.
+            This parameter is a-rate.
           </dd>
         </dl>
       </section>

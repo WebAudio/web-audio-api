@@ -835,34 +835,8 @@ function setupRoutingGraph() {
             readonly attribute AudioContextState state
           </dt>
           <dd>
-            Describes the current state of this BaseAudioContext. The context
-            state MUST begin in <code>suspended</code>, and transitions to
-            <code>running</code> when system resources are acquired and audio
-            has begun processing. For OfflineAudioContexts, the state will
-            remain in <code>suspended</code> until <a href=
-            "#widl-OfflineAudioContext-startRendering-Promise-AudioBuffer">startRendering()</a>
-            is called, at which point it will transition to
-            <code>running</code>, and then to <code>closed</code> once audio
-            processing has completed and <a><code>oncomplete</code></a> has
-            been fired.
-            <p>
-              When the state is <code>suspended</code>, a call to <a href=
-              "#widl-BaseAudioContext-resume-Promise-void">resume()</a> will
-              cause a transition to <code>running</code>, or a call to <a href=
-              "#widl-BaseAudioContext-close-Promise-void">close()</a> will
-              cause a transition to <code>closed</code>.
-            </p>
-            <p>
-              When the state is <code>running</code>, a call to <a href=
-              "#widl-BaseAudioContext-suspend-Promise-void">suspend()</a> will
-              cause a transition to <code>suspended</code>, or a call to
-              <a href="#widl-BaseAudioContext-close-Promise-void">close()</a>
-              will cause a transition to <code>closed</code>.
-            </p>
-            <p>
-              When the state is <code>closed</code>, no further state
-              transitions are possible.
-            </p>
+             Describes the current state of the <a>AudioContext</a>, on the
+             <a>control thread</a>.
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -1100,8 +1074,9 @@ function setupRoutingGraph() {
               suspending.
             </p>
           </dd>
+
           <dt>
-            attribute EventHandler onstatechange
+          attribute EventHandler onstatechange
           </dt>
           <dd>
             A property used to set the <code>EventHandler</code> for an event
@@ -1232,7 +1207,7 @@ function setupRoutingGraph() {
                         <code>AudioContext</code></a> if it is different from
                         the sample-rate of <a>audioData</a>.
                       </li>
-                      <li>On the main thread's event loop:
+                      <li>On the control thread's event loop:
                         <ol>
                           <li>Let <var>buffer</var> be an
                           <code>AudioBuffer</code> containing the final result
@@ -3864,14 +3839,15 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           AudioWorker.
         </p>
         <p>
-          These main thread objects cause the instantiation of a processing
-          context in the audio thread. All audio processing by AudioWorkerNodes
-          runs in the audio processing thread. This has a few side effects that
-          bear mentioning: blocking the audio worker's thread can cause
-          glitches in the audio, and if the audio thread is normally elevated
-          in thread priority (to reduce glitching possibility), it must be
-          demoted to normal thread priority (in order to avoid escalating
-          thread priority of user-supplied script code).
+          These control thread objects cause the instantiation of a Web
+          Worker-like thread context (Described in [[!Workers]]), which
+          executes in the audio thread. All audio processing by
+          AudioWorkerNodes run in the audio processing thread. This has a few
+          side effects that bear mentioning: blocking the audio worker's thread
+          can cause glitches in the audio, and if the audio thread is normally
+          elevated in thread priority (to reduce glitching possibility), it
+          must be demoted to normal thread priority (in order to avoid
+          escalating thread priority of user-supplied script code).
         </p>
         <p>
           From inside an audio worker script, the Audio Worker factory is
@@ -4353,7 +4329,7 @@ onaudioprocess= function (e) {
               Another common need is a clip-detecting volume meter. This
               example shows how to communicate basic parameters (that do not
               need AudioParam scheduling) across to a Worker, as well as
-              communicating data back to the main thread. This node does not
+              communicating data back to the control thread. This node does not
               use any output.
             </p>
             <h5>
@@ -7590,7 +7566,7 @@ odd function with period \(2\pi\).
         </p>
         <p>
           Communication from the <a>control thread</a> to the <a>rendering
-          thread</a> is done using <a>Control message</a> passing.
+          thread</a> is done using <a>control message</a> passing.
           Communication in the other direction is done using regular event loop
           tasks.
         </p>

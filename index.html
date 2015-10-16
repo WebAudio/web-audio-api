@@ -104,6 +104,18 @@
       });
     }
     </script>
+    <style>
+    .todo {
+      border: 1px solid red;
+      background-color: rgba(255, 0, 0, 0.3);
+    }
+    .todo:before {
+      content: "TODO:";
+    }
+    .synchronous:before {
+      content: "⌛ ";
+    }
+    </style>
   </head>
   <body>
     <section id="abstract">
@@ -673,6 +685,45 @@ function setupRoutingGraph() {
           <a><code>AudioContext</code></a> (for real-time rendering) and
           <a><code>OfflineAudioContext</code></a> (for offline rendering).
         </p>
+        <p>
+          <!-- ReSpec does not support documenting constructor -->
+           <span class="synchronous">When creating an <a>AudioContext</a>,
+          execute these steps:</span>
+        </p>
+        <ol>
+          <li>Set a <code>control thread flag</code> to
+          <code>"suspended"</code> on the <a>AudioContext</a>.
+          </li>
+          <li>Send a <a>control message</a> to start processing.
+          </li>
+        </ol>
+        <p>
+          Sending a <a>control message</a> to start processing means executing
+          the following steps:
+        </p>
+        <ol>
+          <li>Attempt to <a href="#acquiring">Acquire system resources</a>.
+          </li>
+          <li>In case of failure, abort these steps.
+          </li>
+          <li>Queue a task on the <a>control thread</a> event loop, to execute
+          these steps:
+            <ol>
+              <li>Set the <a href="#widl-audiocontext-state">state</a>
+              attribute of the <a>AudioContext</a> to <code>"running"</code>.
+              </li>
+              <li>Queue a task to fire a simple event named
+              <code>"statechange"</code> at the <a>AudioContext</a>.
+              </li>
+            </ol>
+          </li>
+        </ol>
+        <p class="note">
+          It is unfortunately not possible to programatically notify authors
+          that the creation of the <a>AudioContext</a> failed. User-Agents are
+          encouraged to log an informative message if they have access to a
+          logging mecanism, such an a developer tools console.
+        </p>
         <dl title="enum AudioContextState" class="idl">
           <dt>
             suspended
@@ -693,8 +744,9 @@ function setupRoutingGraph() {
           <dd>
             This context has been released, and can no longer be used to
             process audio. All system audio resources have been released.
-            Attempts to create new Nodes on this context will throw
-            InvalidStateError. (AudioBuffers may still be created, through
+            <span class=synchronous>Attempts to create new Nodes on the
+              AudioContext will throw InvalidStateError</span>. (AudioBuffers
+            may still be created, through
             <a href=
             "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
             createBuffer</a> or <a href=
@@ -854,66 +906,223 @@ function setupRoutingGraph() {
               be played to the destination, and then allows the system to
               release its claim on audio hardware. This is generally useful
               when the application knows it will not need the
-              <a>BaseAudioContext</a> for some time, and wishes to let the
-              audio hardware power down. The promise resolves when the frame
-              buffer is empty (has been handed off to the hardware), or
-              immediately (with no other effect) if the context is already
-              suspended. The promise is rejected if the context has been
-              closed.
+              <a>BaseAudioContext</a> for some time, and wishes to temporarily
+              <a>release system resources</a> associated to the
+              <a>AudioContext</a>.
             </p>
             <p>
-              While the system is suspended, MediaStreams will have their
-              output ignored; that is, data will be lost by the real time
-              nature of media streams. HTMLMediaElements will similarly have
-              their output ignored until the system is resumed. Audio Workers
-              and ScriptProcessorNodes will simply not fire their
-              onaudioprocess events while suspended, but will resume when
-              resumed. For the purpose of AnalyserNode window functions, the
-              data is considered as a continuous stream - i.e. the
-              resume()/suspend() does not cause silence to appear in the
-              AnalyserNode's stream of data.
+              <span class="synchronous">When suspend is called, execute these
+              steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>"closed"</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>"suspended"</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>"suspended"</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to suspend the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to suspend an
+              <a>AudioContext</a> means running these steps on the <a>rendering
+              thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>"suspended"</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>"suspended"</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>"statechanged"</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p>
+              While an <a>AudioContext</a> is suspended,
+              <code>MediaStream</code>s will have their output ignored; that
+              is, data will be lost by the real time nature of media streams.
+              <code>HTMLMediaElement</code>s will similarly have their output
+              ignored until the system is resumed. <a>AudioWorker</a>s and
+              <a>ScriptProcessorNode</a>s will simply not fire their
+              <code>onaudioprocess</code> events while suspended, but will
+              resume when resumed. For the purpose of <a>AnalyserNode</a>
+              window functions, the data is considered as a continuous stream -
+              i.e. the <code>resume()</code>/<code>suspend()</code> does not
+              cause silence to appear in the <a>AnalyserNode</a>'s stream of
+              data.
             </p>
           </dd>
           <dt>
             Promise&lt;void&gt; resume()
           </dt>
           <dd>
+            Resumes the progression of the <a><code>AudioContext</code></a>'s'
+            <a href="#widl-AudioContext-currentTime">currentTime</a> when it
+            has been suspended.
             <p>
-              Resumes the progression of the
-              <a><code>BaseAudioContext</code></a>'s <a href=
-              "#widl-BaseAudioContext-currentTime">currentTime</a> in an audio
-              context that has been suspended, which may involve re-priming the
-              frame buffer contents. The promise resolves when the system has
-              re-acquired (if necessary) access to audio hardware and has begun
-              streaming to the destination, or immediately (with no other
-              effect) if the context is already running. The promise is
-              rejected if the context has been closed. If the context is not
-              currently suspended, the promise will resolve.
+              <span class="synchronous">When resume is called, execute these
+              steps:</span>
             </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>"closed"</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>"running"</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>"running"</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to resume the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
             <p>
-              Note that until the first block of audio has been rendered
-              following a call to this method, <a href=
-              "#widl-BaseAudioContext-currentTime">currentTime</a> remains
-              unchanged.
+              Running a <a>control message</a> to resume an <a>AudioContext</a>
+              means running these steps on the <a>rendering thread</a>:
             </p>
+            <ol>
+              <li>Attempt to <a href="#acquiring">acquire system resources</a>.
+              </li>
+              <li>In case of failure, queue a task on the <a>control thread</a>
+              to execute the following, and abort these steps
+                <ol>
+                  <li>Reject <em>promise</em>
+                  </li>
+                </ol>
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>"running"</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>"running"</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>"statechange"</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
           </dd>
           <dt>
             Promise&lt;void&gt; close()
           </dt>
           <dd>
-            Closes the audio context, releasing any system audio resources used
-            by the <a><code>BaseAudioContext</code></a>. This will not
-            automatically release all BaseAudioContext-created objects, unless
-            other references have been released as well; however, it will
-            forcibly release any system audio resources that might prevent
-            additional AudioContexts from being created and used, suspend the
-            progression of the <a><code>BaseAudioContext</code></a>'s <a href=
-            "#widl-BaseAudioContext-currentTime">currentTime</a>, and stop
-            processing audio data. The promise resolves when all
-            AudioContext-creation-blocking resources have been released. If
-            this is called on <a>OfflineAudioContext</a>, then return a promise
-            rejected with a <code>DOMException</code> whose name is
-            <code>InvalidStateError</code>.
+            Closes the <a>AudioContext</a>, <a>releasing system resources</a>
+            it's using. This will not automatically release all
+            AudioContext-created objects, but will suspend the progression of
+            the <a><code>AudioContext</code></a>'s <a href=
+            "#widl-AudioContext-currentTime">currentTime</a>, and stop
+            processing audio data.
+            <p>
+              <span class="synchronous">When close is called, execute these
+              steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If this <a>AudioContext</a> is an <a>OfflineAudioContext</a>,
+              reject <em>promise</em> with <code>NotSupportedError</code>,
+              return it, and abort these steps.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>"closed"</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>"closed"</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>"closed"</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to suspend an
+              <a>AudioContext</a> means running these steps on the <a>rendering
+              thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>"closed"</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>"closed"</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>"statechange"</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p class="note">
+              When an <a>AudioContext</a> is has been closed, implementation
+              can choose to aggressively release more resource than when
+              suspending.
+            </p>
           </dd>
           <dt>
             attribute EventHandler onstatechange
@@ -1420,6 +1629,44 @@ function setupRoutingGraph() {
             be able to observe garbage collections.
           </p>
         </section>
+        <section>
+          <h3>
+            System resources associated with an AudioContext
+          </h3>
+          <p>
+            <a>AudioContext</a>s should be considered expensive objects.
+            Creating an <a>AudioContext</a> often involves creating an
+            high-priority thread, and use a low-latency system audio stream,
+            both having impact on energy consumption. Creating more than one
+            <a>AudioContext</a> in a document is most of the time unnecessary.
+          </p>
+          <p>
+            Additionaly, user-agent can have an implementation-defined maximum
+            number of <a>AudioContext</a>, after which any attempt to create a
+            new <a>AudioContext</a> will fail, <span class=
+            "synchronous">throwing <code>NotSupportedError</code></span>.
+          </p>
+          <p>
+            <a href="#widl-AudioContext-suspend-Promise-void">suspend</a> and
+            <a href="#widl-AudioContext-resume-Promise-void">close</a> allow
+            authors to <dfn id="releasing">release system resources</dfn>.
+            <a href="#releasing">Releasing system resources</a> means releasing
+            the system resources such as threads, processes, audio streams, but
+            conserving the state of the <a>AudioContext</a> such that it can
+            continue to operate later after resuming if needed.
+          </p>
+          <p>
+            Constructing or resuming an <a>AudioContext</a> involves <dfn id=
+            "acquiring">acquiring system resources</dfn>. This means opening an
+            system audio stream. This operation returns when the the audios
+            stream is ready.
+          </p>
+          <p class="note">
+            For example, this can involve waiting for the audio callbacks to
+            fire regularly, or to wait for the hardware to be ready for
+            processing.
+          </p>
+        </section>
       </section>
       <section>
         <h2 id="AudioContext">
@@ -1677,7 +1924,7 @@ function setupRoutingGraph() {
           The <dfn>AudioNode</dfn> Interface
         </h2>
         <p>
-          AudioNodes are the building blocks of an <a href=
+          <a>AudioNode</a>s are the building blocks of an <a href=
           "#AudioContext"><code>AudioContext</code></a>. This interface
           represents audio sources, the audio destination, and intermediate
           processing modules. These modules can be connected together to form
@@ -1736,9 +1983,9 @@ function setupRoutingGraph() {
           44.1KHz.
         </p>
         <p>
-          AudioNodes are <em>EventTarget</em>s, as described in <cite><a href=
-          "https://dom.spec.whatwg.org/">DOM</a></cite> [[!DOM]]. This means
-          that it is possible to dispatch events to
+          <a>AudioNode</a>s are <em>EventTarget</em>s, as described in <cite><a
+              href= "https://dom.spec.whatwg.org/">DOM</a></cite> [[!DOM]]. This
+          means that it is possible to dispatch events to
           <a><code>AudioNode</code></a>s the same way that other EventTargets
           accept events.
         </p>
@@ -3868,13 +4115,13 @@ to be zero.
               </p>
               <p>
                 It is purposeful that AudioParams can be added (or removed)
-                from an Audio Worker from either the main thread or the worker
-                script; this enables immediate creation of worker-based nodes
-                and their prototypes, but also enables packaging an entire
-                worker including its AudioParam configuration into a single
-                script. It is recommended that nodes be used only after the
-                AudioWorkerNode's oninitialized has been called, in order to
-                allow the worker script to configure the node.
+                from an Audio Worker from either the control thread or the
+                worker script; this enables immediate creation of worker-based
+                nodes and their prototypes, but also enables packaging an
+                entire worker including its AudioParam configuration into a
+                single script. It is recommended that nodes be used only after
+                the AudioWorkerNode's oninitialized has been called, in order
+                to allow the worker script to configure the node.
               </p>
               <p>
                 The <code>name</code> parameter is the name used for the
@@ -5408,10 +5655,10 @@ function calculateNormalizationScale(buffer)
             </p>
             <p>
               The values stored in the unsigned byte array are computed in the
-              following way. Let \(Y[k]\) be the <a>current frequency data</a>
-              as described in <a href=
-              "#fft-windowing-and-smoothing-over-time">FFT windowing and
-              smoothing</a>. Then the byte value, \(b[k]\), is
+              following way.  Let \(Y[k]\) be the <a>current frequency data</a>
+              as described in <a
+              href="#fft-windowing-and-smoothing-over-time">FFT windowing and
+              smoothing</a>.  Then the byte value, \(b[k]\), is
             </p>
             <pre>
                   $$
@@ -5471,7 +5718,7 @@ function calculateNormalizationScale(buffer)
             </p>
             <p>
               The values stored in the unsigned byte array are computed in the
-              following way. Let \(x[k]\) be the time-domain data. Then the
+              following way.  Let \(x[k]\) be the time-domain data.  Then the
               byte value, \(b[k]\), is
             </p>
             <pre>
@@ -7223,6 +7470,303 @@ odd function with period \(2\pi\).
             same number of channels as the node itself.
           </dd>
         </dl>
+      </section>
+    </section>
+    <section>
+      <h2> Processing model </h2>
+      <section class="informative">
+      <h3> Background </h3>
+        <p>
+          Real-time audio systems that require low latency are, often time,
+          implemented using <em>callback functions</em>, where the operating
+          system calls the program back when more audio has to be computed in
+          order for the playback to stay uninterrupted. Such callback is called
+          on a high priority thread (often the highest priority on the system).
+          This means that a program that deals with audio only executes code
+          from this callback, as any buffering between a rendering thread and
+          the callback would naturally add latency or make the system less
+          resilient to glitches.
+        </p>
+        <p>
+          For this reason, the traditional way of executing asynchronous
+          operations on the Web Platform, the event loop, does not work here,
+          as the thread is no <em>continuously executing</em>. Additionaly, a
+          lot of unnecessary and potentially blocking operations are available
+          from traditional execution contexts (Windows and Workers), which is
+          not something that is desirable to reach an acceptable level of
+          performance.
+        </p>
+        <p>
+          Additionaly, the Worker model makes creating a dedicated thread
+          necessary for a script execution context, while all <a>AudioNode</a>s
+          usually share the same execution context.
+        </p>
+      </section>
+      <section>
+        <h3> Control thread and rendering thread </h3>
+        <p>
+          The Web Audio API MUST be implemented using a <a>control thread</a>,
+          and one <a>rendering thread</a>.
+        </p>
+        <p>
+          The <dfn>control thread</dfn> is the thread from
+          which the <a>AudioContext</a> is instanciated, and from which authors
+          manipulate the audio graph. The <dfn>rendering
+          thread</dfn> is the thread on which the actual audio output is
+          computed, in reaction to the calls from the <a>control thread</a>. It
+          can be a real-time, callback-based audio thread, if computing audio
+          for an <a>AudioContext</a>, or a normal thread if rendering and audio
+          graph offline using an <a>OfflineAudioContext</a>.
+        </p>
+        <p>
+          The <a>control thread</a> uses a traditional
+          event loop, as described in [[HTML]].
+        </p>
+        <p>
+          The <a>rendering thread</a> uses a
+          specialized rendering loop, described in the section <a href=
+          "#rendering-audio">Rendering an audio graph</a>
+        </p>
+        <p>
+          Communication from the <a>control thread</a>
+          to the <a>rendering thread</a> is done using
+          <a>Control message</a> passing. Communication
+          in the other direction is done using regular event loop tasks.
+        </p>
+        <p>
+          Each <a>AudioContext</a> has a single <dfn>control message
+          queue</dfn>, that is a list of <dfn data-lt="control message">control
+          messages</dfn>, that are a operations running on the <a>control
+          thread</a>.
+        </p>
+
+        <p>
+          <dfn id="queuing">Queuing an control message</dfn> means adding the
+          message to the end of the <a>control message queue</a> of an
+          <a>AudioContext</a>.
+        </p>
+        <p>
+          <a>Control messages</a> in a <a>control message queue</a> are ordered by
+          date of insertion. The <dfn>oldest message</dfn> is therefore the one
+          at the front of the <a>control message queue</a>.
+        </p>
+        <p>
+          <dfn data-lt="swap">Swapping</dfn> a <a>control message queue</a>
+          <var>Q<sub>A</sub></var> with another <a>control message queue</a>
+          <var>Q<sub>B</sub></var> means executing the following steps:
+        </p>
+        <ol>
+          <li> Let <var>Q<sub>C</sub></var> be a new, empty <a>control message
+                queue</a>. </li>
+          <li> Move all the <a>control messages</a> <var>Q<sub>A</sub></var> to
+              <var>Q<sub>C</sub></var>.</li>
+          <li> Move all the <a>control messages</a> <var>Q<sub>B</sub></var> to
+              <var>Q<sub>A</sub></var>.</li>
+          <li> Move all the <a>control messages</a> <var>Q<sub>C</sub></var> to
+              <var>Q<sub>B</sub></var>.</li>
+        </ol>
+        <p class="note">
+          For example, successfuly calling <code>start()</code> on an
+          <a>AudioBufferSourceNode</a> <code>source</code> adds a <a>control
+          message</a> to the <a href="#control-message-queue">control message
+          queue</a> of the <a>AudioContext</a> <code>source.context</code>.
+        </p>
+      </section>
+      <section>
+        <h3>
+          Asynchronous operations
+        </h3>
+        <p>
+          Calling methods on <a>AudioNode</a>s MUST to be done in two phases, a
+          synchronous operation and an asynchronous operation. For each method,
+          some part of the execution happens on the <a>control thread</a> (for
+          example, throwing an exception in case of invalid parameters), and
+          some part happens on the <a>rendering thread</a> (for example,
+          changing the value of an <a>AudioParam</a>).
+        </p>
+        <p>
+          In the description of each operation on <a>AudioNode</a>s and
+          <a>AudioContext</a>s, the synchronous section is marked with a ⌛. All
+          the other operations are executed <a href=
+          "https://html.spec.whatwg.org/multipage/infrastructure.html#in-parallel">
+          in parallel</a>, as described in [[HTML]].
+        </p>
+        <p>
+          The synchronous section is executed on the <a>control thread</a>, and
+          happens immediately. If it fails, the method execution is aborted,
+          possibly throwing an exception. If it succeeds, a <a>control
+          message</a>, encoding the operation to be executed on the
+          <a>rendering thread</a> is enqueued on the <a>control message
+          queue</a> of this <a>rendering thread</a>.
+        </p>
+        <p>
+          The synchronous and asynchronous sections order with respect to other
+          events MUST be the same: given two operation <em>A</em> and
+          <em>B</em> with respectively synchronous and asynchronous section
+          <em>A<sub>Sync</sub></em> and <em>A<sub>Async</sub></em>, and
+          <em>B<sub>Sync</sub></em> and <em>B<sub>Async</sub></em>, if
+          <em>A</em> happens before <em>B</em>, then <em>A<sub>Sync</sub></em>
+          happens before <em>B<sub>Sync</sub></em>, and
+          <em>A<sub>Async</sub></em> happens before <em>B<sub>Async</sub></em>.
+        </p>
+      </section>
+      <section id="rendering-loop">
+        <h3>
+          Rendering an audio graph
+        </h3>
+        <p>
+        Rendering an audio graph is done by blocks of 128 samples-frames.
+        </p>
+
+        <p>
+        Operations that happens <dfn data-lt="atomic">atomically</dfn> on a given thread, can only
+        be executed when no other <a>atomic</a> operation is
+        running on another thread.
+        </p>
+
+        <p>
+        The algorithm for rendering a block of audio from an <a>AudioContext</a>
+        <em>G</em> with an <a href=#control-message-queue>control message queue</a>
+        <em>Q</em> is as follow:
+        </p>
+        <ol>
+          <li> Let <em>Q<sub>rendering</sub></em> be an empty <a
+            href=#control-message-queue>control message queue</a>.
+          <a>Atomically</a> swap <em>Q<sub>rendering</sub></em> and
+          <em>Q</em></li>
+        <li> Until there is no more event in <em>Q<sub>rendering</sub></em>,
+        execute the following steps:
+        <ol>
+          <li>
+          Execute the asynchronous section of the oldest element of
+          <em>Q<sub>rendering</sub></em>.
+          </li>
+          <li>
+          Remove the oldest element of <em>Q<sub>rendering</sub></em>.
+          <li>Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
+          queue</a>. <a>Atomically</a> <a>swap</a> <em>Q<sub>rendering</sub></em> and
+          <em>Q</em>
+          </li>
+          <li>Until there is no more messages in <em>Q<sub>rendering</sub></em>,
+          execute the following steps:
+            <ol>
+              <li>Execute the asynchronous section of the <a>oldest message</a>
+              of <em>Q<sub>rendering</sub></em>.
+              </li>
+              <li>Remove the <a>oldest message</a> of
+              <em>Q<sub>rendering</sub></em>.  </li>
+            </ol>
+          </li>
+          <li>Order the <a>AudioNode</a>s of the <a>AudioContext</a> to be
+          processed.
+            <ol>
+              <li>Let <em>ordered</em> be an empty list of <a>AudioNode</a>s.
+              It will contain an ordered list of <a>AudioNode</a>s when this
+              ordering algorithm terminates.
+              </li>
+              <li>Let <em>nodes</em> be the set of all nodes belonging to an
+              <a>AudioContext</a>.
+              </li>
+              <li>Let <em>cycle breakers</em> be an empty set of
+              <a>DelayNode</a>s. It will contain all the <a>DelayNode</a>s that
+              are part of a cycle.
+              </li>
+              <li>For each <a>AudioNode</a> <em>node</em> of <em>nodes</em>
+                <ol>
+                  <li>
+                    <em>node</em> is a <a>DelayNode</a> part of a cycle, add it
+                    to <em>cycle breakers</em> and remove it from
+                    <em>nodes</em>.
+                  </li>
+                </ol>
+              </li>
+              <li>If <em>nodes</em> contains cycles, mute all the
+              <a>AudioNode</a>s that are part of this cycle, and remove them
+              from <em>nodes</em>.
+              </li>
+              <li>While there are unmarked <a>AudioNode</a>s in <em>nodes</em>:
+                <ol>
+                  <li>Choose an <a>AudioNode</a> <em>node</em> in
+                  <em>nodes</em>
+                  </li>
+                  <li>
+                    <a>Visit</a> <em>node</em>.
+                  </li>
+                </ol><dfn data-lt="Visit">Visiting a node</dfn> <em>node</em>
+                mean performing the following steps:
+                <ol>
+                  <li>If <em>node</em> is marked, abort these steps.
+                  </li>
+                  <li>For each <a>AudioNode</a> <em>input</em> connect to <em>
+                    node</em>:
+                    <ol>
+                      <li>
+                        <a>Visit</a> <em>input</em>.
+                      </li>
+                    </ol>
+                  </li>
+                  <li>Mark <em>node</em>.
+                  </li>
+                  <li>Add <em>node</em> to the beginning of <em>ordered</em>.
+                  </li>
+                </ol>
+              </li>
+            </ol>
+          </li>
+          <li>For each <a>DelayNode</a> in a cycle, <a href="availabel">make
+          available for reading</a> a block of audio from the <a>DelayNode</a>
+          buffer.
+          </li>
+          <li>For each <a>AudioNode</a>, in the order determined previously:
+            <ol>
+              <li>If this <a>AudioNode</a> has any <a>AudioNode</a>s connected
+              to it, <a href="#SummingJunction">sum</a> the buffers <a href=
+              "available">made available for reading</a> by all
+              <a>AudioNode</a>s connected to this <a>AudioNode</a>. The
+              resulting buffer is called the <dfn>input buffer</dfn>.
+                <a href="#channel-up-mixing-and-down-mixing">Up or down-mix</a>
+                it to match if number of input channels of this
+                <a>AudioNode</a>.
+              </li>
+              <li>If this <a>AudioNode</a> is a <a>source node</a>, <a href=
+              "computing">compute a block of audio</a>, and <a href=
+              "available">make it available for reading</a>.
+              </li>
+              <li>Else, if this <a>AudioNode</a> is a <a>destination node</a>,
+              <a href="record">record the input</a> of this <a>AudioNode</a>.
+              </li>
+              <li>Else, <a>process</a> the <a>input buffer</a>, and <a href=
+              "available">make available for reading</a> the resulting buffer.
+              </li>
+            </ol>
+          </li>
+        </ol>
+        </li>
+      </ol>
+    <p>
+      <dfn id=available>Making a buffer available for reading</dfn> from an
+      <a>AudioNode</a> means putting it in a state where other <a>AudioNode</a>s
+      connected to this <a>AudioNode</a> can safely read from it.
+      <p class=note>For example, implementations can choose to allocate a new
+      buffer, or have a more elaborate mechanism, reusing an existing buffer
+      that is now unused.
+    </p>
+
+    <p>
+      <dfn id=record>Recording the input</dfn> of an <a>AudioNode</a> means
+      copying the input data of this <a>AudioNode</a> for future usage.
+    </p>
+
+    <p>
+      <dfn id=computing>Computing a block of audio</dfn> means running the
+      algorithm for this <a>AudioNode</a> to produce 128 sample-frames.
+    </p>
+
+    <p>
+      <dfn data-lt=process>Processing an input buffer</dfn> means running the
+      algorithm for an <a>AudioNode</a>, using an <a>input buffer</a> as the
+      input for this algorithm.
+    </p>
       </section>
     </section>
     <section class="informative">

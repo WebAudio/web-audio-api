@@ -1,8 +1,8 @@
 # Web Audio API Spec
 
 
-<a href="https://travis-ci.org/webaudio/web-audio-api">
-  <img src="https://api.travis-ci.org/webaudio/web-audio-api.svg?branch=gh-pages">
+<a href="https://travis-ci.org/WebAudio/web-audio-api">
+  <img src="https://api.travis-ci.org/WebAudio/web-audio-api.svg?branch=gh-pages">
   </img>
 </a>
 

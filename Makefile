@@ -5,6 +5,9 @@
 #               environment. This requires CMake and git in the PATH.
 
 support_dir ?= $(CURDIR)/.support
+# We pin tidy to a specific revision to avoid failures caused by changes to tidy
+# itself
+tidy_revision = 67192ba77e539539d15cc716303ac686bacddd61
 tidy ?= $(shell which tidy 2>/dev/null)
 ifeq (,$(tidy))
 tidy := $(support_dir)/bin/tidy
@@ -25,7 +28,10 @@ install_tidy: $(tidy)
 $(tidy):
 	if [ ! -d tidy-html5 ]; then \
 	  mkdir -p tidy-html5; \
-	  git clone -q --depth 10 https://github.com/htacg/tidy-html5.git tidy-html5; \
+	  git clone -q https://github.com/htacg/tidy-html5.git tidy-html5; \
+	  cd tidy-html5; \
+	  git checkout $(tidy_revision); \
+	  cd ..; \
 	fi
 	cd tidy-html5/build/cmake && \
 	  $(cmake) ../.. -DCMAKE_INSTALL_PREFIX=$(support_dir) -DCMAKE_BUILD_TYPE=Release && \

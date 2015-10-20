@@ -1138,11 +1138,12 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Asynchronously decodes the audio file data contained in the
-            ArrayBuffer. The ArrayBuffer can, for example, be loaded from an
-            XMLHttpRequest's <code>response</code> attribute after setting the
-            <code>responseType</code> to "arraybuffer". Audio file data can be
-            in any of the formats supported by the <code>audio</code> element.
-            The buffer passed to <a href=
+            <code>ArrayBuffer</code>. The <a>ArrayBuffer</a> can, for example,
+            be loaded from an <code>XMLHttpRequest</code>'s
+            <code>response</code> attribute after setting the
+            <code>responseType</code> to <code>"arraybuffer"</code>. Audio file
+            data can be in any of the formats supported by the
+            <code>audio</code> element. The buffer passed to <a href=
             "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
             decodeAudioData</a> has its content-type determined by sniffing, as
             described in [[mimesniff]].
@@ -1175,12 +1176,15 @@ function setupRoutingGraph() {
               provided for legacy reasons.
             </p>
             <p>
-              The following steps must be performed:
+              <span class="synchronous">When <code>decodeAudioData</code> is
+              called, the following steps must be performed on the control
+              thread:</span>
             </p>
             <ol>
               <li>Let <var>promise</var> be a new promise.
               </li>
-              <li>If <a>audioData</a> is null or not a valid ArrayBuffer:
+              <li>If <em>audioData</em> is null or not a valid
+              <code>ArrayBuffer</code>:
                 <ol>
                   <li>Let <var>error</var> be a <code>DOMException</code> whose
                   name is <code>NotSupportedError</code>.
@@ -1194,53 +1198,65 @@ function setupRoutingGraph() {
                   </li>
                 </ol>
               </li>
-              <li>Neuter the <a>audioData</a> ArrayBuffer in such a way that
-              JavaScript code may not access or modify the data anymore.
+              <li>
+                <a href=
+                "https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
+                the <a>audioData</a> <code>ArrayBuffer</code>. This operation
+                is described in [[!ECMASCRIPT]].
               </li>
               <li>Queue a decoding operation to be performed on another thread.
               </li>
               <li>Return <var>promise</var>.
               </li>
-              <li>In the decoding thread:
+            </ol>
+            <p>
+              When queing a decoding operation to be performed on another
+              thread, the following steps MUST happen on a thread that is not
+              the <a>control thread</a> nor the <a>rendering thread</a>, called
+              the <em>decoding thread</em>.
+            </p>
+            <div class="note">
+              Multiple <em>decoding threads</em> can run in parallel to service
+              multiple call to <code>decodeAudioData</code>.
+            </div>
+            <ol>
+              <li>Attempt to decode the encoded <a>audioData</a> into linear
+              PCM.
+              </li>
+              <li>If a decoding error is encountered due to the audio format
+              not being recognized or supported, or because of
+              corrupted/unexpected/inconsistent data, then queue a task to
+              execute the following step, on the <a>control thread</a>'s event
+              loop:
                 <ol>
-                  <li>Attempt to decode the encoded <a>audioData</a> into
-                  linear PCM.
+                  <li>Let <var>error</var> be a <code>DOMException</code> whose
+                  name is <code>"EncodingError"</code>.
                   </li>
-                  <li>If a decoding error is encountered due to the audio
-                  format not being recognized or supported, or because of
-                  corrupted/unexpected/inconsistent data, then, on the main
-                  thread's event loop:
-                    <ol>
-                      <li>Let <var>error</var> be a <code>DOMException</code>
-                      whose name is <code>"EncodingError"</code>.
-                      </li>
-                      <li>Reject <var>promise</var> with <var>error</var>.
-                      </li>
-                      <li>If <dfn>errorCallback</dfn> is not missing, invoke
-                      <a>errorCallback</a> with <var>error</var>.
-                      </li>
-                    </ol>
+                  <li>Reject <var>promise</var> with <var>error</var>.
                   </li>
-                  <li>Otherwise:
+                  <li>If <dfn>errorCallback</dfn> is not missing, invoke
+                  <a>errorCallback</a> with <var>error</var>.
+                  </li>
+                </ol>
+              </li>
+              <li>Otherwise:
+                <ol>
+                  <li>Take the result, representing the decoded linear PCM
+                  audio data, and resample it to the sample-rate of the
+                  <a><code>AudioContext</code></a> if it is different from the
+                  sample-rate of <a>audioData</a>.
+                  </li>
+                  <li>Queue a task on the <a>control thread</a>'s event loop to
+                  execute the following steps:
                     <ol>
-                      <li>Take the result, representing the decoded linear PCM
-                      audio data, and resample it to the sample-rate of the <a>
-                        <code>AudioContext</code></a> if it is different from
-                        the sample-rate of <a>audioData</a>.
+                      <li>Let <var>buffer</var> be an <code>AudioBuffer</code>
+                      containing the final result (after possibly sample-rate
+                      converting).
                       </li>
-                      <li>On the control thread's event loop:
-                        <ol>
-                          <li>Let <var>buffer</var> be an
-                          <code>AudioBuffer</code> containing the final result
-                          (after possibly sample-rate converting).
-                          </li>
-                          <li>Resolve <var>promise</var> with
-                          <var>buffer</var>.
-                          </li>
-                          <li>If <dfn>successCallback</dfn> is not missing,
-                          invoke <a>successCallback</a> with <var>buffer</var>.
-                          </li>
-                        </ol>
+                      <li>Resolve <var>promise</var> with <var>buffer</var>.
+                      </li>
+                      <li>If <dfn>successCallback</dfn> is not missing, invoke
+                      <a>successCallback</a> with <var>buffer</var>.
                       </li>
                     </ol>
                   </li>
@@ -1724,26 +1740,53 @@ function setupRoutingGraph() {
               event named <code>complete</code> for legacy reasons.
             </p>
             <p>
-              The following steps must be performed:
+              <span class="synchronous">When <code>startRendering</code> is
+              called, the following steps must be performed on the <a>control
+              thread</a>:</span>
             </p>
             <ol>
-              <li>If <code>startRendering</code> has already been called
-              previously, then return a promise rejected with
-              <code>InvalidStateError</code>.
+              <li>Set a flag called <var>renderingStarted</var> on the
+              <a>OfflineAudioContext</a> to <em>true</em>.
+              </li>
+              <li>If the <em>renderingStarted</em> flag on the
+              <a>OfflineAudioContext</a> is <em>true</em>, return a rejected
+              promise with <code>InvalidStateError</code>, and abort these
+              steps.
               </li>
               <li>Let <var>promise</var> be a new promise.
               </li>
-              <li>Asynchronously perform the following steps:
+              <li>Start to render the audio graph on another thread.
+              </li>
+              <li>Return <var>promise</var>
+              </li>
+            </ol>
+            <p>
+              When rendering an audio graph on another thread, the following
+              steps MUST happen on a <a>rendering thread</a> that is created
+              for the occasion.
+            </p>
+            <ol>
+              <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>, with
+              a number of channels, length and sample rate equal respectively
+              to the <code>numberOfChannels</code>, <code>length</code> and
+              <code>sampleRate</code> parameters used when this instance's
+              constructor was called.
+              </li>
+              <li>Given the current connections and scheduled changes, start
+              rendering <code>length</code> sample-frames of audio into
+              <var>buffer</var>.
+              </li>
+              <li>For every render quantum, check and suspend the rendering if
+              necessary.
+              </li>
+              <li>If a suspended context is resumed, continue to render the
+              buffer.
+              </li>
+              <li>Once the rendering is complete, queue a task on the
+              <a>control thread</a>'s event loop to perform the following
+              steps:
                 <ol>
-                  <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>,
-                  with a number of channels, length and sample rate equal
-                  respectively to the <code>numberOfChannels</code>,
-                  <code>length</code> and <code>sampleRate</code> parameters
-                  used when this instance's constructor was called.
-                  </li>
-                  <li>Given the current connections and scheduled changes,
-                  start rendering <code>length</code> sample-frames of audio
-                  into <var>buffer</var>.
+                  <li>Resolve <var>promise</var> with <var>buffer</var>.
                   </li>
                   <li>For every render quantum, check and suspend the rendering
                   if necessary.
@@ -1764,8 +1807,6 @@ function setupRoutingGraph() {
                     </ol>
                   </li>
                 </ol>
-              </li>
-              <li>Return <var>promise</var>.
               </li>
             </ol>
           </dd>
@@ -3299,11 +3340,12 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </p>
         <ol>
           <li>If any of the <a>AudioBuffer</a>'s <code>ArrayBuffer</code> have
-          been neutered, abort these steps, and return a zero-length channel
-          data buffers to the invoker.
+          been <em>detached</em>, abort these steps, and return a zero-length
+          channel data buffers to the invoker.
           </li>
-          <li>Neuter all <code>ArrayBuffer</code>s for arrays previously
-          returned by <code>getChannelData</code> on this <a>AudioBuffer</a>.
+          <li>
+            <em>Detach</em>all <code>ArrayBuffer</code>s for arrays previously
+            returned by <code>getChannelData</code> on this <a>AudioBuffer</a>.
           </li>
           <li>Retain the underlying data buffers from those
           <code>ArrayBuffer</code>s and return references to them to the
@@ -6268,10 +6310,11 @@ float calculateNormalizationScale(buffer)
           </dt>
           <dd>
             <p>
-              Given the current filter parameter settings, calculates the
-              frequency response for the specified frequencies. The three
-              parameters MUST be <code>Float32Array</code>s of the same length,
-              or an <code>InvalidAccessError</code> MUST be thrown.
+              <span class="sychronous">Given the current filter parameter
+              settings, synchronously calculates the frequency response for the
+              specified frequencies.</span> The three parameters MUST be
+              <code>Float32Array</code>s of the same length, or an
+              <code>InvalidAccessError</code> MUST be thrown.
             </p>
             <p>
               The frequency response returned MUST be computed with the

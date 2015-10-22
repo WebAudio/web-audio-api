@@ -623,7 +623,7 @@ function setupRoutingGraph() {
           <a><code>AudioNode</code></a> for spatializing / positioning audio in
           3D space. This has been replaced by
           <a><code>SpatialPannerNode</code></a>, and
-          <a><code>StereoPanner</code></a> for simpler scenarios.
+          <a><code>StereoPannerNode</code></a> for simpler scenarios.
           </li>
           <li>An <a><code>AudioListener</code></a> interface, which works with
           a <a>PannerNode</a> for spatialization.
@@ -804,7 +804,8 @@ function setupRoutingGraph() {
             readonly attribute AudioContextState state
           </dt>
           <dd>
-             Describes the current state of the <a>AudioContext</a>, on the <a>control thread</a>.
+            Describes the current state of the <a>AudioContext</a>, on the
+            <a>control thread</a>.
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -877,68 +878,73 @@ function setupRoutingGraph() {
               </li>
             </ol>
             <p>
-              <span class=synchronous>When suspend is called, execute these
-                steps:</span>
+              <span class="synchronous">When suspend is called, execute these
+              steps:</span>
             </p>
             <ol>
-              <li>Let <em>promise</em> be a new Promise.</li>
-              <li>
-                If the <em>control thread state</em> flag on the
-                <a>AudioContext</a> is <code>"closed"</code> reject the promise
-                with <code>InvalidStateError</code>, abort these steps,
-                returning <em>promise</em>.
+              <li>Let <em>promise</em> be a new Promise.
               </li>
-              <li>
-                If the <a href="#widl-AudioContext-state">state</a> attribute of
-                the <a>AudioContext</a> is already <code>"suspended"</code>,
-                resolve <em>promise</em>, return it, and abort these steps.
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>"closed"</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
               </li>
-              <li>
-                Set the <em>control thread state</em> flag on the
-                <a>AudioContext</a> to <code>"suspended"</code>.
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>"suspended"</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>"suspended"</code>.
               </li>
               <li>
                 <a href="#queue">Queue a control message</a> to suspend the
                 <a>AudioContext</a>.
               </li>
-              <li>Return <em>promise</em>.</li>
-          </ol>
-
-            <p>
-              Running a <a>control message</a> to suspend an <a>AudioContext</a>
-              means running these steps on the <a>rendering thread</a>:
-            </p>
-            <ol>
-              <li> Attempt to <a>release system resources</a>. </li> <li> Queue
-              a task on the <a>control thread</a>'s event loop, to execute these
-              steps:
-              <ol>
-                <li> Resolve <em>promise</em>.</li>
-                <li> If the <a href="#widl-audiocontext-state">state</a>
-                attribute of the <a>AudioContext</a> is not already
-                <code>"suspended"</code>:
-                <ol>
-                  <li> Set the <a href="#widl-audiocontext-state">state</a>
-                  attribute of the <a>AudioContext</a> to
-                  <code>"suspended"</code>.</li>
-                  <li> Queue a task to fire a simple event named
-                  <code>"statechanged"</code> at the <a>AudioContext</a></li>
-                </ol>
-              </ol>
+              <li>Return <em>promise</em>.
               </li>
             </ol>
-
             <p>
-              While an <a>AudioContext</a> is suspended, <code>MediaStream</code>s will
-              have their output ignored; that is, data will be lost by the real time
-              nature of media streams.  <code>HTMLMediaElement</code>s will similarly
-              have their output ignored until the system is resumed.
-              <a>AudioWorker</a>s and <a>ScriptProcessorNode</a>s will simply not fire
-              their <code>onaudioprocess</code> events while suspended, but will resume
-              when resumed.  For the purpose of <a>AnalyserNode</a> window functions,
-              the data is considered as a continuous stream - i.e. the
-              <code>resume()</code>/<code>suspend()</code> does not cause silence to
-              appear in the <a>AnalyserNode</a>'s stream of data.
+              Running a <a>control message</a> to suspend an
+              <a>AudioContext</a> means running these steps on the <a>rendering
+              thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>"suspended"</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>"suspended"</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>"statechanged"</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p>
+              While an <a>AudioContext</a> is suspended,
+              <code>MediaStream</code>s will have their output ignored; that
+              is, data will be lost by the real time nature of media streams.
+              <code>HTMLMediaElement</code>s will similarly have their output
+              ignored until the system is resumed. <a>AudioWorker</a>s and
+              <a>ScriptProcessorNode</a>s will simply not fire their
+              <code>onaudioprocess</code> events while suspended, but will
+              resume when resumed. For the purpose of <a>AnalyserNode</a>
+              window functions, the data is considered as a continuous stream -
+              i.e. the <code>resume()</code>/<code>suspend()</code> does not
+              cause silence to appear in the <a>AnalyserNode</a>'s stream of
+              data.
             </p>
           </dd>
           <dt>
@@ -1085,9 +1091,8 @@ function setupRoutingGraph() {
               suspending.
             </p>
           </dd>
-
           <dt>
-          attribute EventHandler onstatechange
+            attribute EventHandler onstatechange
           </dt>
           <dd>
             A property used to set the <code>EventHandler</code> for an event
@@ -7332,9 +7337,9 @@ waveform is an odd function with period \(2\pi\).
           <a>AudioContext</a>.
         </p>
         <p>
-          <a>Control messages</a> in a <a>control message queue</a> are ordered by
-          date of insertion. The <dfn>oldest message</dfn> is therefore the one
-          at the front of the <a>control message queue</a>.
+          <a>Control messages</a> in a <a>control message queue</a> are ordered
+          by date of insertion. The <dfn>oldest message</dfn> is therefore the
+          one at the front of the <a>control message queue</a>.
         </p>
         <p>
           <dfn data-lt="swap">Swapping</dfn> a <a>control message queue</a>
@@ -7342,14 +7347,18 @@ waveform is an odd function with period \(2\pi\).
           <var>Q<sub>B</sub></var> means executing the following steps:
         </p>
         <ol>
-          <li> Let <var>Q<sub>C</sub></var> be a new, empty <a>control message
-                queue</a>. </li>
-          <li> Move all the <a>control messages</a> <var>Q<sub>A</sub></var> to
-              <var>Q<sub>C</sub></var>.</li>
-          <li> Move all the <a>control messages</a> <var>Q<sub>B</sub></var> to
-              <var>Q<sub>A</sub></var>.</li>
-          <li> Move all the <a>control messages</a> <var>Q<sub>C</sub></var> to
-              <var>Q<sub>B</sub></var>.</li>
+          <li>Let <var>Q<sub>C</sub></var> be a new, empty <a>control message
+          queue</a>.
+          </li>
+          <li>Move all the <a>control messages</a> <var>Q<sub>A</sub></var> to
+          <var>Q<sub>C</sub></var>.
+          </li>
+          <li>Move all the <a>control messages</a> <var>Q<sub>B</sub></var> to
+          <var>Q<sub>A</sub></var>.
+          </li>
+          <li>Move all the <a>control messages</a> <var>Q<sub>C</sub></var> to
+          <var>Q<sub>B</sub></var>.
+          </li>
         </ol>
         <p class="note">
           For example, successfuly calling <code>start()</code> on an
@@ -7415,119 +7424,124 @@ waveform is an odd function with period \(2\pi\).
           follow:
         </p>
         <ol>
-          <li> Let <em>Q<sub>rendering</sub></em> be an empty <a
-            href=#control-message-queue>control message queue</a>.
-          <a>Atomically</a> swap <em>Q<sub>rendering</sub></em> and
-          <em>Q</em></li>
-        <li> Until there is no more event in <em>Q<sub>rendering</sub></em>,
-        execute the following steps:
-        <ol>
-          <li>
-          Execute the asynchronous section of the oldest element of
-          <em>Q<sub>rendering</sub></em>.
+          <li>Let <em>Q<sub>rendering</sub></em> be an empty <a href=
+          "#control-message-queue">control message queue</a>. <a>Atomically</a>
+          swap <em>Q<sub>rendering</sub></em> and <em>Q</em>
           </li>
-          <li>
-          Remove the oldest element of <em>Q<sub>rendering</sub></em>.
-          <li>Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
-          queue</a>. <a>Atomically</a> <a>swap</a> <em>Q<sub>rendering</sub></em> and
-          <em>Q</em>
-          </li>
-          <li>Until there is no more messages in <em>Q<sub>rendering</sub></em>,
+          <li>Until there is no more event in <em>Q<sub>rendering</sub></em>,
           execute the following steps:
             <ol>
-              <li>Execute the asynchronous section of the <a>oldest message</a>
-              of <em>Q<sub>rendering</sub></em>.
+              <li>Execute the asynchronous section of the oldest element of
+              <em>Q<sub>rendering</sub></em>.
               </li>
-              <li>Remove the <a>oldest message</a> of
-              <em>Q<sub>rendering</sub></em>.  </li>
-            </ol>
-          </li>
-          <li>Order the <a>AudioNode</a>s of the <a>AudioContext</a> to be
-          processed.
-            <ol>
-              <li>Let <em>ordered</em> be an empty list of <a>AudioNode</a>s.
-              It will contain an ordered list of <a>AudioNode</a>s when this
-              ordering algorithm terminates.
+              <li>Remove the oldest element of <em>Q<sub>rendering</sub></em>.
               </li>
-              <li>Let <em>nodes</em> be the set of all nodes belonging to an
-              <a>AudioContext</a>.
+              <li>Let <em>Q<sub>rendering</sub></em> be an empty <a>control
+              message queue</a>. <a>Atomically</a> <a>swap</a>
+              <em>Q<sub>rendering</sub></em> and <em>Q</em>
               </li>
-              <li>Let <em>cycle breakers</em> be an empty set of
-              <a>DelayNode</a>s. It will contain all the <a>DelayNode</a>s that
-              are part of a cycle.
-              </li>
-              <li>For each <a>AudioNode</a> <em>node</em> of <em>nodes</em>
+              <li>Until there is no more messages in
+              <em>Q<sub>rendering</sub></em>, execute the following steps:
                 <ol>
-                  <li>
-                    <em>node</em> is a <a>DelayNode</a> part of a cycle, add it
-                    to <em>cycle breakers</em> and remove it from
-                    <em>nodes</em>.
+                  <li>Execute the asynchronous section of the <a>oldest
+                  message</a> of <em>Q<sub>rendering</sub></em>.
+                  </li>
+                  <li>Remove the <a>oldest message</a> of
+                  <em>Q<sub>rendering</sub></em>.
                   </li>
                 </ol>
               </li>
-              <li>If <em>nodes</em> contains cycles, mute all the
-              <a>AudioNode</a>s that are part of this cycle, and remove them
-              from <em>nodes</em>.
-              </li>
-              <li>While there are unmarked <a>AudioNode</a>s in <em>nodes</em>:
+              <li>Order the <a>AudioNode</a>s of the <a>AudioContext</a> to be
+              processed.
                 <ol>
-                  <li>Choose an <a>AudioNode</a> <em>node</em> in
-                  <em>nodes</em>
+                  <li>Let <em>ordered</em> be an empty list of
+                  <a>AudioNode</a>s. It will contain an ordered list of
+                  <a>AudioNode</a>s when this ordering algorithm terminates.
                   </li>
-                  <li>
-                  <a>Visit</a> <em>node</em>.
+                  <li>Let <em>nodes</em> be the set of all nodes belonging to
+                  an <a>AudioContext</a>.
                   </li>
-                </ol><dfn data-lt="Visit">Visiting a node</dfn> <em>node</em>
-                mean performing the following steps:
-                <ol>
-                  <li>If <em>node</em> is marked, abort these steps.
+                  <li>Let <em>cycle breakers</em> be an empty set of
+                  <a>DelayNode</a>s. It will contain all the <a>DelayNode</a>s
+                  that are part of a cycle.
                   </li>
-                  <li>For each <a>AudioNode</a> <em>input</em> connect to <em>
-                    node</em>:
+                  <li>For each <a>AudioNode</a> <em>node</em> of <em>nodes</em>
                     <ol>
                       <li>
-                        <a>Visit</a> <em>input</em>.
+                        <em>node</em> is a <a>DelayNode</a> part of a cycle,
+                        add it to <em>cycle breakers</em> and remove it from
+                        <em>nodes</em>.
                       </li>
                     </ol>
                   </li>
-                  <li>Mark <em>node</em>.
+                  <li>If <em>nodes</em> contains cycles, mute all the
+                  <a>AudioNode</a>s that are part of this cycle, and remove
+                  them from <em>nodes</em>.
                   </li>
-                  <li>Add <em>node</em> to the beginning of <em>ordered</em>.
+                  <li>While there are unmarked <a>AudioNode</a>s in
+                  <em>nodes</em>:
+                    <ol>
+                      <li>Choose an <a>AudioNode</a> <em>node</em> in
+                      <em>nodes</em>
+                      </li>
+                      <li>
+                        <a>Visit</a> <em>node</em>.
+                      </li>
+                    </ol><dfn data-lt="Visit">Visiting a node</dfn>
+                    <em>node</em> mean performing the following steps:
+                    <ol>
+                      <li>If <em>node</em> is marked, abort these steps.
+                      </li>
+                      <li>For each <a>AudioNode</a> <em>input</em> connect to
+                      <em>node</em>:
+                        <ol>
+                          <li>
+                            <a>Visit</a> <em>input</em>.
+                          </li>
+                        </ol>
+                      </li>
+                      <li>Mark <em>node</em>.
+                      </li>
+                      <li>Add <em>node</em> to the beginning of
+                      <em>ordered</em>.
+                      </li>
+                    </ol>
                   </li>
                 </ol>
               </li>
-            </ol>
-          </li>
-          <li>For each <a>DelayNode</a> in a cycle, <a href="available">make
-          available for reading</a> a block of audio from the <a>DelayNode</a>
-          buffer, available for reading.
-          </li>
-          <li>For each <a>AudioNode</a>, in the order determined previously:
-            <ol>
-              <li>If this <a>AudioNode</a> has any <a>AudioNode</a>s connected
-              to it, <a href="#SummingJunction">sum</a> the buffers <a href=
-              "available">made available for reading</a> by all
-              <a>AudioNode</a>s connected to this <a>AudioNode</a>. The
-              resulting buffer is called the <dfn>input buffer</dfn>.
-                <a href="#channel-up-mixing-and-down-mixing">Up or down-mix</a>
-                it to match if number of input channels of this
-                <a>AudioNode</a>.
+              <li>For each <a>DelayNode</a> in a cycle, <a href=
+              "available">make available for reading</a> a block of audio from
+              the <a>DelayNode</a> buffer, available for reading.
               </li>
-              <li>If this <a>AudioNode</a> is a <a>source node</a>, <a href=
-              "computing">compute a block of audio</a>, and <a href=
-              "available">make it available for reading</a>.
-              </li>
-              <li>Else, if this <a>AudioNode</a> is a <a>destination node</a>,
-              <a href="record">record the input</a> of this <a>AudioNode</a>.
-              </li>
-              <li>Else, <a>process</a> the <a>input buffer</a>, and <a href=
-              "available">make available for reading</a> the resulting buffer.
+              <li>For each <a>AudioNode</a>, in the order determined
+              previously:
+                <ol>
+                  <li>If this <a>AudioNode</a> has any <a>AudioNode</a>s
+                  connected to it, <a href="#SummingJunction">sum</a> the
+                  buffers <a href="available">made available for reading</a> by
+                  all <a>AudioNode</a>s connected to this <a>AudioNode</a>. The
+                  resulting buffer is called the <dfn>input buffer</dfn>.
+                  <a href="#channel-up-mixing-and-down-mixing">Up or
+                  down-mix</a> it to match if number of input channels of this
+                  <a>AudioNode</a>.
+                  </li>
+                  <li>If this <a>AudioNode</a> is a <a>source node</a>,
+                    <a href="computing">compute a block of audio</a>, and
+                    <a href="available">make it available for reading</a>.
+                  </li>
+                  <li>Else, if this <a>AudioNode</a> is a <a>destination
+                  node</a>, <a href="record">record the input</a> of this
+                  <a>AudioNode</a>.
+                  </li>
+                  <li>Else, <a>process</a> the <a>input buffer</a>, and
+                    <a href="available">make available for reading</a> the
+                    resulting buffer.
+                  </li>
+                </ol>
               </li>
             </ol>
           </li>
         </ol>
-        </li>
-      </ol>
         <p>
           <dfn id="available">Making a buffer available for reading</dfn> from
           an <a>AudioNode</a> means putting it in a state where other

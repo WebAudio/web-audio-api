@@ -1391,10 +1391,15 @@ function setupRoutingGraph() {
           hardware, but instead renders as quickly as possible, fulfilling the
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
-        </p>The OfflineAudioContext is constructed with the same arguments as
-        AudioContext.createBuffer. A NotSupportedException exception MUST be
-        thrown if any of the arguments is negative, zero, or outside its
-        nominal range.
+        </p>
+        </p>
+        <p>
+          The <a><code>OfflineAudioContext</code></a> is constructed with the
+          same arguments as
+          <a href= "#widl-AudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+          createBuffer</a>. A NotSupportedError exception MUST be thrown if any
+          of the arguments is negative, zero, or outside its nominal range.
+        </p>
         <dl class="parameters">
           <dt>
             unsigned long numberOfChannels
@@ -1458,11 +1463,23 @@ function setupRoutingGraph() {
                   start rendering <code>length</code> sample-frames of audio
                   into <var>buffer</var>.
                   </li>
-                  <li>For every render quantum, check and suspend the rendering
-                  if necessary.
+                  <li>At the beginning of every render quantum, check scheduled
+                    suspension and suspend the rendering if necessary. When the
+                    rendering is suspended,
+                    <ol>
+                      <li>Resolve the promise associated with the
+                      suspension.</li>
+                      <li>Queue a task to fire an even named
+                      <code>statechange</code> at this instance.</li>
+                    </ol>
                   </li>
                   <li>If a suspended context is resumed, continue to render the
-                  buffer.
+                  buffer. When the context is resumed,
+                    <ol>
+                      <li>Resolve the promise associated with the resume.</li>
+                      <li>Queue a task to fire an even named
+                      <code>statechange</code> at this instance.</li>
+                    </ol>
                   </li>
                   <li>Once the rendering is complete,
                     <ol>
@@ -1489,10 +1506,10 @@ function setupRoutingGraph() {
             <p>
               Resumes the progression of time in an audio context that has been
               suspended. The promise resolves immediately because the
-              <a><code>OfflineAudioContext</code></a> does not require the
-              audio hardware. If the context is not currently suspended or the
-              rendering has not started, the promise is rejected with
-              <code>InvalidStateError</code>.
+              <a><code>OfflineAudioContext</code></a> does not have to wait for
+              the audio hardware to wake up. Resuming a running context also
+              resolves immediately. If the rendering has not started, the
+              promise is rejected with <code>InvalidStateError</code>.
             </p>
           </dd>
           <dt>

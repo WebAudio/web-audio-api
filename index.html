@@ -510,8 +510,8 @@ function setupRoutingGraph() {
           MediaStream sent to a remote peer.
           </li>
           <li>An <a><code>AudioWorker</code></a> interface representing a
-          factory for creating <code>WebWorker</code>-based custom nodes that
-          can process audio directly in JavaScript.
+          factory for creating custom nodes that can process audio directly in
+          JavaScript.
           </li>
           <li>An <a><code>AudioWorkerNode</code></a> interface, an
           <a><code>AudioNode</code></a> representing a node processed in an
@@ -729,12 +729,17 @@ function setupRoutingGraph() {
           <dd>
             <p>
               This is a time in seconds which starts at zero when the context
-              is created and increases in real-time. All scheduled times are
+              is created, and all schedule times (for <code>start()</code>,
+              <code>stop()</code>, and AudioParam automation methods, e.g.) are
               relative to it. When the <a><code>AudioContext</code></a> is in
               the <a href=
               "#idl-def-AudioContextState.running"><code>running</code></a>
-              state, the value of this attribute is always moving forward,
-              monotonically increasing.
+              state, the value of this attribute is monotonically increasing
+              (although not uniformly increasing). <code>currentTime</code>
+              increases as the system processes audio blocks - it represents
+              the time of the start of the next audio block that has not been
+              processed, or in other words, the earliest possible time when any
+              change scheduled in the current state might take effect.
             </p>
           </dd>
           <dt>
@@ -1674,7 +1679,7 @@ function setupRoutingGraph() {
         </dl>
         <dl title="interface AudioNode : EventTarget" class="idl">
           <dt>
-            void connect()
+            AudioNode connect()
           </dt>
           <dd>
             <dl class="parameters">
@@ -1688,7 +1693,9 @@ function setupRoutingGraph() {
                 <a><code>AudioNode</code></a> that has been created using
                 another <a><code>AudioContext</code></a>, an InvalidAccessError
                 MUST be thrown. That is, <a><code>AudioNodes</code></a> cannot
-                be shared between <a><code>AudioContext</code></a>.
+                be shared between <a><code>AudioContext</code></a>. The
+                <code>destination</code> is also returned by
+                <code>connect</code> in order to enable easy chaining.
               </dd>
               <dt>
                 optional unsigned long output = 0
@@ -1727,21 +1734,24 @@ function setupRoutingGraph() {
             <pre class="highlight example">
     nodeA.connect(nodeB);
     nodeA.connect(nodeB);
-    </pre>
+    
+</pre>
             <p>
               will have the same effect as
             </p>
             <pre class="highlight example">
       nodeA.connect(nodeB);
-    </pre>
+    
+</pre>
           </dd>
           <dt>
-            void connect()
+            AudioParam connect()
           </dt>
           <dd>
             Connects the <a><code>AudioNode</code></a> to an
             <a><code>AudioParam</code></a>, controlling the parameter value
-            with an audio-rate signal.
+            with an audio-rate signal. The <code>destination</code> is also
+            returned by this method in order to enable easy chaining.
             <dl class="parameters">
               <dt>
                 AudioParam destination
@@ -1791,10 +1801,12 @@ function setupRoutingGraph() {
             <pre class="highlight">
       nodeA.connect(param);
       nodeA.connect(param);
-    </pre>will have the same effect as
+    
+</pre>will have the same effect as
             <pre>
       nodeA.connect(param);
-    </pre>
+    
+</pre>
           </dd>
           <dt>
             void disconnect()
@@ -2361,7 +2373,8 @@ function setupRoutingGraph() {
               $$
                 v(t) = V
               $$
-            </pre>
+            
+</pre>
             <p>
               In other words, the value will remain constant during this time
               interval, allowing the creation of "step" functions.
@@ -2413,7 +2426,8 @@ function setupRoutingGraph() {
               $$
                 v(t) = V_0 + (V_1 - V_0) \frac{t - T_0}{T_1 - T_0}
               $$
-            </pre>
+            
+</pre>
             <p>
               Where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the
               <code>value</code> parameter passed into this method.
@@ -2444,7 +2458,8 @@ function setupRoutingGraph() {
               $$
                 v(t) = V_0 \left(\frac{V_1}{V_0}\right)^\frac{t - T_0}{T_1 - T_0}
               $$
-            </pre>
+            
+</pre>
             <p>
               where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the
               <code>value</code> parameter passed into this method. It is an
@@ -2541,7 +2556,8 @@ function setupRoutingGraph() {
               $$
                 v(t) = V_1 + (V_0 - V_1)\, e^{-\left(\frac{t - T_0}{\tau}\right)}
               $$
-            </pre>
+            
+</pre>
             <p>
               where \(V_0\) is the initial value (the <code>.value</code>
               attribute) at \(T_0\) (the <code>startTime</code> parameter),
@@ -2599,7 +2615,7 @@ function setupRoutingGraph() {
             </p>
             <pre>
               $$
-                \begin{align*} k &amp;= \big\lfloor \frac{N}{T_D}(t-T_0) \big\rfloor \\
+                \begin{align*} k &amp;= \left\lfloor \frac{N - 1}{T_D}(t-T_0) \right\rfloor \\
                 \end{align*}
               $$
             </pre>
@@ -2690,7 +2706,8 @@ function setupRoutingGraph() {
               An example of parameter automation.
             </figcaption>
           </figure>
-          <pre class="code example"><code class="es-code highlight">
+          <pre class="code example">
+<code class="es-code highlight">
 var curveLength = 44100;
 var curve = new Float32Array(curveLength);
 for (var i = 0; i &lt; curveLength; ++i)
@@ -2722,7 +2739,8 @@ param.setValueAtTime(0.5 + (0.8 - 0.5)*Math.exp(-(t5 - t4)/timeConstant), t5);
 param.exponentialRampToValueAtTime(0.75, t6);
 param.exponentialRampToValueAtTime(0.05, t7);
 param.setValueCurveAtTime(curve, t7, t8 - t7);
-</code></pre>
+</code>
+</pre>
         </section>
       </section>
       <section>
@@ -3083,7 +3101,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             Indicates if the audio data should play in a loop. The default
-            value is false.
+            value is false. If <code>loop</code> is dynamically modified during
+            playback, the new value will take effect on the next processing
+            block of audio.
           </dd>
           <dt>
             attribute double loopStart
@@ -3097,6 +3117,16 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             rounding to the nearest integer value. Thus its behavior is
             independent of the value of the <a href=
             "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
+            parameter. <code>loop</code> attribute is true. Its default
+            <code>value</code> is 0, and it may usefully be set to any value
+            between 0 and the duration of the buffer. If loopStart is less than
+            0, looping will begin at 0. If loopStart is greater than the
+            duration of the buffer, looping will begin at the end of the
+            buffer. This attribute is converted to an exact sample frame offset
+            within the buffer by multiplying by the buffer's sample rate and
+            rounding to the nearest integer value. Thus its behavior is
+            independent of the value of the <a href=
+            "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
             parameter.
           </dd>
           <dt>
@@ -3105,13 +3135,17 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <dd>
             An optional value in seconds where looping should end if the
             <code>loop</code> attribute is true. Its value is exclusive of the
-            loop content: the sample frames comprising the loop run from the
-            values <code>loopStart</code> to <code>loopEnd-1</code>. Its
-            default value is 0, and it may usefully be set to any value between
-            0 and the duration of the buffer. This attribute is converted to an
-            exact sample frame offset within the buffer by multiplying by the
-            buffer's sample rate and rounding to the nearest integer value.
-            Thus its behavior is independent of the value of the <a href=
+            content of the loop: the sample frames comprising the loop run from
+            the values <code>loopStart</code> to
+            <code>loopEnd-(1.0/sampleRate)</code>. Its default
+            <code>value</code> is 0, and it may usefully be set to any value
+            between 0 and the duration of the buffer. If loopEnd is less than
+            0, looping will end at 0. If loopEnd is greater than the duration
+            of the buffer, looping will end at the end of the buffer. This
+            attribute is converted to an exact sample frame offset within the
+            buffer by multiplying by the buffer's sample rate and rounding to
+            the nearest integer value. Thus its behavior is independent of the
+            value of the <a href=
             "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
             parameter.
           </dd>
@@ -3146,11 +3180,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 offset time in the buffer (in seconds) where playback will
                 begin. If 0 is passed in for this value, then playback will
                 start from the beginning of the buffer. A TypeError exception
-                MUST be thrown if <code>offset</code> is negative. This
-                parameter is converted to an exact sample frame offset within
-                the buffer by multiplying by the buffer's sample rate and
-                rounding to the nearest integer value. Thus its behavior is
-                independent of the value of the <a href=
+                MUST be thrown if <code>offset</code> is negative. If
+                <code>offset</code> is greater than <code>loopEnd</code>,
+                playback will begin at <code>loopEnd</code> (and immediately
+                loop to <code>loopStart</code>). This parameter is converted to
+                an exact sample frame offset within the buffer by multiplying
+                by the buffer's sample rate and rounding to the nearest integer
+                value. Thus its behavior is independent of the value of the
+                <a href=
                 "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
                 parameter.
               </dd>
@@ -3379,15 +3416,14 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           AudioWorker.
         </p>
         <p>
-          These main thread objects cause the instantiation of a Web
-          Worker-like thread context (Described in [[!Workers]]), which
-          executes in the audio thread. All audio processing by
-          AudioWorkerNodes run in the audio processing thread. This has a few
-          side effects that bear mentioning: blocking the audio worker's thread
-          can cause glitches in the audio, and if the audio thread is normally
-          elevated in thread priority (to reduce glitching possibility), it
-          must be demoted to normal thread priority (in order to avoid
-          escalating thread priority of user-supplied script code).
+          These main thread objects cause the instantiation of a processing
+          context in the audio thread. All audio processing by AudioWorkerNodes
+          runs in the audio processing thread. This has a few side effects that
+          bear mentioning: blocking the audio worker's thread can cause
+          glitches in the audio, and if the audio thread is normally elevated
+          in thread priority (to reduce glitching possibility), it must be
+          demoted to normal thread priority (in order to avoid escalating
+          thread priority of user-supplied script code).
         </p>
         <p>
           From inside an audio worker script, the Audio Worker factory is
@@ -3409,16 +3445,14 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             void terminate()
           </dt>
           <dd>
-            The terminate() method, when invoked, must cause the <a href=
-            "http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate a
-            worker"</a> algorithm to be run on the worker with which the object
-            is associated. This will cease any <a>AudioProcessEvent</a>s being
-            dispatched inside the AudioWorker's associated
-            <a>AudioWorkerGlobalScope</a>, will cause all associated
-            AudioWorkerNodes to cease processing, and will cause the
-            destruction of the worker thread. In practical terms, this means
-            all nodes created from this AudioWorker will disconnect themselves,
-            and will cease performing any useful functions.
+            The terminate() method, when invoked, must cause the cessation of
+            any <a>AudioProcessEvent</a>s being dispatched inside the
+            AudioWorker's associated <a>AudioWorkerGlobalScope</a>. It will
+            also cause all associated AudioWorkerNodes to cease processing, and
+            will cause the destruction of the worker's context. In practical
+            terms, this means all nodes created from this AudioWorker will
+            disconnect themselves, and will cease performing any useful
+            functions.
           </dd>
           <dt>
             void postMessage(any message, optional sequence&lt;Transferable&gt;
@@ -3426,7 +3460,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           </dt>
           <dd>
             postMessage may be called to send a message to the
-            <a>AudioWorkerGlobalScope</a>, via the algorithm defined by
+            <a>AudioWorkerGlobalScope</a>, similar to the algorithm defined by
             [[!Workers]].
           </dd>
           <dt>
@@ -3811,7 +3845,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             <h5>
               Main file javascript
             </h5>
-            <pre class="highlight">var bitcrusherFactory = null;
+            <pre class="highlight">
+var bitcrusherFactory = null;
 audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
     {  // cache 'factory' in case you want to create more nodes!
       bitcrusherFactory = factory;
@@ -3820,7 +3855,8 @@ audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory)
       bitcrusherNode.connect(output); 
       input.connect(bitcrusherNode);
     }
-  );</pre>
+  );
+</pre>
             <h5>
               bitcrusher_worker.js
             </h5>
@@ -3857,7 +3893,8 @@ onaudioprocess= function (e) {
       outputBuffer[i] = e.node.lastDataValue;
     }
   }
-};</pre>
+};
+</pre>
           </section>
           <section>
             <h4>
@@ -3982,7 +4019,8 @@ onaudioprocess = function ( event ) {
         "clip": event.node.clipping });
     event.node.unsentClip = false;
   }
-};</pre>
+};
+</pre>
           </section>
           <section>
             <h4>
@@ -3996,8 +4034,10 @@ onaudioprocess = function ( event ) {
               Main file javascript
             </h5>
             <pre class="highlight">
-            var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );</pre>
-            <pre class="highlight">var mergerFactory = null;
+            var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );
+</pre>
+            <pre class="highlight">
+var mergerFactory = null;
 
 audioContext.createAudioWorker("merger_worker.js").then( function(factory) 
     {  // cache 'factory' in case you want to create more nodes!
@@ -4005,7 +4045,8 @@ audioContext.createAudioWorker("merger_worker.js").then( function(factory)
       var merger6channelNode = factory.createNode( [1,1,1,1,1,1], [6] );
       // connect inputs and outputs here
     }
-  );</pre>
+  );
+</pre>
             <h5>
               merger_worker.js
             </h5>
@@ -4013,7 +4054,8 @@ audioContext.createAudioWorker("merger_worker.js").then( function(factory)
 onaudioprocess= function (e) {
   for (var input=0; input&lt;e,node.inputs.length; input++)
     e.node.outputs[0][input].set(e.node.inputs[input][0]);
-};</pre>
+};
+</pre>
           </section>
         </section>
       </section>
@@ -4355,7 +4397,8 @@ onaudioprocess= function (e) {
             $$
               1 - f\frac{\max(\min(d, d_{max}), d_{ref}) - d_{ref}}{d_{max} - d_{ref}}
             $$
-            </pre>
+            
+</pre>
             <p>
               That is, \(d\) is clamped to the interval \([d_{ref},\,
               d_{max}]\).
@@ -4373,7 +4416,8 @@ onaudioprocess= function (e) {
               $$
                 \frac{d_{ref}}{d_{ref} + f (\max(d, d_{ref}) - d_{ref})}
               $$
-            </pre>
+            
+</pre>
             <p>
               That is, \(d\) is clamped to the interval \([d_{ref},\,
               \infty)\).
@@ -4391,7 +4435,8 @@ onaudioprocess= function (e) {
               $$
                 \left(\frac{\max(d, d_{ref})}{d_{ref}}\right)^{-f}
               $$
-            </pre>
+            
+</pre>
             <p>
               That is, \(d\) is clamped to the interval \([d_{ref},\,
               \infty)\).
@@ -4601,11 +4646,13 @@ onaudioprocess= function (e) {
           connected to the destination node; subsequent processing (after the
           SpatialPanner, before the destination) may disrupt the effects.
         </p>
-        <pre>    numberOfInputs  : 1
+        <pre>
+    numberOfInputs  : 1
     numberOfOutputs : 1
     channelCount = 2;
     channelCountMode = "clamped-max";
-    channelInterpretation = "speakers";</pre>
+    channelInterpretation = "speakers";
+</pre>
         <p>
           The input of this node is either mono (1 channel) or stereo (2
           channels) and cannot be increased. Connections from nodes with more
@@ -4651,7 +4698,8 @@ onaudioprocess= function (e) {
             A linear distance model which calculates <em>distanceGain</em>
             according to:
             <pre>
-            1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)</pre>
+            1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance)
+</pre>
           </dd>
           <dt>
             inverse
@@ -4660,7 +4708,8 @@ onaudioprocess= function (e) {
             An inverse distance model which calculates <em>distanceGain</em>
             according to:
             <pre>
-            refDistance / (refDistance + rolloffFactor * (distance - refDistance))</pre>
+            refDistance / (refDistance + rolloffFactor * (distance - refDistance))
+</pre>
           </dd>
           <dt>
             exponential
@@ -4668,7 +4717,9 @@ onaudioprocess= function (e) {
           <dd>
             An exponential distance model which calculates
             <em>distanceGain</em> according to:
-            <pre>pow(distance / refDistance, -rolloffFactor)</pre>
+            <pre>
+pow(distance / refDistance, -rolloffFactor)
+</pre>
           </dd>
         </dl>
         <dl title="interface SpatialPannerNode : AudioNode" class="idl">
@@ -5065,7 +5116,8 @@ float calculateNormalizationScale(buffer)
 
     return scale;
 }
-      </pre>
+      
+</pre>
             <p>
               During processing, the ConvolverNode will then take this
               calculated <em>normalizationScale</em> value and multiply it by
@@ -5148,7 +5200,8 @@ float calculateNormalizationScale(buffer)
                     b[k] = \frac{255}{\mbox{dB}_{max} - \mbox{dB}_{min}}
                      \left(Y[k] - \mbox{dB}_{min}\right)
                   $$
-              </pre>
+              
+</pre>
             <p>
               where \(\mbox{dB}_{min}\) is <code><a>minDecibels</a></code> and
               \(\mbox{dB}_{max}\) is <code><a>maxDecibels</a></code>. If
@@ -5206,7 +5259,8 @@ float calculateNormalizationScale(buffer)
               $$
                 b[k] = 128(1 + x[k]).
               $$
-              </pre>
+              
+</pre>
             <p>
               If \(b[k]\) lies outside the range 0 to 255, \(b[k]\) is clipped
               to lie in that range.
@@ -5311,7 +5365,8 @@ float calculateNormalizationScale(buffer)
              w[n] &amp;= a_0 - a_1 \cos\frac{2\pi n}{N} + a_2 \cos\frac{4\pi n}{N}, \mbox{ for } n = 0, \ldots, N - 1
            \end{align*}
            $$
-          </pre>
+          
+</pre>
           <p>
             The windowed signal \(\hat{x}[n]\) is
           </p>
@@ -5319,7 +5374,8 @@ float calculateNormalizationScale(buffer)
             $$
               \hat{x}[n] = x[n] w[n], \mbox{ for } n = 0, \ldots, N - 1
             $$
-          </pre>
+          
+</pre>
           <p>
             <dfn id="fourier-transform">Applying a Fourier tranform</dfn>
             consists of computing the Fourier transform in the following way.
@@ -5331,7 +5387,8 @@ float calculateNormalizationScale(buffer)
             $$
               X[k] = \sum_{n = 0}^{N - 1} \hat{x}[n] e^{\frac{-2\pi i k n}{N}}
             $$
-          </pre>
+          
+</pre>
           <p>
             for \(k = 0, \dots, N/2-1\).
           </p>
@@ -5363,7 +5420,8 @@ float calculateNormalizationScale(buffer)
             $$
               \hat{X}[k] = \tau\, \hat{X}_{-1}[k] + (1 - \tau)\, |X[k]|
             $$
-          </pre>
+          
+</pre>
           <p>
             for \(k = 0, \ldots, N - 1\).
           </p>
@@ -5376,7 +5434,8 @@ float calculateNormalizationScale(buffer)
           $$
             Y[k] = 20\log_{10}\hat{X}[k]
           $$
-          </pre>
+          
+</pre>
           <p>
             for \(k = 0, \ldots, N-1\).
           </p>
@@ -6042,7 +6101,8 @@ float calculateNormalizationScale(buffer)
   H(z) = \frac{\frac{b_0}{a_0} + \frac{b_1}{a_0}z^{-1} + \frac{b_2}{a_0}z^{-2}}
               {1+\frac{a_1}{a_0}z^{-1}+\frac{a_2}{a_0}z^{-2}}
   $$
-            </pre>
+            
+</pre>
           <p>
             The initial filter state is 0.
           </p>The coefficients in the transfer function above are different for
@@ -6079,7 +6139,8 @@ $$
   \alpha_S &amp;= \frac{\sin\omega_0}{2}\sqrt{\left(A+\frac{1}{A}\right)\left(\frac{1}{S}-1\right)+2}
 \end{align*}
 $$
-            </pre>
+            
+</pre>
             </li>
           </ul>The six coefficients (\(b_0, b_1, b_2, a_0, a_1, a_2\)) for each
           filter type, are:
@@ -6099,7 +6160,8 @@ $$
                     a_2 &amp;= 1 - \alpha_B
                   \end{align*}
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               <code>highpass</code>
@@ -6116,7 +6178,8 @@ $$
                       a_2 &amp;= 1 - \alpha_B
                     \end{align*}
                   $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               <code>bandpass</code>
@@ -6133,7 +6196,8 @@ $$
                   a_2 &amp;= 1 - \alpha_Q
                 \end{align*}
               $$
-            </pre>
+            
+</pre>
             </dd>
             <dt>
               <code>notch</code>
@@ -6150,7 +6214,8 @@ $$
                     a_2 &amp;= 1 - \alpha_Q
                   \end{align*}
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               <code>allpass</code>
@@ -6167,7 +6232,8 @@ $$
                     a_2 &amp;= 1 - \alpha_Q
                   \end{align*}
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               <code>peaking</code>
@@ -6184,7 +6250,8 @@ $$
                     a_2 &amp;= 1 - \frac{\alpha_Q}{A}
                   \end{align*}
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               <code>lowshelf</code>
@@ -6201,7 +6268,8 @@ $$
                     a_2 &amp;= (A+1) + (A-1) \cos\omega_0 - 2 \alpha_S \sqrt{A})
                   \end{align*}
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               <code>highshelf</code>
@@ -6218,7 +6286,8 @@ $$
                     a_2 &amp;= (A+1) - (A-1)\cos\omega_0 - 2\alpha_S\sqrt{A}
                   \end{align*}
                 $$
-              </pre>
+              
+</pre>
             </dd>
           </dl>
         </section>
@@ -6312,7 +6381,8 @@ $$
             $$
               H(z) = \frac{\sum_{m=0}^{M} b_m z^{-m}}{\sum_{n=0}^{N} a_n z^{-n}}
             $$
-          </pre>
+          
+</pre>
           <p>
             where \(M + 1\) is the length of the \(b\) array and \(N + 1\) is
             the length of the \(a\) array. The coefficient \(a_0\) cannot be 0.
@@ -6325,7 +6395,8 @@ $$
             $$
               \sum_{k=0}^{N} a_k y(n-k) = \sum_{k=0}^{M} b_k x(n-k)
             $$
-          </pre>
+          
+</pre>
           <p>
             The initial filter state is the all-zeroes state.
           </p>
@@ -6634,7 +6705,8 @@ $$
                 $$
                   x(t) = \sin t
                 $$.
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               "square"
@@ -6648,7 +6720,8 @@ $$
                          -1 & \mbox{for } -\pi &lt; t &lt; 0.
                          \end{cases}
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               "sawtooth"
@@ -6659,7 +6732,8 @@ $$
                 $$
                   x(t) = \frac{t}{\pi} \mbox{ for } -\pi &lt; t ≤ \pi;
                 $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               "triangle"
@@ -6674,8 +6748,9 @@ $$
                            \frac{\pi}{2} &lt; t ≤ \pi.
                          \end{cases}
                 $$
-              </pre>This is extended to all \(t\) by using the fact that the
-waveform is an odd function with period \(2\pi\).
+              
+</pre>This is extended to all \(t\) by using the fact that the waveform is an
+odd function with period \(2\pi\).
             </dd>
           </dl>
         </section>
@@ -6725,7 +6800,8 @@ waveform is an odd function with period \(2\pi\).
             $$
               x(t) = \sum_{k=1}^{L-1} \left(a[k]\cos2\pi k t + b[k]\sin2\pi k t\right)
             $$
-          </pre>
+          
+</pre>
           <p>
             This is the basic (unnormalized) waveform.
           </p>
@@ -6746,7 +6822,8 @@ waveform is an odd function with period \(2\pi\).
           $$
             \tilde{x}(n) = \sum_{k=1}^{L-1} \left(a[k]\cos\frac{2\pi k n}{N} + b[k]\sin\frac{2\pi k n}{N}\right)
           $$
-          </pre>
+          
+</pre>
           <p>
             where \(N\) is a power of two. (Note: \(\tilde{x}(n)\) can
             conveniently be computed using an inverse FFT.) The fixed
@@ -6756,7 +6833,8 @@ waveform is an odd function with period \(2\pi\).
             $$
               f = \max_{n = 0, \ldots, N - 1} |\tilde{x}(n)|
             $$
-          </pre>
+          
+</pre>
           <p>
             Thus, the actual normalized waveform \(\hat{x}(n)\) is
           </p>
@@ -6764,7 +6842,8 @@ waveform is an odd function with period \(2\pi\).
             $$
               \hat{x}(n) = \frac{\tilde{x}(n)}{f}
             $$
-          </pre>
+          
+</pre>
           <p>
             This fixed normalization factor must be applied to all generated
             waveforms.
@@ -6802,7 +6881,8 @@ waveform is an odd function with period \(2\pi\).
                              0 & \mbox{otherwise}
                            \end{cases}
                   $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               "square"
@@ -6812,7 +6892,8 @@ waveform is an odd function with period \(2\pi\).
                   $$
                     b[n] = \frac{2}{n\pi}\left[1 - (-1)^n\right]
                   $$
-              </pre>
+              
+</pre>
             </dd>
             <dt>
               "sawtooth"
@@ -6822,7 +6903,8 @@ waveform is an odd function with period \(2\pi\).
                 $$
                   b[n] = (-1)^{n+1} \dfrac{2}{n\pi}
                 $$
-            </pre>
+            
+</pre>
             </dd>
             <dt>
               "triangle"
@@ -6832,7 +6914,8 @@ waveform is an odd function with period \(2\pi\).
                   $$
                     b[n] = \frac{8\sin\dfrac{n\pi}{2}}{(\pi n)^2}
                   $$
-              </pre>
+              
+</pre>
             </dd>
           </dl>
         </section>
@@ -7080,7 +7163,8 @@ waveform is an odd function with period \(2\pi\).
       // A "mixing board" UI could be created in canvas or WebGL controlling these gains.
   }
 
-   </pre>
+   
+</pre>
       </section>
     </section>
     <section>
@@ -7358,8 +7442,10 @@ function playSound() {
     Stereo
       0: L: left
       1: R: right
-    </pre>
-        <pre>  Quad
+    
+</pre>
+        <pre>
+  Quad
       0: L:  left
       1: R:  right
       2: SL: surround left
@@ -7372,13 +7458,15 @@ function playSound() {
       3: LFE: subwoofer
       4: SL:  surround left
       5: SR:  surround right
-  </pre>
+  
+</pre>
       </section>
       <section>
         <h4 id="UpMix-sub">
           Up Mixing speaker layouts
         </h4>
-        <pre>Mono up-mix:
+        <pre>
+Mono up-mix:
 
     1 -&gt; 2 : up-mix from mono to stereo
         output.L = input;
@@ -7422,7 +7510,8 @@ Quad up-mix:
         output.C = 0;
         output.LFE = 0;
         output.SL = input.SL;
-        output.SR = input.SR;</pre>
+        output.SR = input.SR;
+</pre>
       </section>
       <section>
         <h4 id="down-mix">
@@ -7463,7 +7552,8 @@ Quad up-mix:
           output.SL = input.SL
           output.SR = input.SR
 
-  </pre>
+  
+</pre>
       </section>
       <section class="informative">
         <h3 id="ChannelRules-section">
@@ -7495,7 +7585,8 @@ Quad up-mix:
   gain.channelCount = 1;
   gain.channelCountMode = "explicit";
   gain.channelInterpretation = "speakers";
-  </pre>
+  
+</pre>
       </section>
     </section>
     <section>
@@ -7603,7 +7694,8 @@ Quad up-mix:
       elevation = 180 - elevation;
   else if (elevation &lt; -90)
       elevation = -180 - elevation;
-  </pre>
+  
+</pre>
       </section>
       <section>
         <h3 id="Spatialization-panning-algorithm">
@@ -7654,7 +7746,8 @@ Quad up-mix:
     azimuth = -180 - azimuth;
   else if (azimuth &gt; 90)
     azimuth = 180 - azimuth;
-        </pre>
+        
+</pre>
             </li>
             <li>
               <p>
@@ -7663,7 +7756,8 @@ Quad up-mix:
               </p>
               <pre class="highlight">
   x = (azimuth + 90) / 180;
-        </pre>
+        
+</pre>
               <p>
                 Or for a stereo input as:
               </p>
@@ -7675,7 +7769,8 @@ Quad up-mix:
     // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
     x = azimuth / 90;
   }
-        </pre>
+        
+</pre>
             </li>
           </ol>
           <p>
@@ -7697,7 +7792,8 @@ Quad up-mix:
               <pre class="highlight">
 pan = max(-1, pan);
 pan = min(1, pan);
-        </pre>
+        
+</pre>
             </li>
             <li>
               <p>
@@ -7706,7 +7802,8 @@ pan = min(1, pan);
               </p>
               <pre class="highlight">
 x = (pan + 1) / 2;
-        </pre>
+        
+</pre>
               <p>
                 For stereo input:
               </p>
@@ -7715,7 +7812,8 @@ if (pan &lt;= 0)
   x = pan + 1;
 else
   x = pan;
-        </pre>
+        
+</pre>
             </li>
           </ol>
           <p>
@@ -7729,7 +7827,8 @@ else
               <pre class="highlight">
 gainL = cos(x * Math.PI / 2);
 gainR = sin(x * Math.PI / 2);
-        </pre>
+        
+</pre>
             </li>
             <li>
               <p>
@@ -7738,7 +7837,8 @@ gainR = sin(x * Math.PI / 2);
               <pre class="highlight">
 outputL = input * gainL;
 outputR = input * gainR;
-        </pre>
+        
+</pre>
               <p>
                 Else for stereo input, the output is calculated as:
               </p>
@@ -7752,7 +7852,8 @@ if (pan &lt;= 0) {
   outputL = inputL * gainL;
   outputR = inputR + inputL * gainR;
 }
-        </pre>
+        
+</pre>
             </li>
           </ol>
         </section>
@@ -7793,10 +7894,12 @@ if (pan &lt;= 0) {
         </p>
         <pre class="highlight">
   v = panner.position - listener.position
-  </pre>
+  
+</pre>
         <pre class="highlight">
   distance = sqrt(dot(v, v))
-  </pre>
+  
+</pre>
         <p>
           <em>distance</em> will then be used to calculate
           <em>distanceGain</em> which depends on the <em>distanceModel</em>
@@ -7865,7 +7968,8 @@ if (pan &lt;= 0) {
   }
 
   return gain;
-  </pre>
+  
+</pre>
       </section>
       <section>
         <h3 id="Spatialization-doppler-shift">
@@ -7917,7 +8021,8 @@ if (pan &lt;= 0) {
           dopplerShift = max(dopplerShift, 0.125);
       }
   }
-  </pre>
+  
+</pre>
       </section>
     </section>
     <section>

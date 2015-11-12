@@ -4990,11 +4990,8 @@ pow(distance / refDistance, -rolloffFactor)
           The ConvolverNode Interface
         </h2>
         <p>
-          This interface represents a processing node which applies a <a href=
-          "#Convolution">linear convolution effect</a> given an impulse
-          response. Normative requirements for multi-channel convolution
-          matrixing are described <a href=
-          "#Convolution-reverb-effect">here</a>.
+          This interface represents a processing node which applies a linear
+          convolution effect given an impulse response.
         </p>
         <pre>
     numberOfInputs  : 1
@@ -5124,6 +5121,41 @@ float calculateNormalizationScale(buffer)
             </p>
           </dd>
         </dl>
+        <section>
+          <h3 id="Convolution-channel-configurations">
+            Channel Configurations for Input, Impulse Response and Output
+          </h3>
+          <p>
+            Implementations MUST support the following allowable configurations
+            of impulse response channels in a <a><code>ConvolverNode</code></a>
+            to achieve various reverb effects with 1 or 2 channels of input.
+          </p>
+          <p>
+            The first image in the diagram illustrates the general case, where
+            the source has N input channels, the impulse response has K
+            channels, and the playback system has M output channels. Because
+            <a><code>ConvolverNode</code></a> is limited to 1 or 2 channels of
+            input, not every case can be handled.
+          </p>
+          <p>
+            Single channel convolution operates on a mono audio input, using a
+            mono impulse response, and generating a mono output. The remaining
+            images in the diagram illustrate the supported cases for mono and
+            stereo playback where N and M are 1 or 2 and K is 1, 2, or 4.
+            Developers desiring more complex and arbitrary matrixing can use a
+            <a><code>ChannelSplitterNode</code></a>, multiple single-channel
+            <a><code>ConvolverNode</code></a>s and a
+            <a><code>ChannelMergerNode</code></a>.
+          </p>
+          <figure>
+            <img alt="reverb matrixing" src="images/reverb-matrixing.png">
+            <figcaption>
+              A graphical representation of supported input and output channel
+              count possibilities when using a
+              <a><code>ConvolverNode</code></a>.
+            </figcaption>
+          </figure>
+        </section>
       </section>
       <section>
         <h2>
@@ -8017,110 +8049,6 @@ if (pan &lt;= 0) {
   
 </pre>
       </section>
-    </section>
-    <section>
-      <h2 id="Convolution">
-        Linear Effects using Convolution
-      </h2>
-      <section>
-        <h3 id="Convolution-background">
-          Background
-        </h3>
-        <p>
-          <a href="https://en.wikipedia.org/wiki/Convolution">Convolution</a>
-          is a mathematical process which can be applied to an audio signal to
-          achieve many interesting high-quality linear effects. Very often, the
-          effect is used to simulate an acoustic space such as a concert hall,
-          cathedral, or outdoor amphitheater. It can also be used for complex
-          filter effects, like a muffled sound coming from inside a closet,
-          sound underwater, sound coming through a telephone, or playing
-          through a vintage speaker cabinet. This technique is very commonly
-          used in major motion picture and music production and is considered
-          to be extremely versatile and of high quality.
-        </p>
-        <p>
-          Each unique effect is defined by an <em>impulse response</em>. An
-          impulse response can be represented as an audio file and <a href=
-          "#recording-impulse-responses">can be recorded</a> from a real
-          acoustic space such as a cave, or can be synthetically generated
-          through a great variety of techniques.
-        </p>
-      </section>
-    </section>
-    <section>
-      <h3 id="Convolution-motivation">
-        Motivation for use as a Standard
-      </h3>
-      <p>
-        A key feature of many game audio engines (OpenAL, FMOD, Creative's EAX,
-        Microsoft's XACT Audio, etc.) is a reverberation effect for simulating
-        the sound of being in an acoustic space. The code used to generate this
-        effect has generally been custom and algorithmic (generally using a
-        hand-tweaked set of delay lines and allpass filters which feedback into
-        each other). In nearly all cases, not only is the implementation
-        custom, but the code is proprietary and closed-source, each company
-        adding its own "black magic" to achieve its unique quality. Each
-        implementation being custom with a different set of parameters makes it
-        impossible to achieve a uniform desired effect. And the code being
-        proprietary makes it impossible to adopt a single one of the
-        implementations as a standard. Additionally, algorithmic reverberation
-        effects are limited to a relatively narrow range of different effects,
-        regardless of how the parameters are tweaked.
-      </p>
-      <p>
-        A convolution effect solves these problems by using a very precisely
-        defined mathematical algorithm as the basis of its processing. An
-        impulse response represents an exact sound effect to be applied to an
-        audio stream and is easily represented by an audio file which can be
-        referenced by URL. The range of possible effects is enormous.
-      </p>
-    </section>
-    <section>
-      <h3 id="Convolution-implementation-guide">
-        Implementation Guide
-      </h3>
-      <p>
-        Linear convolution can be implemented efficiently. Here are some
-        <a href="convolution.html">notes</a> describing how it can be
-        practically implemented.
-      </p>
-    </section>
-    <section>
-      <h3 id="Convolution-reverb-effect">
-        Reverb Effect (with matrixing)
-      </h3>
-      <p class="norm">
-        This section is normative.
-      </p>
-      <p>
-        In the general case the source has N input channels, the impulse
-        response has K channels, and the playback system has M output channels.
-        Thus it's a matter of how to matrix these channels to achieve the final
-        result.
-      </p>
-      <p>
-        The subset of N, M, K below must be implemented (note that the first
-        image in the diagram is just illustrating the general case and is not
-        normative, while the following images are normative). Without loss of
-        generality, developers desiring more complex and arbitrary matrixing
-        can use multiple <a><code>ConvolverNode</code></a> objects in
-        conjunction with an <a><code>ChannelMergerNode</code></a>.
-      </p>
-      <p>
-        Single channel convolution operates on a mono audio input, using a mono
-        impulse response, and generating a mono output. To achieve a more
-        spacious sound, 2 channel audio inputs and 1, 2, or 4 channel impulse
-        responses will be considered. The following diagram, illustrates the
-        common cases for stereo playback where N and M are 1 or 2 and K is 1,
-        2, or 4.
-      </p>
-      <figure>
-        <img alt="reverb matrixing" src="images/reverb-matrixing.png">
-        <figcaption>
-          A graphical representation of the different input and output channel
-          count possibilities when using a <a><code>ConvolverNode</code></a>.
-        </figcaption>
-      </figure>
     </section>
     <section>
       <h2 id="Performance">

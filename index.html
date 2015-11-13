@@ -318,7 +318,7 @@
 var context = new AudioContext();
 
 function playSound() {
-    var source = context.createBufferSource();
+    var source = new AudioBufferSourceNode(context);
     source.buffer = dogBarkingBuffer;
     source.connect(context.destination);
     source.start(0);
@@ -363,15 +363,15 @@ function setupRoutingGraph () {
     context = new AudioContext();
 
     // Create the effects nodes.
-    lowpassFilter = context.createBiquadFilter();
-    waveShaper = context.createWaveShaper();
-    panner = context.createPanner();
-    compressor = context.createDynamicsCompressor();
-    reverb = context.createConvolver();
+    lowpassFilter = new BiquadFilterNode(context);
+    waveShaper = new WaveShaperNode(context);
+    panner = new PannerNode(context);
+    compressor = new DynamicsCompressorNode(context);
+    reverb = new ConvolverNode(context);
 
     // Create master wet and dry.
-    masterDry = context.createGain();
-    masterWet = context.createGain();
+    masterDry = new GainNode(context);
+    masterWet = new GainNode(context);
 
     // Connect final compressor to final destination.
     compressor.connect(context.destination);
@@ -384,17 +384,17 @@ function setupRoutingGraph () {
     reverb.connect(masterWet);
 
     // Create a few sources.
-    source1 = context.createBufferSource();
-    source2 = context.createBufferSource();
-    source3 = context.createOscillator();
+    source1 = new AudioBufferSourceNode(context);
+    source2 = new AudioBufferSourceNode(context);
+    source3 = new OscillatorNode(context);
 
     source1.buffer = manTalkingBuffer;
     source2.buffer = footstepsBuffer;
     source3.frequency.value = 440;
 
     // Connect source1
-    dry1 = context.createGain();
-    wet1 = context.createGain();
+    dry1 = new GainNode(context);
+    wet1 = new GainNode(context);
     source1.connect(lowpassFilter);
     lowpassFilter.connect(dry1);
     lowpassFilter.connect(wet1);
@@ -402,8 +402,8 @@ function setupRoutingGraph () {
     wet1.connect(reverb);
 
     // Connect source2
-    dry2 = context.createGain();
-    wet2 = context.createGain();
+    dry2 = new GainNode(context);
+    wet2 = new GainNode(context);
     source2.connect(waveShaper);
     waveShaper.connect(dry2);
     waveShaper.connect(wet2);
@@ -411,8 +411,8 @@ function setupRoutingGraph () {
     wet2.connect(reverb);
 
     // Connect source3
-    dry3 = context.createGain();
-    wet3 = context.createGain();
+    dry3 = new GainNode(context);
+    wet3 = new GainNode(context);
     source3.connect(panner);
     panner.connect(dry3);
     panner.connect(wet3);
@@ -445,15 +445,15 @@ function setupRoutingGraph() {
   var context = new AudioContext();
 
   // Create the low frequency oscillator that supplies the modulation signal
-  var lfo = context.createOscillator();
+  var lfo = new OscillatorNode(context);
   lfo.frequency.value = 1.0;
 
   // Create the high frequency oscillator to be modulated
-  var hfo = context.createOscillator();
+  var hfo = new OscillatorNode(context);
   hfo.frequency.value = 440.0;
 
   // Create a gain node whose gain determines the amplitude of the modulation signal
-  var modulationGain = context.createGain();
+  var modulationGain = new GainNode(context);
   modulationGain.gain.value = 50;
 
   // Configure the graph and start the oscillators
@@ -661,7 +661,7 @@ function setupRoutingGraph() {
           This interface represents a set of <a><code>AudioNode</code></a>
           objects and their connections. It allows for arbitrary routing of
           signals to an <a><code>AudioDestinationNode</code></a>. Nodes are
-          created from the context and are then <a href=
+          created that refer to the context and are then <a href=
           "#ModularRouting">connected</a> together.
         </p>
         <p>
@@ -1452,7 +1452,8 @@ function setupRoutingGraph() {
           <dt>Constructor</dt>
           <dd>
             The OfflineAudioContext is constructed with the same arguments as
-            AudioContext.createBuffer. A NotSupportedException exception MUST be
+            the <a href="#widl-ctor-AudioBuffer--unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+            AudioBuffer constructor</a>. A NotSupportedException exception MUST be
             thrown if any of the arguments is negative, zero, or outside its
             nominal range.
             <dl class="parameters">
@@ -3508,7 +3509,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
         </p>
         <pre class="highlight example">
   var mediaElement = document.getElementById('mediaElementID');
-  var sourceNode = context.createMediaElementSource(mediaElement);
+  var sourceNode = new MediaElementSourceNode(context, mediaElement);
   sourceNode.connect(filterNode);
 </pre>
         <section>
@@ -7509,37 +7510,37 @@ odd function with period \(2\pi\).
   function setupRoutingGraph() {
       context = new AudioContext();
 
-      compressor = context.createDynamicsCompressor();
+      compressor = new DynamicsCompressorNode(context);
 
       // Send1 effect
-      reverb = context.createConvolver();
+      reverb = new ConvolverNode(context);
       // Convolver impulse response may be set here or later
 
       // Send2 effect
-      delay = context.createDelay();
+      delay = new DelayNode(context);
 
       // Connect final compressor to final destination
       compressor.connect(context.destination);
 
       // Connect sends 1 & 2 through effects to main mixer
-      s1 = context.createGain();
+      s1 = new GainNode(context);
       reverb.connect(s1);
       s1.connect(compressor);
 
-      s2 = context.createGain();
+      s2 = new GainNode(context);
       delay.connect(s2);
       s2.connect(compressor);
 
       // Create a couple of sources
-      source1 = context.createBufferSource();
-      source2 = context.createBufferSource();
+      source1 = new AudioBufferSourceNode(context);
+      source2 = new AudioBufferSourceNode(context);
       source1.buffer = manTalkingBuffer;
       source2.buffer = footstepsBuffer;
 
       // Connect source1
-      g1_1 = context.createGain();
-      g2_1 = context.createGain();
-      g3_1 = context.createGain();
+      g1_1 = new GainNode(context);
+      g2_1 = new GainNode(context);
+      g3_1 = new GainNode(context);
       source1.connect(g1_1);
       source1.connect(g2_1);
       source1.connect(g3_1);
@@ -7548,9 +7549,9 @@ odd function with period \(2\pi\).
       g3_1.connect(delay);
 
       // Connect source2
-      g1_2 = context.createGain();
-      g2_2 = context.createGain();
-      g3_2 = context.createGain();
+      g1_2 = new GainNode(context);
+      g2_2 = new GainNode(context);
+      g3_2 = new GainNode(context);
       source2.connect(g1_2);
       source2.connect(g2_2);
       source2.connect(g3_2);
@@ -7654,12 +7655,12 @@ var streamingAudioSource = 0;
 function setupAudioContext() {
     context = new AudioContext();
 
-    compressor = context.createDynamicsCompressor();
-    gainNode1 = context.createGain();
+    compressor = new DynamicsCompressorNode(context);
+    gainNode1 = new GainNode(context);
 
     // Create a streaming audio source.
     var audioElement = document.getElementById('audioTagID');
-    streamingAudioSource = context.createMediaElementSource(audioElement);
+    streamingAudioSource = new MediaElementSourceNode(context, audioElement);
     streamingAudioSource.connect(gainNode1);
 
     gainNode1.connect(compressor);
@@ -7669,13 +7670,13 @@ function setupAudioContext() {
 // Later in response to some user action (typically mouse or key event)
 // a one-shot sound can be played.
 function playSound() {
-    var oneShotSound = context.createBufferSource();
+    var oneShotSound = new AudioBufferSourceNode(context);
     oneShotSound.buffer = dogBarkingBuffer;
 
     // Create a filter, panner, and gain node.
-    var lowpass = context.createBiquadFilter();
-    var panner = context.createPanner();
-    var gainNode2 = context.createGain();
+    var lowpass = new BiquadFilterNode(context);
+    var panner = new PannerNode(context);
+    var gainNode2 = new GainNode(context);
 
     // Make connections
     oneShotSound.connect(lowpass);

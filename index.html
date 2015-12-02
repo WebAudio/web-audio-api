@@ -5118,48 +5118,47 @@ pow(distance / refDistance, -rolloffFactor)
             </p>
             <pre class="highlight">
 
-float calculateNormalizationScale(buffer)
+function calculateNormalizationScale(buffer)
 {
-    const float GainCalibration = 0.00125;
-    const float GainCalibrationSampleRate = 44100;
-    const float MinPower = 0.000125;
+    var GainCalibration = 0.00125;
+    var GainCalibrationSampleRate = 44100;
+    var MinPower = 0.000125;
 
     // Normalize by RMS power.
-    size_t numberOfChannels = buffer-&gt;numberOfChannels();
-    size_t length = buffer-&gt;length();
+    var numberOfChannels = buffer.numberOfChannels;
+    var length = buffer.length;
 
-    float power = 0;
+    var power = 0;
 
-    for (size_t i = 0; i &lt; numberOfChannels; ++i) {
-        float* sourceP = buffer-&gt;channel(i)-&gt;data();
-        float channelPower = 0;
+    for (var i = 0; i &lt; numberOfChannels; i++) {
+        var channelPower = 0;
+        var channelData = buffer.getChannelData(i);
 
-        int n = length;
-        while (n--) {
-            float sample = *sourceP++;
+        for (var j = 0; j &lt; length; j++) {
+            var sample = channelData[j];
             channelPower += sample * sample;
         }
 
         power += channelPower;
     }
 
-    power = sqrt(power / (numberOfChannels * length));
+    power = Math.sqrt(power / (numberOfChannels * length));
 
     // Protect against accidental overload.
-    if (isinf(power) || isnan(power) || power &lt; MinPower)
+    if (!isFinite(power) || isNaN(power) || power &lt; MinPower)
         power = MinPower;
 
-    float scale = 1 / power;
+    var scale = 1 / power;
 
     // Calibrate to make perceived volume same as unprocessed.
     scale *= GainCalibration;
 
     // Scale depends on sample-rate.
-    if (buffer-&gt;sampleRate())
-        scale *= GainCalibrationSampleRate / buffer-&gt;sampleRate();
+    if (buffer.sampleRate)
+        scale *= GainCalibrationSampleRate / buffer.sampleRate;
 
     // True-stereo compensation.
-    if (buffer-&gt;numberOfChannels() == 4)
+    if (numberOfChannels == 4)
         scale *= 0.5;
 
     return scale;
@@ -7987,13 +7986,15 @@ if (pan &lt;= 0) {
           based on the panner and listener positions according to:
         </p>
         <pre class="highlight">
-  v = panner.position - listener.position
-  
-</pre>
-        <pre class="highlight">
-  distance = sqrt(dot(v, v))
-  
-</pre>
+  function dotProduct(v1, v2) {
+    var d = 0;
+    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+      d += v1[i] * v2[i];
+    return d;
+  }
+  var v = panner.position - listener.position;
+  var distance = Math.sqrt(dotProduct(v, v));
+  </pre>
         <p>
           <em>distance</em> will then be used to calculate
           <em>distanceGain</em> which depends on the <em>distanceModel</em>
@@ -8028,25 +8029,39 @@ if (pan &lt;= 0) {
           <a><code>PannerNode</code></a>) and the listener:
         </p>
         <pre class="highlight">
-  if (source.orientation.isZero() || ((source.coneInnerAngle == 0) &amp;& (source.coneOuterAngle == 0)))
+  function dotProduct(v1, v2) {
+    var d = 0;
+    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+      d += v1[i] * v2[i];
+    return d;
+  }
+
+  function diff(v1, v2) {
+    var v = [];
+    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+      v[i] = v1[i] - v2[i];
+    return v;
+  }
+
+  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle == 0) &amp;& (source.coneOuterAngle == 0)))
       return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
-  vec3 sourceToListener = listener.position - source.position;
+  var sourceToListener = diff(listener.position, source.position);
   sourceToListener.normalize();
 
-  vec3 normalizedSourceOrientation = source.orientation;
+  var normalizedSourceOrientation = source.orientation;
   normalizedSourceOrientation.normalize();
 
   // Angle between the source orientation vector and the source-listener vector
-  float dotProduct = sourceToListener.dot(normalizedSourceOrientation);
-  float angle = 180 * acos(dotProduct) / PI;
-  float absAngle = fabs(angle);
+  var dotProduct = dotProduct(sourceToListener, normalizedSourceOrientation);
+  var angle = 180 * Math.acos(dotProduct) / Math.PI;
+  var absAngle = Math.abs(angle);
 
   // Divide by 2 here since API is entire angle (not half-angle)
-  float absInnerAngle = fabs(source.coneInnerAngle) / 2;
-  float absOuterAngle = fabs(source.coneOuterAngle) / 2;
-  float gain = 1;
+  var absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
+  var absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
+  var gain = 1;
 
   if (absAngle &lt;= absInnerAngle)
       // No attenuation
@@ -8057,7 +8072,7 @@ if (pan &lt;= 0) {
   else {
       // Between inner and outer cones
       // inner -&gt; outer, x goes from 0 -&gt; 1
-      float x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+      var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
       gain = (1 - x) + source.coneOuterGain * x;
   }
 
@@ -8084,35 +8099,35 @@ if (pan &lt;= 0) {
           indirectly to the <a><code>PannerNode</code></a>:
         </p>
         <pre class="highlight">
-  float dopplerShift = 1; // Initialize to default value
-  float dopplerFactor = listener.dopplerFactor;
+  var dopplerShift = 1; // Initialize to default value
+  var dopplerFactor = listener.dopplerFactor;
 
   if (dopplerFactor &gt; 0) {
-      float speedOfSound = listener.speedOfSound;
+      var speedOfSound = listener.speedOfSound;
 
       // Don't bother if both source and listener have no velocity.
-      if (!source.velocity.isZero() || !listener.velocity.isZero()) {
+      if (dotProduct(source.velocity, source.velocity) != 0 || dotProduct(listener.velocity, listener.velocity) != 0) {
           // Calculate the source to listener vector.
-          vec3 sourceToListener = source.position - listener.position;
+          var sourceToListener = diff(source.position, listener.position);
 
-          float sourceListenerMagnitude = sourceToListener.length();
+          var sourceListenerMagnitude = Math.sqrt(dotProduct(sourceToListener, sourceToListener);
 
-          float listenerProjection = sourceToListener.dot(listener.velocity) / sourceListenerMagnitude;
-          float sourceProjection = sourceToListener.dot(source.velocity) / sourceListenerMagnitude;
+          var listenerProjection = dotProduct(sourceToListener, listener.velocity) / sourceListenerMagnitude;
+          var sourceProjection = dotProduct(sourceToListener, source.velocity) / sourceListenerMagnitude;
 
           listenerProjection = -listenerProjection;
           sourceProjection = -sourceProjection;
 
-          float scaledSpeedOfSound = speedOfSound / dopplerFactor;
-          listenerProjection = min(listenerProjection, scaledSpeedOfSound);
-          sourceProjection = min(sourceProjection, scaledSpeedOfSound);
+          var scaledSpeedOfSound = speedOfSound / dopplerFactor;
+          listenerProjection = Math.min(listenerProjection, scaledSpeedOfSound);
+          sourceProjection = Math.min(sourceProjection, scaledSpeedOfSound);
 
           dopplerShift = ((speedOfSound - dopplerFactor * listenerProjection) / (speedOfSound - dopplerFactor * sourceProjection));
           fixNANs(dopplerShift); // Avoid illegal values
 
           // Limit the pitch shifting to 4 octaves up and 3 octaves down.
-          dopplerShift = min(dopplerShift, 16);
-          dopplerShift = max(dopplerShift, 0.125);
+          dopplerShift = Math.min(dopplerShift, 16);
+          dopplerShift = Math.max(dopplerShift, 0.125);
       }
   }
   

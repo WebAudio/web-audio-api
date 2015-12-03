@@ -510,8 +510,8 @@ function setupRoutingGraph() {
           MediaStream sent to a remote peer.
           </li>
           <li>An <a><code>AudioWorker</code></a> interface representing a
-          factory for creating <code>WebWorker</code>-based custom nodes that
-          can process audio directly in JavaScript.
+          factory for creating custom nodes that can process audio directly in
+          JavaScript.
           </li>
           <li>An <a><code>AudioWorkerNode</code></a> interface, an
           <a><code>AudioNode</code></a> representing a node processed in an
@@ -608,7 +608,7 @@ function setupRoutingGraph() {
           <a><code>AudioNode</code></a> for spatializing / positioning audio in
           3D space. This has been replaced by
           <a><code>SpatialPannerNode</code></a>, and
-          <a><code>StereoPanner</code></a> for simpler scenarios.
+          <a><code>StereoPannerNode</code></a> for simpler scenarios.
           </li>
           <li>An <a><code>AudioListener</code></a> interface, which works with
           a <a>PannerNode</a> for spatialization.
@@ -654,24 +654,28 @@ function setupRoutingGraph() {
         The Audio API
       </h2>
       <section>
-        <h2 id="AudioContext">
-          The AudioContext Interface
+        <h2 id="BaseAudioContext">
+          The BaseAudioContext Interface
         </h2>
         <p>
           This interface represents a set of <a><code>AudioNode</code></a>
           objects and their connections. It allows for arbitrary routing of
-          signals to the <a><code>AudioDestinationNode</code></a> (what the
-          user ultimately hears). Nodes are created from the context and are
-          then <a href="#ModularRouting">connected</a> together. In most use
-          cases, only a single <a><code>AudioContext</code></a> is used per
-          document.
+          signals to an <a><code>AudioDestinationNode</code></a>. Nodes are
+          created from the context and are then <a href=
+          "#ModularRouting">connected</a> together.
+        </p>
+        <p>
+          <a><code>BaseAudioContext</code></a> is not instantiated directly,
+          but is instead extended by the concrete interfaces
+          <a><code>AudioContext</code></a> (for real-time rendering) and
+          <a><code>OfflineAudioContext</code></a> (for offline rendering).
         </p>
         <dl title="enum AudioContextState" class="idl">
           <dt>
             suspended
           </dt>
           <dd>
-            The AudioContext is currently suspended (context time is not
+            This context is currently suspended (context time is not
             proceeding, audio hardware may be powered down/released).
           </dd>
           <dt>
@@ -684,19 +688,43 @@ function setupRoutingGraph() {
             closed
           </dt>
           <dd>
-            The AudioContext has been released, and can no longer be used to
+            This context has been released, and can no longer be used to
             process audio. All system audio resources have been released.
-            Attempts to create new Nodes on the AudioContext will throw
+            Attempts to create new Nodes on this context will throw
             InvalidStateError. (AudioBuffers may still be created, through
             <a href=
-            "#widl-AudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
             createBuffer</a> or <a href=
-            "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
             decodeAudioData</a>.)
           </dd>
         </dl>
-        <dl title="[Constructor] interface AudioContext : EventTarget" class=
-        "idl" data-merge="DecodeSuccessCallback DecodeErrorCallback">
+        <dl title="enum AudioContextPlaybackCategory" class="idl">
+          <dt>
+            balanced
+          </dt>
+          <dd>
+            Balance audio output latency and stability/power consumption.
+          </dd>
+          <dt>
+            interactive
+          </dt>
+          <dd>
+            Provide the lowest audio output latency possible without glitching.
+            This is the default.
+          </dd>
+          <dt>
+            playback
+          </dt>
+          <dd>
+            Prioritize sustained playback without interruption over audio
+            output latency. Lowest power consumption.
+          </dd>
+        </dl>
+        <dl title=
+        "[Constructor(optional AudioContextOptions contextOptions)] interface BaseAudioContext : EventTarget"
+        class="idl" data-merge=
+        "DecodeSuccessCallback DecodeErrorCallback AudioContextOptions">
           <dt>
             readonly attribute AudioDestinationNode destination
           </dt>
@@ -708,7 +736,7 @@ function setupRoutingGraph() {
               audio. Usually this will represent the actual audio hardware. All
               <a><code>AudioNode</code></a>s actively rendering audio will
               directly or indirectly connect to <a href=
-              "#widl-AudioContext-destination"><code>destination</code></a>.
+              "#widl-BaseAudioContext-destination"><code>destination</code></a>.
             </p>
           </dd>
           <dt>
@@ -717,7 +745,7 @@ function setupRoutingGraph() {
           <dd>
             <p>
               The sample rate (in sample-frames per second) at which the
-              <a><code>AudioContext</code></a> handles audio. It is assumed
+              <a><code>BaseAudioContext</code></a> handles audio. It is assumed
               that all <a><code>AudioNode</code></a>s in the context run at
               this rate. In making this assumption, sample-rate converters or
               "varispeed" processors are not supported in real-time processing.
@@ -728,13 +756,41 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              This is a time in seconds which starts at zero when the context
-              is created and increases in real-time. All scheduled times are
-              relative to it. When the <a><code>AudioContext</code></a> is in
-              the <a href=
+              This is the time in seconds of the sample frame immediately
+              following the last sample-frame in the block of audio most
+              recently processed by the context's rendering graph. If the
+              context's rendering graph has not yet processed a block of audio,
+              then <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              has a value of zero.
+            </p>
+            <p>
+              In the time coordinate system of <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
+              the value of zero corresponds to the first sample-frame in the
+              first block processed by the graph. Elapsed time in this system
+              corresponds to elapsed time in the audio stream generated by the
+              <a><code>BaseAudioContext</code></a>, which may not be
+              synchronized with other clocks in the system. (For an
+              <a><code>OfflineAudioContext</code></a>, since the stream is not
+              being actively played by any device, there is not even an
+              approximation to real time.)
+            </p>
+            <p>
+              All scheduled times in the Web Audio API are relative to the
+              value of <a><code>currentTime</code></a>.
+            </p>
+            <p>
+              When the <a><code>BaseAudioContext</code></a> is in the <a href=
               "#idl-def-AudioContextState.running"><code>running</code></a>
-              state, the value of this attribute is always moving forward,
-              monotonically increasing.
+              state, the value of this attribute is monotonically increasing
+              and is updated by the rendering thread in uniform increments,
+              corresponding to the audio block size of 128 samples. Thus, for a
+              running context, <code>currentTime</code> increases steadily as
+              the system processes audio blocks, and always represents the time
+              of the start of the next audio block to be processed. It is also
+              the earliest possible time when any change scheduled in the
+              current state might take effect.
             </p>
           </dd>
           <dt>
@@ -750,9 +806,9 @@ function setupRoutingGraph() {
             readonly attribute AudioContextState state
           </dt>
           <dd>
-            Describes the current state of the AudioContext. The context state
-            MUST begin in "suspended", and transitions to "running" when system
-            resources are acquired and audio has begun processing. For
+            Describes the current state of this BaseAudioContext. The context
+            state MUST begin in "suspended", and transitions to "running" when
+            system resources are acquired and audio has begun processing. For
             OfflineAudioContexts, the state will remain in "suspended" until
             <code>startRendering()</code> is called, at which point it will
             transition to "running", and then to "closed" once audio processing
@@ -777,17 +833,19 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              Suspends the progression of <a><code>AudioContext</code></a>'s
-              <a href="#widl-AudioContext-currentTime">currentTime</a>, allows
-              any current context processing blocks that are already processed
-              to be played to the destination, and then allows the system to
+              Suspends the progression of
+              <a><code>BaseAudioContext</code></a>'s <a href=
+              "#widl-BaseAudioContext-currentTime">currentTime</a>, allows any
+              current context processing blocks that are already processed to
+              be played to the destination, and then allows the system to
               release its claim on audio hardware. This is generally useful
               when the application knows it will not need the
-              <a>AudioContext</a> for some time, and wishes to let the audio
-              hardware power down. The promise resolves when the frame buffer
-              is empty (has been handed off to the hardware), or immediately
-              (with no other effect) if the context is already suspended. The
-              promise is rejected if the context has been closed.
+              <a>BaseAudioContext</a> for some time, and wishes to let the
+              audio hardware power down. The promise resolves when the frame
+              buffer is empty (has been handed off to the hardware), or
+              immediately (with no other effect) if the context is already
+              suspended. The promise is rejected if the context has been
+              closed.
             </p>
             <p>
               While the system is suspended, MediaStreams will have their
@@ -806,28 +864,37 @@ function setupRoutingGraph() {
             Promise&lt;void&gt; resume()
           </dt>
           <dd>
-            Resumes the progression of the <a><code>AudioContext</code></a>'s
-            <a href="#widl-AudioContext-currentTime">currentTime</a> in an
-            audio context that has been suspended, which may involve re-priming
-            the frame buffer contents. The promise resolves when the system has
-            re-acquired (if necessary) access to audio hardware and has begun
-            streaming to the destination, or immediately (with no other effect)
-            if the context is already running. The promise is rejected if the
-            context has been closed. If the context is not currently suspended,
-            the promise will resolve.
+            <p>
+              Resumes the progression of the
+              <a><code>BaseAudioContext</code></a>'s <a href=
+              "#widl-BaseAudioContext-currentTime">currentTime</a> in an audio
+              context that has been suspended, which may involve re-priming the
+              frame buffer contents. The promise resolves when the system has
+              re-acquired (if necessary) access to audio hardware and has begun
+              streaming to the destination, or immediately (with no other
+              effect) if the context is already running. The promise is
+              rejected if the context has been closed. If the context is not
+              currently suspended, the promise will resolve.
+            </p>
+            <p>
+              Note that until the first block of audio has been rendered
+              following a call to this method, <a href=
+              "#widl-BaseAudioContext-currentTime">currentTime</a> remains
+              unchanged.
+            </p>
           </dd>
           <dt>
             Promise&lt;void&gt; close()
           </dt>
           <dd>
             Closes the audio context, releasing any system audio resources used
-            by the <a>AudioContext</a>. This will not automatically release all
-            AudioContext-created objects, unless other references have been
-            released as well; however, it will forcibly release any system
-            audio resources that might prevent additional AudioContexts from
-            being created and used, suspend the progression of the
-            <a><code>AudioContext</code></a>'s <a href=
-            "#widl-AudioContext-currentTime">currentTime</a>, and stop
+            by the <a><code>BaseAudioContext</code></a>. This will not
+            automatically release all BaseAudioContext-created objects, unless
+            other references have been released as well; however, it will
+            forcibly release any system audio resources that might prevent
+            additional AudioContexts from being created and used, suspend the
+            progression of the <a><code>BaseAudioContext</code></a>'s <a href=
+            "#widl-BaseAudioContext-currentTime">currentTime</a>, and stop
             processing audio data. The promise resolves when all
             AudioContext-creation-blocking resources have been released. If
             this is called on <a>OfflineAudioContext</a>, then return a promise
@@ -839,7 +906,7 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             A property used to set the <code>EventHandler</code> for an event
-            that is dispatched to <a><code>AudioContext</code></a> when the
+            that is dispatched to <a><code>BaseAudioContext</code></a> when the
             state of the AudioContext has changed (i.e. when the corresponding
             promise would have resolved). An event of type
             <a><code>Event</code></a> will be dispatched to the event handler,
@@ -888,9 +955,9 @@ function setupRoutingGraph() {
             ArrayBuffer. The ArrayBuffer can, for example, be loaded from an
             XMLHttpRequest's <code>response</code> attribute after setting the
             <code>responseType</code> to "arraybuffer". Audio file data can be
-            in any of the formats supported by the <code>audio</code> element.
-            The buffer passed to <a href=
-            "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+            in any of the formats supported by the <code>audio</code> or
+            <code>video</code> elements. The buffer passed to <a href=
+            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
             decodeAudioData</a> has its content-type determined by sniffing, as
             described in [[mimesniff]].
             <dl class="parameters">
@@ -1003,43 +1070,6 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Creates an <a><code>AudioBufferSourceNode</code></a>.
-          </dd>
-          <dt>
-            MediaElementAudioSourceNode createMediaElementSource()
-          </dt>
-          <dd>
-            Creates a <a href=
-            "#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
-            given an HTMLMediaElement. As a consequence of calling this method,
-            audio playback from the HTMLMediaElement will be re-routed into the
-            processing graph of the <a><code>AudioContext</code></a>.
-            <dl class="parameters">
-              <dt>
-                HTMLMediaElement mediaElement
-              </dt>
-              <dd>
-                The media element that will be re-routed.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            MediaStreamAudioSourceNode createMediaStreamSource()
-          </dt>
-          <dd>
-            <dl class="parameters">
-              <dt>
-                MediaStream mediaStream
-              </dt>
-              <dd>
-                The media stream that will act as source.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            MediaStreamAudioDestinationNode createMediaStreamDestination()
-          </dt>
-          <dd>
-            Creates a <a><code>MediaStreamAudioDestinationNode</code></a>
           </dd>
           <dt>
             Promise&lt;AudioWorker&gt; createAudioWorker()
@@ -1156,14 +1186,15 @@ function setupRoutingGraph() {
             common filter types.
           </dd>
           <dt>
-            IIRFilterNode createIIRFilter(Float32Array b, Float32Array a)
+            IIRFilterNode createIIRFilter(sequence&lt;double&gt; b,
+            sequence&lt;double&gt; a)
           </dt>
           <dd>
             Creates an <a><code>IIRFilterNode</code></a> representing a general
             IIR Filter.
             <dl class="parameters">
               <dt>
-                Float32Array feedforward
+                sequence&lt;double&gt; feedforward
               </dt>
               <dd>
                 An array of the feedforward (numerator) coefficients for the
@@ -1173,7 +1204,7 @@ function setupRoutingGraph() {
                 thrown if the array length is 0 or greater than 20.
               </dd>
               <dt>
-                Float32Array feedback
+                sequence&lt;double&gt; feedback
               </dt>
               <dd>
                 An array of the feedback (denominator) coefficients for the
@@ -1295,7 +1326,7 @@ function setupRoutingGraph() {
               arrays, any modification of the arrays uses as the
               <code>real</code> and <code>imag</code> parameters after the call
               to <a href=
-              "#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
+              "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
               <code>createPeriodicWave()</code></a> will have no effect on the
               <a>PeriodicWave</a> object.
             </p>
@@ -1351,6 +1382,15 @@ function setupRoutingGraph() {
             The error that occurred while decoding.
           </dd>
         </dl>
+        <dl title="dictionary AudioContextOptions" class="idl">
+          <dt>
+            AudioContextPlaybackCategory playbackCategory = 'interactive'
+          </dt>
+          <dd>
+            Identify the type of playback, which affects tradeoffs between
+            audio output latency and power consumption.
+          </dd>
+        </dl>
         <section>
           <h3 id="lifetime-AudioContext" class="informative">
             Lifetime
@@ -1379,6 +1419,57 @@ function setupRoutingGraph() {
         </section>
       </section>
       <section>
+        <h2 id="AudioContext">
+          The AudioContext Interface
+        </h2>
+        <p>
+          This interface represents an audio graph whose
+          <a><code>AudioDestinationNode</code></a> is routed to a real-time
+          output device that produces a signal directed at the user. In most
+          use cases, only a single <a><code>AudioContext</code></a> is used per
+          document.
+        </p>
+        <dl title='interface AudioContext : BaseAudioContext' class='idl'>
+          <dt>
+            MediaElementAudioSourceNode createMediaElementSource()
+          </dt>
+          <dd>
+            Creates a <a href=
+            "#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
+            given an HTMLMediaElement. As a consequence of calling this method,
+            audio playback from the HTMLMediaElement will be re-routed into the
+            processing graph of the <a><code>AudioContext</code></a>.
+            <dl class="parameters">
+              <dt>
+                HTMLMediaElement mediaElement
+              </dt>
+              <dd>
+                The media element that will be re-routed.
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            MediaStreamAudioSourceNode createMediaStreamSource()
+          </dt>
+          <dd>
+            <dl class="parameters">
+              <dt>
+                MediaStream mediaStream
+              </dt>
+              <dd>
+                The media stream that will act as source.
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            MediaStreamAudioDestinationNode createMediaStreamDestination()
+          </dt>
+          <dd>
+            Creates a <a><code>MediaStreamAudioDestinationNode</code></a>
+          </dd>
+        </dl>
+      </section>
+      <section>
         <h2 id="OfflineAudioContext">
           The OfflineAudioContext Interface
         </h2>
@@ -1399,7 +1490,7 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Determines how many channels the buffer will have. See <a href=
-            "#widl-AudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
             createBuffer</a> for the supported number of channels.
           </dd>
           <dt>
@@ -1414,12 +1505,12 @@ function setupRoutingGraph() {
           <dd>
             Describes the sample-rate of the linear PCM audio data in the
             buffer in sample-frames per second. See <a href=
-            "#widl-AudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
             createBuffer</a> for valid sample rates.
           </dd>
         </dl>
         <dl title=
-        '[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : AudioContext'
+        '[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : BaseAudioContext'
         class='idl'>
           <dt>
             Promise&lt;AudioBuffer&gt; startRendering()
@@ -1496,6 +1587,13 @@ function setupRoutingGraph() {
               rendering has not started, the promise is rejected with
               <code>InvalidStateError</code>.
             </p>
+            <p>
+              In contrast to a live <a><code>AudioContext</code></a>, the value
+              of <a href="#widl-BaseAudioContext-currentTime">currentTime</a>
+              always reflects the start time of the next block to be rendered
+              by the audio graph, since the context's audio stream does not
+              advance in time during suspension.
+            </p>
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -1547,6 +1645,8 @@ function setupRoutingGraph() {
             </p>
           </dd>
         </dl>
+        <dl title="[Constructor] interface AudioContext : BaseAudioContext"
+        class="idl"></dl>
         <section>
           <h2 id="OfflineAudioCompletionEvent">
             The OfflineAudioCompletionEvent Interface
@@ -1681,7 +1781,7 @@ function setupRoutingGraph() {
         </dl>
         <dl title="interface AudioNode : EventTarget" class="idl">
           <dt>
-            void connect()
+            AudioNode connect()
           </dt>
           <dd>
             <dl class="parameters">
@@ -1695,7 +1795,7 @@ function setupRoutingGraph() {
                 <a><code>AudioNode</code></a> that has been created using
                 another <a><code>AudioContext</code></a>, an InvalidAccessError
                 MUST be thrown. That is, <a><code>AudioNodes</code></a> cannot
-                be shared between <a><code>AudioContext</code></a>.
+                be shared between <a><code>AudioContext</code></a>s.
               </dd>
               <dt>
                 optional unsigned long output = 0
@@ -1757,7 +1857,9 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 The <code>destination</code> parameter is the
-                <a><code>AudioParam</code></a> to connect to.
+                <a><code>AudioParam</code></a> to connect to. This method does
+                not return <code>destination</code>
+                <a><code>AudioParam</code></a> object.
               </dd>
               <dt>
                 optional unsigned long output = 0
@@ -2209,7 +2311,7 @@ function setupRoutingGraph() {
           <code>value</code> attribute. Or, value changes can be scheduled to
           happen at very precise times (in the coordinate system of
           <a><code>AudioContext</code></a>'s <a href=
-          "#widl-AudioContext-currentTime">currentTime</a> attribute), for
+          "#widl-BaseAudioContext-currentTime">currentTime</a> attribute), for
           envelopes, volume fades, LFOs, filter sweeps, grain windows, etc. In
           this way, arbitrary timeline-based automation curves can be set on
           any <a><code>AudioParam</code></a>. Additionally, audio signals from
@@ -2244,7 +2346,7 @@ function setupRoutingGraph() {
           An <code>AudioParam</code> maintains a time-ordered event list which
           is initially empty. The times are in the time coordinate system of
           the <a><code>AudioContext</code></a>'s <a href=
-          "#widl-AudioContext-currentTime">currentTime</a> attribute. The
+          "#widl-BaseAudioContext-currentTime">currentTime</a> attribute. The
           events define a mapping from time to value. The following methods can
           change the event list by adding a new event into the list of a type
           specific to the method. Each event has a time associated with it, and
@@ -2254,28 +2356,28 @@ function setupRoutingGraph() {
         <ul>
           <li>
             <a href=
-            "#widl-AudioParam-setValueAtTime-void-float-value-double-startTime">
+            "#widl-AudioParam-setValueAtTime-AudioParam-float-value-double-startTime">
             setValueAtTime()</a> - <em>SetValue</em>
           </li>
           <li>
             <a href=
-            "#widl-AudioParam-linearRampToValueAtTime-void-float-value-double-endTime">
+            "#widl-AudioParam-linearRampToValueAtTime-AudioParam-float-value-double-endTime">
             linearRampToValueAtTime()</a> - <em>LinearRampToValue</em>
           </li>
           <li>
             <a href=
-            "#widl-AudioParam-exponentialRampToValueAtTime-void-float-value-double-endTime">
+            "#widl-AudioParam-exponentialRampToValueAtTime-AudioParam-float-value-double-endTime">
             exponentialRampToValueAtTime()</a> -
             <em>ExponentialRampToValue</em>
           </li>
           <li>
             <a href=
-            "#widl-AudioParam-setTargetAtTime-void-float-target-double-startTime-float-timeConstant">
+            "#widl-AudioParam-setTargetAtTime-AudioParam-float-target-double-startTime-float-timeConstant">
             setTargetAtTime()</a> - <em>SetTarget</em>
           </li>
           <li>
             <a href=
-            "#widl-AudioParam-setValueCurveAtTime-void-Float32Array-values-double-startTime-double-duration">
+            "#widl-AudioParam-setValueCurveAtTime-AudioParam-Float32Array-values-double-startTime-double-duration">
             setValueCurveAtTime()</a> - <em>SetValueCurve</em>
           </li>
         </ul>
@@ -2330,7 +2432,7 @@ function setupRoutingGraph() {
             Initial value for the <code>value</code> attribute.
           </dd>
           <dt>
-            void setValueAtTime(float value, double startTime)
+            AudioParam setValueAtTime(float value, double startTime)
           </dt>
           <dd>
             <p>
@@ -2349,8 +2451,8 @@ function setupRoutingGraph() {
               <dd>
                 The time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute at
-                which the parameter changes to the given value. A TypeError
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
+                at which the parameter changes to the given value. A TypeError
                 exception MUST be thrown if <code>startTime</code> is negative
                 or is not a finite number.
               </dd>
@@ -2382,14 +2484,14 @@ function setupRoutingGraph() {
               If the next event after this <em>SetValue</em> event is of type
               <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>
               then please see <code><a href=
-              "#widl-AudioParam-linearRampToValueAtTime-void-float-value-double-endTime">
+              "#widl-AudioParam-linearRampToValueAtTime-AudioParam-float-value-double-endTime">
               linearRampToValueAtTime</a></code> or <code><a href=
-              "#widl-AudioParam-exponentialRampToValueAtTime-void-float-value-double-endTime">
+              "#widl-AudioParam-exponentialRampToValueAtTime-AudioParam-float-value-double-endTime">
               exponentialRampToValueAtTime</a></code>, respectively.
             </p>
           </dd>
           <dt>
-            void linearRampToValueAtTime(float value, double endTime)
+            AudioParam linearRampToValueAtTime(float value, double endTime)
           </dt>
           <dd>
             <p>
@@ -2410,9 +2512,10 @@ function setupRoutingGraph() {
               <dd>
                 The time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute at
-                which the automation ends. A TypeError exception MUST be thrown
-                if <code>endTime</code> is negative or is not a finite number.
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
+                at which the automation ends. A TypeError exception MUST be
+                thrown if <code>endTime</code> is negative or is not a finite
+                number.
               </dd>
             </dl>
             <p>
@@ -2437,7 +2540,8 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
-            void exponentialRampToValueAtTime(float value, double endTime)
+            AudioParam exponentialRampToValueAtTime(float value, double
+            endTime)
           </dt>
           <dd>
             <p>
@@ -2467,7 +2571,7 @@ function setupRoutingGraph() {
             <p>
               This also implies an exponential ramp to 0 is not possible. A
               good approximation can be achieved using <a href=
-              "#widl-AudioParam-setTargetAtTime-void-float-target-double-startTime-float-timeConstant">
+              "#widl-AudioParam-setTargetAtTime-AudioParam-float-target-double-startTime-float-timeConstant">
               setTargetAtTime</a> with an appropriately chosen time constant.
             </p>
             <p>
@@ -2490,7 +2594,7 @@ function setupRoutingGraph() {
               <dd>
                 The time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
                 where the exponential ramp ends. A TypeError exception MUST be
                 thrown if <code>endTime</code> is negative or is not a finite
                 number.
@@ -2498,7 +2602,7 @@ function setupRoutingGraph() {
             </dl>
           </dd>
           <dt>
-            void setTargetAtTime(float target, double startTime, float
+            AudioParam setTargetAtTime(float target, double startTime, float
             timeConstant)
           </dt>
           <dd>
@@ -2525,8 +2629,8 @@ function setupRoutingGraph() {
                 The time at which the exponential approach will begin, in the
                 same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute. A
-                TypeError exception MUST be thrown if <code>start</code> is
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                A TypeError exception MUST be thrown if <code>start</code> is
                 negative or is not a finite number.
               </dd>
               <dt>
@@ -2565,8 +2669,8 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
-            void setValueCurveAtTime(Float32Array values, double startTime,
-            double duration)
+            AudioParam setValueCurveAtTime(Float32Array values, double
+            startTime, double duration)
           </dt>
           <dd>
             <p>
@@ -2592,8 +2696,8 @@ function setupRoutingGraph() {
               <dd>
                 The start time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute at
-                which the value curve will be applied. A TypeError exception
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
+                at which the value curve will be applied. A TypeError exception
                 MUST be thrown if <code>startTime</code> is negative or is not
                 a finite number.
               </dd>
@@ -2614,7 +2718,7 @@ function setupRoutingGraph() {
             </p>
             <pre>
               $$
-                \begin{align*} k &amp;= \big\lfloor \frac{N}{T_D}(t-T_0) \big\rfloor \\
+                \begin{align*} k &amp;= \left\lfloor \frac{N - 1}{T_D}(t-T_0) \right\rfloor \\
                 \end{align*}
               $$
             
@@ -2630,7 +2734,7 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
-            void cancelScheduledValues(double startTime)
+            AudioParam cancelScheduledValues(double startTime)
           </dt>
           <dd>
             <p>
@@ -2649,9 +2753,9 @@ function setupRoutingGraph() {
                 parameter changes will be cancelled. It is a time in the same
                 time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute. A
-                TypeError exception MUST be thrown if <code>startTime</code> is
-                negative or is not a finite number.
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                A TypeError exception MUST be thrown if <code>startTime</code>
+                is negative or is not a finite number.
               </dd>
             </dl>
           </dd>
@@ -3101,7 +3205,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             Indicates if the audio data should play in a loop. The default
-            value is false.
+            value is false. If <code>loop</code> is dynamically modified during
+            playback, the new value will take effect on the next processing
+            block of audio.
           </dd>
           <dt>
             attribute double loopStart
@@ -3110,16 +3216,35 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             An optional value in seconds where looping should begin if the
             <code>loop</code> attribute is true. Its default <code>value</code>
             is 0, and it may usefully be set to any value between 0 and the
-            duration of the buffer.
+            duration of the buffer. If <code>loopStart</code> is less than 0,
+            looping will begin at 0. If <code>loopStart</code> is greater than
+            the duration of the buffer, looping will begin at the end of the
+            buffer. This attribute is converted to an exact sample frame offset
+            within the buffer by multiplying by the buffer's sample rate and
+            rounding to the nearest integer value. Thus its behavior is
+            independent of the value of the <a href=
+            "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
+            parameter.
           </dd>
           <dt>
             attribute double loopEnd
           </dt>
           <dd>
             An optional value in seconds where looping should end if the
-            <code>loop</code> attribute is true. Its default <code>value</code>
-            is 0, and it may usefully be set to any value between 0 and the
-            duration of the buffer.
+            <code>loop</code> attribute is true. Its value is exclusive of the
+            content of the loop: the sample frames comprising the loop run from
+            the values <code>loopStart</code> to
+            <code>loopEnd-(1.0/sampleRate)</code>. Its default
+            <code>value</code> is 0, and it may usefully be set to any value
+            between 0 and the duration of the buffer. If <code>loopEnd</code>
+            is less than 0, looping will end at 0. If <code>loopEnd</code> is
+            greater than the duration of the buffer, looping will end at the
+            end of the buffer. This attribute is converted to an exact sample
+            frame offset within the buffer by multiplying by the buffer's
+            sample rate and rounding to the nearest integer value. Thus its
+            behavior is independent of the value of the <a href=
+            "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
+            parameter.
           </dd>
           <dt>
             void start()
@@ -3138,8 +3263,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 (in seconds) the sound should start playing. It is in the same
                 time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute. If
-                0 is passed in for this value or if the value is less than
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                If 0 is passed in for this value or if the value is less than
                 <b>currentTime</b>, then the sound will start playing
                 immediately. A TypeError exception MUST be thrown if
                 <code>when</code> is negative.
@@ -3152,7 +3277,16 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 offset time in the buffer (in seconds) where playback will
                 begin. If 0 is passed in for this value, then playback will
                 start from the beginning of the buffer. A TypeError exception
-                MUST be thrown if <code>offset</code> is negative.
+                MUST be thrown if <code>offset</code> is negative. If
+                <code>offset</code> is greater than <code>loopEnd</code>,
+                playback will begin at <code>loopEnd</code> (and immediately
+                loop to <code>loopStart</code>). This parameter is converted to
+                an exact sample frame offset within the buffer by multiplying
+                by the buffer's sample rate and rounding to the nearest integer
+                value. Thus its behavior is independent of the value of the
+                <a href=
+                "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
+                parameter.
               </dd>
               <dt>
                 optional double duration
@@ -3183,8 +3317,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 (in seconds) the sound should stop playing. It is in the same
                 time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
-                "#widl-AudioContext-currentTime">currentTime</a> attribute. If
-                0 is passed in for this value or if the value is less than
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                If 0 is passed in for this value or if the value is less than
                 <a><code>currentTime</code></a>, then the sound will stop
                 playing immediately. A TypeError exception MUST be thrown if
                 <code>when</code> is negative. If <code>stop</code> is called
@@ -3379,15 +3513,14 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           AudioWorker.
         </p>
         <p>
-          These main thread objects cause the instantiation of a Web
-          Worker-like thread context (Described in [[!Workers]]), which
-          executes in the audio thread. All audio processing by
-          AudioWorkerNodes run in the audio processing thread. This has a few
-          side effects that bear mentioning: blocking the audio worker's thread
-          can cause glitches in the audio, and if the audio thread is normally
-          elevated in thread priority (to reduce glitching possibility), it
-          must be demoted to normal thread priority (in order to avoid
-          escalating thread priority of user-supplied script code).
+          These main thread objects cause the instantiation of a processing
+          context in the audio thread. All audio processing by AudioWorkerNodes
+          runs in the audio processing thread. This has a few side effects that
+          bear mentioning: blocking the audio worker's thread can cause
+          glitches in the audio, and if the audio thread is normally elevated
+          in thread priority (to reduce glitching possibility), it must be
+          demoted to normal thread priority (in order to avoid escalating
+          thread priority of user-supplied script code).
         </p>
         <p>
           From inside an audio worker script, the Audio Worker factory is
@@ -3409,16 +3542,14 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             void terminate()
           </dt>
           <dd>
-            The terminate() method, when invoked, must cause the <a href=
-            "http://dev.w3.org/html5/workers/#terminate-a-worker">"terminate a
-            worker"</a> algorithm to be run on the worker with which the object
-            is associated. This will cease any <a>AudioProcessEvent</a>s being
-            dispatched inside the AudioWorker's associated
-            <a>AudioWorkerGlobalScope</a>, will cause all associated
-            AudioWorkerNodes to cease processing, and will cause the
-            destruction of the worker thread. In practical terms, this means
-            all nodes created from this AudioWorker will disconnect themselves,
-            and will cease performing any useful functions.
+            The terminate() method, when invoked, must cause the cessation of
+            any <a>AudioProcessEvent</a>s being dispatched inside the
+            AudioWorker's associated <a>AudioWorkerGlobalScope</a>. It will
+            also cause all associated AudioWorkerNodes to cease processing, and
+            will cause the destruction of the worker's context. In practical
+            terms, this means all nodes created from this AudioWorker will
+            disconnect themselves, and will cease performing any useful
+            functions.
           </dd>
           <dt>
             void postMessage(any message, optional sequence&lt;Transferable&gt;
@@ -3426,7 +3557,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           </dt>
           <dd>
             postMessage may be called to send a message to the
-            <a>AudioWorkerGlobalScope</a>, via the algorithm defined by
+            <a>AudioWorkerGlobalScope</a>, similar to the algorithm defined by
             [[!Workers]].
           </dd>
           <dt>
@@ -4154,12 +4285,11 @@ onaudioprocess= function (e) {
             readonly attribute double playbackTime
           </dt>
           <dd>
-            The time when the audio will be played in the same time coordinate
-            system as the <a><code>AudioContext</code></a>'s <a href=
-            "#widl-AudioContext-currentTime">currentTime</a>.
-            <code>playbackTime</code> allows for very tight synchronization
-            between processing directly in JavaScript with the other events in
-            the context's rendering graph.
+            The starting time of the block of audio being processed in response
+            to this event. By definition this will be equal to the value of
+            <a><code>BaseAudioContext</code></a>'s <a href=
+            "#widl-BaseAudioContext-currentTime">currentTime</a> attribute that
+            was most recently observable in the control thread.
           </dd>
           <dt>
             readonly attribute AudioWorkerNodeProcessor node
@@ -4254,10 +4384,7 @@ onaudioprocess= function (e) {
           <dd>
             The time when the audio will be played in the same time coordinate
             system as the <a><code>AudioContext</code></a>'s <a href=
-            "#widl-AudioContext-currentTime">currentTime</a>.
-            <code>playbackTime</code> allows for very tight synchronization
-            between processing directly in JavaScript with the other events in
-            the context's rendering graph.
+            "#widl-BaseAudioContext-currentTime">currentTime</a>.
           </dd>
           <dt>
             readonly attribute AudioBuffer inputBuffer
@@ -4314,7 +4441,7 @@ onaudioprocess= function (e) {
         </p>
         <p>
           The output of this node is hard-coded to stereo (2 channels) and
-          <em>currently</em> cannot be configured.
+          cannot be configured.
         </p>
         <p>
           The <a><code>PanningModelType</code></a> enum determines which
@@ -4533,17 +4660,27 @@ onaudioprocess= function (e) {
             range.
           </dd>
         </dl>
+        <section class="informative">
+          <h3 id="panner-channel-limitations">
+            Channel Limitations
+          </h3>
+          <p>
+            The set of <a href="#panner-channel-limitations">channel
+            limitations</a> for <a><code>StereoPannerNode</code></a> also apply
+            to <a><code>PannerNode</code></a>.
+          </p>
+        </section>
       </section>
       <section>
         <h2 id="AudioListener">
           The AudioListener Interface
         </h2>
         <p>
-          This interface interface is DEPRECATED, as it will be replaced by the
+          This interface is DEPRECATED, as it will be replaced by the
           <a><code>SpatialListener</code></a>. This interface represents the
           position and orientation of the person listening to the audio scene.
           All <a><code>PannerNode</code></a> objects spatialize in relation to
-          the <a><code>AudioContext</code></a>'s <a href=
+          the <a><code>BaseAudioContext</code></a>'s <a href=
           "widl-AudioContext-listener"><code>listener</code></a>. See <a href=
           "#Spatialization">the Spatialization/Panning section</a> for more
           details about spatialization.
@@ -4957,17 +5094,29 @@ pow(distance / refDistance, -rolloffFactor)
             <a>a-rate</a>.
           </dd>
         </dl>
+        <section class="informative">
+          <h3>
+            Channel Limitations
+          </h3>
+          <p>
+            Because its processing is constrained by the above definitions,
+            <a><code>StereoPannerNode</code></a> is limited to mixing no more
+            than 2 channels of audio, and producing exactly 2 channels. It is
+            possible to use a <a><code>ChannelSplitterNode</code></a>,
+            intermediate processing by a subgraph of
+            <a><code>GainNode</code></a>s and/or other nodes, and recombination
+            via a <a><code>ChannelMergerNode</code></a> to realize arbitrary
+            approaches to panning and mixing.
+          </p>
+        </section>
       </section>
       <section>
         <h2 id="ConvolverNode">
           The ConvolverNode Interface
         </h2>
         <p>
-          This interface represents a processing node which applies a <a href=
-          "#Convolution">linear convolution effect</a> given an impulse
-          response. Normative requirements for multi-channel convolution
-          matrixing are described <a href=
-          "#Convolution-reverb-effect">here</a>.
+          This interface represents a processing node which applies a linear
+          convolution effect given an impulse response.
         </p>
         <pre>
     numberOfInputs  : 1
@@ -5036,48 +5185,47 @@ pow(distance / refDistance, -rolloffFactor)
             </p>
             <pre class="highlight">
 
-float calculateNormalizationScale(buffer)
+function calculateNormalizationScale(buffer)
 {
-    const float GainCalibration = 0.00125;
-    const float GainCalibrationSampleRate = 44100;
-    const float MinPower = 0.000125;
+    var GainCalibration = 0.00125;
+    var GainCalibrationSampleRate = 44100;
+    var MinPower = 0.000125;
 
     // Normalize by RMS power.
-    size_t numberOfChannels = buffer-&gt;numberOfChannels();
-    size_t length = buffer-&gt;length();
+    var numberOfChannels = buffer.numberOfChannels;
+    var length = buffer.length;
 
-    float power = 0;
+    var power = 0;
 
-    for (size_t i = 0; i &lt; numberOfChannels; ++i) {
-        float* sourceP = buffer-&gt;channel(i)-&gt;data();
-        float channelPower = 0;
+    for (var i = 0; i &lt; numberOfChannels; i++) {
+        var channelPower = 0;
+        var channelData = buffer.getChannelData(i);
 
-        int n = length;
-        while (n--) {
-            float sample = *sourceP++;
+        for (var j = 0; j &lt; length; j++) {
+            var sample = channelData[j];
             channelPower += sample * sample;
         }
 
         power += channelPower;
     }
 
-    power = sqrt(power / (numberOfChannels * length));
+    power = Math.sqrt(power / (numberOfChannels * length));
 
     // Protect against accidental overload.
-    if (isinf(power) || isnan(power) || power &lt; MinPower)
+    if (!isFinite(power) || isNaN(power) || power &lt; MinPower)
         power = MinPower;
 
-    float scale = 1 / power;
+    var scale = 1 / power;
 
     // Calibrate to make perceived volume same as unprocessed.
     scale *= GainCalibration;
 
     // Scale depends on sample-rate.
-    if (buffer-&gt;sampleRate())
-        scale *= GainCalibrationSampleRate / buffer-&gt;sampleRate();
+    if (buffer.sampleRate)
+        scale *= GainCalibrationSampleRate / buffer.sampleRate;
 
     // True-stereo compensation.
-    if (buffer-&gt;numberOfChannels() == 4)
+    if (numberOfChannels == 4)
         scale *= 0.5;
 
     return scale;
@@ -5097,6 +5245,41 @@ float calculateNormalizationScale(buffer)
             </p>
           </dd>
         </dl>
+        <section>
+          <h3 id="Convolution-channel-configurations">
+            Channel Configurations for Input, Impulse Response and Output
+          </h3>
+          <p>
+            Implementations MUST support the following allowable configurations
+            of impulse response channels in a <a><code>ConvolverNode</code></a>
+            to achieve various reverb effects with 1 or 2 channels of input.
+          </p>
+          <p>
+            The first image in the diagram illustrates the general case, where
+            the source has N input channels, the impulse response has K
+            channels, and the playback system has M output channels. Because
+            <a><code>ConvolverNode</code></a> is limited to 1 or 2 channels of
+            input, not every case can be handled.
+          </p>
+          <p>
+            Single channel convolution operates on a mono audio input, using a
+            mono impulse response, and generating a mono output. The remaining
+            images in the diagram illustrate the supported cases for mono and
+            stereo playback where N and M are 1 or 2 and K is 1, 2, or 4.
+            Developers desiring more complex and arbitrary matrixing can use a
+            <a><code>ChannelSplitterNode</code></a>, multiple single-channel
+            <a><code>ConvolverNode</code></a>s and a
+            <a><code>ChannelMergerNode</code></a>.
+          </p>
+          <figure>
+            <img alt="reverb matrixing" src="images/reverb-matrixing.png">
+            <figcaption>
+              A graphical representation of supported input and output channel
+              count possibilities when using a
+              <a><code>ConvolverNode</code></a>.
+            </figcaption>
+          </figure>
+        </section>
       </section>
       <section>
         <h2>
@@ -5189,10 +5372,10 @@ float calculateNormalizationScale(buffer)
           </dt>
           <dd>
             <p>
-              Copies the current time-domain (waveform) data into the passed
-              floating-point array. If the array has fewer elements than the
-              value of <a><code>fftSize</code></a>, the excess elements will be
-              dropped. If the array has more elements than
+              Copies the current down-mixed time-domain (waveform) data into
+              the passed floating-point array. If the array has fewer elements
+              than the value of <a><code>fftSize</code></a>, the excess
+              elements will be dropped. If the array has more elements than
               <a><code>fftSize</code></a>, the excess elements will be ignored.
             </p>
             <dl class="parameters">
@@ -5210,10 +5393,10 @@ float calculateNormalizationScale(buffer)
           </dt>
           <dd>
             <p>
-              Copies the current time-domain (waveform) data into the passed
-              unsigned byte array. If the array has fewer elements than the
-              value of <a><code>fftSize</code></a>, the excess elements will be
-              dropped. If the array has more elements than
+              Copies the current down-mixed time-domain (waveform) data into
+              the passed unsigned byte array. If the array has fewer elements
+              than the value of <a><code>fftSize</code></a>, the excess
+              elements will be dropped. If the array has more elements than
               <a><code>fftSize</code></a>, the excess elements will be ignored.
             </p>
             <p>
@@ -5295,6 +5478,8 @@ float calculateNormalizationScale(buffer)
           data</dfn> are computed, the following operations are to be
           performed:
           <ol>
+            <li>Down-mix all channels of the time domain input data to mono.
+            </li>
             <li>
               <a href="#blackman-window">Apply a Blackman window</a> to the
               time domain input data
@@ -5444,7 +5629,7 @@ float calculateNormalizationScale(buffer)
           right). There are always a total number of N outputs (determined by
           the <code>numberOfOutputs</code> parameter to the
           <a><code>AudioContext</code></a> method <a href=
-          "#widl-AudioContext-createChannelSplitter-ChannelSplitterNode-unsigned-long-numberOfOutputs">
+          "#widl-BaseAudioContext-createChannelSplitter-ChannelSplitterNode-unsigned-long-numberOfOutputs">
           <code>createChannelSplitter()</code></a>), The default number is 6 if
           this value is not provided. Any outputs which are not "active" will
           output silence and would typically not be connected to anything.
@@ -6017,7 +6202,7 @@ float calculateNormalizationScale(buffer)
                   If a value in the <code>frequencyHz</code> parameter is not
                   within [0; sampleRate/2], where <code>sampleRate</code> is
                   the value of the <a href=
-                  "#widl-AudioContext-sampleRate"><code>sampleRate</code></a>
+                  "#widl-BaseAudioContext-sampleRate"><code>sampleRate</code></a>
                   property of the <a>AudioContext</a>, the corresponding value
                   at the same index of the <code>magResponse</code> array MUST
                   be <code>NaN</code>.
@@ -6035,7 +6220,7 @@ float calculateNormalizationScale(buffer)
                   If a value in the <code>frequencyHz</code> parameter is not
                   within [0; sampleRate/2], where <code>sampleRate</code> is
                   the value of the <a href=
-                  "#widl-AudioContext-sampleRate"><code>sampleRate</code></a>
+                  "#widl-BaseAudioContext-sampleRate"><code>sampleRate</code></a>
                   property of the <a>AudioContext</a>, the corresponding value
                   at the same index of the <code>phaseResponse</code> array
                   MUST be <code>NaN</code>.
@@ -6078,7 +6263,7 @@ float calculateNormalizationScale(buffer)
           <a><code>BiquadFilterNode</code></a>.
           <ul>
             <li>Let \(F_s\) be the value of the <a href=
-            "#widl-AudioContext-sampleRate"><code>sampleRate</code></a>
+            "#widl-BaseAudioContext-sampleRate"><code>sampleRate</code></a>
             attribute for this <a>AudioContext</a>.
             </li>
             <li>Let \(f_0\) be the value of the
@@ -6339,7 +6524,7 @@ $$
             Let \(b_m\) be the <code>feedforward</code> coefficients and
             \(a_n\) be the <code>feedback</code> coefficients specified by
             <a href=
-            "#widl-AudioContext-createIIRFilter-IIRFilterNode-Float32Array-feedforward-Float32Array-feedback">
+            "#widl-BaseAudioContext-createIIRFilter-IIRFilterNode-Float32Array-feedforward-Float32Array-feedback">
             <code>createIIRFilter</code></a>. Then the transfer function of the
             general IIR filter is given by
           </p>
@@ -6728,7 +6913,7 @@ odd function with period \(2\pi\).
         <p>
           PeriodicWave represents an arbitrary periodic waveform to be used
           with an <a><code>OscillatorNode</code></a>. Please see <a href=
-          "#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
+          "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
           createPeriodicWave()</a> and <a href=
           "#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">
           setPeriodicWave()</a> and for more details.
@@ -6756,7 +6941,7 @@ odd function with period \(2\pi\).
           </h2>
           <p>
             The <a href=
-            "#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
+            "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
             createPeriodicWave()</a> method takes two arrays to specify the
             Fourier coefficients of the PeriodicWave. Let \(a\) and \(b\)
             represent the real and imaginary arrays of length \(L\). Then the
@@ -6829,7 +7014,7 @@ odd function with period \(2\pi\).
             In the following descriptions, let \(a\) be the array of real
             coefficients and \(b\) be the array of imaginary coefficients for
             <a href=
-            "#widl-AudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
+            "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
             <code>createPeriodicWave()</code></a>. In all cases \(a[n] = 0\)
             for all \(n\) because the waveforms are odd functions. Also, \(b[0]
             = 0\) in all cases. Hence, only \(b[n]\) for \(n \ge 1\) is
@@ -7556,6 +7741,17 @@ Quad up-mix:
       </section>
     </section>
     <section>
+      <h2 id="audio-sample-values">
+        Audio Signal Values
+      </h2>
+      <p>
+        The nominal range of all audio signals at a destination node of any
+        audio graph is [-1, 1]. The audio rendition of signal values outside
+        this range, or of the values <code>NaN</code>, positive infinity or
+        negative infinity, is undefined by this specification.
+      </p>
+    </section>
+    <section>
       <h2 id="Spatialization">
         Spatialization / Panning
       </h2>
@@ -7859,11 +8055,14 @@ if (pan &lt;= 0) {
           based on the panner and listener positions according to:
         </p>
         <pre class="highlight">
-  v = panner.position - listener.position
-  
-</pre>
-        <pre class="highlight">
-  distance = sqrt(dot(v, v))
+  function dotProduct(v1, v2) {
+    var d = 0;
+    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+      d += v1[i] * v2[i];
+    return d;
+  }
+  var v = panner.position - listener.position;
+  var distance = Math.sqrt(dotProduct(v, v));
   
 </pre>
         <p>
@@ -7900,25 +8099,39 @@ if (pan &lt;= 0) {
           <a><code>PannerNode</code></a>) and the listener:
         </p>
         <pre class="highlight">
-  if (source.orientation.isZero() || ((source.coneInnerAngle == 0) &amp;& (source.coneOuterAngle == 0)))
+  function dotProduct(v1, v2) {
+    var d = 0;
+    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+      d += v1[i] * v2[i];
+    return d;
+  }
+
+  function diff(v1, v2) {
+    var v = [];
+    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+      v[i] = v1[i] - v2[i];
+    return v;
+  }
+
+  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle == 0) &amp;& (source.coneOuterAngle == 0)))
       return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
-  vec3 sourceToListener = listener.position - source.position;
+  var sourceToListener = diff(listener.position, source.position);
   sourceToListener.normalize();
 
-  vec3 normalizedSourceOrientation = source.orientation;
+  var normalizedSourceOrientation = source.orientation;
   normalizedSourceOrientation.normalize();
 
   // Angle between the source orientation vector and the source-listener vector
-  float dotProduct = sourceToListener.dot(normalizedSourceOrientation);
-  float angle = 180 * acos(dotProduct) / PI;
-  float absAngle = fabs(angle);
+  var dotProduct = dotProduct(sourceToListener, normalizedSourceOrientation);
+  var angle = 180 * Math.acos(dotProduct) / Math.PI;
+  var absAngle = Math.abs(angle);
 
   // Divide by 2 here since API is entire angle (not half-angle)
-  float absInnerAngle = fabs(source.coneInnerAngle) / 2;
-  float absOuterAngle = fabs(source.coneOuterAngle) / 2;
-  float gain = 1;
+  var absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
+  var absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
+  var gain = 1;
 
   if (absAngle &lt;= absInnerAngle)
       // No attenuation
@@ -7929,7 +8142,7 @@ if (pan &lt;= 0) {
   else {
       // Between inner and outer cones
       // inner -&gt; outer, x goes from 0 -&gt; 1
-      float x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+      var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
       gain = (1 - x) + source.coneOuterGain * x;
   }
 
@@ -7956,35 +8169,35 @@ if (pan &lt;= 0) {
           indirectly to the <a><code>PannerNode</code></a>:
         </p>
         <pre class="highlight">
-  float dopplerShift = 1; // Initialize to default value
-  float dopplerFactor = listener.dopplerFactor;
+  var dopplerShift = 1; // Initialize to default value
+  var dopplerFactor = listener.dopplerFactor;
 
   if (dopplerFactor &gt; 0) {
-      float speedOfSound = listener.speedOfSound;
+      var speedOfSound = listener.speedOfSound;
 
       // Don't bother if both source and listener have no velocity.
-      if (!source.velocity.isZero() || !listener.velocity.isZero()) {
+      if (dotProduct(source.velocity, source.velocity) != 0 || dotProduct(listener.velocity, listener.velocity) != 0) {
           // Calculate the source to listener vector.
-          vec3 sourceToListener = source.position - listener.position;
+          var sourceToListener = diff(source.position, listener.position);
 
-          float sourceListenerMagnitude = sourceToListener.length();
+          var sourceListenerMagnitude = Math.sqrt(dotProduct(sourceToListener, sourceToListener);
 
-          float listenerProjection = sourceToListener.dot(listener.velocity) / sourceListenerMagnitude;
-          float sourceProjection = sourceToListener.dot(source.velocity) / sourceListenerMagnitude;
+          var listenerProjection = dotProduct(sourceToListener, listener.velocity) / sourceListenerMagnitude;
+          var sourceProjection = dotProduct(sourceToListener, source.velocity) / sourceListenerMagnitude;
 
           listenerProjection = -listenerProjection;
           sourceProjection = -sourceProjection;
 
-          float scaledSpeedOfSound = speedOfSound / dopplerFactor;
-          listenerProjection = min(listenerProjection, scaledSpeedOfSound);
-          sourceProjection = min(sourceProjection, scaledSpeedOfSound);
+          var scaledSpeedOfSound = speedOfSound / dopplerFactor;
+          listenerProjection = Math.min(listenerProjection, scaledSpeedOfSound);
+          sourceProjection = Math.min(sourceProjection, scaledSpeedOfSound);
 
           dopplerShift = ((speedOfSound - dopplerFactor * listenerProjection) / (speedOfSound - dopplerFactor * sourceProjection));
           fixNANs(dopplerShift); // Avoid illegal values
 
           // Limit the pitch shifting to 4 octaves up and 3 octaves down.
-          dopplerShift = min(dopplerShift, 16);
-          dopplerShift = max(dopplerShift, 0.125);
+          dopplerShift = Math.min(dopplerShift, 16);
+          dopplerShift = Math.max(dopplerShift, 0.125);
       }
   }
   
@@ -7992,114 +8205,10 @@ if (pan &lt;= 0) {
       </section>
     </section>
     <section>
-      <h2 id="Convolution">
-        Linear Effects using Convolution
-      </h2>
-      <section>
-        <h3 id="Convolution-background">
-          Background
-        </h3>
-        <p>
-          <a href="https://en.wikipedia.org/wiki/Convolution">Convolution</a>
-          is a mathematical process which can be applied to an audio signal to
-          achieve many interesting high-quality linear effects. Very often, the
-          effect is used to simulate an acoustic space such as a concert hall,
-          cathedral, or outdoor amphitheater. It can also be used for complex
-          filter effects, like a muffled sound coming from inside a closet,
-          sound underwater, sound coming through a telephone, or playing
-          through a vintage speaker cabinet. This technique is very commonly
-          used in major motion picture and music production and is considered
-          to be extremely versatile and of high quality.
-        </p>
-        <p>
-          Each unique effect is defined by an <em>impulse response</em>. An
-          impulse response can be represented as an audio file and <a href=
-          "#recording-impulse-responses">can be recorded</a> from a real
-          acoustic space such as a cave, or can be synthetically generated
-          through a great variety of techniques.
-        </p>
-      </section>
-    </section>
-    <section>
-      <h3 id="Convolution-motivation">
-        Motivation for use as a Standard
-      </h3>
-      <p>
-        A key feature of many game audio engines (OpenAL, FMOD, Creative's EAX,
-        Microsoft's XACT Audio, etc.) is a reverberation effect for simulating
-        the sound of being in an acoustic space. The code used to generate this
-        effect has generally been custom and algorithmic (generally using a
-        hand-tweaked set of delay lines and allpass filters which feedback into
-        each other). In nearly all cases, not only is the implementation
-        custom, but the code is proprietary and closed-source, each company
-        adding its own "black magic" to achieve its unique quality. Each
-        implementation being custom with a different set of parameters makes it
-        impossible to achieve a uniform desired effect. And the code being
-        proprietary makes it impossible to adopt a single one of the
-        implementations as a standard. Additionally, algorithmic reverberation
-        effects are limited to a relatively narrow range of different effects,
-        regardless of how the parameters are tweaked.
-      </p>
-      <p>
-        A convolution effect solves these problems by using a very precisely
-        defined mathematical algorithm as the basis of its processing. An
-        impulse response represents an exact sound effect to be applied to an
-        audio stream and is easily represented by an audio file which can be
-        referenced by URL. The range of possible effects is enormous.
-      </p>
-    </section>
-    <section>
-      <h3 id="Convolution-implementation-guide">
-        Implementation Guide
-      </h3>
-      <p>
-        Linear convolution can be implemented efficiently. Here are some
-        <a href="convolution.html">notes</a> describing how it can be
-        practically implemented.
-      </p>
-    </section>
-    <section>
-      <h3 id="Convolution-reverb-effect">
-        Reverb Effect (with matrixing)
-      </h3>
-      <p class="norm">
-        This section is normative.
-      </p>
-      <p>
-        In the general case the source has N input channels, the impulse
-        response has K channels, and the playback system has M output channels.
-        Thus it's a matter of how to matrix these channels to achieve the final
-        result.
-      </p>
-      <p>
-        The subset of N, M, K below must be implemented (note that the first
-        image in the diagram is just illustrating the general case and is not
-        normative, while the following images are normative). Without loss of
-        generality, developers desiring more complex and arbitrary matrixing
-        can use multiple <a><code>ConvolverNode</code></a> objects in
-        conjunction with an <a><code>ChannelMergerNode</code></a>.
-      </p>
-      <p>
-        Single channel convolution operates on a mono audio input, using a mono
-        impulse response, and generating a mono output. To achieve a more
-        spacious sound, 2 channel audio inputs and 1, 2, or 4 channel impulse
-        responses will be considered. The following diagram, illustrates the
-        common cases for stereo playback where N and M are 1 or 2 and K is 1,
-        2, or 4.
-      </p>
-      <figure>
-        <img alt="reverb matrixing" src="images/reverb-matrixing.png">
-        <figcaption>
-          A graphical representation of the different input and output channel
-          count possibilities when using a <a><code>ConvolverNode</code></a>.
-        </figcaption>
-      </figure>
-    </section>
-    <section>
       <h2 id="Performance">
         Performance Considerations
       </h2>
-      <section>
+      <section class="informative">
         <h3>
           Latency
         </h3>
@@ -8118,7 +8227,7 @@ if (pan &lt;= 0) {
           This time delay is called latency and is caused by several factors
           (input device latency, internal buffering latency, DSP processing
           latency, output device latency, distance of user's ears from
-          speakers, etc.), and is cummulative. The larger this latency is, the
+          speakers, etc.), and is cumulative. The larger this latency is, the
           less satisfying the user's experience is going to be. In the extreme,
           it can make musical production or game-play impossible. At moderate
           levels it can affect timing and give the impression of sounds lagging
@@ -8128,6 +8237,17 @@ if (pan &lt;= 0) {
           cheapens the users experience much in the same way that very low
           animation frame-rates do. Depending on the application, a reasonable
           latency can be from as low as 3-6 milliseconds to 25-50 milliseconds.
+        </p>
+        <p>
+          Implementations will generally seek to minimize overall latency.
+        </p>
+        <p>
+          Along with minimizing overall latency, implementations will generally
+          seek to minimize the difference between an
+          <a><code>AudioContext</code></a>'s <code>currentTime</code> and an
+          <a><code>AudioProcessingEvent</code></a>'s <code>playbackTime</code>.
+          Deprecation of <a><code>ScriptProcessorNode</code></a> will make this
+          consideration less important over time.
         </p>
       </section>
       <section>
@@ -8174,7 +8294,7 @@ if (pan &lt;= 0) {
         </p>
         <p>
           Using the <a href=
-          "#widl-AudioParam-setTargetAtTime-void-float-target-double-startTime-float-timeConstant">
+          "#widl-AudioParam-setTargetAtTime-AudioParam-float-target-double-startTime-float-timeConstant">
           <code>setTargetAtTime</code></a> method with a low
           <code>timeConstant</code> allows authors to perform a smooth
           transition.

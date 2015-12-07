@@ -320,7 +320,7 @@
 var context = new AudioContext();
 
 function playSound() {
-    var source = context.createBufferSource();
+    var source = new AudioBufferSourceNode(context);
     source.buffer = dogBarkingBuffer;
     source.connect(context.destination);
     source.start(0);
@@ -365,15 +365,15 @@ function setupRoutingGraph () {
     context = new AudioContext();
 
     // Create the effects nodes.
-    lowpassFilter = context.createBiquadFilter();
-    waveShaper = context.createWaveShaper();
-    panner = context.createPanner();
-    compressor = context.createDynamicsCompressor();
-    reverb = context.createConvolver();
+    lowpassFilter = new BiquadFilterNode(context);
+    waveShaper = new WaveShaperNode(context);
+    panner = new PannerNode(context);
+    compressor = new DynamicsCompressorNode(context);
+    reverb = new ConvolverNode(context);
 
     // Create master wet and dry.
-    masterDry = context.createGain();
-    masterWet = context.createGain();
+    masterDry = new GainNode(context);
+    masterWet = new GainNode(context);
 
     // Connect final compressor to final destination.
     compressor.connect(context.destination);
@@ -386,17 +386,17 @@ function setupRoutingGraph () {
     reverb.connect(masterWet);
 
     // Create a few sources.
-    source1 = context.createBufferSource();
-    source2 = context.createBufferSource();
-    source3 = context.createOscillator();
+    source1 = new AudioBufferSourceNode(context);
+    source2 = new AudioBufferSourceNode(context);
+    source3 = new OscillatorNode(context);
 
     source1.buffer = manTalkingBuffer;
     source2.buffer = footstepsBuffer;
     source3.frequency.value = 440;
 
     // Connect source1
-    dry1 = context.createGain();
-    wet1 = context.createGain();
+    dry1 = new GainNode(context);
+    wet1 = new GainNode(context);
     source1.connect(lowpassFilter);
     lowpassFilter.connect(dry1);
     lowpassFilter.connect(wet1);
@@ -404,8 +404,8 @@ function setupRoutingGraph () {
     wet1.connect(reverb);
 
     // Connect source2
-    dry2 = context.createGain();
-    wet2 = context.createGain();
+    dry2 = new GainNode(context);
+    wet2 = new GainNode(context);
     source2.connect(waveShaper);
     waveShaper.connect(dry2);
     waveShaper.connect(wet2);
@@ -413,8 +413,8 @@ function setupRoutingGraph () {
     wet2.connect(reverb);
 
     // Connect source3
-    dry3 = context.createGain();
-    wet3 = context.createGain();
+    dry3 = new GainNode(context);
+    wet3 = new GainNode(context);
     source3.connect(panner);
     panner.connect(dry3);
     panner.connect(wet3);
@@ -447,15 +447,15 @@ function setupRoutingGraph() {
   var context = new AudioContext();
 
   // Create the low frequency oscillator that supplies the modulation signal
-  var lfo = context.createOscillator();
+  var lfo = new OscillatorNode(context);
   lfo.frequency.value = 1.0;
 
   // Create the high frequency oscillator to be modulated
-  var hfo = context.createOscillator();
+  var hfo = new OscillatorNode(context);
   hfo.frequency.value = 440.0;
 
   // Create a gain node whose gain determines the amplitude of the modulation signal
-  var modulationGain = context.createGain();
+  var modulationGain = new GainNode(context);
   modulationGain.gain.value = 50;
 
   // Configure the graph and start the oscillators
@@ -663,7 +663,7 @@ function setupRoutingGraph() {
           This interface represents a set of <a><code>AudioNode</code></a>
           objects and their connections. It allows for arbitrary routing of
           signals to an <a><code>AudioDestinationNode</code></a>. Nodes are
-          created from the context and are then <a href=
+          created that refer to the context and are then <a href=
           "#ModularRouting">connected</a> together.
         </p>
         <p>
@@ -693,10 +693,8 @@ function setupRoutingGraph() {
             This context has been released, and can no longer be used to
             process audio. All system audio resources have been released.
             Attempts to create new Nodes on this context will throw
-            InvalidStateError. (AudioBuffers may still be created, through
+            InvalidStateError. (AudioBuffers may still be created by the context, through
             <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> or <a href=
             "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
             decodeAudioData</a>.)
           </dd>
@@ -1152,18 +1150,21 @@ function setupRoutingGraph() {
             AnalyserNode createAnalyser()
           </dt>
           <dd>
-            Create an <a><code>AnalyserNode</code></a>.
+            This method is DEPRECATED in favor of using the constructor.
+            Create an <a><code>AnalyserNode</code></a>. 
           </dd>
           <dt>
             GainNode createGain()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor.
             Create an <a><code>GainNode</code></a>.
           </dd>
           <dt>
             DelayNode createDelay()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>DelayNode</code></a> representing a variable
             delay line. The initial default delay time will be 0 seconds.
             <dl class="parameters">
@@ -1183,7 +1184,8 @@ function setupRoutingGraph() {
             BiquadFilterNode createBiquadFilter()
           </dt>
           <dd>
-            Creates a <a><code>BiquadFilterNode</code></a> representing a
+This method is DEPRECATED in favor of using the constructor. 
+                        Creates a <a><code>BiquadFilterNode</code></a> representing a
             second order filter which can be configured as one of several
             common filter types.
           </dd>
@@ -1192,6 +1194,7 @@ function setupRoutingGraph() {
             sequence&lt;double&gt; a)
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates an <a><code>IIRFilterNode</code></a> representing a general
             IIR Filter.
             <dl class="parameters">
@@ -1221,6 +1224,7 @@ function setupRoutingGraph() {
             WaveShaperNode createWaveShaper()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>WaveShaperNode</code></a> representing a
             non-linear distortion.
           </dd>
@@ -1236,24 +1240,28 @@ function setupRoutingGraph() {
             SpatialPannerNode createSpatialPanner()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>SpatialPannerNode</code></a>.
           </dd>
           <dt>
             StereoPannerNode createStereoPanner()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>StereoPannerNode</code></a>.
           </dd>
           <dt>
             ConvolverNode createConvolver()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>ConvolverNode</code></a>.
           </dd>
           <dt>
             ChannelSplitterNode createChannelSplitter()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates an <a><code>ChannelSplitterNode</code></a> representing a
             channel splitter. An IndexSizeError exception MUST be thrown for
             invalid parameter values.
@@ -1271,6 +1279,7 @@ function setupRoutingGraph() {
             ChannelMergerNode createChannelMerger()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>ChannelMergerNode</code></a> representing a
             channel merger. An IndexSizeError exception MUST be thrown for
             invalid parameter values.
@@ -1289,18 +1298,21 @@ function setupRoutingGraph() {
             DynamicsCompressorNode createDynamicsCompressor()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>DynamicsCompressorNode</code></a>
           </dd>
           <dt>
             OscillatorNode createOscillator()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates an <a><code>OscillatorNode</code></a>
           </dd>
           <dt>
             PeriodicWave createPeriodicWave()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>PeriodicWave</code></a> representing a waveform
             containing arbitrary harmonic content. The <code>real</code> and
             <code>imag</code> parameters must be of type
@@ -1432,10 +1444,15 @@ function setupRoutingGraph() {
           document.
         </p>
         <dl title='interface AudioContext : BaseAudioContext' class='idl'>
+          <dt>Constructor</dt>
+          <dd>
+            Creates an <a><code>AudioContext</code></a>.
+          </dd>
           <dt>
             MediaElementAudioSourceNode createMediaElementSource()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a href=
             "#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
             given an HTMLMediaElement. As a consequence of calling this method,
@@ -1454,6 +1471,7 @@ function setupRoutingGraph() {
             MediaStreamAudioSourceNode createMediaStreamSource()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             <dl class="parameters">
               <dt>
                 MediaStream mediaStream
@@ -1467,6 +1485,7 @@ function setupRoutingGraph() {
             MediaStreamAudioDestinationNode createMediaStreamDestination()
           </dt>
           <dd>
+            This method is DEPRECATED in favor of using the constructor. 
             Creates a <a><code>MediaStreamAudioDestinationNode</code></a>
           </dd>
         </dl>
@@ -1482,38 +1501,43 @@ function setupRoutingGraph() {
           hardware, but instead renders as quickly as possible, fulfilling the
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
-        </p>The OfflineAudioContext is constructed with the same arguments as
-        AudioContext.createBuffer. A NotSupportedException exception MUST be
-        thrown if any of the arguments is negative, zero, or outside its
-        nominal range.
-        <dl class="parameters">
-          <dt>
-            unsigned long numberOfChannels
-          </dt>
-          <dd>
-            Determines how many channels the buffer will have. See <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> for the supported number of channels.
-          </dd>
-          <dt>
-            unsigned long length
-          </dt>
-          <dd>
-            Determines the size of the buffer in sample-frames.
-          </dd>
-          <dt>
-            float sampleRate
-          </dt>
-          <dd>
-            Describes the sample-rate of the linear PCM audio data in the
-            buffer in sample-frames per second. See <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> for valid sample rates.
-          </dd>
-        </dl>
+        </p>
         <dl title=
-        '[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : BaseAudioContext'
+        'interface OfflineAudioContext : BaseAudioContext'
         class='idl'>
+          <dt>Constructor</dt>
+          <dd>
+            The OfflineAudioContext is constructed with the same arguments as
+            the <a href="#widl-ctor-AudioBuffer--unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+            AudioBuffer constructor</a>. A NotSupportedException exception MUST be
+            thrown if any of the arguments is negative, zero, or outside its
+            nominal range.
+            <dl class="parameters">
+              <dt>
+                unsigned long numberOfChannels
+              </dt>
+              <dd>
+                Determines how many channels the buffer will have. See the <a href=
+                "#widl-ctor-AudioBuffer--unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                AudioBuffer constructor</a> for the supported number of channels.
+              </dd>
+              <dt>
+                unsigned long length
+              </dt>
+              <dd>
+                Determines the size of the buffer in sample-frames.
+              </dd>
+              <dt>
+                float sampleRate
+              </dt>
+              <dd>
+                Describes the sample-rate of the linear PCM audio data in the
+                buffer in sample-frames per second. See the <a href=
+                "widl-ctor-AudioBuffer--unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                AudioBuffer constructor</a> for valid sample rates.
+              </dd>
+            </dl>
+          </dd>
           <dt>
             Promise&lt;AudioBuffer&gt; startRendering()
           </dt>
@@ -1647,8 +1671,6 @@ function setupRoutingGraph() {
             </p>
           </dd>
         </dl>
-        <dl title="[Constructor] interface AudioContext : BaseAudioContext"
-        class="idl"></dl>
         <section>
           <h2 id="OfflineAudioCompletionEvent">
             The OfflineAudioCompletionEvent Interface
@@ -2875,6 +2897,13 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a><code>AudioParam</code></a>.
         </p>
         <dl title="interface GainNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             readonly attribute AudioParam gain
           </dt>
@@ -2927,6 +2956,27 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           layout.
         </p>
         <dl title="interface DelayNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <p>
+              Creates a <a><code>DelayNode</code></a> representing a variable
+              delay line. The initial default delay time will be 0 seconds.
+            </p>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+              <dt>
+                optional double maxDelayTime = 1.0
+              </dt>
+              <dd>
+                The <code>maxDelayTime</code> parameter is optional and specifies
+                the maximum delay time in seconds allowed for the delay line.
+                If specified, this value MUST be greater than zero and less
+                than three minutes or a NotSupportedError exception MUST be
+                thrown.
+              </dd>
+            </dl>
+          </dd>
           <dt>
             readonly attribute AudioParam delayTime
           </dt>
@@ -2970,6 +3020,36 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a><code>AudioContext</code></a>.
         </p>
         <dl title="interface AudioBuffer" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates an AudioBuffer of the given size. The audio data in the
+            buffer will be zero-initialized (silent). A NotSupportedError
+            exception MUST be thrown if any of the arguments is negative, zero,
+            or outside its nominal range.
+            <dl class="parameters">
+              <dt>
+                unsigned long numberOfChannels
+              </dt>
+              <dd>
+                Determines how many channels the buffer will have. An
+                implementation must support at least 32 channels.
+              </dd>
+              <dt>
+                unsigned long length
+              </dt>
+              <dd>
+                Determines the size of the buffer in sample-frames.
+              </dd>
+              <dt>
+                float sampleRate
+              </dt>
+              <dd>
+                Describes the sample-rate of the linear PCM audio data in the
+                buffer in sample-frames per second. An implementation must
+                support sample rates in at least the range 8192 to 96000.
+              </dd>
+            </dl>
+          </dd>
           <dt>
             readonly attribute float sampleRate
           </dt>
@@ -3180,6 +3260,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           one channel of silence if .buffer is NULL.
         </p>
         <dl title="interface AudioBufferSourceNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates an <a><code>AudioBufferSourceNode</code></a>.
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             attribute AudioBuffer? buffer
           </dt>
@@ -3443,12 +3531,26 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           will be one silent channel.
         </p>
         <dl title="interface MediaElementAudioSourceNode : AudioNode" class=
-        "idl"></dl>
-        <p>
-          A <a>MediaElementAudioSourceNode</a> is created given an
-          <code>HTMLMediaElement</code> using the <a>AudioContext</a>
-          <code>createMediaElementSource()</code> method.
-        </p>
+        "idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates a <a href=
+            "#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
+            given an HTMLMediaElement. As a consequence of creating this node,
+            audio playback from the HTMLMediaElement will be re-routed into the
+            processing graph of the <a><code>AudioContext</code></a>.
+            <dl class="parameters">
+              <dt>AudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+              <dt>
+                HTMLMediaElement mediaElement
+              </dt>
+              <dd>
+                The media element that will be re-routed.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
         <p>
           The number of channels of the single output equals the number of
           channels of the audio referenced by the <code>HTMLMediaElement</code>
@@ -3468,7 +3570,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
         </p>
         <pre class="highlight example">
   var mediaElement = document.getElementById('mediaElementID');
-  var sourceNode = context.createMediaElementSource(mediaElement);
+  var sourceNode = new MediaElementSourceNode(context, mediaElement);
   sourceNode.connect(filterNode);
 </pre>
         <section>
@@ -4539,6 +4641,13 @@ onaudioprocess= function (e) {
           </dd>
         </dl>
         <dl title="interface PannerNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <!--<dt>// Default for stereo is HRTF</dt>-->
           <dt>
             attribute PanningModelType panningModel
@@ -4688,6 +4797,10 @@ onaudioprocess= function (e) {
           details about spatialization.
         </p>
         <dl title="interface AudioListener" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates an <a><code>AudioListener</code></a>.
+          </dd>
           <dt>
             void setPosition(float x, float y, float z)
           </dt>
@@ -4828,6 +4941,13 @@ pow(distance / refDistance, -rolloffFactor)
           </dd>
         </dl>
         <dl title="interface SpatialPannerNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             attribute PanningModelType panningModel
           </dt>
@@ -4958,6 +5078,10 @@ pow(distance / refDistance, -rolloffFactor)
           for more details about spatialization.
         </p>
         <dl title="interface SpatialListener" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates a <a><code>SpatialListener</code></a>.
+          </dd>
           <dt>
             readonly attribute AudioParam positionX
           </dt>
@@ -5086,6 +5210,13 @@ pow(distance / refDistance, -rolloffFactor)
           cannot be configured.
         </p>
         <dl title="interface StereoPannerNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             readonly attribute AudioParam pan
           </dt>
@@ -5138,6 +5269,13 @@ pow(distance / refDistance, -rolloffFactor)
           channelCountMode is set to "max".
         </p>
         <dl title="interface ConvolverNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             attribute AudioBuffer? buffer
           </dt>
@@ -5302,6 +5440,14 @@ function calculateNormalizationScale(buffer)
 </pre>
         <dl title="interface AnalyserNode : AudioNode" class="idl">
           <!--<dt> // Real-time frequency-domain data </dt>-->
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
+
           <dt>
             void getFloatFrequencyData()
           </dt>
@@ -5630,9 +5776,9 @@ function calculateNormalizationScale(buffer)
           outputs will be two (one from the left channel and one from the
           right). There are always a total number of N outputs (determined by
           the <code>numberOfOutputs</code> parameter to the
-          <a><code>AudioContext</code></a> method <a href=
-          "#widl-BaseAudioContext-createChannelSplitter-ChannelSplitterNode-unsigned-long-numberOfOutputs">
-          <code>createChannelSplitter()</code></a>), The default number is 6 if
+          <a><code>ChannelSplitterNode</code></a> <a href=
+          "#widl-ctor-ChannelSplitterNode--BaseAudioContext-context-unsigned-long-numberOfOutputs">
+          <code>constructor</code></a>), The default number is 6 if
           this value is not provided. Any outputs which are not "active" will
           output silence and would typically not be connected to anything.
         </p>
@@ -5655,7 +5801,25 @@ function calculateNormalizationScale(buffer)
           "matrix mixing" where individual gain control of each channel is
           desired.
         </p>
-        <dl title="interface ChannelSplitterNode : AudioNode" class="idl"></dl>
+        <dl title="interface ChannelSplitterNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates an <a><code>ChannelSplitterNode</code></a> representing a
+            channel splitter. An IndexSizeError exception MUST be thrown for
+            invalid parameter values.
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+              <dt>
+                optional unsigned long numberOfOutputs = 6
+              </dt>
+              <dd>
+                The number of outputs. Values of up to 32 must be supported. If
+                not specified, then 6 will be used.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
       </section>
       <section>
         <h2>
@@ -5716,7 +5880,28 @@ function calculateNormalizationScale(buffer)
             A diagram of ChannelMerger
           </figcaption>
         </figure>
-        <dl title="interface ChannelMergerNode : AudioNode" class="idl"></dl>
+        <dl title="interface ChannelMergerNode : AudioNode" class="idl">
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            Creates a <a><code>ChannelMergerNode</code></a> representing a
+            channel merger. An IndexSizeError exception MUST be thrown for
+            invalid parameter values.
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+              <dt>
+                optional unsigned long numberOfInputs = 6
+              </dt>
+              <dd>
+                The <code>numberOfInputs</code> parameter determines the number
+                of inputs. Values of up to 32 must be supported. If not
+                specified, then 6 will be used.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
       </section>
       <section>
         <h2>
@@ -5746,6 +5931,13 @@ function calculateNormalizationScale(buffer)
     channelInterpretation = "speakers";
 </pre>
         <dl title="interface DynamicsCompressorNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             readonly attribute AudioParam threshold
           </dt>
@@ -6130,6 +6322,18 @@ function calculateNormalizationScale(buffer)
           <a>a-rate</a> <a><code>AudioParam</code></a>.
         </p>
         <dl title="interface BiquadFilterNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <p>
+              Creates a <a><code>BiquadFilterNode</code></a> representing a
+              second order filter which can be configured as one of several
+              common filter types.
+            </p>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             attribute BiquadFilterType type
           </dt>
@@ -6483,6 +6687,37 @@ $$
           channels of the input.
         </p>
         <dl title="interface IIRFilterNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <p>
+              Creates an <a><code>IIRFilterNode</code></a> representing a general
+              IIR Filter.
+            </p>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+              <dt>
+                Float32Array feedforward
+              </dt>
+              <dd>
+                An array of the feedforward (numerator) coefficients for the
+                transfer function of the IIR filter. The maximum length of this
+                array is 20. If all of the values are zero, an
+                InvalidStateError MUST be thrown. A NotSupportedError MUST be
+                thrown if the array length is 0 or greater than 20.
+              </dd>
+              <dt>
+                Float32Array feedback
+              </dt>
+              <dd>
+                An array of the feedback (denominator) coefficients for the
+                tranfer function of the IIR filter. The maximum length of this
+                array is 20. If the first element of the array is 0, an
+                InvalidStateError MUST be thrown. A NotSupportedError MUST be
+                thrown if the array length is 0 or greater than 20.
+              </dd>
+            </dl>
+          </dd>
           <dt>
             void getFrequencyResponse()
           </dt>
@@ -6524,10 +6759,10 @@ $$
           </h3>
           <p>
             Let \(b_m\) be the <code>feedforward</code> coefficients and
-            \(a_n\) be the <code>feedback</code> coefficients specified by
+            \(a_n\) be the <code>feedback</code> coefficients specified by the
             <a href=
-            "#widl-BaseAudioContext-createIIRFilter-IIRFilterNode-Float32Array-feedforward-Float32Array-feedback">
-            <code>createIIRFilter</code></a>. Then the transfer function of the
+            "#widl-ctor-IIRFilterNode--BaseAudioContext-context-Float32Array-feedforward-Float32Array-feedback">
+            <code>IIRFilterNode constructor</code></a>. Then the transfer function of the
             general IIR filter is given by
           </p>
           <pre>
@@ -6602,6 +6837,13 @@ $$
         </dl>
         <dl title="interface WaveShaperNode : AudioNode" class="idl"
         data-merge="OverSampleType">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             attribute Float32Array? curve
           </dt>
@@ -6773,6 +7015,13 @@ $$
           </dd>
         </dl>
         <dl title="interface OscillatorNode : AudioNode" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            <dl class="parameters">
+              <dt>BaseAudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             attribute OscillatorType type
           </dt>
@@ -6914,13 +7163,77 @@ odd function with period \(2\pi\).
         </h2>
         <p>
           PeriodicWave represents an arbitrary periodic waveform to be used
-          with an <a><code>OscillatorNode</code></a>. Please see <a href=
-          "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
-          createPeriodicWave()</a> and <a href=
+          with an <a><code>OscillatorNode</code></a>. Also see <a href=
           "#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">
-          setPeriodicWave()</a> and for more details.
+          setPeriodicWave()</a> for additional details.
         </p>
-        <dl title="interface PeriodicWave" class="idl"></dl>
+        <dl title="interface PeriodicWave" class="idl">
+          <dt>Constructor</dt>
+          <dd>
+            Creates a <a><code>PeriodicWave</code></a> representing a waveform
+            containing arbitrary harmonic content. The <code>real</code> and
+            <code>imag</code> parameters must be of type
+            <code>Float32Array</code> (described in [[!TYPED-ARRAYS]]) of equal
+            lengths greater than zero or an IndexSizeError exception MUST be
+            thrown. All implementations must support arrays up to at least
+            8192. These parameters specify the Fourier coefficients of a
+            <a href="https://en.wikipedia.org/wiki/Fourier_series">Fourier
+            series</a> representing the partials of a periodic waveform. The
+            created <a><code>PeriodicWave</code></a> will be used with an
+            <a><code>OscillatorNode</code></a> and, by default, will represent
+            a <em>normalized</em> time-domain waveform having maximum absolute
+            peak value of 1. Another way of saying this is that the generated
+            waveform of an <a><code>OscillatorNode</code></a> will have maximum
+            peak value at 0dBFS. Conveniently, this corresponds to the
+            full-range of the signal values used by the Web Audio API. Because
+            the PeriodicWave is normalized by default on creation, the
+            <code>real</code> and <code>imag</code> parameters represent
+            <em>relative</em> values. If normalization is disabled via the
+            <code>disableNormalization</code> parameter, this normalization is
+            disabled, and the time-domain waveform has the amplitudes as given
+            by the Fourier coefficients.
+            <p>
+              As <a>PeriodicWave</a> objects maintain their own copies of these
+              arrays, any modification of the arrays used as the
+              <code>real</code> and <code>imag</code> parameters after the creation
+              of the <a>PeriodicWave</a> object will have no effect.
+            </p>
+            <dl class="parameters">
+              <dt>
+                Float32Array real
+              </dt>
+              <dd>
+                The <code>real</code> parameter represents an array
+                of <code>cosine</code> terms (traditionally the A terms). In
+                audio terminology, the first element (index 0) is the DC-offset
+                of the periodic waveform. The second element (index 1)
+                represents the fundamental frequency. The third element
+                represents the first overtone, and so on. The first element is
+                ignored and implementations must set it to zero internally.
+              </dd>
+              <dt>
+                Float32Array imag
+              </dt>
+              <dd>
+                The <code>imag</code> parameter represents an array
+                of <code>sine</code> terms (traditionally the B terms). The
+                first element (index 0) should be set to zero (and will be
+                ignored) since this term does not exist in the Fourier series.
+                The second element (index 1) represents the fundamental
+                frequency. The third element represents the first overtone, and
+                so on.
+              </dd>
+              <dt>
+                optional PeriodicWaveConstraints constraints
+              </dt>
+              <dd>
+                If not given, the waveform is normalized. Otherwise, the
+                waveform is normalized according the value given by
+                <code>constraints</code>.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
         <section>
           <h2>
             PeriodicWaveConstraints
@@ -6943,8 +7256,8 @@ odd function with period \(2\pi\).
           </h2>
           <p>
             The <a href=
-            "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
-            createPeriodicWave()</a> method takes two arrays to specify the
+            "#widl-ctor-PeriodicWave--Float32Array-real-Float32Array-imag-PeriodicWaveConstraints-constraints">
+            PeriodicWave constructor</a> takes two arrays to specify the
             Fourier coefficients of the PeriodicWave. Let \(a\) and \(b\)
             represent the real and imaginary arrays of length \(L\). Then the
             basic time-domain waveform, \(x(t)\), can be computed using:
@@ -7014,10 +7327,10 @@ odd function with period \(2\pi\).
           </p>
           <p>
             In the following descriptions, let \(a\) be the array of real
-            coefficients and \(b\) be the array of imaginary coefficients for
+            coefficients and \(b\) be the array of imaginary coefficients for the
             <a href=
-            "#widl-BaseAudioContext-createPeriodicWave-PeriodicWave-Float32Array-real-Float32Array-imag">
-            <code>createPeriodicWave()</code></a>. In all cases \(a[n] = 0\)
+            "#widl-ctor-PeriodicWave--Float32Array-real-Float32Array-imag-PeriodicWaveConstraints-constraints">
+            <code>PeriodicWave constructor</code></a>. In all cases \(a[n] = 0\)
             for all \(n\) because the waveforms are odd functions. Also, \(b[0]
             = 0\) in all cases. Hence, only \(b[n]\) for \(n \ge 1\) is
             specified below.
@@ -7095,7 +7408,23 @@ odd function with period \(2\pi\).
           silent channel.
         </p>
         <dl title="interface MediaStreamAudioSourceNode : AudioNode" class=
-        "idl"></dl>
+        "idl">
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <dl class="parameters">
+              <dt>AudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+              <dt>
+                MediaStream mediaStream
+              </dt>
+              <dd>
+                The media stream that will act as source.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
       </section>
       <section>
         <h2>
@@ -7127,6 +7456,15 @@ odd function with period \(2\pi\).
         </p>
         <dl title="interface MediaStreamAudioDestinationNode : AudioNode"
         class="idl">
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <dl class="parameters">
+              <dt>AudioContext context</dt>
+              <dd>The context to which this node belongs.</dd>
+            </dl>
+          </dd>
           <dt>
             readonly attribute MediaStream stream
           </dt>
@@ -7259,37 +7597,37 @@ odd function with period \(2\pi\).
   function setupRoutingGraph() {
       context = new AudioContext();
 
-      compressor = context.createDynamicsCompressor();
+      compressor = new DynamicsCompressorNode(context);
 
       // Send1 effect
-      reverb = context.createConvolver();
+      reverb = new ConvolverNode(context);
       // Convolver impulse response may be set here or later
 
       // Send2 effect
-      delay = context.createDelay();
+      delay = new DelayNode(context);
 
       // Connect final compressor to final destination
       compressor.connect(context.destination);
 
       // Connect sends 1 & 2 through effects to main mixer
-      s1 = context.createGain();
+      s1 = new GainNode(context);
       reverb.connect(s1);
       s1.connect(compressor);
 
-      s2 = context.createGain();
+      s2 = new GainNode(context);
       delay.connect(s2);
       s2.connect(compressor);
 
       // Create a couple of sources
-      source1 = context.createBufferSource();
-      source2 = context.createBufferSource();
+      source1 = new AudioBufferSourceNode(context);
+      source2 = new AudioBufferSourceNode(context);
       source1.buffer = manTalkingBuffer;
       source2.buffer = footstepsBuffer;
 
       // Connect source1
-      g1_1 = context.createGain();
-      g2_1 = context.createGain();
-      g3_1 = context.createGain();
+      g1_1 = new GainNode(context);
+      g2_1 = new GainNode(context);
+      g3_1 = new GainNode(context);
       source1.connect(g1_1);
       source1.connect(g2_1);
       source1.connect(g3_1);
@@ -7298,9 +7636,9 @@ odd function with period \(2\pi\).
       g3_1.connect(delay);
 
       // Connect source2
-      g1_2 = context.createGain();
-      g2_2 = context.createGain();
-      g3_2 = context.createGain();
+      g1_2 = new GainNode(context);
+      g2_2 = new GainNode(context);
+      g3_2 = new GainNode(context);
       source2.connect(g1_2);
       source2.connect(g2_2);
       source2.connect(g3_2);
@@ -7404,12 +7742,12 @@ var streamingAudioSource = 0;
 function setupAudioContext() {
     context = new AudioContext();
 
-    compressor = context.createDynamicsCompressor();
-    gainNode1 = context.createGain();
+    compressor = new DynamicsCompressorNode(context);
+    gainNode1 = new GainNode(context);
 
     // Create a streaming audio source.
     var audioElement = document.getElementById('audioTagID');
-    streamingAudioSource = context.createMediaElementSource(audioElement);
+    streamingAudioSource = new MediaElementSourceNode(context, audioElement);
     streamingAudioSource.connect(gainNode1);
 
     gainNode1.connect(compressor);
@@ -7419,13 +7757,13 @@ function setupAudioContext() {
 // Later in response to some user action (typically mouse or key event)
 // a one-shot sound can be played.
 function playSound() {
-    var oneShotSound = context.createBufferSource();
+    var oneShotSound = new AudioBufferSourceNode(context);
     oneShotSound.buffer = dogBarkingBuffer;
 
     // Create a filter, panner, and gain node.
-    var lowpass = context.createBiquadFilter();
-    var panner = context.createPanner();
-    var gainNode2 = context.createGain();
+    var lowpass = new BiquadFilterNode(context);
+    var panner = new PannerNode(context);
+    var gainNode2 = new GainNode(context);
 
     // Make connections
     oneShotSound.connect(lowpass);

@@ -229,8 +229,6 @@
               </li>
               <li>Obstruction / Occlusion
               </li>
-              <li>Doppler Shift
-              </li>
               <li>Source / Listener based
               </li>
             </ul>
@@ -8182,59 +8180,6 @@ if (pan &lt;= 0) {
   }
 
   return gain;
-  
-</pre>
-      </section>
-      <section>
-        <h3 id="Spatialization-doppler-shift">
-          Doppler Shift
-        </h3>
-        <ul>
-          <li>Introduces a pitch shift which can realistically simulate moving
-          sources.
-          </li>
-          <li>Depends on: source / listener velocity vectors, speed of sound,
-          doppler factor.
-          </li>
-        </ul>
-        <p>
-          The following algorithm must be used to calculate the doppler shift
-          value which is used as an additional playback rate scalar for all
-          <a><code>AudioBufferSourceNode</code></a>s connecting directly or
-          indirectly to the <a><code>PannerNode</code></a>:
-        </p>
-        <pre class="highlight">
-  var dopplerShift = 1; // Initialize to default value
-  var dopplerFactor = listener.dopplerFactor;
-
-  if (dopplerFactor &gt; 0) {
-      var speedOfSound = listener.speedOfSound;
-
-      // Don't bother if both source and listener have no velocity.
-      if (dotProduct(source.velocity, source.velocity) != 0 || dotProduct(listener.velocity, listener.velocity) != 0) {
-          // Calculate the source to listener vector.
-          var sourceToListener = diff(source.position, listener.position);
-
-          var sourceListenerMagnitude = Math.sqrt(dotProduct(sourceToListener, sourceToListener);
-
-          var listenerProjection = dotProduct(sourceToListener, listener.velocity) / sourceListenerMagnitude;
-          var sourceProjection = dotProduct(sourceToListener, source.velocity) / sourceListenerMagnitude;
-
-          listenerProjection = -listenerProjection;
-          sourceProjection = -sourceProjection;
-
-          var scaledSpeedOfSound = speedOfSound / dopplerFactor;
-          listenerProjection = Math.min(listenerProjection, scaledSpeedOfSound);
-          sourceProjection = Math.min(sourceProjection, scaledSpeedOfSound);
-
-          dopplerShift = ((speedOfSound - dopplerFactor * listenerProjection) / (speedOfSound - dopplerFactor * sourceProjection));
-          fixNANs(dopplerShift); // Avoid illegal values
-
-          // Limit the pitch shifting to 4 octaves up and 3 octaves down.
-          dopplerShift = Math.min(dopplerShift, 16);
-          dopplerShift = Math.max(dopplerShift, 0.125);
-      }
-  }
   
 </pre>
       </section>

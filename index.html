@@ -4308,48 +4308,48 @@ to be zero.
             </h5>
             <pre class="highlight">
 var bitcrusherFactory = null;
-audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
-    {  // cache 'factory' in case you want to create more nodes!
-      bitcrusherFactory = factory;
-      var bitcrusherNode = factory.createNode();
-      bitcrusherNode.bits.setValueAtTime(8,0);
-      bitcrusherNode.connect(output); 
-      input.connect(bitcrusherNode);
-    }
-  );
+audioContext.createAudioWorker("bitcrusher_worker.js").then(function (factory) {
+  // cache 'factory' in case you want to create more nodes!
+  bitcrusherFactory = factory;
+  var bitcrusherNode = factory.createNode();
+  bitcrusherNode.bits.setValueAtTime(8, 0);
+  bitcrusherNode.connect(output);
+  input.connect(bitcrusherNode);
+});
 </pre>
             <h5>
               bitcrusher_worker.js
             </h5>
             <pre class="highlight">
-            // Custom parameter - number of bits to crush down to - default 8
-this.addParameter( "bits", 8 );
+// Custom parameter - number of bits to crush down to - default 8
+this.addParameter("bits", 8);
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
-this.addParameter( "frequencyReduction", 0.5 );
+this.addParameter("frequencyReduction", 0.5);
 
-onnodecreate=function(e) {
+onnodecreate = function (e) {
   e.node.phaser = 0;
   e.node.lastDataValue = 0;
 }
 
-onaudioprocess= function (e) {
-  for (var channel=0; channel&lt;e.inputs[0].length; channel++) {
+onaudioprocess = function (e) {
+  for (var channel = 0; channel &lt; e.inputs[0].length; channel++) {
     var inputBuffer = e.inputs[0][channel];
     var outputBuffer = e.outputs[0][channel];
     var bufferLength = inputBuffer.length;
     var bitsArray = e.parameters.bits;
     var frequencyReductionArray = e.parameters.frequencyReduction;
 
-    for (var i=0; i&lt;bufferLength; i++) {
+    for (var i = 0; i &lt; bufferLength; i++) {
       var bits = bitsArray ? bitsArray[i] : 8;
-      var frequencyReduction = frequencyReductionArray ? frequencyReductionArray[i] : 0.5;
+      var frequencyReduction = frequencyReductionArray ?
+        frequencyReductionArray[i] : 0.5;
 
-      var step = Math.pow(1/2, bits);
+      var step = Math.pow(1 / 2, bits);
       e.node.phaser += frequencyReduction;
       if (e.node.phaser &gt;= 1.0) {
-          e.node.phaser -= 1.0;
-          e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
+        e.node.phaser -= 1.0;
+        e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
       }
       outputBuffer[i] = e.node.lastDataValue;
     }
@@ -4375,21 +4375,21 @@ onaudioprocess= function (e) {
 function setupNodeMessaging(node) {
   // This handles communication back from the volume meter
   node.onmessage = function (event) {
-    if (event.data instanceof Object ) {
-      if (event.data.hasOwnProperty("clip")
+    if (event.data instanceof Object) {
+      if (event.data.hasOwnProperty("clip"))
         this.clip = event.data.clip;
-      if (event.data.hasOwnProperty("volume")
+      if (event.data.hasOwnProperty("volume"))
         this.volume = event.data.volume;
     }
   }
 
   // Set up some default configuration parameters
-  node.postMessage(
-    { "smoothing": 0.9,   // Smoothing parameter
-      "clipLevel": 0.9,   // Level to consider "clipping"
-      "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
-      "updating": 100      // How frequently to update volume and clip param (ms)
-    });
+  node.postMessage({
+    "smoothing": 0.9, // Smoothing parameter
+    "clipLevel": 0.9, // Level to consider "clipping"
+    "clipLag": 750, // How long to keep "clipping" lit up after clip (ms)
+    "updating": 100 // How frequently to update volume and clip param (ms)
+  });
 
   // Set up volume and clip attributes.  These will be updated by our onmessage.
   node.volume = 0;
@@ -4398,17 +4398,17 @@ function setupNodeMessaging(node) {
 
 var vuNode = null;
 
-audioContext.createAudioWorker("vu_meter_worker.js").then( function(factory) 
-    {  // cache 'factory' in case you want to create more nodes!
-      vuFactory = factory;
-      vuNode = factory.createNode([1], []); // we don't need an output, and let's force to mono
-      setupNodeMessaging(vuNode);
-    }
-  );
+audioContext.createAudioWorker("vu_meter_worker.js").then(function (factory) {
+  // cache 'factory' in case you want to create more nodes!
+  vuFactory = factory;
+  // we don't need an output, and let's force to mono
+  vuNode = factory.createNode([1], []);
+  setupNodeMessaging(vuNode);
+});
 
-window.requestAnimationFrame( function(timestamp) {
+window.requestAnimationFrame(function (timestamp) {
   if (vuNode) {
-  // Draw a bar based on vuNode.volume and vuNode.clip
+    // Draw a bar based on vuNode.volume and vuNode.clip
   }
 });
 
@@ -4418,66 +4418,68 @@ window.requestAnimationFrame( function(timestamp) {
             </h5>
             <pre class="highlight">
 // Custom parameter - number of bits to crush down to - default 8
-this.addParameter( "bits", 8 );
+this.addParameter("bits", 8);
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
-this.addParameter( "frequencyReduction", 0.5 );
+this.addParameter("frequencyReduction", 0.5);
 
-onnodecreate=function(e) {
+onnodecreate = function (e) {
   e.node.timeToNextUpdate = 0.1 * sampleRate;
   e.node.smoothing = 0.5;
   e.node.clipLevel = 0.95;
   e.node.clipLag = 1;
   e.node.updatingInterval = 150;
   // This just handles setting attribute values
-  e.node.onmessage = function ( event ) {
-    if (event.data instanceof Object ) {
-      if (event.data.hasOwnProperty("smoothing")
+  e.node.onmessage = function (event) {
+    if (event.data instanceof Object) {
+      if (event.data.hasOwnProperty("smoothing"))
         this.smoothing = event.data.smoothing;
-      if (event.data.hasOwnProperty("clipLevel")
+      if (event.data.hasOwnProperty("clipLevel"))
         this.clipLevel = event.data.clipLevel;
-      if (event.data.hasOwnProperty("clipLag")
-        this.clipLag = event.data.clipLag / 1000;  // convert to seconds
-      if (event.data.hasOwnProperty("updating")    // convert to samples
-        this.updatingInterval = event.data.updating * sampleRate / 1000 ;
+      if (event.data.hasOwnProperty("clipLag"))
+        this.clipLag = event.data.clipLag / 1000; // convert to seconds
+      if (event.data.hasOwnProperty("updating")) // convert to samples
+        this.updatingInterval = event.data.updating * sampleRate / 1000;
     }
   };
 }
 
-onaudioprocess = function ( event ) {
-  var buf = event.inputs[0][0];  // Node forces mono
+onaudioprocess = function (event) {
+  var buf = event.inputs[0][0]; // Node forces mono
   var bufLength = buf.length;
   var sum = 0;
   var x;
 
   // Do a root-mean-square on the samples: sum up the squares...
-  for (var i=0; i&lt;bufLength; i++) {
+  for (var i = 0; i &lt; bufLength; i++) {
     x = buf[i];
-    if (Math.abs(x)&gt;=event.node.clipLevel) {
+    if (Math.abs(x) &gt;= event.node.clipLevel) {
       event.node.clipping = true;
-      event.node.unsentClip = true;  // Make sure, for every clip, we send a message.
-      event.node.lastClip = event.playbackTime + (i/sampleRate);
+      event.node.unsentClip = true; // Make sure, for every clip, we send a message.
+      event.node.lastClip = event.playbackTime + (i / sampleRate);
     }
     sum += x * x;
   }
 
   // ... then take the square root of the sum.
-  var rms =  Math.sqrt(sum / bufLength);
+  var rms = Math.sqrt(sum / bufLength);
 
   // Now smooth this out with the smoothing factor applied
   // to the previous sample - take the max here because we
   // want "fast attack, slow release."
-  event.node.volume = Math.max(rms, event.node.volume*event.node.smoothing);
-  if (event.node.clipping &amp;& (!event.node.unsentClip) &amp;& (event.playbackTime &gt; (this.lastClip + clipLag)))
+  event.node.volume = Math.max(rms, event.node.volume * event.node.smoothing);
+  if (event.node.clipping &amp;& (!event.node.unsentClip) &amp;& (event.playbackTime
+      &gt; (this.lastClip + clipLag)))
     event.node.clipping = false;
 
   // How long has it been since our last update?
   event.node.timeToNextUpdate -= event.node.last;
-  if (event.node.timeToNextUpdate&lt;0) {
+  if (event.node.timeToNextUpdate & lt; 0) {
     event.node.timeToNextUpdate = event.node.updatingInterval;
-    event.node.postMessage(
-      { "volume": event.node.volume,
-        "clip": event.node.clipping });
+    event.node.postMessage({
+      "volume": event.node.volume,
+      "clip": event.node.clipping
+    });
     event.node.unsentClip = false;
   }
 };
@@ -4495,18 +4497,17 @@ onaudioprocess = function ( event ) {
               Main file javascript
             </h5>
             <pre class="highlight">
-            var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );
+var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1, 1, 1, 1, 1, 1], [6]);
 </pre>
             <pre class="highlight">
 var mergerFactory = null;
 
-audioContext.createAudioWorker("merger_worker.js").then( function(factory) 
-    {  // cache 'factory' in case you want to create more nodes!
-      mergerFactory = factory;
-      var merger6channelNode = factory.createNode( [1,1,1,1,1,1], [6] );
-      // connect inputs and outputs here
-    }
-  );
+audioContext.createAudioWorker("merger_worker.js").then(function (factory) {
+  // cache 'factory' in case you want to create more nodes!
+  mergerFactory = factory;
+  var merger6channelNode = factory.createNode([1, 1, 1, 1, 1, 1], [6]);
+  // connect inputs and outputs here
+});
 </pre>
             <h5>
               merger_worker.js
@@ -4571,7 +4572,8 @@ onaudioprocess= function (e) {
           <code>numberOfOutputChannels</code> to be zero.
         </p>
         <pre class="highlight">
-    var node = context.createScriptProcessor(bufferSize, numberOfInputChannels, numberOfOutputChannels);
+var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
+  numberOfOutputChannels);
 </pre>
         <dl title="interface ScriptProcessorNode : AudioNode" class="idl">
           <dt>
@@ -8827,22 +8829,24 @@ if (pan &lt;= 0) {
           <a><code>PannerNode</code></a>) and the listener:
         </p>
         <pre class="highlight">
-  function dotProduct(v1, v2) {
-    var d = 0;
-    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
-      d += v1[i] * v2[i];
-    return d;
-  }
+function dotProduct(v1, v2) {
+  var d = 0;
+  for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+    d += v1[i] * v2[i];
+  return d;
+}
 
-  function diff(v1, v2) {
-    var v = [];
-    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
-      v[i] = v1[i] - v2[i];
-    return v;
-  }
+function diff(v1, v2) {
+  var v = [];
+  for (var i = 0; i & lt; Math.min(v1.length, v2.length); i++)
+    v[i] = v1[i] - v2[i];
+  return v;
+}
 
-  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle == 0) &amp;& (source.coneOuterAngle == 0)))
-      return 1; // no cone specified - unity gain
+function coneGain() {
+  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle ==
+      0) &amp;& (source.coneOuterAngle == 0)))
+    return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
   var sourceToListener = diff(listener.position, source.position);
@@ -8861,21 +8865,21 @@ if (pan &lt;= 0) {
   var absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
   var gain = 1;
 
-  if (absAngle &lt;= absInnerAngle)
-      // No attenuation
-      gain = 1;
-  else if (absAngle &gt;= absOuterAngle)
-      // Max attenuation
-      gain = source.coneOuterGain;
-  else {
-      // Between inner and outer cones
-      // inner -&gt; outer, x goes from 0 -&gt; 1
-      var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
-      gain = (1 - x) + source.coneOuterGain * x;
+  if (absAngle &lt;= absInnerAngle) {
+    // No attenuation
+    gain = 1;
+  } else if (absAngle &gt;= absOuterAngle) {
+    // Max attenuation
+    gain = source.coneOuterGain;
+  } else {
+    // Between inner and outer cones
+    // inner -&gt; outer, x goes from 0 -&gt; 1
+    var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+    gain = (1 - x) + source.coneOuterGain * x;
   }
 
   return gain;
-  
+}  
 </pre>
       </section>
     </section>

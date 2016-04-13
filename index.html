@@ -5,11 +5,8 @@
       Web Audio API
     </title>
     <meta charset="utf-8">
-    <script src='https://www.w3.org/Tools/respec/respec-w3c-common' async
-    class='remove'>
-    </script>
-    <script src=
-    "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    <script src='https://www.w3.org/Tools/respec/respec-w3c-common' class=
+    'remove'>
     </script>
     <script class='remove'>
     var respecConfig = {
@@ -95,15 +92,47 @@
       }
     }
 
-    // This allow wrapping mathjax formulas in <pre> so the LaTeX code is not
-    // auto wrapped and keeps a nice formatting.
-    if (window.MathJax !== undefined) {
-      MathJax.Hub.Config({
-        tex2jax: {
-           skipTags: ["script","noscript","style","textarea","code"]
-        }
+    window.addEventListener("DOMContentLoaded", function () {
+      "use strict";
+      // Don't run MathJax during spec generation
+      if (navigator.userAgent === "respec2html") {
+        return;
+      }
+      new Promise(function (resolve, reject) {
+        var mathjax = document.createElement('script');
+        var url = "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+        // Safari doesn't (yet) support load event on scripts so we have to poll. So 😢.
+        var id = setInterval(function () {
+          if (window.MathJax) {
+            clearInterval(id);
+            resolve();
+          }
+        }, 100);
+        mathjax.onload = function () {
+          clearInterval(id);
+          resolve();
+        };
+        mathjax.onerror = function (err) {
+          var error = (err instanceof Event)  ? new Error(err.message) : err;
+          reject(error);
+        };
+        // Time out waiting after 20 seconds and reject.
+        setTimeout(function(){
+          mathjax.onerror(new Error("Loading timed out."));
+        }, 20000);
+        mathjax.id = "mathjax";
+        mathjax.src = url;
+        document.body.appendChild(mathjax);
+      }).then(function () {
+        MathJax.Hub.Config({
+          tex2jax: {
+            skipTags: ["script", "noscript", "style", "textarea", "code"]
+          }
+        });
+      }).catch(function (error) {
+        console.error(error);
       });
-    }
+    });
     </script>
     <style>
     .todo {

@@ -5,11 +5,8 @@
       Web Audio API
     </title>
     <meta charset="utf-8">
-    <script src='https://www.w3.org/Tools/respec/respec-w3c-common' async
-    class='remove'>
-    </script>
-    <script src=
-    "https://www.w3.org/scripts/MathJax/2.5.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    <script src='https://www.w3.org/Tools/respec/respec-w3c-common' class=
+    'remove'>
     </script>
     <script class='remove'>
     var respecConfig = {
@@ -23,11 +20,11 @@
                   mailto:     "padenot@mozilla.com",
                   w3cid:      "62410" },
               {
-                  name:       "Chris Wilson",
+                  name:       "Raymond Toy",
                   company:    "Google, Inc.",
                   companyURL: "https://www.google.com/",
-                  mailto:     "cwilso@google.com",
-                  w3cid:      "3742" },
+                  mailto:     "rtoy@google.com",
+                  w3cid:      "66910" },
         ],
         previousMaturity: "WD",
          previousPublishDate:  "2013-10-10",
@@ -40,8 +37,9 @@
         copyrightStart: 2013,
         otherLinks: [
           {
-            key: "Previous editor",
-            data : [{value: "Chris Rogers (Until August 2013)"}] },
+            key: "Previous editors",
+            data : [{value: "Chris Wilson (Until January 2016)"},
+                    {value: "Chris Rogers (Until August 2013)"}] },
           {
             key: "Repository",
             href: "https://github.com/WebAudio/web-audio-api" },
@@ -94,16 +92,69 @@
       }
     }
 
-    // This allow wrapping mathjax formulas in <pre> so the LaTeX code is not
-    // auto wrapped and keeps a nice formatting.
-    if (window.MathJax !== undefined) {
-      MathJax.Hub.Config({
-        tex2jax: {
-           skipTags: ["script","noscript","style","textarea","code"]
-        }
+    window.addEventListener("DOMContentLoaded", function () {
+      "use strict";
+      // Don't run MathJax during spec generation
+      if (navigator.userAgent === "respec2html") {
+        return;
+      }
+      new Promise(function (resolve, reject) {
+        var mathjax = document.createElement('script');
+        var url = "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+        // Safari doesn't (yet) support load event on scripts so we have to poll. So 😢.
+        var id = setInterval(function () {
+          if (window.MathJax) {
+            clearInterval(id);
+            resolve();
+          }
+        }, 100);
+        mathjax.onload = function () {
+          clearInterval(id);
+          resolve();
+        };
+        mathjax.onerror = function (err) {
+          var error = (err instanceof Event)  ? new Error(err.message) : err;
+          reject(error);
+        };
+        // Time out waiting after 20 seconds and reject.
+        setTimeout(function(){
+          mathjax.onerror(new Error("Loading timed out."));
+        }, 20000);
+        mathjax.id = "mathjax";
+        mathjax.src = url;
+        document.body.appendChild(mathjax);
+      }).then(function () {
+        MathJax.Hub.Config({
+          tex2jax: {
+            skipTags: ["script", "noscript", "style", "textarea", "code"]
+          }
+        });
+      }).catch(function (error) {
+        console.error(error);
       });
-    }
+    });
     </script>
+    <style>
+    .todo {
+      border: 1px solid red;
+      background-color: rgba(255, 0, 0, 0.3);
+    }
+    .todo:before {
+      content: "TODO:";
+    }
+    .synchronous:before {
+      content: "⌛ ";
+    }
+    .synchronous:hover{
+      border-bottom: 1px dotted gray;
+    }
+    body#respecDocument {
+      max-width: 60em;
+    }
+        .seclist > p {
+                font-style: italic;
+        }
+    </style>
   </head>
   <body>
     <section id="abstract">
@@ -229,8 +280,6 @@
               </li>
               <li>Obstruction / Occlusion
               </li>
-              <li>Doppler Shift
-              </li>
               <li>Source / Listener based
               </li>
             </ul>
@@ -288,10 +337,7 @@
             <a><code>AudioNode</code></a> objects. Each node can have
             <dfn>inputs</dfn> and/or <dfn>outputs</dfn>. A <dfn>source
             node</dfn> has no inputs and a single output. A <dfn>destination
-            node</dfn> has one input and no outputs, the most common example
-            being <a href=
-            "#AudioDestinationNode"><code>AudioDestinationNode</code></a> the
-            final destination to the audio hardware. Other nodes such as
+            node</dfn> has one input and no outputs. Other nodes such as
             filters can be placed between the source and destination nodes. The
             developer doesn't have to worry about low-level stream format
             details when two objects are connected together; <a href=
@@ -565,12 +611,6 @@ function setupRoutingGraph() {
           <a><code>AudioNode</code></a> which applies a dynamically adjustable
           variable delay.
           </li>
-          <li>A <a><code>SpatialPannerNode</code></a> interface, an
-          <a><code>AudioNode</code></a> for positioning audio in 3D space.
-          </li>
-          <li>A <a><code>SpatialListener</code></a> interface, which works with
-          a <a>SpatialPannerNode</a> for spatialization.
-          </li>
           <li>A <a><code>StereoPannerNode</code></a> interface, an
           <a><code>AudioNode</code></a> for equal-power positioning of audio
           input in a stereo stream.
@@ -609,15 +649,6 @@ function setupRoutingGraph() {
           of their replacements:
         </p>
         <ul>
-          <li>A <a><code>PannerNode</code></a> interface, an
-          <a><code>AudioNode</code></a> for spatializing / positioning audio in
-          3D space. This has been replaced by
-          <a><code>SpatialPannerNode</code></a>, and
-          <a><code>StereoPannerNode</code></a> for simpler scenarios.
-          </li>
-          <li>An <a><code>AudioListener</code></a> interface, which works with
-          a <a>PannerNode</a> for spatialization.
-          </li>
           <li>A <a><code>ScriptProcessorNode</code></a> interface, an <a><code>
             AudioNode</code></a> for generating or processing audio directly in
             JavaScript.
@@ -695,9 +726,9 @@ function setupRoutingGraph() {
           <dd>
             This context has been released, and can no longer be used to
             process audio. All system audio resources have been released.
-            Attempts to create new Nodes on this context will throw
-            InvalidStateError. (AudioBuffers may still be created, through
-            <a href=
+            <span class="synchronous">Attempts to create new Nodes on the
+            AudioContext will throw InvalidStateError</span>. (AudioBuffers may
+            still be created, through <a href=
             "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
             createBuffer</a> or <a href=
             "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
@@ -726,9 +757,8 @@ function setupRoutingGraph() {
             output latency. Lowest power consumption.
           </dd>
         </dl>
-        <dl title=
-        "[Constructor(optional AudioContextOptions contextOptions)] interface BaseAudioContext : EventTarget"
-        class="idl" data-merge=
+        <dl title="interface BaseAudioContext : EventTarget" class="idl"
+        data-merge=
         "DecodeSuccessCallback DecodeErrorCallback AudioContextOptions">
           <dt>
             readonly attribute AudioDestinationNode destination
@@ -754,6 +784,7 @@ function setupRoutingGraph() {
               that all <a><code>AudioNode</code></a>s in the context run at
               this rate. In making this assumption, sample-rate converters or
               "varispeed" processors are not supported in real-time processing.
+              The <dfn>Nyquist frequency</dfn> is half this sample-rate value.
             </p>
           </dd>
           <dt>
@@ -811,27 +842,8 @@ function setupRoutingGraph() {
             readonly attribute AudioContextState state
           </dt>
           <dd>
-            Describes the current state of this BaseAudioContext. The context
-            state MUST begin in "suspended", and transitions to "running" when
-            system resources are acquired and audio has begun processing. For
-            OfflineAudioContexts, the state will remain in "suspended" until
-            <code>startRendering()</code> is called, at which point it will
-            transition to "running", and then to "closed" once audio processing
-            has completed and <a><code>oncomplete</code></a> has been fired.
-            <p>
-              When the state is "suspended", a call to <code>resume()</code>
-              will cause a transition to "running", or a call to
-              <code>close()</code> will cause a transition to "closed".
-            </p>
-            <p>
-              When the state is "running", a call to <code>suspend()</code>
-              will cause a transition to "suspended", or a call to
-              <code>close()</code> will cause a transition to "closed".
-            </p>
-            <p>
-              When the state is "closed", no further state transitions are
-              possible.
-            </p>
+            Describes the current state of the <a>AudioContext</a>, on the
+            <a>control thread</a>.
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -845,66 +857,229 @@ function setupRoutingGraph() {
               be played to the destination, and then allows the system to
               release its claim on audio hardware. This is generally useful
               when the application knows it will not need the
-              <a>BaseAudioContext</a> for some time, and wishes to let the
-              audio hardware power down. The promise resolves when the frame
+              <a>BaseAudioContext</a> for some time, and wishes to temporarily
+              <a>release system resource</a> associated with the
+              <a>BaseAudioContext</a>. The promise resolves when the frame
               buffer is empty (has been handed off to the hardware), or
               immediately (with no other effect) if the context is already
-              suspended. The promise is rejected if the context has been
-              closed.
+              <code>suspended</code>. The promise is rejected if the context
+              has been closed.
             </p>
             <p>
-              While the system is suspended, MediaStreams will have their
-              output ignored; that is, data will be lost by the real time
-              nature of media streams. HTMLMediaElements will similarly have
-              their output ignored until the system is resumed. Audio Workers
-              and ScriptProcessorNodes will simply not fire their
-              onaudioprocess events while suspended, but will resume when
-              resumed. For the purpose of AnalyserNode window functions, the
-              data is considered as a continuous stream - i.e. the
-              resume()/suspend() does not cause silence to appear in the
-              AnalyserNode's stream of data.
+              <span class="synchronous">When suspend is called, execute these
+              steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>closed</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>suspended</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>suspended</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to suspend the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to suspend an
+              <a>AudioContext</a> means running these steps on the <a>rendering
+              thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>suspended</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>suspended</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>statechanged</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p>
+              While a <a>BaseAudioContext</a> is suspended,
+              <code>MediaStream</code>s will have their output ignored; that
+              is, data will be lost by the real time nature of media streams.
+              <code>HTMLMediaElement</code>s will similarly have their output
+              ignored until the system is resumed. <a>AudioWorker</a>s and
+              <a>ScriptProcessorNode</a>s will simply not fire their
+              <code>onaudioprocess</code> events while suspended, but will
+              resume when resumed. For the purpose of <a>AnalyserNode</a>
+              window functions, the data is considered as a continuous stream -
+              i.e. the <code>resume()</code>/<code>suspend()</code> does not
+              cause silence to appear in the <a>AnalyserNode</a>'s stream of
+              data. In particular, calling <a>AnalyserNode</a> functions
+              repeatedly when a <a>BaseAudioContext</a> is suspended MUST
+              return the same data.
             </p>
           </dd>
           <dt>
             Promise&lt;void&gt; resume()
           </dt>
           <dd>
+            Resumes the progression of the <a><code>AudioContext</code></a>'s'
+            <a href="#widl-AudioContext-currentTime">currentTime</a> when it
+            has been suspended.
             <p>
-              Resumes the progression of the
-              <a><code>BaseAudioContext</code></a>'s <a href=
-              "#widl-BaseAudioContext-currentTime">currentTime</a> in an audio
-              context that has been suspended, which may involve re-priming the
-              frame buffer contents. The promise resolves when the system has
-              re-acquired (if necessary) access to audio hardware and has begun
-              streaming to the destination, or immediately (with no other
-              effect) if the context is already running. The promise is
-              rejected if the context has been closed. If the context is not
-              currently suspended, the promise will resolve.
+              <span class="synchronous">When resume is called, execute these
+              steps:</span>
             </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>closed</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>running</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>running</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to resume the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
             <p>
-              Note that until the first block of audio has been rendered
-              following a call to this method, <a href=
-              "#widl-BaseAudioContext-currentTime">currentTime</a> remains
-              unchanged.
+              Running a <a>control message</a> to resume an <a>AudioContext</a>
+              means running these steps on the <a>rendering thread</a>:
             </p>
+            <ol>
+              <li>Attempt to <a href="#acquiring">acquire system resources</a>.
+              </li>
+              <li>In case of failure, queue a task on the <a>control thread</a>
+              to execute the following, and abort these steps
+                <ol>
+                  <li>Reject <em>promise</em>
+                  </li>
+                </ol>
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>running</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>running</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>statechange</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
           </dd>
           <dt>
             Promise&lt;void&gt; close()
           </dt>
           <dd>
-            Closes the audio context, releasing any system audio resources used
-            by the <a><code>BaseAudioContext</code></a>. This will not
-            automatically release all BaseAudioContext-created objects, unless
-            other references have been released as well; however, it will
-            forcibly release any system audio resources that might prevent
-            additional AudioContexts from being created and used, suspend the
-            progression of the <a><code>BaseAudioContext</code></a>'s <a href=
-            "#widl-BaseAudioContext-currentTime">currentTime</a>, and stop
-            processing audio data. The promise resolves when all
-            AudioContext-creation-blocking resources have been released. If
-            this is called on <a>OfflineAudioContext</a>, then return a promise
-            rejected with a <code>DOMException</code> whose name is
-            <code>InvalidStateError</code>.
+            Closes the <a>BaseAudioContext</a>, <a>releasing the system
+            resources</a> it's using. This will not automatically release all
+            <a>AudioContext</a>-created objects, but will suspend the
+            progression of the <a><code>AudioContext</code></a>'s <a href=
+            "#widl-AudioContext-currentTime">currentTime</a>, and stop
+            processing audio data.
+            <p>
+              <span class="synchronous">When close is called, execute these
+              steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If this <a>BaseAudioContext</a> is an
+              <a>OfflineAudioContext</a>, reject <em>promise</em> with
+              <code>NotSupportedError</code>, return it, and abort these steps.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>closed</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>closed</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>closed</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to close an
+              <a>BaseAudioContext</a> means running these steps on the
+              <a>rendering thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>closed</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>closed</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>statechange</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p class="note">
+              When an <a>BaseAudioContext</a> has been closed, implementation
+              can choose to aggressively release more resources than when
+              suspending.
+            </p>
           </dd>
           <dt>
             attribute EventHandler onstatechange
@@ -916,9 +1091,9 @@ function setupRoutingGraph() {
             promise would have resolved). An event of type
             <a><code>Event</code></a> will be dispatched to the event handler,
             which can query the AudioContext's state directly. A newly-created
-            AudioContext will always begin in the "suspended" state, and a
-            state change event will be fired whenever the state changes to a
-            different state. This event is fired before the
+            AudioContext will always begin in the <code>suspended</code> state,
+            and a state change event will be fired whenever the state changes
+            to a different state. This event is fired before the
             <a><code>oncomplete</code></a> event is fired.
           </dd>
           <dt>
@@ -926,9 +1101,10 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Creates an AudioBuffer of the given size. The audio data in the
-            buffer will be zero-initialized (silent). A NotSupportedError
-            exception MUST be thrown if any of the arguments is negative, zero,
-            or outside its nominal range.
+            buffer will be zero-initialized (silent). <span class=
+            "synchronous">A NotSupportedError exception MUST be thrown if any
+            of the arguments is negative, zero, or outside its nominal
+            range.</span>
             <dl class="parameters">
               <dt>
                 unsigned long numberOfChannels
@@ -949,7 +1125,7 @@ function setupRoutingGraph() {
               <dd>
                 Describes the sample-rate of the linear PCM audio data in the
                 buffer in sample-frames per second. An implementation must
-                support sample rates in at least the range 8192 to 96000.
+                support sample rates in at least the range 8000 to 96000.
               </dd>
             </dl>
           </dd>
@@ -958,12 +1134,13 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Asynchronously decodes the audio file data contained in the
-            ArrayBuffer. The ArrayBuffer can, for example, be loaded from an
-            XMLHttpRequest's <code>response</code> attribute after setting the
-            <code>responseType</code> to "arraybuffer". Audio file data can be
-            in any of the formats supported by the <code>audio</code> or
-            <code>video</code> elements. The buffer passed to <a href=
-            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+            <code>ArrayBuffer</code>. The <code>ArrayBuffer</code> can, for
+            example, be loaded from an <code>XMLHttpRequest</code>'s
+            <code>response</code> attribute after setting the
+            <code>responseType</code> to <code>"arraybuffer"</code>. Audio file
+            data can be in any of the formats supported by the
+            <code>audio</code> element. The buffer passed to <a href=
+            "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
             decodeAudioData</a> has its content-type determined by sniffing, as
             described in [[mimesniff]].
             <dl class="parameters">
@@ -998,72 +1175,72 @@ function setupRoutingGraph() {
               completes.
             </p>
             <p>
-              The following steps must be performed:
+              <span class="synchronous">When <code>decodeAudioData</code> is
+              called, the following steps must be performed on the control
+              thread:</span>
             </p>
             <ol>
               <li>Let <var>promise</var> be a new promise.
               </li>
-              <li>If <a>audioData</a> is null or not a valid ArrayBuffer:
-                <ol>
-                  <li>Let <var>error</var> be a <code>DOMException</code> whose
-                  name is <code>NotSupportedError</code>.
-                  </li>
-                  <li>Reject <var>promise</var> with <var>error</var>.
-                  </li>
-                  <li>If <a>errorCallback</a> is not missing, invoke
-                  <a>errorCallback</a> with <var>error</var>.
-                  </li>
-                  <li>Terminate this algorithm.
-                  </li>
-                </ol>
-              </li>
-              <li>Neuter the <a>audioData</a> ArrayBuffer in such a way that
-              JavaScript code may not access or modify the data anymore.
+              <li>
+                <a href=
+                "https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
+                the <a>audioData</a> <code>ArrayBuffer</code>. This operation
+                is described in [[!ECMASCRIPT]].
               </li>
               <li>Queue a decoding operation to be performed on another thread.
               </li>
               <li>Return <var>promise</var>.
               </li>
-              <li>In the decoding thread:
+            </ol>
+            <p>
+              When queuing a decoding operation to be performed on another
+              thread, the following steps MUST happen on a thread that is not
+              the <a>control thread</a> nor the <a>rendering thread</a>, called
+              the <em>decoding thread</em>.
+            </p>
+            <div class="note">
+              Multiple <em>decoding threads</em> can run in parallel to service
+              multiple calls to <code>decodeAudioData</code>.
+            </div>
+            <ol>
+              <li>Attempt to decode the encoded <a>audioData</a> into linear
+              PCM.
+              </li>
+              <li>If a decoding error is encountered due to the audio format
+              not being recognized or supported, or because of
+              corrupted/unexpected/inconsistent data, then queue a task to
+              execute the following step, on the <a>control thread</a>'s event
+              loop:
                 <ol>
-                  <li>Attempt to decode the encoded <a>audioData</a> into
-                  linear PCM.
+                  <li>Let <var>error</var> be a <code>DOMException</code> whose
+                  name is <code>"EncodingError"</code>.
                   </li>
-                  <li>If a decoding error is encountered due to the audio
-                  format not being recognized or supported, or because of
-                  corrupted/unexpected/inconsistent data, then, on the main
-                  thread's event loop:
-                    <ol>
-                      <li>Let <var>error</var> be a <code>DOMException</code>
-                      whose name is <code>"EncodingError"</code>.
-                      </li>
-                      <li>Reject <var>promise</var> with <var>error</var>.
-                      </li>
-                      <li>If <dfn>errorCallback</dfn> is not missing, invoke
-                      <a>errorCallback</a> with <var>error</var>.
-                      </li>
-                    </ol>
+                  <li>Reject <var>promise</var> with <var>error</var>.
                   </li>
-                  <li>Otherwise:
+                  <li>If <dfn>errorCallback</dfn> is not missing, invoke
+                  <a>errorCallback</a> with <var>error</var>.
+                  </li>
+                </ol>
+              </li>
+              <li>Otherwise:
+                <ol>
+                  <li>Take the result, representing the decoded linear PCM
+                  audio data, and resample it to the sample-rate of the
+                  <a><code>AudioContext</code></a> if it is different from the
+                  sample-rate of <a>audioData</a>.
+                  </li>
+                  <li>Queue a task on the <a>control thread</a>'s event loop to
+                  execute the following steps:
                     <ol>
-                      <li>Take the result, representing the decoded linear PCM
-                      audio data, and resample it to the sample-rate of the <a>
-                        <code>AudioContext</code></a> if it is different from
-                        the sample-rate of <a>audioData</a>.
+                      <li>Let <var>buffer</var> be an <code>AudioBuffer</code>
+                      containing the final result (after possibly sample-rate
+                      conversion).
                       </li>
-                      <li>On the main thread's event loop:
-                        <ol>
-                          <li>Let <var>buffer</var> be an
-                          <code>AudioBuffer</code> containing the final result
-                          (after possibly sample-rate converting).
-                          </li>
-                          <li>Resolve <var>promise</var> with
-                          <var>buffer</var>.
-                          </li>
-                          <li>If <dfn>successCallback</dfn> is not missing,
-                          invoke <a>successCallback</a> with <var>buffer</var>.
-                          </li>
-                        </ol>
+                      <li>Resolve <var>promise</var> with <var>buffer</var>.
+                      </li>
+                      <li>If <dfn>successCallback</dfn> is not missing, invoke
+                      <a>successCallback</a> with <var>buffer</var>.
                       </li>
                     </ol>
                   </li>
@@ -1076,6 +1253,8 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Creates an <a><code>AudioBufferSourceNode</code></a>.
+            <a>AudioBufferSourceNode</a> are created with an internal flag
+            <code>buffer set</code>, initially set to false.
           </dd>
           <dt>
             Promise&lt;AudioWorker&gt; createAudioWorker()
@@ -1103,11 +1282,11 @@ function setupRoutingGraph() {
             This method is DEPRECATED, as it is intended to be replaced by
             createAudioWorker. Creates a
             <a><code>ScriptProcessorNode</code></a> for direct audio processing
-            using JavaScript. An IndexSizeError exception MUST be thrown if
-            <a><code>bufferSize</code></a> or
+            using JavaScript. <span class="synchronous">An IndexSizeError
+            exception MUST be thrown if <a><code>bufferSize</code></a> or
             <a><code>numberOfInputChannels</code></a> or
             <a><code>numberOfOutputChannels</code></a> are outside the valid
-            range.
+            range.</span>
             <dl class="parameters">
               <dt>
                 optional unsigned long bufferSize = 0
@@ -1177,9 +1356,9 @@ function setupRoutingGraph() {
               <dd>
                 The <dfn>maxDelayTime</dfn> parameter is optional and specifies
                 the maximum delay time in seconds allowed for the delay line.
-                If specified, this value MUST be greater than zero and less
-                than three minutes or a NotSupportedError exception MUST be
-                thrown.
+                <span class="synchronous">If specified, this value MUST be
+                greater than zero and less than three minutes or a
+                NotSupportedError exception MUST be thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -1232,15 +1411,7 @@ function setupRoutingGraph() {
             PannerNode createPanner()
           </dt>
           <dd>
-            This method is DEPRECATED, as it is intended to be replaced by
-            createSpatialPanner or createStereoPanner, depending on the
-            scenario. Creates a <a><code>PannerNode</code></a>.
-          </dd>
-          <dt>
-            SpatialPannerNode createSpatialPanner()
-          </dt>
-          <dd>
-            Creates a <a><code>SpatialPannerNode</code></a>.
+            Creates a <a><code>PannerNode</code></a>.
           </dd>
           <dt>
             StereoPannerNode createStereoPanner()
@@ -1259,8 +1430,8 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Creates an <a><code>ChannelSplitterNode</code></a> representing a
-            channel splitter. An IndexSizeError exception MUST be thrown for
-            invalid parameter values.
+            channel splitter. <span class="synchronous">An IndexSizeError
+            exception MUST be thrown for invalid parameter values.</span>
             <dl class="parameters">
               <dt>
                 optional unsigned long numberOfOutputs = 6
@@ -1276,8 +1447,8 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Creates a <a><code>ChannelMergerNode</code></a> representing a
-            channel merger. An IndexSizeError exception MUST be thrown for
-            invalid parameter values.
+            channel merger. <span class="synchronous">An IndexSizeError
+            exception MUST be thrown for invalid parameter values.</span>
             <dl class="parameters">
               <dt>
                 optional unsigned long numberOfInputs = 6
@@ -1306,15 +1477,16 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Creates a <a><code>PeriodicWave</code></a> representing a waveform
-            containing arbitrary harmonic content. The <code>real</code> and
-            <code>imag</code> parameters must be of type
-            <code>Float32Array</code> (described in [[!TYPED-ARRAYS]]) of equal
-            lengths greater than zero or an IndexSizeError exception MUST be
-            thrown. All implementations must support arrays up to at least
-            8192. These parameters specify the Fourier coefficients of a
-            <a href="https://en.wikipedia.org/wiki/Fourier_series">Fourier
-            series</a> representing the partials of a periodic waveform. The
-            created <a><code>PeriodicWave</code></a> will be used with an
+            containing arbitrary harmonic content. <span class=
+            "synchronous">The <code>real</code> and <code>imag</code>
+            parameters must be of type <code>Float32Array</code> (described in
+            [[!TYPED-ARRAYS]]) of equal lengths greater than zero or an
+            IndexSizeError exception MUST be thrown.</span> All implementations
+            must support arrays up to at least 8192. These parameters specify
+            the Fourier coefficients of a <a href=
+            "https://en.wikipedia.org/wiki/Fourier_series">Fourier series</a>
+            representing the partials of a periodic waveform. The created
+            <a><code>PeriodicWave</code></a> will be used with an
             <a><code>OscillatorNode</code></a> and, by default, will represent
             a <em>normalized</em> time-domain waveform having maximum absolute
             peak value of 1. Another way of saying this is that the generated
@@ -1423,6 +1595,44 @@ function setupRoutingGraph() {
             be able to observe garbage collections.
           </p>
         </section>
+        <section>
+          <h3>
+            System resources associated with an AudioContext
+          </h3>
+          <p>
+            <a>AudioContext</a>s should be considered expensive objects.
+            Creating an <a>AudioContext</a> often involves creating a
+            high-priority thread, and using a low-latency system audio stream,
+            both having an impact on energy consumption. Creating more than one
+            <a>AudioContext</a> in a document is most of the time unnecessary.
+          </p>
+          <p>
+            Additionally, a user-agent can have an implementation-defined
+            maximum number of <a>AudioContext</a>, after which any attempt to
+            create a new <a>AudioContext</a> will fail, <span class=
+            "synchronous">throwing <code>NotSupportedError</code></span>.
+          </p>
+          <p>
+            <a href="#widl-AudioContext-suspend-Promise-void">suspend</a> and
+            <a href="#widl-AudioContext-close-Promise-void">close</a> allow
+            authors to <dfn id="releasing">release system resources</dfn>.
+            <a href="#releasing">Releasing system resources</a> means releasing
+            the system resources such as threads, processes, audio streams, but
+            conserving the state of the <a>AudioContext</a> such that it can
+            continue to operate later after resuming if needed.
+          </p>
+          <p>
+            Constructing or resuming an <a>AudioContext</a> involves <dfn id=
+            "acquiring">acquiring system resources</dfn>. This means opening a
+            system audio stream. This operation returns when the audio stream
+            is ready.
+          </p>
+          <p class="note">
+            For example, this can involve waiting for the audio callbacks to
+            fire regularly, or to wait for the hardware to be ready for
+            processing.
+          </p>
+        </section>
       </section>
       <section>
         <h2 id="AudioContext">
@@ -1435,7 +1645,53 @@ function setupRoutingGraph() {
           use cases, only a single <a><code>AudioContext</code></a> is used per
           document.
         </p>
-        <dl title='interface AudioContext : BaseAudioContext' class='idl'>
+        <dl title=
+        '[Constructor(optional AudioContextOptions contextOptions)] interface AudioContext : BaseAudioContext'
+        class='idl'>
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <p>
+              <span class="synchronous">When creating an <a>AudioContext</a>,
+              execute these steps:</span>
+            </p>
+            <ol>
+              <li>Set a <code>control thread state</code> to
+              <code>suspended</code> on the <a>AudioContext</a>.
+              </li>
+              <li>Send a <a>control message</a> to start processing.
+              </li>
+            </ol>
+            <p>
+              Sending a <a>control message</a> to start processing means
+              executing the following steps:
+            </p>
+            <ol>
+              <li>Attempt to <a href="#acquiring">Acquire system resources</a>.
+              </li>
+              <li>In case of failure, abort these steps.
+              </li>
+              <li>Queue a task on the <a>control thread</a> event loop, to
+              execute these steps:
+                <ol>
+                  <li>Set the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> to <code>running</code>.
+                  </li>
+                  <li>Queue a task to fire a simple event named
+                  <code>statechange</code> at the <a>AudioContext</a>.
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p class="note">
+              It is unfortunately not possible to programatically notify
+              authors that the creation of the <a>AudioContext</a> failed.
+              User-Agents are encouraged to log an informative message if they
+              have access to a logging mechanism, such as a developer tools
+              console.
+            </p>
+          </dd>
           <dt>
             MediaElementAudioSourceNode createMediaElementSource()
           </dt>
@@ -1487,9 +1743,9 @@ function setupRoutingGraph() {
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
         </p>The OfflineAudioContext is constructed with the same arguments as
-        AudioContext.createBuffer. A NotSupportedException exception MUST be
-        thrown if any of the arguments is negative, zero, or outside its
-        nominal range.
+        AudioContext.createBuffer. <span class="synchronous">A
+        NotSupportedException exception MUST be thrown if any of the arguments
+        is negative, zero, or outside its nominal range.</span>
         <dl class="parameters">
           <dt>
             unsigned long numberOfChannels
@@ -1536,29 +1792,53 @@ function setupRoutingGraph() {
               event named <code>complete</code> for legacy reasons.
             </p>
             <p>
-              The following steps must be performed:
+              <span class="synchronous">When <code>startRendering</code> is
+              called, the following steps must be performed on the <a>control
+              thread</a>:</span>
             </p>
             <ol>
-              <li>If <code>startRendering</code> has already been called
-              previously, then return a promise rejected with
-              <code>InvalidStateError</code>.
+              <li>Set a flag called <var>renderingStarted</var> on the
+              <a>OfflineAudioContext</a> to <em>true</em>.
+              </li>
+              <li>If the <em>renderingStarted</em> flag on the
+              <a>OfflineAudioContext</a> is <em>true</em>, return a rejected
+              promise with <code>InvalidStateError</code>, and abort these
+              steps.
               </li>
               <li>Let <var>promise</var> be a new promise.
               </li>
-              <li>Asynchronously perform the following steps:
+              <li>Start to render the audio graph on another thread.
+              </li>
+              <li>Return <var>promise</var>
+              </li>
+            </ol>
+            <p>
+              When rendering an audio graph on another thread, the following
+              steps MUST happen on a <a>rendering thread</a> that is created
+              for the occasion.
+            </p>
+            <ol>
+              <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>, with
+              a number of channels, length and sample rate equal respectively
+              to the <code>numberOfChannels</code>, <code>length</code> and
+              <code>sampleRate</code> parameters used when this instance's
+              constructor was called.
+              </li>
+              <li>Given the current connections and scheduled changes, start
+              rendering <code>length</code> sample-frames of audio into
+              <var>buffer</var>.
+              </li>
+              <li>For every render quantum, check and suspend the rendering if
+              necessary.
+              </li>
+              <li>If a suspended context is resumed, continue to render the
+              buffer.
+              </li>
+              <li>Once the rendering is complete, queue a task on the
+              <a>control thread</a>'s event loop to perform the following
+              steps:
                 <ol>
-                  <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>,
-                  with a number of channels, length and sample rate equal
-                  respectively to the <code>numberOfChannels</code>,
-                  <code>length</code> and <code>sampleRate</code> parameters
-                  used when this instance's constructor was called.
-                  </li>
-                  <li>Given the current connections and scheduled changes,
-                  start rendering <code>length</code> sample-frames of audio
-                  into <var>buffer</var>.
-                  </li>
-                  <li>For every render quantum, check and suspend the rendering
-                  if necessary.
+                  <li>Resolve <var>promise</var> with <var>buffer</var>.
                   </li>
                   <li>If a suspended context is resumed, continue to render the
                   buffer.
@@ -1576,8 +1856,6 @@ function setupRoutingGraph() {
                     </ol>
                   </li>
                 </ol>
-              </li>
-              <li>Return <var>promise</var>.
               </li>
             </ol>
           </dd>
@@ -1642,6 +1920,15 @@ function setupRoutingGraph() {
             </dl>
           </dd>
           <dt>
+            readonly attribute unsigned long length
+          </dt>
+          <dd>
+            <p>
+              The size of the buffer in sample-frames. This is the same as the
+              value of the <code>length</code> parameter for the constructor.
+            </p>
+          </dd>
+          <dt>
             attribute EventHandler oncomplete
           </dt>
           <dd>
@@ -1680,21 +1967,18 @@ function setupRoutingGraph() {
           The <dfn>AudioNode</dfn> Interface
         </h2>
         <p>
-          AudioNodes are the building blocks of an <a href=
+          <a>AudioNode</a>s are the building blocks of an <a href=
           "#AudioContext"><code>AudioContext</code></a>. This interface
           represents audio sources, the audio destination, and intermediate
           processing modules. These modules can be connected together to form
           <a href="#ModularRouting">processing graphs</a> for rendering audio
           to the audio hardware. Each node can have <a>inputs</a> and/or
           <a>outputs</a>. A <a>source node</a> has no inputs and a single
-          output. An <a href=
-          "#AudioDestinationNode"><code>AudioDestinationNode</code></a> has one
-          input and no outputs and represents the final destination to the
-          audio hardware. Most processing nodes such as filters will have one
-          input and one output. Each type of <a><code>AudioNode</code></a>
-          differs in the details of how it processes or synthesizes audio. But,
-          in general, an <a><code>AudioNode</code></a> will process its inputs
-          (if it has any), and generate audio for its outputs (if it has any).
+          output. Most processing nodes such as filters will have one input and
+          one output. Each type of <a><code>AudioNode</code></a> differs in the
+          details of how it processes or synthesizes audio. But, in general, an
+          <a><code>AudioNode</code></a> will process its inputs (if it has
+          any), and generate audio for its outputs (if it has any).
         </p>
         <p>
           Each output has one or more channels. The exact number of channels
@@ -1739,9 +2023,9 @@ function setupRoutingGraph() {
           44.1KHz.
         </p>
         <p>
-          AudioNodes are <em>EventTarget</em>s, as described in <cite><a href=
-          "https://dom.spec.whatwg.org/">DOM</a></cite> [[!DOM]]. This means
-          that it is possible to dispatch events to
+          <a>AudioNode</a>s are <em>EventTarget</em>s, as described in
+          <cite><a href="https://dom.spec.whatwg.org/">DOM</a></cite> [[!DOM]].
+          This means that it is possible to dispatch events to
           <a><code>AudioNode</code></a>s the same way that other EventTargets
           accept events.
         </p>
@@ -1810,8 +2094,9 @@ function setupRoutingGraph() {
               <dd>
                 The <code>output</code> parameter is an index describing which
                 output of the <a><code>AudioNode</code></a> from which to
-                connect. If this paremeter is out-of-bound, an IndexSizeError
-                exception MUST be thrown. It is possible to connect an
+                connect. <span class="synchronous">If this paremeter is
+                out-of-bound, an IndexSizeError exception MUST be
+                thrown.</span> It is possible to connect an
                 <a><code>AudioNode</code></a> output to more than one input
                 with multiple calls to connect(). Thus, "fan-out" is supported.
               </dd>
@@ -1821,15 +2106,17 @@ function setupRoutingGraph() {
               <dd>
                 The <code>input</code> parameter is an index describing which
                 input of the destination <a><code>AudioNode</code></a> to
-                connect to. If this parameter is out-of-bounds, an
-                IndexSizeError exception MUST be thrown. It is possible to
-                connect an <a><code>AudioNode</code></a> to another
+                connect to. <span class="synchronous">If this parameter is
+                out-of-bounds, an IndexSizeError exception MUST be
+                thrown.</span> It is possible to connect an
+                <a><code>AudioNode</code></a> to another
                 <a><code>AudioNode</code></a> which creates a <dfn>cycle</dfn>:
                 an <a><code>AudioNode</code></a> may connect to another
                 <a><code>AudioNode</code></a>, which in turn connects back to
                 the first <a><code>AudioNode</code></a>. This is allowed only
                 if there is at least one <a><code>DelayNode</code></a> in the
-                <em>cycle</em> or a NotSupportedError exception MUST be thrown.
+                <em>cycle</em> <span class="synchronous">or a NotSupportedError
+                exception MUST be thrown.</span>
               </dd>
             </dl>
             <p>
@@ -1878,8 +2165,9 @@ function setupRoutingGraph() {
               <dd>
                 The <code>output</code> parameter is an index describing which
                 output of the <a><code>AudioNode</code></a> from which to
-                connect. If the <code>parameter</code> is out-of-bound, an
-                IndexSizeError exception MUST be thrown.
+                connect. <span class="synchronous">If the
+                <code>parameter</code> is out-of-bound, an IndexSizeError
+                exception MUST be thrown.</span>
               </dd>
             </dl>
             <p>
@@ -1945,8 +2233,9 @@ function setupRoutingGraph() {
               <dd>
                 This parameter is an index describing which output of the
                 <a><code>AudioNode</code></a> to disconnect. It disconnects all
-                outgoing connections from the given output. If this parameter
-                is out-of-bounds, an IndexSizeError exception MUST be thrown.
+                outgoing connections from the given output. <span class=
+                "synchronous">If this parameter is out-of-bounds, an
+                IndexSizeError exception MUST be thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -1965,9 +2254,10 @@ function setupRoutingGraph() {
               <dd>
                 The <code>destination</code> parameter is the
                 <a><code>AudioNode</code></a> to disconnect. It disconnects all
-                outgoing connections to the given <code>destination</code>. If
-                there is no connection to <code>destination</code>, an
-                InvalidAccessError exception MUST be thrown.
+                outgoing connections to the given <code>destination</code>.
+                <span class="synchronous">If there is no connection to
+                <code>destination</code>, an InvalidAccessError exception MUST
+                be thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -1986,9 +2276,10 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 The <code>destination</code> parameter is the
-                <a><code>AudioNode</code></a> to disconnect. If there is no
-                connection to the <code>destination</code> from the given
-                output, an InvalidAccessError exception MUST be thrown.
+                <a><code>AudioNode</code></a> to disconnect. <span class=
+                "synchronous">If there is no connection to the
+                <code>destination</code> from the given output, an
+                InvalidAccessError exception MUST be thrown.</span>
               </dd>
               <dt>
                 unsigned long output
@@ -1996,8 +2287,9 @@ function setupRoutingGraph() {
               <dd>
                 The <code>output</code> parameter is an index describing which
                 output of the <a><code>AudioNode</code></a> from which to
-                disconnect. If this parameter is out-of-bound, an
-                IndexSizeError exception MUST be thrown.
+                disconnect. <span class="synchronous">If this parameter is
+                out-of-bound, an IndexSizeError exception MUST be
+                thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -2016,10 +2308,10 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 The <code>destination</code> parameter is the
-                <a><code>AudioNode</code></a> to disconnect. If there is no
-                connection to the <code>destination</code> from the given
-                output to the given input, an InvalidAccessError exception MUST
-                be thrown.
+                <a><code>AudioNode</code></a> to disconnect. <span class=
+                "synchronous">If there is no connection to the
+                <code>destination</code> from the given output to the given
+                input, an InvalidAccessError exception MUST be thrown.</span>
               </dd>
               <dt>
                 unsigned long output
@@ -2027,8 +2319,9 @@ function setupRoutingGraph() {
               <dd>
                 The <code>output</code> parameter is an index describing which
                 output of the <a><code>AudioNode</code></a> from which to
-                disconnect. If this parameter is out-of-bound, an
-                IndexSizeError exception MUST be thrown.
+                disconnect. <span class="synchronous">If this parameter is
+                out-of-bound, an IndexSizeError exception MUST be
+                thrown.</span>
               </dd>
               <dt>
                 unsigned long input
@@ -2036,8 +2329,9 @@ function setupRoutingGraph() {
               <dd>
                 The <code>input</code> parameter is an index describing which
                 input of the destination <a><code>AudioNode</code></a> to
-                disconnect. If this parameter is out-of-bounds, an
-                IndexSizeError exception MUST be thrown.
+                disconnect. <span class="synchronous">If this parameter is
+                out-of-bounds, an IndexSizeError exception MUST be
+                thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -2059,9 +2353,10 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 The <code>destination</code> parameter is the
-                <a><code>AudioParam</code></a> to disconnect. If there is no
-                connection to the <code>destination</code>, an
-                InvalidAccessError exception MUST be thrown.
+                <a><code>AudioParam</code></a> to disconnect. <span class=
+                "synchronous">If there is no connection to the
+                <code>destination</code>, an InvalidAccessError exception MUST
+                be thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -2083,9 +2378,10 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 The <code>destination</code> parameter is the
-                <a><code>AudioParam</code></a> to disconnect. If there is no
-                connection to the <code>destination</code>, an
-                InvalidAccessError exception MUST be thrown.
+                <a><code>AudioParam</code></a> to disconnect. <span class=
+                "synchronous">If there is no connection to the
+                <code>destination</code>, an InvalidAccessError exception MUST
+                be thrown.</span>
               </dd>
               <dt>
                 unsigned long output
@@ -2093,8 +2389,9 @@ function setupRoutingGraph() {
               <dd>
                 The <code>output</code> parameter is an index describing which
                 output of the <a><code>AudioNode</code></a> from which to
-                disconnect. If the <code>parameter</code> is out-of-bound, an
-                IndexSizeError exception MUST be thrown.
+                disconnect. <span class="synchronous">If the
+                <code>parameter</code> is out-of-bound, an IndexSizeError
+                exception MUST be thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -2128,17 +2425,18 @@ function setupRoutingGraph() {
             <a><code>AudioWorkerNode</code></a>.
           </dd>
           <dt>
-            attribute unsigned long <dfn>channelCount</dfn>
+            attribute unsigned long channelCount
           </dt>
           <dd>
             <p>
-              The number of channels used when up-mixing and down-mixing
-              connections to any inputs to the node. The default value is 2
-              except for specific nodes where its value is specially
-              determined. This attribute has no effect for nodes with no
-              inputs. If this value is set to zero or to a value greater than
-              the implementation's maximum number of channels the
-              implementation MUST throw a NotSupportedError exception.
+              <dfn>channelCount</dfn> is the number of channels used when
+              up-mixing and down-mixing connections to any inputs to the node.
+              The default value is 2 except for specific nodes where its value
+              is specially determined. This attribute has no effect for nodes
+              with no inputs. <span class="synchronous">If this value is set to
+              zero or to a value greater than the implementation's maximum
+              number of channels the implementation MUST throw a
+              NotSupportedError exception.</span>
             </p>
             <p>
               See the <a href="#channel-up-mixing-and-down-mixing"></a> section
@@ -2150,9 +2448,10 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              Determines how channels will be counted when up-mixing and
-              down-mixing connections to any inputs to the node. This attribute
-              has no effect for nodes with no inputs.
+              <dfn>channelCountMode</dfn> determines how channels will be
+              counted when up-mixing and down-mixing connections to any inputs
+              to the node. This attribute has no effect for nodes with no
+              inputs.
             </p>
             <p>
               See the <a href="#channel-up-mixing-and-down-mixing"></a> section
@@ -2164,9 +2463,10 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              Determines how individual channels will be treated when up-mixing
-              and down-mixing connections to any inputs to the node. This
-              attribute has no effect for nodes with no inputs.
+              <dfn>channelInterpetation</dfn> determines how individual
+              channels will be treated when up-mixing and down-mixing
+              connections to any inputs to the node. This attribute has no
+              effect for nodes with no inputs.
             </p>
             <p>
               See the <a href="#channel-up-mixing-and-down-mixing"></a> section
@@ -2261,9 +2561,16 @@ function setupRoutingGraph() {
           <code>destination</code> attribute of
           <a><code>AudioContext</code></a>.
         </p>
+        <p>
+          The output of a <a><code>AudioDestinationNode</code></a> is produced
+          by <a href="#SummingJunction">summing its input</a>, allowing to
+          capture the output of an <a><code>AudioContext</code></a> into, for
+          example, a <a><code>MediaStreamAudioDestinationNode</code></a>, or a
+          <code>MediaRecorder</code> (described in [[mediastream-recording]]).
+        </p>
         <pre>
       numberOfInputs  : 1
-      numberOfOutputs : 0
+      numberOfOutputs : 1
 
       channelCount = 2;
       channelCountMode = "explicit";
@@ -2294,12 +2601,13 @@ function setupRoutingGraph() {
               <a href="#widl-AudioNode-channelCount">channelCount</a> defaults
               to 2 for a destination in a normal
               <a><code>AudioContext</code></a>, and may be set to any non-zero
-              value less than or equal to <code>maxChannelCount</code>. An
-              <a><code>IndexSizeError</code></a> exception MUST be thrown if
-              this value is not within the valid range. Giving a concrete
-              example, if the audio hardware supports 8-channel output, then we
-              may set <a href="#widl-AudioNode-channelCount">channelCount</a>
-              to 8, and render 8-channels of output.
+              value less than or equal to <code>maxChannelCount</code>.
+              <span class="synchronous">An <a><code>IndexSizeError</code></a>
+              exception MUST be thrown if this value is not within the valid
+              range.</span> Giving a concrete example, if the audio hardware
+              supports 8-channel output, then we may set <a href=
+              "#widl-AudioNode-channelCount">channelCount</a> to 8, and render
+              8-channels of output.
             </p>
             <p>
               For an<a><code>AudioDestinationNode</code></a> in an
@@ -2354,6 +2662,14 @@ function setupRoutingGraph() {
           each sample-frame of the block.
         </p>
         <p>
+          Each <code>AudioParam</code> includes <code>min</code> and
+          <code>max</code> attributes that together form the <a>nominal
+          range</a> for the parameter. In effect, value of the parameter is
+          clamped to the range \([\mathrm{min}, \mathrm{max}]\). See the
+          section <a href="#computation-of-value">Computation of Value</a> for
+          full details.
+        </p>
+        <p>
           An <code>AudioParam</code> maintains a time-ordered event list which
           is initially empty. The times are in the time coordinate system of
           the <a><code>AudioContext</code></a>'s <a href=
@@ -2362,7 +2678,7 @@ function setupRoutingGraph() {
           change the event list by adding a new event into the list of a type
           specific to the method. Each event has a time associated with it, and
           the events will always be kept in time-order in the list. These
-          methods will be called <em>automation</em> methods:
+          methods will be called <dfn>automation methods</dfn>:
         </p>
         <ul>
           <li>
@@ -2404,16 +2720,19 @@ function setupRoutingGraph() {
           one or more events of a different type, then it will be placed in the
           list after them, but before events whose times are after the event.
           </li>
-          <li>If setValueCurveAtTime() is called for time \(T\) and duration
-          \(D\) and there are any events having a time greater than \(T\), but
-          less than \(T + D\), then a NotSupportedError exception MUST be
-          thrown. In other words, it's not ok to schedule a value curve during
-          a time period containing other events.
+          <li>
+            <span class="synchronous">If setValueCurveAtTime() is called for
+            time \(T\) and duration \(D\) and there are any events having a
+            time greater than \(T\), but less than \(T + D\), then a
+            NotSupportedError exception MUST be thrown.</span> In other words,
+            it's not ok to schedule a value curve during a time period
+            containing other events.
           </li>
-          <li>Similarly a NotSupportedError exception MUST be thrown if any
-          <em>automation</em> method is called at a time which is inside of the
-          time interval of a <em>SetValueCurve</em> event at time T and
-          duration D.
+          <li>
+            <span class="synchronous">Similarly a NotSupportedError exception
+            MUST be thrown if any <em>automation</em> method is called at a
+            time which is inside of the time interval of a
+            <em>SetValueCurve</em> event at time T and duration D.</span>
           </li>
         </ul>
         <dl title="interface AudioParam" class="idl">
@@ -2423,10 +2742,10 @@ function setupRoutingGraph() {
           <dd>
             <p>
               The parameter's floating-point value. This attribute is
-              initialized to the <code>defaultValue</code>. If
-              <code>value</code> is set during a time when there are any
-              automation events scheduled then it will be ignored and no
-              exception will be thrown.
+              initialized to the <code>defaultValue</code>. <span class=
+              "synchronous">If <code>value</code> is set during a time when
+              there are any automation events scheduled then it will be ignored
+              and no exception will be thrown.</span>
             </p>
             <p>
               The effect of setting this attribute is equivalent to calling
@@ -2441,6 +2760,22 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             Initial value for the <code>value</code> attribute.
+          </dd>
+          <dt>
+            readonly attribute float min
+          </dt>
+          <dd>
+            The nominal minimum value that the parameter can take. Together
+            with <code>max</code>, this forms the <a>nominal range</a> for this
+            parameter.
+          </dd>
+          <dt>
+            readonly attribute float max
+          </dt>
+          <dd>
+            The nominal maximum value that the parameter can take. Together
+            with <code>min</code>, this forms the <a>nominal range</a> for this
+            parameter.
           </dd>
           <dt>
             AudioParam setValueAtTime(float value, double startTime)
@@ -2461,11 +2796,12 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 The time in the same time coordinate system as the
-                <a><code>AudioContext</code></a>'s <a href=
-                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
-                at which the parameter changes to the given value. A TypeError
-                exception MUST be thrown if <code>startTime</code> is negative
-                or is not a finite number.
+                <a><code>BaseAudioContext</code></a>'s <a href=
+                "#widl-AudioContext-currentTime">currentTime</a> attribute at
+                which the parameter changes to the given value. <span class=
+                "synchronous">A TypeError exception MUST be thrown if
+                <code>startTime</code> is negative or is not a finite
+                number.</span>
               </dd>
             </dl>
             <p>
@@ -2524,9 +2860,9 @@ function setupRoutingGraph() {
                 The time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
-                at which the automation ends. A TypeError exception MUST be
-                thrown if <code>endTime</code> is negative or is not a finite
-                number.
+                at which the automation ends. <span class="synchronous">A
+                TypeError exception MUST be thrown if <code>endTime</code> is
+                negative or is not a finite number.</span>
               </dd>
             </dl>
             <p>
@@ -2539,8 +2875,7 @@ function setupRoutingGraph() {
               $$
                 v(t) = V_0 + (V_1 - V_0) \frac{t - T_0}{T_1 - T_0}
               $$
-            
-</pre>
+            </pre>
             <p>
               Where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the
               <code>value</code> parameter passed into this method.
@@ -2548,6 +2883,14 @@ function setupRoutingGraph() {
             <p>
               If there are no more events after this LinearRampToValue event
               then for \(t \geq T_1\), \(v(t) = V_1\).
+            </p>
+            <p>
+              If there is no event preceding this event, the linear ramp
+              behaves as if <code>setValueAtTime(value, currentTime)</code>
+              were called where <code>value</code> is the current value of the
+              attribute and <code>currentTime</code> is the context <a href=
+              "#widl-AudioContext-currentTime">currentTime</a> at the time
+              <code>linearRampToValueAtTime</code> is called.
             </p>
           </dd>
           <dt>
@@ -2572,8 +2915,7 @@ function setupRoutingGraph() {
               $$
                 v(t) = V_0 \left(\frac{V_1}{V_0}\right)^\frac{t - T_0}{T_1 - T_0}
               $$
-            
-</pre>
+            </pre>
             <p>
               where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the
               <code>value</code> parameter passed into this method. If \(V_0\)
@@ -2590,14 +2932,22 @@ function setupRoutingGraph() {
               If there are no more events after this ExponentialRampToValue
               event then for \(t \geq T_1\), \(v(t) = V_1\).
             </p>
+            <p>
+              If there is no event preceding this event, the exponential ramp
+              behaves as if <code>setValueAtTime(value, currentTime)</code>
+              were called where <code>value</code> is the current value of the
+              attribute and <code>currentTime</code> is the context <a href=
+              "#widl-AudioContext-currentTime">currentTime</a> at the time
+              <code>exponentialRampToValueAtTime</code> is called.
+            </p>
             <dl class="parameters">
               <dt>
                 float value
               </dt>
               <dd>
                 The value the parameter will exponentially ramp to at the given
-                time. A <code>NotSupportedError</code> exception MUST be thrown
-                if the value is equal to 0,
+                time. <span class="synchronous">A NotSupportedError exception
+                MUST be thrown if this value is equal to 0.</span>
               </dd>
               <dt>
                 double endTime
@@ -2606,9 +2956,9 @@ function setupRoutingGraph() {
                 The time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
-                where the exponential ramp ends. A TypeError exception MUST be
-                thrown if <code>endTime</code> is negative or is not a finite
-                number.
+                where the exponential ramp ends. <span class="synchronous">A
+                TypeError exception MUST be thrown if <code>endTime</code> is
+                negative or is not a finite number.</span>
               </dd>
             </dl>
           </dd>
@@ -2641,8 +2991,9 @@ function setupRoutingGraph() {
                 same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
-                A TypeError exception MUST be thrown if <code>start</code> is
-                negative or is not a finite number.
+                <span class="synchronous">A TypeError exception MUST be thrown
+                if <code>start</code> is negative or is not a finite
+                number.</span>
               </dd>
               <dt>
                 float timeConstant
@@ -2650,8 +3001,9 @@ function setupRoutingGraph() {
               <dd>
                 The time-constant value of first-order filter (exponential)
                 approach to the target value. The larger this value is, the
-                slower the transition will be. The value must be strictly
-                positive or a TypeError exception MUST be thrown.
+                slower the transition will be. <span class="synchronous">The
+                value must be strictly positive or a TypeError exception MUST
+                be thrown.</span>
                 <p>
                   More precisely, <em>timeConstant</em> is the time it takes a
                   first-order linear continuous time-invariant system to reach
@@ -2694,12 +3046,19 @@ function setupRoutingGraph() {
                 Float32Array values
               </dt>
               <dd>
-                A Float32Array representing a parameter value curve. These
-                values will apply starting at the given time and lasting for
-                the given duration. When this method is called, an internal
-                copy of the curve is created for automation purposes.
-                Subsequent modifications of the contents of the passed-in array
-                therefore have no effect on the the <a>AudioParam</a>.
+                <p>
+                  A Float32Array representing a parameter value curve. These
+                  values will apply starting at the given time and lasting for
+                  the given duration. When this method is called, an internal
+                  copy of the curve is created for automation purposes.
+                  Subsequent modifications of the contents of the passed-in
+                  array therefore have no effect on the <a>AudioParam</a>.
+                </p>
+                <p>
+                  An <code>InvalidStateError</code> MUST be thrown if this
+                  attribute is with a Float32Array that has a length less than
+                  2.
+                </p>
               </dd>
               <dt>
                 double startTime
@@ -2708,9 +3067,10 @@ function setupRoutingGraph() {
                 The start time in the same time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
-                at which the value curve will be applied. A TypeError exception
-                MUST be thrown if <code>startTime</code> is negative or is not
-                a finite number.
+                at which the value curve will be applied. <span class=
+                "synchronous">A TypeError exception MUST be thrown if
+                <code>startTime</code> is negative or is not a finite
+                number.</span>
               </dd>
               <dt>
                 double duration
@@ -2718,7 +3078,9 @@ function setupRoutingGraph() {
               <dd>
                 The amount of time in seconds (after the <em>time</em>
                 parameter) where values will be calculated according to the
-                <em>values</em> parameter.
+                <em>values</em> parameter. A <code>TypeError</code> exception
+                MUST be thrown if <code>duration</code> is not strictly
+                positive or is not a finite number.
               </dd>
             </dl>
             <p>
@@ -2765,8 +3127,9 @@ function setupRoutingGraph() {
                 time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
-                A TypeError exception MUST be thrown if <code>startTime</code>
-                is negative or is not a finite number.
+                <span class="synchronous">A TypeError exception MUST be thrown
+                if <code>startTime</code> is negative or is not a finite
+                number.</span>
               </dd>
             </dl>
           </dd>
@@ -2776,8 +3139,18 @@ function setupRoutingGraph() {
             Computation of Value
           </h3>
           <p>
-            <dfn>computedValue</dfn> is the final value controlling the audio
-            DSP and is computed by the audio rendering thread during each
+            There are two different kind of <a>AudioParam</a>s, <a>simple
+            parameters</a> and <a>compound parameters</a>. <dfn data-lt=
+            "simple parameter">Simple parameters</dfn> (the default) are used
+            on their own to compute the final audio output of an
+            <a>AudioNode</a>. <dfn data-lt="compound parameter">Compound
+            parameters</dfn> are <a>AudioParam</a> that are used with other
+            <a>AudioParam</a>s to compute a value that is then used as an input
+            to compute the output of an <a>AudioNode</a>.
+          </p>
+          <p>
+            The <dfn>computedValue</dfn> is the final value controlling the
+            audio DSP and is computed by the audio rendering thread during each
             rendering time quantum. It must be internally computed as follows:
           </p>
           <ol>
@@ -2795,18 +3168,23 @@ function setupRoutingGraph() {
             either the <code>value</code> attribute is directly set, or
             automation events are added for the time range.
             </li>
-            <li>An <a><code>AudioParam</code></a> will take the rendered audio
-            data from any <a><code>AudioNode</code></a> output connected to it
-            and <a href="#down-mix">convert it to mono</a> by down-mixing if it
-            is not already mono, then mix it together with other such outputs.
-            If there are no <a><code>AudioNode</code></a>s connected to it,
-            then this value is 0, having no effect on the
-            <em>computedValue</em>.
-            </li>
             <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
-            value and the value calculated from (2).
+            value and the value of the <a href="#input-audioparam-buffer">input
+            <code>AudioParam</code> buffer</a>.
+            </li>
+            <li>If this <a>AudioParam</a> is a <a>compound parameter</a>,
+            compute its final value with other <a>AudioParam</a>s.
             </li>
           </ol>
+          <p>
+            The <dfn>nominal range</dfn> for a <a>computedValue</a> are the
+            lower and higher values this parameter can effectively have. For
+            <a>simple parameters</a>, the <a>computedValue</a> is clamped to
+            the <a>nominal range</a> for this parameter. <a>Compound
+            parameters</a> have their final value clamped to their <a>nominal
+            range</a> after having been computed from the different
+            <a>AudioParam</a> value they are composed of.
+          </p>
         </section>
         <section>
           <h3 id="example1-AudioParam">
@@ -2889,11 +3267,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             Represents the amount of gain to apply. Its default
-            <code>value</code> is 1 (no gain change). The nominal
-            <code>minValue</code> is 0, but may be set negative for phase
-            inversion. The nominal <code>maxValue</code> is 1, but higher
-            values are allowed (no exception thrown).This parameter is
-            <a>a-rate</a>
+            <code>value</code> is 1 (no gain change). This parameter is
+            <a>a-rate</a>. Its <a>nominal range</a> is (-\(\infty\),
+            +\(\infty\)).
           </dd>
         </dl>
       </section>
@@ -2953,6 +3329,12 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               clamped to a minimum of 128 frames (one block).
             </p>
             <p>
+              Its <a>nominal range</a> is [0, maxDelayTime], where
+              <code>maxDelayTime</code> is the value passed to the
+              <code>createDelay</code> method on the
+              <a><code>AudioContext</code></a>.
+            </p>
+            <p>
               This parameter is <a>a-rate</a>.
             </p>
           </dd>
@@ -2986,7 +3368,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             The sample-rate for the PCM audio data in samples per second.
           </dd>
           <dt>
-            readonly attribute long length
+            readonly attribute unsigned long length
           </dt>
           <dd>
             Length of the PCM audio data in sample-frames.
@@ -2998,7 +3380,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             Duration of the PCM audio data in seconds.
           </dd>
           <dt>
-            readonly attribute long numberOfChannels
+            readonly attribute unsigned long numberOfChannels
           </dt>
           <dd>
             The number of discrete audio channels.
@@ -3016,9 +3398,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               <dd>
                 This parameter is an index representing the particular channel
                 to get data for. An index value of 0 represents the first
-                channel. This index value MUST be less than
-                <code>numberOfChannels</code> or an IndexSizeError exception
-                MUST be thrown.
+                channel. <span class="synchronous">This index value MUST be
+                less than <code>numberOfChannels</code> or an IndexSizeError
+                exception MUST be thrown.</span>
               </dd>
             </dl>
           </dd>
@@ -3114,11 +3496,12 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </p>
         <ol>
           <li>If any of the <a>AudioBuffer</a>'s <code>ArrayBuffer</code> have
-          been neutered, abort these steps, and return a zero-length channel
-          data buffers to the invoker.
+          been <em>detached</em>, abort these steps, and return a zero-length
+          channel data buffers to the invoker.
           </li>
-          <li>Neuter all <code>ArrayBuffer</code>s for arrays previously
-          returned by <code>getChannelData</code> on this <a>AudioBuffer</a>.
+          <li>
+            <em>Detach</em>all <code>ArrayBuffer</code>s for arrays previously
+            returned by <code>getChannelData</code> on this <a>AudioBuffer</a>.
           </li>
           <li>Retain the underlying data buffers from those
           <code>ArrayBuffer</code>s and return references to them to the
@@ -3193,23 +3576,42 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             attribute AudioBuffer? buffer
           </dt>
           <dd>
-            Represents the audio asset to be played. This attribute can only be
-            set once, or a <code>InvalidStateError</code> MUST be thrown.
+            Represents the audio asset to be played. To set the
+            <code>buffer</code> attribute, execute these steps:
+            <ol>
+              <li>Let <code>new buffer</code> be the <a>AudioBuffer</a> to be
+              assigned to <code>buffer</code>.
+              </li>
+              <li>If <code>new buffer</code> is not <code>null</code> and
+              <code>buffer set</code> is true, throw an
+              <code>InvalidStateError</code> and abort these steps.
+              </li>
+              <li>If <code>new buffer</code> is not <code>null</code>, set
+              <code>buffer set</code> to true.
+              </li>
+              <li>Assign <code>new buffer</code> to the <code>buffer</code>
+              attribute.
+              </li>
+            </ol>
           </dd>
           <dt>
             readonly attribute AudioParam playbackRate
           </dt>
           <dd>
             The speed at which to render the audio stream. Its default
-            <code>value</code> is 1. This parameter is <a>k-rate</a>.
+            <code>value</code> is 1. This parameter is <a>k-rate</a>. This is a
+            <a>compound parameter</a> with <code>detune</code>. Its nominal
+            range is \([-100, 100]\).
           </dd>
           <dt>
             readonly attribute AudioParam detune
           </dt>
           <dd>
-            An aditional parameter to modulate the speed at which is rendered
-            the audio stream. Its default value is 0. Its nominal range is
-            [-1200; 1200]. This parameter is <a>k-rate</a>.
+            An additional parameter, in cents, to modulate the speed at which
+            is rendered the audio stream. Its default value is 0. This
+            parameter is <a>k-rate</a>. This parameter is a <a>compound
+            parameter</a> with <code>playbackRate</code>. Its nominal range is
+            \((-\infty, \infty)\).
           </dd>
           <dt>
             attribute boolean loop
@@ -3262,9 +3664,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             Schedules a sound to playback at an exact time. <code>start</code>
-            may only be called one time and must be called before
-            <code>stop</code> is called or an InvalidStateError exception MUST
-            be thrown.
+            may only be called one time and <span class="synchronous">must be
+            called before <code>stop</code> is called or an InvalidStateError
+            exception MUST be thrown.</span>
             <dl class="parameters">
               <dt>
                 optional double when = 0
@@ -3277,8 +3679,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
                 If 0 is passed in for this value or if the value is less than
                 <b>currentTime</b>, then the sound will start playing
-                immediately. A TypeError exception MUST be thrown if
-                <code>when</code> is negative.
+                immediately. <span class="synchronous">A TypeError exception
+                MUST be thrown if <code>when</code> is negative.</span>
               </dd>
               <dt>
                 optional double offset = 0
@@ -3287,13 +3689,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 The <dfn id="dfn-offset">offset</dfn> parameter describes the
                 offset time in the buffer (in seconds) where playback will
                 begin. If 0 is passed in for this value, then playback will
-                start from the beginning of the buffer. A TypeError exception
-                MUST be thrown if <code>offset</code> is negative. If
-                <code>offset</code> is greater than <code>loopEnd</code>,
-                playback will begin at <code>loopEnd</code> (and immediately
-                loop to <code>loopStart</code>). This parameter is converted to
-                an exact sample frame offset within the buffer by multiplying
-                by the buffer's sample rate and rounding to the nearest integer
+                start from the beginning of the buffer. <span class=
+                "synchronous">A TypeError exception MUST be thrown if
+                <code>offset</code> is negative.</span> If <code>offset</code>
+                is greater than <code>loopEnd</code>, playback will begin at
+                <code>loopEnd</code> (and immediately loop to
+                <code>loopStart</code>). This parameter is converted to an
+                exact sample frame offset within the buffer by multiplying by
+                the buffer's sample rate and rounding to the nearest integer
                 value. Thus its behavior is independent of the value of the
                 <a href=
                 "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
@@ -3309,8 +3712,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 total duration of the AudioBuffer minus the <code>offset</code>
                 parameter. Thus if neither <code>offset</code> nor
                 <code>duration</code> are specified then the implied duration
-                is the total duration of the AudioBuffer. An TypeError
-                exception MUST be thrown if <code>duration</code> is negative.
+                is the total duration of the AudioBuffer. <span class=
+                "synchronous">An TypeError exception MUST be thrown if
+                <code>duration</code> is negative.</span>
               </dd>
             </dl>
           </dd>
@@ -3331,15 +3735,16 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
                 If 0 is passed in for this value or if the value is less than
                 <a><code>currentTime</code></a>, then the sound will stop
-                playing immediately. A TypeError exception MUST be thrown if
-                <code>when</code> is negative. If <code>stop</code> is called
-                again after already have been called, the last invocation will
-                be the only one applied; stop times set by previous calls will
-                not be applied, unless the buffer has already stopped prior to
-                any subsequent calls. If the buffer has already stopped,
-                further calls to <code>stop</code> will have no effect. If a
-                stop time is reached prior to the scheduled start time, the
-                sound will not play.
+                playing immediately. <span class="synchronous">A TypeError
+                exception MUST be thrown if <code>when</code> is
+                negative</span>. If <code>stop</code> is called again after
+                already have been called, the last invocation will be the only
+                one applied; stop times set by previous calls will not be
+                applied, unless the buffer has already stopped prior to any
+                subsequent calls. If the buffer has already stopped, further
+                calls to <code>stop</code> will have no effect. If a stop time
+                is reached prior to the scheduled start time, the sound will
+                not play.
               </dd>
             </dl>
           </dd>
@@ -3361,16 +3766,17 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </dl>
         <p>
           Both <code>playbackRate</code> and <code>detune</code> are
-          <a>k-rate</a> parameters and are used together to determine a
-          <em>computedPlaybackRate</em> value:
+          <a>k-rate</a> parameters that form a <a>compound parameter</a> and
+          are used together to determine a <em>computedPlaybackRate</em> value:
         </p>
         <pre class="highlight">
   computedPlaybackRate(t) = playbackRate(t) * pow(2, detune(t) / 1200)
-</pre>
+        </pre>
         <p>
           The <code>computedPlaybackRate</code> is the effective speed at which
           the <a><code>AudioBuffer</code></a> of this
-          <a><code>AudioBufferSourceNode</code></a> MUST be played.
+          <a><code>AudioBufferSourceNode</code></a> MUST be played. Its nominal
+          range is [-100, 100].
         </p>
         <p>
           This MUST be implemented by <em>resampling</em> the input data using
@@ -3500,10 +3906,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             To prevent this, a <a>MediaElementAudioSourceNode</a> MUST output
             <em>silence</em> instead of the normal output of the
             <code>HTMLMediaElement</code> if it has been created using an
-            <code>HTMLMediaElement</code> for which the execution of the 
-            <!--a href=
-            "http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-enabled-fetch"-->
-             <a>fetch algorithm</a> labeled the resource as <a href=
+            <code>HTMLMediaElement</code> for which the execution of the
+            <a href="https://fetch.spec.whatwg.org/#fetching">fetch
+            algorithm</a> labeled the resource as <a href=
             "http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cross-origin">
             CORS-cross-origin</a>.
           </p>
@@ -3524,14 +3929,14 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           AudioWorker.
         </p>
         <p>
-          These main thread objects cause the instantiation of a processing
-          context in the audio thread. All audio processing by AudioWorkerNodes
-          runs in the audio processing thread. This has a few side effects that
-          bear mentioning: blocking the audio worker's thread can cause
-          glitches in the audio, and if the audio thread is normally elevated
-          in thread priority (to reduce glitching possibility), it must be
-          demoted to normal thread priority (in order to avoid escalating
-          thread priority of user-supplied script code).
+          These <a>control thread</a> objects cause the instantiation of a
+          processing context in the <a>rendering thread</a>. All audio
+          processing by AudioWorkerNodes run in the audio processing thread.
+          This has a few side effects that bear mentioning: blocking the audio
+          worker's thread can cause glitches in the audio, and if the audio
+          thread is normally elevated in thread priority (to reduce glitching
+          possibility), it must be demoted to normal thread priority (in order
+          to avoid escalating thread priority of user-supplied script code).
         </p>
         <p>
           From inside an audio worker script, the Audio Worker factory is
@@ -3645,8 +4050,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               remove the correspondingly-named read-only <a>Float32Array</a>s
               from the <a>AudioProcessEvent</a>'s
               <a><code>parameters</code></a> member on subsequent audio
-              processing events. A NotFoundError exception must be thrown if no
-              parameter with that name exists on this <a>AudioWorker</a>.
+              processing events. <span class="synchronous">A NotFoundError
+              exception must be thrown if no parameter with that name exists on
+              this <a>AudioWorker</a></span>.
             </p>
             <p>
               The <code>name</code> parameter identifies the parameter to be
@@ -3817,13 +4223,13 @@ to be zero.
               </p>
               <p>
                 It is purposeful that AudioParams can be added (or removed)
-                from an Audio Worker from either the main thread or the worker
-                script; this enables immediate creation of worker-based nodes
-                and their prototypes, but also enables packaging an entire
-                worker including its AudioParam configuration into a single
-                script. It is recommended that nodes be used only after the
-                AudioWorkerNode's oninitialized has been called, in order to
-                allow the worker script to configure the node.
+                from an Audio Worker from either the control thread or the
+                worker script; this enables immediate creation of worker-based
+                nodes and their prototypes, but also enables packaging an
+                entire worker including its AudioParam configuration into a
+                single script. It is recommended that nodes be used only after
+                the AudioWorkerNode's oninitialized has been called, in order
+                to allow the worker script to configure the node.
               </p>
               <p>
                 The <code>name</code> parameter is the name used for the
@@ -3851,9 +4257,9 @@ to be zero.
                 <a>AudioWorkerNode</a>, and will remove the
                 correspondingly-named read-only <a>Float32Array</a> from the
                 <a>AudioProcessEvent</a>'s <a><code>parameters</code></a>
-                member on subsequent audio processing events. A NotFoundError
-                exception MUST be thrown if no parameter with that name exists
-                on this node.
+                member on subsequent audio processing events. <span class=
+                "synchronous">A NotFoundError exception MUST be thrown if no
+                parameter with that name exists on this node.</span>
               </p>
               <p>
                 The <code>name</code> parameter identifies the parameter to be
@@ -3955,48 +4361,48 @@ to be zero.
             </h5>
             <pre class="highlight">
 var bitcrusherFactory = null;
-audioContext.createAudioWorker("bitcrusher_worker.js").then( function(factory) 
-    {  // cache 'factory' in case you want to create more nodes!
-      bitcrusherFactory = factory;
-      var bitcrusherNode = factory.createNode();
-      bitcrusherNode.bits.setValueAtTime(8,0);
-      bitcrusherNode.connect(output); 
-      input.connect(bitcrusherNode);
-    }
-  );
+audioContext.createAudioWorker("bitcrusher_worker.js").then(function (factory) {
+  // cache 'factory' in case you want to create more nodes!
+  bitcrusherFactory = factory;
+  var bitcrusherNode = factory.createNode();
+  bitcrusherNode.bits.setValueAtTime(8, 0);
+  bitcrusherNode.connect(output);
+  input.connect(bitcrusherNode);
+});
 </pre>
             <h5>
               bitcrusher_worker.js
             </h5>
             <pre class="highlight">
-            // Custom parameter - number of bits to crush down to - default 8
-this.addParameter( "bits", 8 );
+// Custom parameter - number of bits to crush down to - default 8
+this.addParameter("bits", 8);
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
-this.addParameter( "frequencyReduction", 0.5 );
+this.addParameter("frequencyReduction", 0.5);
 
-onnodecreate=function(e) {
+onnodecreate = function (e) {
   e.node.phaser = 0;
   e.node.lastDataValue = 0;
 }
 
-onaudioprocess= function (e) {
-  for (var channel=0; channel&lt;e.inputs[0].length; channel++) {
+onaudioprocess = function (e) {
+  for (var channel = 0; channel &lt; e.inputs[0].length; channel++) {
     var inputBuffer = e.inputs[0][channel];
     var outputBuffer = e.outputs[0][channel];
     var bufferLength = inputBuffer.length;
     var bitsArray = e.parameters.bits;
     var frequencyReductionArray = e.parameters.frequencyReduction;
 
-    for (var i=0; i&lt;bufferLength; i++) {
+    for (var i = 0; i &lt; bufferLength; i++) {
       var bits = bitsArray ? bitsArray[i] : 8;
-      var frequencyReduction = frequencyReductionArray ? frequencyReductionArray[i] : 0.5;
+      var frequencyReduction = frequencyReductionArray ?
+        frequencyReductionArray[i] : 0.5;
 
-      var step = Math.pow(1/2, bits);
+      var step = Math.pow(1 / 2, bits);
       e.node.phaser += frequencyReduction;
       if (e.node.phaser &gt;= 1.0) {
-          e.node.phaser -= 1.0;
-          e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
+        e.node.phaser -= 1.0;
+        e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
       }
       outputBuffer[i] = e.node.lastDataValue;
     }
@@ -4012,7 +4418,7 @@ onaudioprocess= function (e) {
               Another common need is a clip-detecting volume meter. This
               example shows how to communicate basic parameters (that do not
               need AudioParam scheduling) across to a Worker, as well as
-              communicating data back to the main thread. This node does not
+              communicating data back to the control thread. This node does not
               use any output.
             </p>
             <h5>
@@ -4022,21 +4428,21 @@ onaudioprocess= function (e) {
 function setupNodeMessaging(node) {
   // This handles communication back from the volume meter
   node.onmessage = function (event) {
-    if (event.data instanceof Object ) {
-      if (event.data.hasOwnProperty("clip")
+    if (event.data instanceof Object) {
+      if (event.data.hasOwnProperty("clip"))
         this.clip = event.data.clip;
-      if (event.data.hasOwnProperty("volume")
+      if (event.data.hasOwnProperty("volume"))
         this.volume = event.data.volume;
     }
   }
 
   // Set up some default configuration parameters
-  node.postMessage(
-    { "smoothing": 0.9,   // Smoothing parameter
-      "clipLevel": 0.9,   // Level to consider "clipping"
-      "clipLag": 750,     // How long to keep "clipping" lit up after clip (ms)
-      "updating": 100      // How frequently to update volume and clip param (ms)
-    });
+  node.postMessage({
+    "smoothing": 0.9, // Smoothing parameter
+    "clipLevel": 0.9, // Level to consider "clipping"
+    "clipLag": 750, // How long to keep "clipping" lit up after clip (ms)
+    "updating": 100 // How frequently to update volume and clip param (ms)
+  });
 
   // Set up volume and clip attributes.  These will be updated by our onmessage.
   node.volume = 0;
@@ -4045,17 +4451,17 @@ function setupNodeMessaging(node) {
 
 var vuNode = null;
 
-audioContext.createAudioWorker("vu_meter_worker.js").then( function(factory) 
-    {  // cache 'factory' in case you want to create more nodes!
-      vuFactory = factory;
-      vuNode = factory.createNode([1], []); // we don't need an output, and let's force to mono
-      setupNodeMessaging(vuNode);
-    }
-  );
+audioContext.createAudioWorker("vu_meter_worker.js").then(function (factory) {
+  // cache 'factory' in case you want to create more nodes!
+  vuFactory = factory;
+  // we don't need an output, and let's force to mono
+  vuNode = factory.createNode([1], []);
+  setupNodeMessaging(vuNode);
+});
 
-window.requestAnimationFrame( function(timestamp) {
+window.requestAnimationFrame(function (timestamp) {
   if (vuNode) {
-  // Draw a bar based on vuNode.volume and vuNode.clip
+    // Draw a bar based on vuNode.volume and vuNode.clip
   }
 });
 
@@ -4065,66 +4471,68 @@ window.requestAnimationFrame( function(timestamp) {
             </h5>
             <pre class="highlight">
 // Custom parameter - number of bits to crush down to - default 8
-this.addParameter( "bits", 8 );
+this.addParameter("bits", 8);
 
 // Custom parameter - frequency reduction, 0-1, default 0.5
-this.addParameter( "frequencyReduction", 0.5 );
+this.addParameter("frequencyReduction", 0.5);
 
-onnodecreate=function(e) {
+onnodecreate = function (e) {
   e.node.timeToNextUpdate = 0.1 * sampleRate;
   e.node.smoothing = 0.5;
   e.node.clipLevel = 0.95;
   e.node.clipLag = 1;
   e.node.updatingInterval = 150;
   // This just handles setting attribute values
-  e.node.onmessage = function ( event ) {
-    if (event.data instanceof Object ) {
-      if (event.data.hasOwnProperty("smoothing")
+  e.node.onmessage = function (event) {
+    if (event.data instanceof Object) {
+      if (event.data.hasOwnProperty("smoothing"))
         this.smoothing = event.data.smoothing;
-      if (event.data.hasOwnProperty("clipLevel")
+      if (event.data.hasOwnProperty("clipLevel"))
         this.clipLevel = event.data.clipLevel;
-      if (event.data.hasOwnProperty("clipLag")
-        this.clipLag = event.data.clipLag / 1000;  // convert to seconds
-      if (event.data.hasOwnProperty("updating")    // convert to samples
-        this.updatingInterval = event.data.updating * sampleRate / 1000 ;
+      if (event.data.hasOwnProperty("clipLag"))
+        this.clipLag = event.data.clipLag / 1000; // convert to seconds
+      if (event.data.hasOwnProperty("updating")) // convert to samples
+        this.updatingInterval = event.data.updating * sampleRate / 1000;
     }
   };
 }
 
-onaudioprocess = function ( event ) {
-  var buf = event.inputs[0][0];  // Node forces mono
+onaudioprocess = function (event) {
+  var buf = event.inputs[0][0]; // Node forces mono
   var bufLength = buf.length;
   var sum = 0;
   var x;
 
   // Do a root-mean-square on the samples: sum up the squares...
-  for (var i=0; i&lt;bufLength; i++) {
+  for (var i = 0; i &lt; bufLength; i++) {
     x = buf[i];
-    if (Math.abs(x)&gt;=event.node.clipLevel) {
+    if (Math.abs(x) &gt;= event.node.clipLevel) {
       event.node.clipping = true;
-      event.node.unsentClip = true;  // Make sure, for every clip, we send a message.
-      event.node.lastClip = event.playbackTime + (i/sampleRate);
+      event.node.unsentClip = true; // Make sure, for every clip, we send a message.
+      event.node.lastClip = event.playbackTime + (i / sampleRate);
     }
     sum += x * x;
   }
 
   // ... then take the square root of the sum.
-  var rms =  Math.sqrt(sum / bufLength);
+  var rms = Math.sqrt(sum / bufLength);
 
   // Now smooth this out with the smoothing factor applied
   // to the previous sample - take the max here because we
   // want "fast attack, slow release."
-  event.node.volume = Math.max(rms, event.node.volume*event.node.smoothing);
-  if (event.node.clipping &amp;& (!event.node.unsentClip) &amp;& (event.playbackTime &gt; (this.lastClip + clipLag)))
+  event.node.volume = Math.max(rms, event.node.volume * event.node.smoothing);
+  if (event.node.clipping &amp;& (!event.node.unsentClip) &amp;& (event.playbackTime
+      &gt; (this.lastClip + clipLag)))
     event.node.clipping = false;
 
   // How long has it been since our last update?
   event.node.timeToNextUpdate -= event.node.last;
-  if (event.node.timeToNextUpdate&lt;0) {
+  if (event.node.timeToNextUpdate & lt; 0) {
     event.node.timeToNextUpdate = event.node.updatingInterval;
-    event.node.postMessage(
-      { "volume": event.node.volume,
-        "clip": event.node.clipping });
+    event.node.postMessage({
+      "volume": event.node.volume,
+      "clip": event.node.clipping
+    });
     event.node.unsentClip = false;
   }
 };
@@ -4142,18 +4550,17 @@ onaudioprocess = function ( event ) {
               Main file javascript
             </h5>
             <pre class="highlight">
-            var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1,1,1,1,1,1], [6] );
+var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1, 1, 1, 1, 1, 1], [6]);
 </pre>
             <pre class="highlight">
 var mergerFactory = null;
 
-audioContext.createAudioWorker("merger_worker.js").then( function(factory) 
-    {  // cache 'factory' in case you want to create more nodes!
-      mergerFactory = factory;
-      var merger6channelNode = factory.createNode( [1,1,1,1,1,1], [6] );
-      // connect inputs and outputs here
-    }
-  );
+audioContext.createAudioWorker("merger_worker.js").then(function (factory) {
+  // cache 'factory' in case you want to create more nodes!
+  mergerFactory = factory;
+  var merger6channelNode = factory.createNode([1, 1, 1, 1, 1, 1], [6]);
+  // connect inputs and outputs here
+});
 </pre>
             <h5>
               merger_worker.js
@@ -4188,8 +4595,9 @@ onaudioprocess= function (e) {
 </pre>
         <p>
           The <code>channelCountMode</code> cannot be changed from "explicit"
-          and the <code>channelCount</code> cannot be changed. An attempt to
-          change either of these MUST throw an InvalidStateError exception.
+          and the <code>channelCount</code> cannot be changed. <span class=
+          "synchronous">An attempt to change either of these MUST throw an
+          InvalidStateError exception</span>.
         </p>
         <p>
           The <a><code>ScriptProcessorNode</code></a> is constructed with a
@@ -4217,7 +4625,8 @@ onaudioprocess= function (e) {
           <code>numberOfOutputChannels</code> to be zero.
         </p>
         <pre class="highlight">
-    var node = context.createScriptProcessor(bufferSize, numberOfInputChannels, numberOfOutputChannels);
+var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
+  numberOfOutputChannels);
 </pre>
         <dl title="interface ScriptProcessorNode : AudioNode" class="idl">
           <dt>
@@ -4559,300 +4968,6 @@ the event handler.
             <a><code>"equalpower"</code></a>.
           </dd><!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
           <dt>
-            void setPosition(float x, float y, float z)
-          </dt>
-          <dd>
-            <p>
-              Sets the position of the audio source relative to the
-              <a><code>listener</code></a> attribute. A 3D cartesian coordinate
-              system is used.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters represent the coordinates in
-              3D space.
-            </p>
-            <p>
-              The default value is (0,0,0)
-            </p>
-          </dd>
-          <dt>
-            void setOrientation(float x, float y, float z)
-          </dt>
-          <dd>
-            <p>
-              Describes which direction the audio source is pointing in the 3D
-              cartesian coordinate space. Depending on how directional the
-              sound is (controlled by the <b>cone</b> attributes), a sound
-              pointing away from the listener can be very quiet or completely
-              silent.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters represent a direction vector
-              in 3D space.
-            </p>
-            <p>
-              The default value is (1,0,0)
-            </p>
-          </dd>
-          <dt>
-            void setVelocity(float x, float y, float z)
-          </dt>
-          <dd>
-            <p>
-              Sets the velocity vector of the audio source. This vector
-              controls both the direction of travel and the speed in 3D space.
-              This velocity relative to the listener's velocity is used to
-              determine how much doppler shift (pitch change) to apply. The
-              units used for this vector is <em>meters / second</em> and is
-              independent of the units used for position and orientation
-              vectors.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters describe a direction vector
-              indicating direction of travel and intensity.
-            </p>
-            <p>
-              The default value is (0,0,0)
-            </p>
-          </dd><!--<dt> // Distance model and attributes </dt>-->
-          <dt>
-            attribute DistanceModelType distanceModel
-          </dt>
-          <dd>
-            Specifies the distance model used by this
-            <a><code>PannerNode</code></a>. Defaults to
-            <a><code>"inverse"</code></a>.
-          </dd>
-          <dt>
-            attribute float refDistance
-          </dt>
-          <dd>
-            A reference distance for reducing volume as source move further
-            from the listener. The default value is 1.
-          </dd>
-          <dt>
-            attribute float maxDistance
-          </dt>
-          <dd>
-            The maximum distance between source and listener, after which the
-            volume will not be reduced any further. The default value is 10000.
-          </dd>
-          <dt>
-            attribute float rolloffFactor
-          </dt>
-          <dd>
-            Describes how quickly the volume is reduced as source moves away
-            from listener. The default value is 1.
-          </dd><!--<dt> // Directional sound cone </dt>-->
-          <dt>
-            attribute float coneInnerAngle
-          </dt>
-          <dd>
-            A parameter for directional audio sources, this is an angle, in
-            degrees, inside of which there will be no volume reduction. The
-            default value is 360, and the value is used modulo 360.
-          </dd>
-          <dt>
-            attribute float coneOuterAngle
-          </dt>
-          <dd>
-            A parameter for directional audio sources, this is an angle, in
-            degrees, outside of which the volume will be reduced to a constant
-            value of <a><code>coneOuterGain</code></a>. The default value is
-            360 and the value is used modulo 360.
-          </dd>
-          <dt>
-            attribute float coneOuterGain
-          </dt>
-          <dd>
-            A parameter for directional audio sources, this is the gain outside
-            of the <a><code>coneOuterAngle</code></a>. The default value is 0.
-            It is a linear value (not dB) in the range [0, 1]. An
-            InvalidStateError MUST be thrown if the parameter is outside this
-            range.
-          </dd>
-        </dl>
-        <section class="informative">
-          <h3 id="panner-channel-limitations">
-            Channel Limitations
-          </h3>
-          <p>
-            The set of <a href="#panner-channel-limitations">channel
-            limitations</a> for <a><code>StereoPannerNode</code></a> also apply
-            to <a><code>PannerNode</code></a>.
-          </p>
-        </section>
-      </section>
-      <section>
-        <h2 id="AudioListener">
-          The AudioListener Interface
-        </h2>
-        <p>
-          This interface is DEPRECATED, as it will be replaced by the
-          <a><code>SpatialListener</code></a>. This interface represents the
-          position and orientation of the person listening to the audio scene.
-          All <a><code>PannerNode</code></a> objects spatialize in relation to
-          the <a><code>BaseAudioContext</code></a>'s <a href=
-          "#widl-BaseAudioContext-listener">listener</a>. See <a href=
-          "#Spatialization">the Spatialization/Panning section</a> for more
-          details about spatialization.
-        </p>
-        <dl title="interface AudioListener" class="idl">
-          <dt>
-            void setPosition(float x, float y, float z)
-          </dt>
-          <dd>
-            <p>
-              Sets the position of the listener in a 3D cartesian coordinate
-              space. <a><code>PannerNode</code></a> objects use this position
-              relative to individual audio sources for spatialization.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters represent the coordinates in
-              3D space.
-            </p>
-            <p>
-              The default value is (0,0,0)
-            </p>
-          </dd>
-          <dt>
-            void setOrientation(float x, float y, float z, float xUp, float
-            yUp, float zUp)
-          </dt>
-          <dd>
-            <p>
-              Describes which direction the listener is pointing in the 3D
-              cartesian coordinate space. Both a <b>front</b> vector and an
-              <b>up</b> vector are provided. In simple human terms, the
-              <b>front</b> vector represents which direction the person's nose
-              is pointing. The <b>up</b> vector represents the direction the
-              top of a person's head is pointing. These values are expected to
-              be linearly independent (at right angles to each other). For
-              normative requirements of how these values are to be interpreted,
-              see the <a href="#Spatialization">spatialization section</a>.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters represent a <b>front</b>
-              direction vector in 3D space, with the default value being
-              (0,0,-1).
-            </p>
-            <p>
-              The <code>xUp, yUp, zUp</code> parameters represent an <b>up</b>
-              direction vector in 3D space, with the default value being
-              (0,1,0).
-            </p>
-          </dd>
-        </dl>
-      </section>
-      <section>
-        <h2>
-          The SpatialPannerNode Interface
-        </h2>
-        <p>
-          This interface represents a processing node which <a href=
-          "#Spatialization">positions</a> an incoming audio stream in
-          three-dimensional space. The spatialization is in relation to the
-          <a>AudioContext</a>'s <a><code>SpatialListener</code></a>
-          (<code>listener</code> attribute).
-        </p>
-        <p>
-          It should be explicitly noticed that the auditory effects of this
-          spatialization may not work well unless the SpatialPanner is directly
-          connected to the destination node; subsequent processing (after the
-          SpatialPanner, before the destination) may disrupt the effects.
-        </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-    channelCount = 2;
-    channelCountMode = "clamped-max";
-    channelInterpretation = "speakers";
-</pre>
-        <p>
-          The input of this node is either mono (1 channel) or stereo (2
-          channels) and cannot be increased. Connections from nodes with more
-          channels will be <a href=
-          "#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-          appropriately</a>, but a NotSupportedError MUST be thrown if an
-          attempt is made to set channelCount to a value greater than 2 or if
-          channelCountMode is set to "max". The output of this node will be
-          stereo (2 channels) and currently cannot be configured.
-        </p>
-        <p>
-          The <a><code>PanningModelType</code></a> enum determines which
-          spatialization algorithm will be used to position the audio in 3D
-          space. The default is <code>"equal-power"</code>.
-        </p>
-        <dl title="enum PanningModelType" class="idl">
-          <dt>
-            equalpower
-          </dt>
-          <dd>
-            A simple and efficient spatialization algorithm using equal-power
-            panning.
-          </dd>
-          <dt>
-            HRTF
-          </dt>
-          <dd>
-            A higher quality spatialization algorithm using a convolution with
-            measured impulse responses from human subjects. This panning method
-            renders stereo output.
-          </dd>
-        </dl>
-        <p>
-          The <a><code>DistanceModelType</code></a> enum determines which
-          algorithm will be used to reduce the volume of an audio source as it
-          moves away from the listener. The default is "inverse".
-        </p>
-        <dl title="enum DistanceModelType" class="idl">
-          <dt>
-            linear
-          </dt>
-          <dd>
-            A linear distance model which calculates <em>distanceGain</em>
-            according to:
-            <pre>
-            $$
-              1 - f\frac{\max(\min(d, d_{max}), d_{ref}) - d_{ref}}{d_{max} - d_{ref}}
-            $$
-            </pre>
-          </dd>
-          <dt>
-            inverse
-          </dt>
-          <dd>
-            An inverse distance model which calculates <em>distanceGain</em>
-            according to:
-            <pre>
-              $$
-                \frac{d_{ref}}{d_{ref} + f (\max(d, d_{ref}) - d_{ref})}
-              $$
-            </pre>
-          </dd>
-          <dt>
-            exponential
-          </dt>
-          <dd>
-            An exponential distance model which calculates
-            <em>distanceGain</em> according to:
-            <pre>
-              $$
-                \left(\frac{\max(d, d_{ref})}{d_{ref}}\right)^{-f}
-              $$
-            </pre>
-          </dd>
-        </dl>
-        <dl title="interface SpatialPannerNode : AudioNode" class="idl">
-          <dt>
-            attribute PanningModelType panningModel
-          </dt>
-          <dd>
-            Specifies the panning model used by this
-            <a><code>PannerNode</code></a>. Defaults to
-            <a><code>"equal-power"</code></a>.
-          </dd>
-          <dt>
             readonly attribute AudioParam positionX
           </dt>
           <dd>
@@ -4903,7 +5018,7 @@ the event handler.
             Describes the Z component of the vector of the direction the audio
             source is pointing in 3D cartesian coordinate space. The default
             value is 0. This parameter is a-rate.
-          </dd>
+          </dd><!--<dt> // Distance model and attributes </dt>-->
           <dt>
             attribute DistanceModelType distanceModel
           </dt>
@@ -4913,74 +5028,153 @@ the event handler.
             <a><code>"inverse"</code></a>.
           </dd>
           <dt>
-            attribute float refDistance
+            attribute double refDistance
           </dt>
           <dd>
             A reference distance for reducing volume as source move further
             from the listener. The default value is 1.
           </dd>
           <dt>
-            attribute float maxDistance
+            attribute double maxDistance
           </dt>
           <dd>
             The maximum distance between source and listener, after which the
             volume will not be reduced any further. The default value is 10000.
           </dd>
           <dt>
-            attribute float rolloffFactor
+            attribute double rolloffFactor
           </dt>
           <dd>
             Describes how quickly the volume is reduced as source moves away
             from listener. The default value is 1.
-          </dd>
+          </dd><!--<dt> // Directional sound cone </dt>-->
           <dt>
-            attribute float coneInnerAngle
+            attribute double coneInnerAngle
           </dt>
           <dd>
             A parameter for directional audio sources, this is an angle, in
             degrees, inside of which there will be no volume reduction. The
-            default value is 360.
+            default value is 360, and the value is used modulo 360.
           </dd>
           <dt>
-            attribute float coneOuterAngle
+            attribute double coneOuterAngle
           </dt>
           <dd>
             A parameter for directional audio sources, this is an angle, in
             degrees, outside of which the volume will be reduced to a constant
             value of <a><code>coneOuterGain</code></a>. The default value is
-            360.
+            360 and the value is used modulo 360.
           </dd>
           <dt>
-            attribute float coneOuterGain
+            attribute double coneOuterGain
           </dt>
           <dd>
-            A parameter for directional audio sources, this is the amount of
-            volume reduction outside of the <a><code>coneOuterAngle</code></a>.
-            The default value is 0.
+            A parameter for directional audio sources, this is the gain outside
+            of the <a><code>coneOuterAngle</code></a>. The default value is 0.
+            It is a linear value (not dB) in the range [0, 1]. An
+            InvalidStateError MUST be thrown if the parameter is outside this
+            range.
+          </dd>
+          <dt>
+            void setPosition(float x, float y, float z)
+          </dt>
+          <dd>
+            <p>
+              This method is DEPRECATED. It is equivalent to setting
+              <code>positionX</code>, <code>positionY</code>, and
+              <code>positionZ</code> AudioParams directly.
+            </p>
+            <p>
+              Sets the position of the audio source relative to the
+              <a><code>listener</code></a> attribute. A 3D cartesian coordinate
+              system is used.
+            </p>
+            <p>
+              The <code>x, y, z</code> parameters represent the coordinates in
+              3D space.
+            </p>
+            <p>
+              The default value is (0,0,0)
+            </p>
+          </dd>
+          <dt>
+            void setOrientation(float x, float y, float z)
+          </dt>
+          <dd>
+            <p>
+              This method is DEPRECATED. It is equivalent to setting
+              <code>orientationX</code>, <code>orientationY</code>, and
+              <code>orientationZ</code> AudioParams directly.
+            </p>
+            <p>
+              Describes which direction the audio source is pointing in the 3D
+              cartesian coordinate space. Depending on how directional the
+              sound is (controlled by the <b>cone</b> attributes), a sound
+              pointing away from the listener can be very quiet or completely
+              silent.
+            </p>
+            <p>
+              The <code>x, y, z</code> parameters represent a direction vector
+              in 3D space.
+            </p>
+            <p>
+              The default value is (1,0,0)
+            </p>
+          </dd>
+          <dt>
+            void setVelocity(float x, float y, float z)
+          </dt>
+          <dd>
+            <p>
+              Sets the velocity vector of the audio source. This vector
+              controls both the direction of travel and the speed in 3D space.
+              This velocity relative to the listener's velocity is used to
+              determine how much doppler shift (pitch change) to apply. The
+              units used for this vector is <em>meters / second</em> and is
+              independent of the units used for position and orientation
+              vectors.
+            </p>
+            <p>
+              The <code>x, y, z</code> parameters describe a direction vector
+              indicating direction of travel and intensity.
+            </p>
+            <p>
+              The default value is (0,0,0)
+            </p>
           </dd>
         </dl>
+        <section class="informative">
+          <h3 id="panner-channel-limitations">
+            Channel Limitations
+          </h3>
+          <p>
+            The set of <a href="#panner-channel-limitations">channel
+            limitations</a> for <a><code>StereoPannerNode</code></a> also apply
+            to <a><code>PannerNode</code></a>.
+          </p>
+        </section>
       </section>
       <section>
-        <h2 id="SpatialListener">
-          The SpatialListener Interface
+        <h2 id="AudioListener">
+          The AudioListener Interface
         </h2>
         <p>
           This interface represents the position and orientation of the person
-          listening to the audio scene. All
-          <a><code>SpatialPannerNode</code></a> objects spatialize in relation
-          to the <a><code>AudioContext</code></a>'s
-          <a><code>SpatialListener</code></a>. See <a href=
+          listening to the audio scene. All <a><code>PannerNode</code></a>
+          objects spatialize in relation to the
+          <a><code>BaseAudioContext</code></a>'s <a href=
+          "#widl-BaseAudioContext-listener">listener</a>. See <a href=
           "#Spatialization">the Spatialization/Panning section</a> for more
           details about spatialization.
         </p>
-        <dl title="interface SpatialListener" class="idl">
+        <dl title="interface AudioListener" class="idl">
           <dt>
             readonly attribute AudioParam positionX
           </dt>
           <dd>
             Sets the x coordinate position of the audio listener in a 3D
-            Cartesian coordinate space. <a><code>SpatialPannerNode</code></a>
-            objects use this position relative to individual audio sources for
+            Cartesian coordinate space. <a><code>PannerNode</code></a> objects
+            use this position relative to individual audio sources for
             spatialization. The default value is 0. This parameter is a-rate.
           </dd>
           <dt>
@@ -5067,6 +5261,61 @@ the event handler.
             pointing in 3D Cartesian coordinate space. The default value is 0.
             This parameter is a-rate.
           </dd>
+          <dt>
+            void setPosition(float x, float y, float z)
+          </dt>
+          <dd>
+            <p>
+              This method is DEPRECATED. It is equivalent to setting
+              <code>positionX</code>, <code>positionY</code>, and
+              <code>positionZ</code> AudioParams directly.
+            </p>
+            <p>
+              Sets the position of the listener in a 3D cartesian coordinate
+              space. <a><code>PannerNode</code></a> objects use this position
+              relative to individual audio sources for spatialization.
+            </p>
+            <p>
+              The <code>x, y, z</code> parameters represent the coordinates in
+              3D space.
+            </p>
+            <p>
+              The default value is (0,0,0)
+            </p>
+          </dd>
+          <dt>
+            void setOrientation(float x, float y, float z, float xUp, float
+            yUp, float zUp)
+          </dt>
+          <dd>
+            <p>
+              This method is DEPRECATED. It is equivalent to setting
+              <code>orientationX</code>, <code>orientationY</code>,
+              <code>orientationZ</code>, <code>upX</code>, <code>upY</code>,
+              and <code>upZ</code> AudioParams directly.
+            </p>
+            <p>
+              Describes which direction the listener is pointing in the 3D
+              cartesian coordinate space. Both a <b>front</b> vector and an
+              <b>up</b> vector are provided. In simple human terms, the
+              <b>front</b> vector represents which direction the person's nose
+              is pointing. The <b>up</b> vector represents the direction the
+              top of a person's head is pointing. These values are expected to
+              be linearly independent (at right angles to each other). For
+              normative requirements of how these values are to be interpreted,
+              see the <a href="#Spatialization">spatialization section</a>.
+            </p>
+            <p>
+              The <code>x, y, z</code> parameters represent a <b>front</b>
+              direction vector in 3D space, with the default value being
+              (0,0,-1).
+            </p>
+            <p>
+              The <code>xUp, yUp, zUp</code> parameters represent an <b>up</b>
+              direction vector in 3D space, with the default value being
+              (0,1,0).
+            </p>
+          </dd>
         </dl>
       </section>
       <section>
@@ -5108,7 +5357,7 @@ the event handler.
           <dd>
             The position of the input in the output's stereo image. -1
             represents full left, +1 represents full right. Its default value
-            is 0, and its nominal range is from -1 to 1. This parameter is a
+            is 0, and its <a>nominal range</a> is [-1, 1]. This parameter is
             <a>a-rate</a>.
           </dd>
         </dl>
@@ -5160,13 +5409,14 @@ the event handler.
           <dd>
             A mono, stereo, or 4-channel <a><code>AudioBuffer</code></a>
             containing the (possibly multi-channel) impulse response used by
-            the <a><code>ConvolverNode</code></a>. The <code>AudioBuffer</code>
-            must have 1, 2, or 4 channels or a NotSupportedError exception MUST
-            be thrown. This <a><code>AudioBuffer</code></a> must be of the same
-            sample-rate as the <a><code>AudioContext</code></a> or a
-            NotSupportedError exception MUST be thrown. At the time when this
-            attribute is set, the <em>buffer</em> and the state of the
-            <em>normalize</em> attribute will be used to configure the
+            the <a><code>ConvolverNode</code></a>. <span class=
+            "synchronous">The <code>AudioBuffer</code> must have 1, 2, or 4
+            channels or a NotSupportedError exception MUST be thrown</span>.
+            <span class="synchronous">This <a><code>AudioBuffer</code></a> must
+            be of the same sample-rate as the <a><code>AudioContext</code></a>
+            or a NotSupportedError exception MUST be thrown</span>. At the time
+            when this attribute is set, the <em>buffer</em> and the state of
+            the <em>normalize</em> attribute will be used to configure the
             <a><code>ConvolverNode</code></a> with this impulse response having
             the given normalization. The initial value of this attribute is
             null.
@@ -5460,10 +5710,11 @@ function calculateNormalizationScale(buffer)
             attribute unsigned long fftSize
           </dt>
           <dd>
-            The size of the FFT used for frequency-domain analysis. This must
-            be a power of two in the range 32 to 32768, otherwise an
-            IndexSizeError exception MUST be thrown. The default value is 2048.
-            Note that large FFT sizes can be costly to compute.
+            The size of the FFT used for frequency-domain analysis.
+            <span class="synchronous">This must be a power of two in the range
+            32 to 32768, otherwise an IndexSizeError exception MUST be
+            thrown</span>. The default value is 2048. Note that large FFT sizes
+            can be costly to compute.
           </dd>
           <dt>
             readonly attribute unsigned long frequencyBinCount
@@ -5477,10 +5728,10 @@ function calculateNormalizationScale(buffer)
           <dd>
             <dfn id="minDecibels">minDecibels</dfn> is the minimum power value
             in the scaling range for the FFT analysis data for conversion to
-            unsigned byte values. The default value is -100. If the value of
-            this attribute is set to a value more than or equal to
-            <code><a>maxDecibels</a></code>, an IndexSizeError exception MUST
-            be thrown.
+            unsigned byte values. The default value is -100. <span class=
+            "synchronous">If the value of this attribute is set to a value more
+            than or equal to <code><a>maxDecibels</a></code>, an IndexSizeError
+            exception MUST be thrown.</span>
           </dd>
           <dt>
             attribute float maxDecibels
@@ -5488,19 +5739,20 @@ function calculateNormalizationScale(buffer)
           <dd>
             <dfn id="maxDecibels">maxDecibels</dfn> is the maximum power value
             in the scaling range for the FFT analysis data for conversion to
-            unsigned byte values. The default value is -30. If the value of
-            this attribute is set to a value less than or equal to
-            <code><a>minDecibels</a></code>, an IndexSizeError exception MUST
-            be thrown.
+            unsigned byte values. The default value is -30. <span class=
+            "synchronous">If the value of this attribute is set to a value less
+            than or equal to <code><a>minDecibels</a></code>, an IndexSizeError
+            exception MUST be thrown.</span>
           </dd>
           <dt>
             attribute float smoothingTimeConstant
           </dt>
           <dd>
             A value from 0 -&gt; 1 where 0 represents no time averaging with
-            the last analysis frame. The default value is 0.8. If the value of
-            this attribute is set to a value less than 0 or more than 1, an
-            IndexSizeError exception MUST be thrown.
+            the last analysis frame. The default value is 0.8. <span class=
+            "synchronous">If the value of this attribute is set to a value less
+            than 0 or more than 1, an IndexSizeError exception MUST be
+            thrown.</span>
           </dd>
         </dl>
         <section>
@@ -5510,7 +5762,12 @@ function calculateNormalizationScale(buffer)
           data</dfn> are computed, the following operations are to be
           performed:
           <ol>
-            <li>Down-mix all channels of the time domain input data to mono.
+            <li>
+              <a href="#channel-up-mixing-and-down-mixing">Down-mix</a> all
+              channels of the time domain input data to mono assuming a
+              <a>channelCount</a> of 1, <a>channelCountMode</a> of "max" and
+              <a>channelInterpetation</a> of "speakers". This is independent of
+              the settings for the <a>AnalyserNode</a> itself.
             </li>
             <li>
               <a href="#blackman-window">Apply a Blackman window</a> to the
@@ -5780,8 +6037,8 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The decibel value above which the compression will start taking
-            effect. Its default <code>value</code> is -24, with a nominal range
-            of -100 to 0.
+            effect. Its default <code>value</code> is -24. Its <a>nominal
+            range</a> is [-100, 0].
           </dd>
           <dt>
             readonly attribute AudioParam knee
@@ -5789,14 +6046,15 @@ function calculateNormalizationScale(buffer)
           <dd>
             A decibel value representing the range above the threshold where
             the curve smoothly transitions to the "ratio" portion. Its default
-            <code>value</code> is 30, with a nominal range of 0 to 40.
+            <code>value</code> is 30. Its <a>nominal range</a> is [0, 40].
           </dd>
           <dt>
             readonly attribute AudioParam ratio
           </dt>
           <dd>
             The amount of dB change in input for a 1 dB change in output. Its
-            default <code>value</code> is 12, with a nominal range of 1 to 20.
+            default <code>value</code> is 12. Its <a>nominal range</a> is [1,
+            20].
           </dd>
           <dt>
             readonly attribute float reduction
@@ -5812,16 +6070,16 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The amount of time (in seconds) to reduce the gain by 10dB. Its
-            default <code>value</code> is 0.003, with a nominal range of 0 to
-            1.
+            default <code>value</code> is 0.003. Its <a>nominal range</a> is
+            [0, 1].
           </dd>
           <dt>
             readonly attribute AudioParam release
           </dt>
           <dd>
             The amount of time (in seconds) to increase the gain by 10dB. Its
-            default <code>value</code> is 0.250, with a nominal range of 0 to
-            1.
+            default <code>value</code> is 0.250. Its <a>nominal range</a> is
+            [0, 1].
           </dd>
         </dl>
       </section>
@@ -5848,13 +6106,18 @@ function calculateNormalizationScale(buffer)
         <p>
           Both <a href=
           "#widl-BiquadFilterNode-frequency"><code>frequency</code></a> and
-          <a href="#widl-BiquadFilterNode-detune"><code>detune</code></a> are
-          <a>a-rate</a> parameters and are used together to determine a
-          <dfn id="computedFreq-biquad">computedFrequency</dfn> value:
+          <a href="#widl-BiquadFilterNode-detune"><code>detune</code></a> form
+          a <a>compound parameter</a> and are both <a>a-rate</a>. They are used
+          together to determine a <dfn id=
+          "computedFreq-biquad">computedFrequency</dfn> value:
         </p>
         <pre class="highlight">
   computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
 </pre>
+        <p>
+          The nominal range for this <a>compound parameter</a> is [0,
+          <a>Nyquist frequency</a>].
+        </p>
         <pre>
     numberOfInputs  : 1
     numberOfOutputs : 1
@@ -6172,39 +6435,49 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The frequency at which the <a><code>BiquadFilterNode</code></a>
-            will operate, in Hz. Its default value is 350Hz, and its nominal
-            range is from 10Hz to half the Nyquist frequency.
+            will operate, in Hz. Its default value is 350Hz. It forms a
+            <a>compound parameter</a> with <code>detune</code>. Its nominal
+            range is [0, <a>Nyquist frequency</a>].
           </dd>
           <dt>
             readonly attribute AudioParam detune
           </dt>
           <dd>
             A detune value, in cents, for the frequency. Its default value is
-            0.
+            0. It forms a <a>compound parameter</a> with
+            <code>frequency</code>. Its nominal range is \((-\infty, \infty)\).
           </dd>
           <dt>
             readonly attribute AudioParam Q
           </dt>
           <dd>
             The <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a> factor
-            has a default value of 1, with a nominal range of 0.0001 to 1000.
+            has a default value of 1. Its <a>nominal range</a> is (0,
+            \(\infty\)). This is not used for <a href=
+            "#idl-def-BiquadFilterType.lowshelf">lowshelf</a>, <a href=
+            "#idl-def-BiquadFilterType.highshelf">highshelf</a>, or <a href=
+            "#idl-def-BiquadFilterType.peaking">peaking</a> filters.
           </dd>
           <dt>
             readonly attribute AudioParam gain
           </dt>
           <dd>
-            The gain has a default value of 0, with a nominal range of -40 to
-            40.
+            The gain has a default value of 0. Its <a>nominal range</a> is
+            \((-\infty, \infty)\). Its value is in dB units. The gain is only
+            used for <a href="#idl-def-BiquadFilterType.lowshelf">lowshelf</a>,
+            <a href="#idl-def-BiquadFilterType.highshelf">highshelf</a>, and
+            <a href="#idl-def-BiquadFilterType.peaking">peaking</a> filters.
           </dd>
           <dt>
             void getFrequencyResponse()
           </dt>
           <dd>
             <p>
-              Given the current filter parameter settings, calculates the
-              frequency response for the specified frequencies. The three
-              parameters MUST be <code>Float32Array</code>s of the same length,
-              or an <code>InvalidAccessError</code> MUST be thrown.
+              <span class="sychronous">Given the current filter parameter
+              settings, synchronously calculates the frequency response for the
+              specified frequencies.</span> The three parameters MUST be
+              <code>Float32Array</code>s of the same length, or an
+              <code>InvalidAccessError</code> MUST be thrown.
             </p>
             <p>
               The frequency response returned MUST be computed with the
@@ -6316,7 +6589,7 @@ $$
   A        &amp;= 10^{\frac{G}{40}} \\
   \omega_0 &amp;= 2\pi\frac{f_0}{F_s} \\
   \alpha_Q &amp;= \frac{\sin\omega_0}{2Q} \\
-  \alpha_B &amp;= \frac{\sin\omega_0}{2} \sqrt{\frac{4-\sqrt{16-\frac{16}{G^2}}}{2}} \\
+  \alpha_{Q_{dB}} &amp;= \frac{\sin\omega_0}{2 \cdot 10^{Q/20}} \\
   S        &amp;= 1 \\
   \alpha_S &amp;= \frac{\sin\omega_0}{2}\sqrt{\left(A+\frac{1}{A}\right)\left(\frac{1}{S}-1\right)+2}
 \end{align*}
@@ -6337,9 +6610,9 @@ $$
                     b_0 &amp;= \frac{1 - \cos\omega_0}{2} \\
                     b_1 &amp;= 1 - \cos\omega_0 \\
                     b_2 &amp;= \frac{1 - \cos\omega_0}{2} \\
-                    a_0 &amp;= 1 + \alpha_B \\
+                    a_0 &amp;= 1 + \alpha_{Q_{dB}} \\
                     a_1 &amp;= -2 \cos\omega_0 \\
-                    a_2 &amp;= 1 - \alpha_B
+                    a_2 &amp;= 1 - \alpha_{Q_{dB}}
                   \end{align*}
                 $$
               
@@ -6355,9 +6628,9 @@ $$
                       b_0 &amp;= \frac{1 + \cos\omega_0}{2} \\
                       b_1 &amp;= -(1 + \cos\omega_0) \\
                       b_2 &amp;= \frac{1 + \cos\omega_0}{2} \\
-                      a_0 &amp;= 1 + \alpha_B \\
+                      a_0 &amp;= 1 + \alpha_{Q_{dB}} \\
                       a_1 &amp;= -2 \cos\omega_0 \\
-                      a_2 &amp;= 1 - \alpha_B
+                      a_2 &amp;= 1 - \alpha_{Q_{dB}}
                     \end{align*}
                   $$
               
@@ -6733,13 +7006,13 @@ $$
           considered in the frequency domain. When this waveform is sampled as
           a discrete-time digital audio signal at a particular sample-rate,
           then care must be taken to discard (filter out) the high-frequency
-          information higher than the <em>Nyquist</em> frequency (half the
-          sample-rate) before converting the waveform to a digital form. If
-          this is not done, then <em>aliasing</em> of higher frequencies (than
-          the Nyquist frequency) will fold back as mirror images into
-          frequencies lower than the Nyquist frequency. In many cases this will
-          cause audibly objectionable artifacts. This is a basic and well
-          understood principle of audio DSP.
+          information higher than the <a>Nyquist frequency</a> before
+          converting the waveform to a digital form. If this is not done, then
+          <em>aliasing</em> of higher frequencies (than the <a>Nyquist
+          frequency</a>) will fold back as mirror images into frequencies lower
+          than the <a>Nyquist frequency</a>. In many cases this will cause
+          audibly objectionable artifacts. This is a basic and well understood
+          principle of audio DSP.
         </p>
         <p>
           There are several practical approaches that an implementation may
@@ -6755,15 +7028,17 @@ $$
           less-costly approaches on lower-end hardware.
         </p>
         <p>
-          Both .frequency and .detune are <a>a-rate</a> parameters and are used
+          Both <code>frequency</code> and <code>detune</code> are <a>a-rate</a>
+          parameters, and form a <a>compound parameter</a>. They are used
           together to determine a <em>computedFrequency</em> value:
         </p>
         <pre class="highlight">
   computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
-</pre>
+        </pre>
         <p>
           The OscillatorNode's instantaneous phase at each time is the time
-          integral of <em>computedFrequency</em>.
+          integral of <em>computedFrequency</em>. Its <a>nominal range</a> is
+          [-<a>Nyquist frequency</a>, <a>Nyquist frequency</a>].
         </p>
         <pre>
   numberOfInputs  : 0
@@ -6807,8 +7082,9 @@ $$
           </dt>
           <dd>
             The shape of the periodic waveform. It may directly be set to any
-            of the type constant values except for "custom". Doing so MUST
-            throw an InvalidStateError exception. The <a href=
+            of the type constant values except for "custom". <span class=
+            "synchronous">Doing so MUST throw an InvalidStateError
+            exception.</span> The <a href=
             "#widl-OscillatorNode-setPeriodicWave-void-PeriodicWave-periodicWave">
             <code>setPeriodicWave()</code></a> method can be used to set a
             custom waveform, which results in this attribute being set to
@@ -6820,15 +7096,19 @@ $$
           </dt>
           <dd>
             The frequency (in Hertz) of the periodic waveform. Its default
-            <code>value</code> is 440. This parameter is <a>a-rate</a>.
+            <code>value</code> is 440. This parameter is <a>a-rate</a>. It
+            forms a <a>compound parameter</a> with <code>detune</code>. Its
+            nominal range is [0, <a>Nyquist frequency</a>].
           </dd>
           <dt>
             readonly attribute AudioParam detune
           </dt>
           <dd>
-            A detuning value (in Cents) which will offset the
+            A detuning value (in cents) which will offset the
             <a><code>frequency</code></a> by the given amount. Its default
-            <code>value</code> is 0. This parameter is <a>a-rate</a>.
+            <code>value</code> is 0. This parameter is <a>a-rate</a>. It forms
+            a <a>compound parameter</a> with <code>frequency</code>. Its
+            nominal range is \((-\infty, \infty)\).
           </dd>
           <dt>
             void start(optional double when = 0)
@@ -6876,6 +7156,12 @@ $$
             mathematically to be an odd function with a positive slope at time
             0. The actual waveforms produced by the oscillator may differ to
             prevent aliasing affects.
+          </p>
+          <p>
+            The oscillator must produce the same result as if a PeriodicWave
+            with the appropriate <a href="#oscillator-coefficients">Fourier
+            series</a> and with normalization enabled were used to create these
+            basic waveforms.
           </p>
           <dl>
             <dt>
@@ -7009,7 +7295,7 @@ odd function with period \(2\pi\).
           <p>
             where \(N\) is a power of two. (Note: \(\tilde{x}(n)\) can
             conveniently be computed using an inverse FFT.) The fixed
-            normalization factor \(f\) is computed as follows:
+            normalization factor \(f\) is computed as follows.
           </p>
           <pre>
             $$
@@ -7163,6 +7449,336 @@ odd function with period \(2\pi\).
             same number of channels as the node itself.
           </dd>
         </dl>
+      </section>
+    </section>
+    <section>
+      <h2>
+        Processing model
+      </h2>
+      <section class="informative">
+        <h3>
+          Background
+        </h3>
+        <p>
+          Real-time audio systems that require low latency are often
+          implemented using <em>callback functions</em>, where the operating
+          system calls the program back when more audio has to be computed in
+          order for the playback to stay uninterrupted. Such callback is called
+          on a high priority thread (often the highest priority on the system).
+          This means that a program that deals with audio only executes code
+          from this callback, as any buffering between a rendering thread and
+          the callback would naturally add latency or make the system less
+          resilient to glitches.
+        </p>
+        <p>
+          For this reason, the traditional way of executing asynchronous
+          operations on the Web Platform, the event loop, does not work here,
+          as the thread is not <em>continuously executing</em>. Additionally, a
+          lot of unnecessary and potentially blocking operations are available
+          from traditional execution contexts (Windows and Workers), which is
+          not something that is desirable to reach an acceptable level of
+          performance.
+        </p>
+        <p>
+          Additionally, the Worker model makes creating a dedicated thread
+          necessary for a script execution context, while all <a>AudioNode</a>s
+          usually share the same execution context.
+        </p>
+        <p class="note">
+          This section specifies how the end result should look like, not how
+          it should be implemented. In particular, instead of using message
+          queue, implementors can use memory that is shared between threads, as
+          long as the memory operations are not reordered.
+        </p>
+      </section>
+      <section>
+        <h3>
+          Control thread and rendering thread
+        </h3>
+        <p>
+          The Web Audio API MUST be implemented using a <a>control thread</a>,
+          and a <a>rendering thread</a>.
+        </p>
+        <p>
+          The <dfn>control thread</dfn> is the thread from which the
+          <a>AudioContext</a> is instantiated, and from which authors
+          manipulate the audio graph, that is, from where the operation on a
+          <a>BaseAudioContext</a> are invoked. The <dfn>rendering thread</dfn>
+          is the thread on which the actual audio output is computed, in
+          reaction to the calls from the <a>control thread</a>. It can be a
+          real-time, callback-based audio thread, if computing audio for an
+          <a>AudioContext</a>, or a normal thread if rendering and audio graph
+          offline using an <a>OfflineAudioContext</a>.
+        </p>
+        <p>
+          The <a>control thread</a> uses a traditional event loop, as described
+          in [[HTML]].
+        </p>
+        <p>
+          The <a>rendering thread</a> uses a specialized rendering loop,
+          described in the section <a href="#rendering-audio">Rendering an
+          audio graph</a>
+        </p>
+        <p>
+          Communication from the <a>control thread</a> to the <a>rendering
+          thread</a> is done using <a>control message</a> passing.
+          Communication in the other direction is done using regular event loop
+          tasks.
+        </p>
+        <p>
+          Each <a>AudioContext</a> has a single <dfn>control message
+          queue</dfn>, that is a list of <dfn data-lt="control message">control
+          messages</dfn> that are operations running on the <a>control
+          thread</a>.
+        </p>
+        <p>
+          <dfn id="queuing">Queuing a control message</dfn> means adding the
+          message to the end of the <a>control message queue</a> of an
+          <a>AudioContext</a>.
+        </p>
+        <p>
+          <a>Control messages</a> in a <a>control message queue</a> are ordered
+          by time of insertion. The <dfn>oldest message</dfn> is therefore the
+          one at the front of the <a>control message queue</a>.
+        </p>
+        <p>
+          <dfn data-lt="swap">Swapping</dfn> a <a>control message queue</a>
+          <var>Q<sub>A</sub></var> with another <a>control message queue</a>
+          <var>Q<sub>B</sub></var> means executing the following steps:
+        </p>
+        <ol>
+          <li>Let <var>Q<sub>C</sub></var> be a new, empty <a>control message
+          queue</a>.
+          </li>
+          <li>Move all the <a>control messages</a> <var>Q<sub>A</sub></var> to
+          <var>Q<sub>C</sub></var>.
+          </li>
+          <li>Move all the <a>control messages</a> <var>Q<sub>B</sub></var> to
+          <var>Q<sub>A</sub></var>.
+          </li>
+          <li>Move all the <a>control messages</a> <var>Q<sub>C</sub></var> to
+          <var>Q<sub>B</sub></var>.
+          </li>
+        </ol>
+        <p class="note">
+          For example, successfuly calling <code>start()</code> on an
+          <a>AudioBufferSourceNode</a> <code>source</code> adds a <a>control
+          message</a> to the <a href="#control-message-queue">control message
+          queue</a> of the <a>AudioContext</a> <code>source.context</code>.
+        </p>
+      </section>
+      <section>
+        <h3>
+          Asynchronous operations
+        </h3>
+        <p>
+          Calling methods on <a>AudioNode</a>s is effectively asynchronous, and
+          MUST to be done in two phases, a synchronous part and an asynchronous
+          part. For each method, some part of the execution happens on the
+          <a>control thread</a> (for example, throwing an exception in case of
+          invalid parameters), and some part happens on the <a>rendering
+          thread</a> (for example, changing the value of an <a>AudioParam</a>).
+        </p>
+        <p>
+          In the description of each operation on <a>AudioNode</a>s and
+          <a>AudioContext</a>s, the synchronous section is marked with a ⌛. All
+          the other operations are executed <a href=
+          "https://html.spec.whatwg.org/multipage/infrastructure.html#in-parallel">
+          in parallel</a>, as described in [[HTML]].
+        </p>
+        <p>
+          The synchronous section is executed on the <a>control thread</a>, and
+          happens immediately. If it fails, the method execution is aborted,
+          possibly throwing an exception. If it succeeds, a <a>control
+          message</a>, encoding the operation to be executed on the
+          <a>rendering thread</a> is enqueued on the <a>control message
+          queue</a> of this <a>rendering thread</a>.
+        </p>
+        <p>
+          The synchronous and asynchronous sections order with respect to other
+          events MUST be the same: given two operation <var>A</var> and
+          <var>B</var> with respective synchronous and asynchronous section
+          <var>A<sub>Sync</sub></var> and <var>A<sub>Async</sub></var>, and
+          <var>B<sub>Sync</sub></var> and <var>B<sub>Async</sub></var>, if
+          <var>A</var> happens before <var>B</var>, then
+          <var>A<sub>Sync</sub></var> happens before
+          <var>B<sub>Sync</sub></var>, and <var>A<sub>Async</sub></var> happens
+          before <var>B<sub>Async</sub></var>. In other words, synchronous and
+          asynchronous sections can't be reordered.
+        </p>
+      </section>
+      <section id="rendering-loop">
+        <h3>
+          Rendering an audio graph
+        </h3>
+        <p>
+          Rendering an audio graph is done in blocks of 128 samples-frames.
+        </p>
+        <p>
+          Operations that happen <dfn data-lt="atomic">atomically</dfn> on a
+          given thread can only be executed when no other <a>atomic</a>
+          operation is running on another thread.
+        </p>
+        <p>
+          The algorithm for rendering a block of audio from an
+          <a>AudioContext</a> <em>G</em> with a <a href=
+          "#control-message-queue">control message queue</a> <em>Q</em> is as
+          follows.
+        </p>
+        <ol>
+          <li>Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
+          queue</a>. <a>Atomically</a> <a>swap</a>
+          <em>Q<sub>rendering</sub></em> and <em>Q</em>
+          </li>
+          <li>While there are messages in <em>Q<sub>rendering</sub></em>,
+          execute the following steps:
+            <ol>
+              <li>Execute the asynchronous section of the <a>oldest message</a>
+              of <em>Q<sub>rendering</sub></em>.
+              </li>
+              <li>Remove the <a>oldest message</a> of
+              <em>Q<sub>rendering</sub></em>.
+              </li>
+            </ol>
+          </li>
+          <li>Order the <a>AudioNode</a>s of the <a>AudioContext</a> to be
+          processed.
+            <ol>
+              <li>Let <em>ordered</em> be an empty list of <a>AudioNode</a>s.
+              It will contain an ordered list of <a>AudioNode</a>s when this
+              ordering algorithm terminates.
+              </li>
+              <li>Let <em>nodes</em> be the set of all nodes created by this
+              <a>AudioContext</a>, and still alive.
+              </li>
+              <li>Let <em>cycle breakers</em> be an empty set of
+              <a>DelayNode</a>s. It will contain all the <a>DelayNode</a>s that
+              are part of a cycle.
+              </li>
+              <li>For each <a>AudioNode</a> <em>node</em> in <em>nodes</em>
+                <ol>
+                  <li>If <em>node</em> is a <a>DelayNode</a> that is part of a
+                  cycle, add it to <em>cycle breakers</em> and remove it from
+                  <em>nodes</em>.
+                  </li>
+                </ol>
+              </li>
+              <li>If <em>nodes</em> contains cycles, <a href="#mute">mute</a>
+              all the <a>AudioNode</a>s that are part of this cycle, and remove
+              them from <em>nodes</em>.
+              </li>
+              <li>While there are unmarked <a>AudioNode</a>s in <em>nodes</em>:
+                <ol>
+                  <li>Choose an <a>AudioNode</a> <em>node</em> in
+                  <em>nodes</em>
+                  </li>
+                  <li>
+                    <a>Visit</a> <em>node</em>.
+                  </li>
+                </ol><dfn data-lt="Visit">Visiting a node</dfn> <em>node</em>
+                mean performing the following steps:
+                <ol>
+                  <li>If <em>node</em> is marked, abort these steps.
+                  </li>
+                  <li>Mark <em>node</em>.
+                  </li>
+                  <li>For each <a>AudioNode</a> <em>input</em> connected to
+                  <em>node</em>:
+                    <ol>
+                      <li>
+                        <a>Visit</a> <em>input</em>.
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+              <li>Add <em>node</em> to the beginning of <em>ordered</em>.
+              </li>
+            </ol>
+          </li>
+          <li>Reverse the order of <em>nodes</em>.
+          </li>
+          <li>For each <a>DelayNode</a> in a cycle, <a href="#available">make
+          available for reading</a> a block of audio from the <a>DelayNode</a>
+          buffer, available for reading.
+          </li>
+          <li>For each <a>AudioNode</a>, in the order determined previously:
+            <ol>
+              <li>For each <a>AudioParam</a> of this <a>AudioNode</a>, execute
+              these steps:
+                <ol>
+                  <li>If this <a>AudioParam</a> has any <a>AudioNode</a>
+                  connected to it, <a href="#SummingJunction">sum</a> the
+                  buffers <a href="#available">made available for reading</a>
+                  by all <a>AudioNode</a> connected to this <a>AudioParam</a>,
+                  <a href="#down-mix">down mix</a> the resulting buffer down to
+                  Mono, and call this buffer the <dfn id=
+                  "input-audioparam-buffer">input <a>AudioParam</a>
+                  buffer</dfn>.
+                  </li>
+                  <li>
+                    <a href="#computation-of-value">Compute the value(s)</a> of
+                    this <a>AudioParam</a> for this block.
+                  </li>
+                </ol>
+              </li>
+              <li>If this <a>AudioNode</a> has any <a>AudioNode</a>s connected
+              to its input, <a href="#SummingJunction">sum</a> the buffers
+              <a href="#available">made available for reading</a> by all
+              <a>AudioNode</a>s connected to this <a>AudioNode</a>. The
+              resulting buffer is called the <dfn>input buffer</dfn>.
+                <a href="#channel-up-mixing-and-down-mixing">Up or down-mix</a>
+                it to match if number of input channels of this
+                <a>AudioNode</a>.
+              </li>
+              <li>If this <a>AudioNode</a> is a <a>source node</a>, <a href=
+              "computing">compute a block of audio</a>, and <a href=
+              "#available">make it available for reading</a>.
+              </li>
+              <li>Else, if this <a>AudioNode</a> is a <a>destination node</a>,
+              <a href="record">record the input</a> of this <a>AudioNode</a>.
+              </li>
+              <li>Else, <a>process</a> the <a>input buffer</a>, and <a href=
+              "#available">make available for reading</a> the resulting buffer.
+              </li>
+            </ol>
+          </li>
+        </ol>
+        <ul>
+          <li style="list-style: none; display: inline">
+            <p>
+              <dfn id="mute">Muting</dfn> an <a>AudioNode</a> means that its
+              output MUST be silence for the rendering of this audio block.
+            </p>
+            <p>
+              <dfn id="available">Making a buffer available for reading</dfn>
+              from an <a>AudioNode</a> means putting it in a state where other
+              <a>AudioNode</a>s connected to this <a>AudioNode</a> can safely
+              read from it.
+            </p>
+            <p class="note">
+              For example, implementations can choose to allocate a new buffer,
+              or have a more elaborate mechanism, reusing an existing buffer
+              that is now unused.
+            </p>
+            <p>
+              <dfn id="record">Recording the input</dfn> of an <a>AudioNode</a>
+              means copying the input data of this <a>AudioNode</a> for future
+              usage.
+            </p>
+            <p>
+              <dfn id="computing">Computing a block of audio</dfn> means
+              running the algorithm for this <a>AudioNode</a> to produce 128
+              sample-frames.
+            </p>
+            <p>
+              <dfn data-lt="process">Processing an input buffer</dfn> means
+              running the algorithm for an <a>AudioNode</a>, using an <a>input
+              buffer</a> and the value(s) of the <a>AudioParam</a>(s) of this
+              <a>AudioNode</a> as the input for this algorithm.
+            </p>
+          </li>
+        </ul>
       </section>
     </section>
     <section class="informative">
@@ -7722,14 +8338,14 @@ Quad up-mix:
           output.R = 0.5 * (input.R + input.SR);
 
       5.1 -&gt; 2 : 5.1 to stereo
-          output.L = L + 0.7071 * (input.C + input.SL)
-          output.R = R + 0.7071 * (input.C + input.SR)
+          output.L = L + sqrt(0.5) * (input.C + input.SL)
+          output.R = R + sqrt(0.5) * (input.C + input.SR)
 
   Quad down-mix:
 
       5.1 -&gt; 4 : 5.1 to quad
-          output.L = L + 0.7071 * input.C
-          output.R = R + 0.7071 * input.C
+          output.L = L + sqrt(0.5) * input.C
+          output.R = R + sqrt(0.5) * input.C
           output.SL = input.SL
           output.SR = input.SR
 
@@ -8129,22 +8745,24 @@ if (pan &lt;= 0) {
           <a><code>PannerNode</code></a>) and the listener:
         </p>
         <pre class="highlight">
-  function dotProduct(v1, v2) {
-    var d = 0;
-    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
-      d += v1[i] * v2[i];
-    return d;
-  }
+function dotProduct(v1, v2) {
+  var d = 0;
+  for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
+    d += v1[i] * v2[i];
+  return d;
+}
 
-  function diff(v1, v2) {
-    var v = [];
-    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
-      v[i] = v1[i] - v2[i];
-    return v;
-  }
+function diff(v1, v2) {
+  var v = [];
+  for (var i = 0; i & lt; Math.min(v1.length, v2.length); i++)
+    v[i] = v1[i] - v2[i];
+  return v;
+}
 
-  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle == 0) &amp;& (source.coneOuterAngle == 0)))
-      return 1; // no cone specified - unity gain
+function coneGain() {
+  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle ==
+      0) &amp;& (source.coneOuterAngle == 0)))
+    return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
   var sourceToListener = diff(listener.position, source.position);
@@ -8163,74 +8781,21 @@ if (pan &lt;= 0) {
   var absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
   var gain = 1;
 
-  if (absAngle &lt;= absInnerAngle)
-      // No attenuation
-      gain = 1;
-  else if (absAngle &gt;= absOuterAngle)
-      // Max attenuation
-      gain = source.coneOuterGain;
-  else {
-      // Between inner and outer cones
-      // inner -&gt; outer, x goes from 0 -&gt; 1
-      var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
-      gain = (1 - x) + source.coneOuterGain * x;
+  if (absAngle &lt;= absInnerAngle) {
+    // No attenuation
+    gain = 1;
+  } else if (absAngle &gt;= absOuterAngle) {
+    // Max attenuation
+    gain = source.coneOuterGain;
+  } else {
+    // Between inner and outer cones
+    // inner -&gt; outer, x goes from 0 -&gt; 1
+    var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+    gain = (1 - x) + source.coneOuterGain * x;
   }
 
   return gain;
-  
-</pre>
-      </section>
-      <section>
-        <h3 id="Spatialization-doppler-shift">
-          Doppler Shift
-        </h3>
-        <ul>
-          <li>Introduces a pitch shift which can realistically simulate moving
-          sources.
-          </li>
-          <li>Depends on: source / listener velocity vectors, speed of sound,
-          doppler factor.
-          </li>
-        </ul>
-        <p>
-          The following algorithm must be used to calculate the doppler shift
-          value which is used as an additional playback rate scalar for all
-          <a><code>AudioBufferSourceNode</code></a>s connecting directly or
-          indirectly to the <a><code>PannerNode</code></a>:
-        </p>
-        <pre class="highlight">
-  var dopplerShift = 1; // Initialize to default value
-  var dopplerFactor = listener.dopplerFactor;
-
-  if (dopplerFactor &gt; 0) {
-      var speedOfSound = listener.speedOfSound;
-
-      // Don't bother if both source and listener have no velocity.
-      if (dotProduct(source.velocity, source.velocity) != 0 || dotProduct(listener.velocity, listener.velocity) != 0) {
-          // Calculate the source to listener vector.
-          var sourceToListener = diff(source.position, listener.position);
-
-          var sourceListenerMagnitude = Math.sqrt(dotProduct(sourceToListener, sourceToListener);
-
-          var listenerProjection = dotProduct(sourceToListener, listener.velocity) / sourceListenerMagnitude;
-          var sourceProjection = dotProduct(sourceToListener, source.velocity) / sourceListenerMagnitude;
-
-          listenerProjection = -listenerProjection;
-          sourceProjection = -sourceProjection;
-
-          var scaledSpeedOfSound = speedOfSound / dopplerFactor;
-          listenerProjection = Math.min(listenerProjection, scaledSpeedOfSound);
-          sourceProjection = Math.min(sourceProjection, scaledSpeedOfSound);
-
-          dopplerShift = ((speedOfSound - dopplerFactor * listenerProjection) / (speedOfSound - dopplerFactor * sourceProjection));
-          fixNANs(dopplerShift); // Avoid illegal values
-
-          // Limit the pitch shifting to 4 octaves up and 3 octaves down.
-          dopplerShift = Math.min(dopplerShift, 16);
-          dopplerShift = Math.max(dopplerShift, 0.125);
-      }
-  }
-  
+}  
 </pre>
       </section>
     </section>
@@ -8278,7 +8843,36 @@ if (pan &lt;= 0) {
           <a><code>AudioProcessingEvent</code></a>'s <code>playbackTime</code>.
           Deprecation of <a><code>ScriptProcessorNode</code></a> will make this
           consideration less important over time.
-        </p>
+        </p>Additionally, some <a>AudioNode</a>s can add latency to some paths
+        of the audio graph, notably:
+        <ul>
+          <li>The <a>AudioWorker</a> can run a script that buffers internally,
+          adding delay to the signal path.
+          </li>
+          <li>The <a>DelayNode</a>, whose role is to add controlled latency
+          time.
+          </li>
+          <li>The <a>BiquadFilterNode</a> and <a>IIRFilterNode</a> filter
+          design can delay incoming samples, as a natural consequence of the
+          causal filtering process.
+          </li>
+          <li>The <a>ConvolverNode</a> depending on the impulse, can delay
+          incoming samples, as a natural result of the convolution operation.
+          </li>
+          <li>The <a>DynamicsCompressorNode</a> has a look ahead algorithm that
+          causes delay in the signal path.
+          </li>
+          <li>The <a>MediaStreamAudioSourceNode</a> and
+          <a>MediaStreamAudioDestinationNode</a>, depending on the
+          implementation, can add buffers internally that add delays.
+          </li>
+          <li>The <a>ScriptProcessorNode</a> can have buffers between the
+          control thread and the rendering thread.
+          </li>
+          <li>The <a>WaveShaperNode</a>, when oversampling, and depending on
+          the oversampling technique, add delays to the signal path.
+          </li>
+        </ul>
       </section>
       <section>
         <h3>
@@ -8387,33 +8981,194 @@ if (pan &lt;= 0) {
       </section>
     </section>
     <section class="informative">
-      <h2 id="SecurityConsiderations">
-        Security Considerations
-      </h2>
-    </section>
-    <section class="informative">
-      <h2 id="PrivacyConsiderations">
-        Privacy Considerations
+      <h2 id="SecurityPrivacy Considerations">
+        Security and Privacy Considerations
       </h2>
       <p>
-        When giving various information on available
-        <a><code>AudioNode</code></a>s, the Web Audio API potentially exposes
-        information on characteristic features of the client (such as audio
-        hardware sample-rate) to any page that makes use of the
-        <a><code>AudioNode</code></a> interface. Additionally, timing
-        information can be collected through the
-        <a><code>AnalyserNode</code></a> or
-        <a><code>ScriptProcessorNode</code></a> interface. The information
-        could subsequently be used to create a fingerprint of the client.
+        The W3C TAG is developing a <a href=
+        "https://w3ctag.github.io/security-questionnaire/">Self-Review
+        Questionnaire: Security and Privacy</a> for editors of specifications
+        to informatively answer.
       </p>
       <p>
-        Currently audio input is not specified in this document, but it will
-        involve gaining access to the client machine's audio input or
-        microphone. This will require asking the user for permission in an
-        appropriate way, probably via the <a href=
-        "https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">
-        getUserMedia() API</a>.
+        Per the <a href=
+        "https://w3ctag.github.io/security-questionnaire/#questions">Questions
+        to Consider</a>
       </p>
+      <ol class="seclist">
+        <li>
+          <p>
+            Does this specification deal with personally-identifiable
+            information?
+          </p>
+          <!-- assuming the audio context does not expose detailed information 
+         on audio device inputs and outputs; revisit this question after the 
+         fingerprinting analysis is done -->
+          <p>
+            No.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification deal with high-value data?
+          </p>
+          <p>
+            No. Credit card information and the like is not used in Web Audio.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification introduce new state for an origin that
+            persists across browsing sessions?
+          </p>
+          <p>
+            No. AudioWorker does not persist across browsing sessions.
+            <em>right?</em>
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification expose persistent, cross-origin state to
+            the web?
+          </p>
+          <p>
+            <em>Not sure. If audio sample data is loaded cross-origin, it
+            exposes state (whether that sample data resolves or not) to the
+            script origin.</em>
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification expose any other data to an origin that it
+            doesn’t currently have access to?
+          </p>
+          <p>
+            Yes. When giving various information on available
+            <a><code>AudioNode</code></a>s, the Web Audio API potentially
+            exposes information on characteristic features of the client (such
+            as audio hardware sample-rate) to any page that makes use of the
+            <a><code>AudioNode</code></a> interface. Additionally, timing
+            information can be collected through the
+            <a><code>AnalyserNode</code></a> or
+            <a><code>ScriptProcessorNode</code></a> interface. The information
+            could subsequently be used to create a fingerprint of the client.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification enable new script execution/loading
+            mechanisms?
+          </p>
+          <p>
+            No. However, it does use the worker script execution method,
+            defined in that specification.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification allow an origin access to a user’s
+            location?
+          </p>
+          <p>
+            No.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification allow an origin access to sensors on a
+            user’s device?
+          </p>
+          <p>
+            Not directly. Currently audio input is not specified in this
+            document, but it will involve gaining access to the client
+            machine's audio input or microphone. This will require asking the
+            user for permission in an appropriate way, probably via the
+            <a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">
+            getUserMedia() API</a>.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification allow an origin access to aspects of a
+            user’s local computing environment?
+          </p>
+          <p>
+            <em>Not sure. Does it allow probing of supported sample rates?
+            Supported audio codecs?</em>
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification allow an origin access to other devices?
+          </p>
+          <p>
+            No.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification allow an origin some measure of control
+            over a user agent’s native UI?
+          </p>
+          <p>
+            No?. <em>Though it could be used to emulate system sounds to make
+            an attack seem more like a local system event?</em>
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification expose temporary identifiers to the web?
+          </p>
+          <p>
+            No.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification distinguish between behavior in first-party
+            and third-party contexts?
+          </p>
+          <p>
+            No.
+          </p>
+        </li>
+        <li>
+          <p>
+            How should this specification work in the context of a user agent’s
+            "incognito" mode?
+          </p>
+          <p>
+            No differently.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification persist data to a user’s local device?
+          </p>
+          <p>
+            <em>Maybe? Cached impulses or audio sample data stored
+            locally?</em>
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification have a "Security Considerations" and
+            "Privacy Considerations" section?
+          </p>
+          <p>
+            Yes.
+          </p>
+        </li>
+        <li>
+          <p>
+            Does this specification allow downgrading default security
+            characteristics?
+          </p>
+          <p>
+            No.
+          </p>
+        </li>
+      </ol>
     </section>
     <section>
       <h2 id="requirements">

@@ -738,7 +738,7 @@ function setupRoutingGraph() {
             decodeAudioData</a>.)
           </dd>
         </dl>
-        <dl title="enum AudioContextPlaybackCategory" class="idl">
+        <dl title="enum AudioContextLatencyCategory" class="idl">
           <dt>
             balanced
           </dt>
@@ -847,6 +847,26 @@ function setupRoutingGraph() {
           <dd>
             Describes the current state of the <a>AudioContext</a>, on the
             <a>control thread</a>.
+          </dd>
+          <dt>
+            readonly attribute double baseLatency
+          </dt>
+          <dd>
+            <p>
+              The actual processing latency of the AudioContext. This
+              represents the number of seconds of processing latency incurred
+              by the AudioContext in handling audio through the graph. It does
+              not include any additional latency that might be caused by any
+              other processing between the output of the
+              <a>AudioDestinationNode</a> and the audio hardware.
+            </p>
+            <p>
+              For example, if the audio context is running at 44.1 kHz and the
+              <a>AudioDestinationNode</a> implements double buffering
+              internally and can process and output audio every 128 sample
+              frames, then the processing latency is \((2\cdot128)/44100 =
+              5.805 \mathrm{ ms}\), approximately.
+            </p>
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -1565,11 +1585,22 @@ function setupRoutingGraph() {
         </dl>
         <dl title="dictionary AudioContextOptions" class="idl">
           <dt>
-            AudioContextPlaybackCategory playbackCategory = "interactive"
+            (AudioContextLatencyCategory or double) latencyHint = "interactive"
           </dt>
           <dd>
-            Identify the type of playback, which affects tradeoffs between
-            audio output latency and power consumption.
+            <p>
+              Identify the type of playback, which affects tradeoffs between
+              audio output latency and power consumption.
+            </p>
+            <p>
+              The preferred value of the <code>latencyHint</code> is a value
+              from <a>AudioContextLatencyCategory</a>. However, a double can
+              also be specified for the number of seconds of latency for finer
+              control to balance latency and power consumption. It is at the
+              browser's discretion to interpret the number appropriately. The
+              actual latency used is given by AudioContext's <a href=
+              "#widl-BaseAudioContext-baseLatency">baseLatency</a> attribute.
+            </p>
           </dd>
         </dl>
         <section>

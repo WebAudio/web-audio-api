@@ -2581,6 +2581,31 @@ function setupRoutingGraph() {
         </section>
       </section>
       <section>
+        <h2>
+          AudioTimeStamp
+        </h2>The <code>AudioTimeStamp</code> dictionary is used to bind a
+        context's time value to a corresponding
+        <code>DOMHighResTimeStamp</code> value (described in [[!hr-time-2]]).
+        <dl title="dictionary AudioTimeStamp" class="idl">
+          <dt>
+            double contextTime
+          </dt>
+          <dd>
+            Represents a point in the time coordinate system of context's
+            <a href=
+            "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
+          </dd>
+          <dt>
+            DOMHighResTimeStamp performanceTime
+          </dt>
+          <dd>
+            Represents a point in the time coordinate system of a
+            <code>Performance</code> interface implementation (described in
+            [[!hr-time-2]]).
+          </dd>
+        </dl>
+      </section>
+      <section>
         <h2 id="AudioDestinationNode">
           The AudioDestinationNode Interface
         </h2>
@@ -2649,6 +2674,100 @@ function setupRoutingGraph() {
               "#widl-AudioNode-channelCount"><code>channelCount</code></a> is
               determined when the offline context is created and this value may
               not be changed.
+            </p>
+          </dd>
+          <dt>
+            readonly attribute double outputLatency
+          </dt>
+          <dd>
+            <p>
+              The estimation in seconds of audio output latency, i.e., the
+              interval between the time the UA requests the host system to play
+              a buffer and the time at which the first sample in the buffer is
+              actually processed by the audio output device. For devices such
+              as speakers or headphones that produce an acoustic signal, this
+              latter time refers to the time when a sample's sound is produced.
+            </p>
+            <p>
+              The <a><code>outputLatency</code></a> attribute value depends on
+              the platform and the connected hardware audio output device. The
+              <a><code>outputLatency</code></a> attribute value does not change
+              for the context's lifetime as long as the connected audio output
+              device remains the same. If the audio output device is changed
+              the <a><code>outputLatency</code></a> attribute value will be
+              updated accordingly.
+            </p>
+          </dd>
+          <dt>
+            readonly attribute AudioTimeStamp outputTimeStamp
+          </dt>
+          <dd>
+            <p>
+              Holds an <a><code>AudioTimeStamp</code></a> instance containing
+              two correlated context's audio stream position values: the
+              <a href=
+              "#widl-AudioTimeStamp-contextTime"><code>contextTime</code></a>
+              member contains the time of the sample frame which is currently
+              being rendered by the audio output device (i.e., output audio
+              stream position), in the same units and origin as context's
+              <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>;
+              the <a href=
+              "#widl-AudioTimeStamp-performanceTime"><code>performanceTime</code></a>
+              member contains the time estimating the moment when the sample
+              frame corresponding to the stored <code>contextTime</code> value
+              was rendered by the audio output device, in the same units and
+              origin as <code>performance.now()</code> (described in
+              [[!hr-time-2]]).
+            </p>
+            <p>
+              If the context's rendering graph has not yet processed a block of
+              audio, then <a><code>outputTimeStamp</code></a> holds an
+              <code>AudioTimeStamp</code> instance with both members containing
+              zero.
+            </p>
+            <p>
+              After the context's rendering graph has started processing of
+              blocks of audio, its <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              attribute value always exceeds the <a href=
+              "#widl-AudioTimeStamp-contextTime"><code>contextTime</code></a>
+              value obtained from <a href=
+              "#widl-AudioDestinationNode-outputTimeStamp"><code>outputTimeStamp</code></a>
+              attribute.
+            </p>
+            <p>
+              The value of <a><code>outputTimeStamp</code></a> attribute can be
+              used to get performance time estimation for the slightly later
+              context's time value:
+            </p>
+            <pre class="highlight example">
+            function outputPerformanceTime(contextTime) {
+                var timestamp = destinationNode.outputTimeStamp;
+                var elapsedTime = contextTime - timestamp.contextTime;
+                return timestamp.performanceTime + elapsedTime * 1000;
+            }
+            </pre>
+            <p>
+              In the above example the accuracy of the estimation depends on
+              how close the argument value is to the current output audio
+              stream position: the closer the given <code>contextTime</code> is
+              to <code>timestamp.contextTime</code>, the better the accuracy of
+              the obtained estimation.
+            </p>
+            <p class="note">
+              The difference between the values of context's <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              and the <a href=
+              "#widl-AudioTimeStamp-contextTime"><code>contextTime</code></a>
+              obtained from <a href=
+              "#widl-AudioDestinationNode-outputTimeStamp"><code>outputTimeStamp</code></a>
+              attribute value cannot be considered as a reliable output latency
+              estimation because <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              may be incremented at non-uniform time intervals, so <a href=
+              "#widl-AudioNode-outputLatency"><code>outputLatency</code></a>
+              attribute should be used instead.
             </p>
           </dd>
         </dl>

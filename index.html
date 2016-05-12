@@ -26,8 +26,11 @@
                   mailto:     "rtoy@google.com",
                   w3cid:      "66910" },
         ],
+
+        license:      "w3c-software-doc",
+
         previousMaturity: "WD",
-         previousPublishDate:  "2013-10-10",
+        previousPublishDate:  "2013-10-10",
         previousURI:  "http://www.w3.org/TR/2012/WD-webaudio-20121213/",
         wg:           "Audio Working Group",
         wgURI:        "http://www.w3.org/2011/audio/",
@@ -735,7 +738,7 @@ function setupRoutingGraph() {
             decodeAudioData</a>.)
           </dd>
         </dl>
-        <dl title="enum AudioContextPlaybackCategory" class="idl">
+        <dl title="enum AudioContextLatencyCategory" class="idl">
           <dt>
             balanced
           </dt>
@@ -844,6 +847,26 @@ function setupRoutingGraph() {
           <dd>
             Describes the current state of the <a>AudioContext</a>, on the
             <a>control thread</a>.
+          </dd>
+          <dt>
+            readonly attribute double baseLatency
+          </dt>
+          <dd>
+            <p>
+              The actual processing latency of the AudioContext. This
+              represents the number of seconds of processing latency incurred
+              by the AudioContext in handling audio through the graph. It does
+              not include any additional latency that might be caused by any
+              other processing between the output of the
+              <a>AudioDestinationNode</a> and the audio hardware.
+            </p>
+            <p>
+              For example, if the audio context is running at 44.1 kHz and the
+              <a>AudioDestinationNode</a> implements double buffering
+              internally and can process and output audio every 128 sample
+              frames, then the processing latency is \((2\cdot128)/44100 =
+              5.805 \mathrm{ ms}\), approximately.
+            </p>
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -1562,11 +1585,22 @@ function setupRoutingGraph() {
         </dl>
         <dl title="dictionary AudioContextOptions" class="idl">
           <dt>
-            AudioContextPlaybackCategory playbackCategory = "interactive"
+            (AudioContextLatencyCategory or double) latencyHint = "interactive"
           </dt>
           <dd>
-            Identify the type of playback, which affects tradeoffs between
-            audio output latency and power consumption.
+            <p>
+              Identify the type of playback, which affects tradeoffs between
+              audio output latency and power consumption.
+            </p>
+            <p>
+              The preferred value of the <code>latencyHint</code> is a value
+              from <a>AudioContextLatencyCategory</a>. However, a double can
+              also be specified for the number of seconds of latency for finer
+              control to balance latency and power consumption. It is at the
+              browser's discretion to interpret the number appropriately. The
+              actual latency used is given by AudioContext's <a href=
+              "#widl-BaseAudioContext-baseLatency">baseLatency</a> attribute.
+            </p>
           </dd>
         </dl>
         <section>
@@ -2547,6 +2581,31 @@ function setupRoutingGraph() {
         </section>
       </section>
       <section>
+        <h2>
+          AudioTimeStamp
+        </h2>The <code>AudioTimeStamp</code> dictionary is used to bind a
+        context's time value to a corresponding
+        <code>DOMHighResTimeStamp</code> value (described in [[!hr-time-2]]).
+        <dl title="dictionary AudioTimeStamp" class="idl">
+          <dt>
+            double contextTime
+          </dt>
+          <dd>
+            Represents a point in the time coordinate system of context's
+            <a href=
+            "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
+          </dd>
+          <dt>
+            DOMHighResTimeStamp performanceTime
+          </dt>
+          <dd>
+            Represents a point in the time coordinate system of a
+            <code>Performance</code> interface implementation (described in
+            [[!hr-time-2]]).
+          </dd>
+        </dl>
+      </section>
+      <section>
         <h2 id="AudioDestinationNode">
           The AudioDestinationNode Interface
         </h2>
@@ -2615,6 +2674,100 @@ function setupRoutingGraph() {
               "#widl-AudioNode-channelCount"><code>channelCount</code></a> is
               determined when the offline context is created and this value may
               not be changed.
+            </p>
+          </dd>
+          <dt>
+            readonly attribute double outputLatency
+          </dt>
+          <dd>
+            <p>
+              The estimation in seconds of audio output latency, i.e., the
+              interval between the time the UA requests the host system to play
+              a buffer and the time at which the first sample in the buffer is
+              actually processed by the audio output device. For devices such
+              as speakers or headphones that produce an acoustic signal, this
+              latter time refers to the time when a sample's sound is produced.
+            </p>
+            <p>
+              The <a><code>outputLatency</code></a> attribute value depends on
+              the platform and the connected hardware audio output device. The
+              <a><code>outputLatency</code></a> attribute value does not change
+              for the context's lifetime as long as the connected audio output
+              device remains the same. If the audio output device is changed
+              the <a><code>outputLatency</code></a> attribute value will be
+              updated accordingly.
+            </p>
+          </dd>
+          <dt>
+            readonly attribute AudioTimeStamp outputTimeStamp
+          </dt>
+          <dd>
+            <p>
+              Holds an <a><code>AudioTimeStamp</code></a> instance containing
+              two correlated context's audio stream position values: the
+              <a href=
+              "#widl-AudioTimeStamp-contextTime"><code>contextTime</code></a>
+              member contains the time of the sample frame which is currently
+              being rendered by the audio output device (i.e., output audio
+              stream position), in the same units and origin as context's
+              <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>;
+              the <a href=
+              "#widl-AudioTimeStamp-performanceTime"><code>performanceTime</code></a>
+              member contains the time estimating the moment when the sample
+              frame corresponding to the stored <code>contextTime</code> value
+              was rendered by the audio output device, in the same units and
+              origin as <code>performance.now()</code> (described in
+              [[!hr-time-2]]).
+            </p>
+            <p>
+              If the context's rendering graph has not yet processed a block of
+              audio, then <a><code>outputTimeStamp</code></a> holds an
+              <code>AudioTimeStamp</code> instance with both members containing
+              zero.
+            </p>
+            <p>
+              After the context's rendering graph has started processing of
+              blocks of audio, its <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              attribute value always exceeds the <a href=
+              "#widl-AudioTimeStamp-contextTime"><code>contextTime</code></a>
+              value obtained from <a href=
+              "#widl-AudioDestinationNode-outputTimeStamp"><code>outputTimeStamp</code></a>
+              attribute.
+            </p>
+            <p>
+              The value of <a><code>outputTimeStamp</code></a> attribute can be
+              used to get performance time estimation for the slightly later
+              context's time value:
+            </p>
+            <pre class="highlight example">
+            function outputPerformanceTime(contextTime) {
+                var timestamp = destinationNode.outputTimeStamp;
+                var elapsedTime = contextTime - timestamp.contextTime;
+                return timestamp.performanceTime + elapsedTime * 1000;
+            }
+            </pre>
+            <p>
+              In the above example the accuracy of the estimation depends on
+              how close the argument value is to the current output audio
+              stream position: the closer the given <code>contextTime</code> is
+              to <code>timestamp.contextTime</code>, the better the accuracy of
+              the obtained estimation.
+            </p>
+            <p class="note">
+              The difference between the values of context's <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              and the <a href=
+              "#widl-AudioTimeStamp-contextTime"><code>contextTime</code></a>
+              obtained from <a href=
+              "#widl-AudioDestinationNode-outputTimeStamp"><code>outputTimeStamp</code></a>
+              attribute value cannot be considered as a reliable output latency
+              estimation because <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              may be incremented at non-uniform time intervals, so <a href=
+              "#widl-AudioNode-outputLatency"><code>outputLatency</code></a>
+              attribute should be used instead.
             </p>
           </dd>
         </dl>
@@ -3184,6 +3337,26 @@ function setupRoutingGraph() {
             parameters</a> have their final value clamped to their <a>nominal
             range</a> after having been computed from the different
             <a>AudioParam</a> value they are composed of.
+          </p>
+          <p>
+            When automation methods are used, clamping is still applied.
+            However, the automation is run as if there were no clamping at all.
+            Only when the automation values are to be applied to the output is
+            the clamping done as specified above.
+          </p>
+          <p>
+            For example, consider a node \(N\) has an AudioParam \(p\) with a
+            nominal range of \([0, 1]\), and following automation sequence
+          </p>
+          <pre class="highlight example">
+            N.p.setValueAtTime(0, 0);
+            N.p.linearRampToValueAtTime(100, 1);
+            N.p.linearRampToValueAtTime(0, 2)
+          </pre>
+          <p>
+            The initial slope of the curve is 100, until it reaches the maximum
+            value of 1, at which time, the output is held constant. Finally,
+            near time 2, the slope of the curve is -100.
           </p>
         </section>
         <section>
@@ -5054,7 +5227,8 @@ the event handler.
           <dd>
             A parameter for directional audio sources, this is an angle, in
             degrees, inside of which there will be no volume reduction. The
-            default value is 360, and the value is used modulo 360.
+            default value is 360. The behavior is undefined if the angle is
+            outside the interval [0, 360].
           </dd>
           <dt>
             attribute double coneOuterAngle
@@ -5063,7 +5237,8 @@ the event handler.
             A parameter for directional audio sources, this is an angle, in
             degrees, outside of which the volume will be reduced to a constant
             value of <a><code>coneOuterGain</code></a>. The default value is
-            360 and the value is used modulo 360.
+            360. The behavior is undefined if the angle is outside the interval
+            [0, 360].
           </dd>
           <dt>
             attribute double coneOuterGain
@@ -5119,27 +5294,6 @@ the event handler.
             </p>
             <p>
               The default value is (1,0,0)
-            </p>
-          </dd>
-          <dt>
-            void setVelocity(float x, float y, float z)
-          </dt>
-          <dd>
-            <p>
-              Sets the velocity vector of the audio source. This vector
-              controls both the direction of travel and the speed in 3D space.
-              This velocity relative to the listener's velocity is used to
-              determine how much doppler shift (pitch change) to apply. The
-              units used for this vector is <em>meters / second</em> and is
-              independent of the units used for position and orientation
-              vectors.
-            </p>
-            <p>
-              The <code>x, y, z</code> parameters describe a direction vector
-              indicating direction of travel and intensity.
-            </p>
-            <p>
-              The default value is (0,0,0)
             </p>
           </dd>
         </dl>
@@ -6438,8 +6592,8 @@ function calculateNormalizationScale(buffer)
           </dt>
           <dd>
             The <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a> factor
-            has a default value of 1. Its <a>nominal range</a> is (0,
-            \(\infty\)). This is not used for <a href=
+            has a default value of 1. Its <a>nominal range</a> is \((-\infty,
+            \infty)\). This is not used for <a href=
             "#idl-def-BiquadFilterType.lowshelf">lowshelf</a>, <a href=
             "#idl-def-BiquadFilterType.highshelf">highshelf</a>, or <a href=
             "#idl-def-BiquadFilterType.peaking">peaking</a> filters.
@@ -8747,7 +8901,7 @@ function diff(v1, v2) {
 
 function coneGain() {
   if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle ==
-      0) &amp;& (source.coneOuterAngle == 0)))
+      360) &amp;& (source.coneOuterAngle == 360)))
     return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector

@@ -9780,6 +9780,10 @@ odd function with period \(2\pi\).
           available for reading</a> a block of audio from the <a>DelayNode</a>
           buffer, available for reading.
           </li>
+          <li>
+            <a href="#computation-of-value">Compute the value(s)</a> of
+            the <a>AudioListener</a>'s <a>AudioParam</a>s for this block.
+          </li>
           <li>For each <a>AudioNode</a>, in the order determined previously:
             <ol>
               <li>For each <a>AudioParam</a> of this <a>AudioNode</a>, execute
@@ -10535,8 +10539,8 @@ Quad up-mix:
         </h3>
         <p>
           The following algorithm must be used to calculate the
-          <em>azimuth</em> and <em>elevation</em>: for the
-          <a><code>PannerNode</code></a>
+          <em>azimuth</em> and <em>elevation</em> for the
+          <a><code>PannerNode</code></a>:
         </p>
         <pre>
   // Calculate the source-listener vector.
@@ -10610,23 +10614,22 @@ Quad up-mix:
             <a><code>PannerNode</code></a> when the <a href=
             "#widl-PannerNode-panningModel"><code>panningModel</code></a>
             attribute is set to <code>"equalpower"</code>, in which case the
-            the <em>elevation</em> value is ignored.
+            the <em>elevation</em> value is ignored. This algorithm MUST be
+            implemented using <a>k-rate</a> parameters.
           </p>
-          <p>
-            For a <a><code>PannerNode</code></a>, the following algorithm MUST
-            be implemented.
-          </p>
-          <ol>
-            <li>
+          <ol><li>
+             For each sample to be computed by this
+              <a>AudioNode</a>:
+             <ol> <li>
               <p>
-                Let <em>azimuth</em> be the value computed in the <a href=
+              Let <em>azimuth</em> be the value computed in the <a href=
                 "#azimuth-elevation">azimuth and elevation</a> section.
               </p>
-            </li>
-            <li>
+              </li>
+              <li>
               <p>
-                The <em>azimuth</em> value is first contained to be within the
-                range [-90, 90] according to:
+              The <em>azimuth</em> value is first contained to be within the
+              range [-90, 90] according to:
               </p>
               <pre>
   // First, clamp azimuth to allowed range of [-180, 180].
@@ -10638,20 +10641,20 @@ Quad up-mix:
     azimuth = -180 - azimuth;
   else if (azimuth &gt; 90)
     azimuth = 180 - azimuth;
-        
-</pre>
-            </li>
-            <li>
+
+              </pre>
+              </li>
+              <li>
               <p>
-                A normalized value <em>x</em> is calculated from
-                <em>azimuth</em> for a mono input as:
+              A normalized value <em>x</em> is calculated from
+              <em>azimuth</em> for a mono input as:
               </p>
               <pre>
   x = (azimuth + 90) / 180;
-        
-</pre>
+
+              </pre>
               <p>
-                Or for a stereo input as:
+              Or for a stereo input as:
               </p>
               <pre>
   if (azimuth &lt;= 0) { // -90 ~ 0
@@ -10661,91 +10664,96 @@ Quad up-mix:
     // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
     x = azimuth / 90;
   }
-        
-</pre>
+
+              </pre>
+              </li>
+            </ol>
             </li>
           </ol>
           <p>
             For a <a><code>StereoPannerNode</code></a>, the following algorithm
             MUST be implemented.
           </p>
-          <ol>
-            <li>
+          <ol><li>For each sample to be computed by this <a>AudioNode</a>
+            <ol>
+              <li>
               <p>
-                Let <em>pan</em> be the <a>computedValue</a> of the
-                <code>pan</code> <a>AudioParam</a> of this
-                <a><code>StereoPannerNode</code></a>.
+              Let <em>pan</em> be the <a>computedValue</a> of the
+              <code>pan</code> <a>AudioParam</a> of this
+              <a><code>StereoPannerNode</code></a>.
               </p>
-            </li>
-            <li>
+              </li>
+              <li>
               <p>
-                Clamp <em>pan</em> to [-1, 1].
-              </p>
-              <pre>
-pan = max(-1, pan);
-pan = min(1, pan);
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                Calculate <em>x</em> by normalizing <em>pan</em> value to [0,
-                1]. For mono input:
+              Clamp <em>pan</em> to [-1, 1].
               </p>
               <pre>
-x = (pan + 1) / 2;
-        
-</pre>
+    pan = max(-1, pan);
+    pan = min(1, pan);
+
+              </pre>
+              </li>
+              <li>
               <p>
-                For stereo input:
+              Calculate <em>x</em> by normalizing <em>pan</em> value to [0,
+              1]. For mono input:
               </p>
               <pre>
-if (pan &lt;= 0)
-  x = pan + 1;
-else
-  x = pan;
-        
-</pre>
-            </li>
-          </ol>
-          <p>
+    x = (pan + 1) / 2;
+
+              </pre>
+              <p>
+              For stereo input:
+              </p>
+              <pre>
+    if (pan &lt;= 0)
+      x = pan + 1;
+    else
+      x = pan;
+
+              </pre>
+              </li>
+            </ol>
+            <p>
             Then following steps are used to achieve equal-power panning:
-          </p>
-          <ol>
-            <li>
+            </p>
+            <ol>
+              <li>
               <p>
-                Left and right gain values are calculated as:
+              Left and right gain values are calculated as:
               </p>
               <pre>
-gainL = cos(x * Math.PI / 2);
-gainR = sin(x * Math.PI / 2);
-        
-</pre>
-            </li>
-            <li>
+    gainL = cos(x * Math.PI / 2);
+    gainR = sin(x * Math.PI / 2);
+
+              </pre>
+              </li>
+              <li>
               <p>
-                For mono input, the stereo output is calculated as:
+              For mono input, the stereo output is calculated as:
               </p>
               <pre>
-outputL = input * gainL;
-outputR = input * gainR;
-        
-</pre>
+    outputL = input * gainL;
+    outputR = input * gainR;
+
+              </pre>
               <p>
-                Else for stereo input, the output is calculated as:
+              Else for stereo input, the output is calculated as:
               </p>
               <pre>
-if (pan &lt;= 0) {
-  // Pass through inputL to outputL and equal-power pan inputR as in mono case.
-  outputL = inputL + inputR * gainL;
-  outputR = inputR * gainR;
-} else {
-  // Pass through inputR to outputR and equal-power pan inputL as in mono case.
-  outputL = inputL * gainL;
-  outputR = inputR + inputL * gainR;
-}
-        
-</pre>
+    if (pan &lt;= 0) {
+      // Pass through inputL to outputL and equal-power pan inputR as in mono case.
+      outputL = inputL + inputR * gainL;
+      outputR = inputR * gainR;
+    } else {
+      // Pass through inputR to outputR and equal-power pan inputL as in mono case.
+      outputL = inputL * gainL;
+      outputR = inputR + inputL * gainR;
+    }
+
+              </pre>
+              </li>
+            </ol>
             </li>
           </ol>
         </section>

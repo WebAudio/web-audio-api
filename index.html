@@ -733,7 +733,7 @@ function setupRoutingGraph() {
             still be created, through <a href=
             "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
             createBuffer</a> or <a href=
-            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback-DecodeAudioDataOptions-options">
             decodeAudioData</a>.)
           </dd>
         </dl>
@@ -1179,7 +1179,7 @@ function setupRoutingGraph() {
               <code>responseType</code> to <code>"arraybuffer"</code>. Audio
               file data can be in any of the formats supported by the
               <code>audio</code> element. The buffer passed to <a href=
-              "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+              "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback-DecodeAudioDataOptions-options">
               decodeAudioData</a> has its content-type determined by sniffing,
               as described in [[mimesniff]].
             </p>
@@ -1204,6 +1204,14 @@ function setupRoutingGraph() {
               <dd>
                 A callback function which will be invoked if there is an error
                 decoding the audio file.
+              </dd>
+              <dt>
+                optional DecodeAudioDataOptions options
+              </dt>
+              <dd>
+                Options for <a href=
+                "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback-DecodeAudioDataOptions-options">
+                decodeAudioData</a>.
               </dd>
             </dl>
             <p>
@@ -1286,9 +1294,13 @@ function setupRoutingGraph() {
               <li>Otherwise:
                 <ol>
                   <li>Take the result, representing the decoded linear PCM
-                  audio data, and resample it to the sample-rate of the
+                  audio data. If <a><code>disableResampling</code></a> is
+                  false, resample it to the sample-rate of the
                   <a><code>AudioContext</code></a> if it is different from the
-                  sample-rate of <a>audioData</a>.
+                  sample-rate of <a>audioData</a>. Otherwise, resampling is
+                  disabled, and the decoded data is unchanged, with the sample
+                  rate of the <a>AudioBuffer</a> set to the sample rate of the
+                  encoded data.
                   </li>
                   <li>Queue a task on the <a>control thread</a>'s event loop to
                   execute the following steps:
@@ -1658,6 +1670,31 @@ function setupRoutingGraph() {
             The error that occurred while decoding.
           </dd>
         </dl>
+        <section>
+          <h2>
+            DecodeAudioDataOptions
+          </h2>
+          <p>
+            This dictionary specifies how <a href=
+            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback-DecodeAudioDataOptions-options">
+            decodeAudioData</a> should process the encoded audio data to
+            produce the decoded linear PCM audio.
+          </p>
+          <dl title="dictionary DecodeAudioDataOptions" class="idl">
+            <dt>
+              boolean disableResampling = false
+            </dt>
+            <dd>
+              Controls whether the decoded audio data returned by <a href=
+              "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback-DecodeAudioDataOptions-options">
+              decodeAudioData</a> is automatically resampled to the sample rate
+              of the context. By default, resampling is done. If
+              <a><code>disableResampling</code></a> is true, resampling is not
+              done, and the returned <a>AudioBuffer</a> has its sample rate set
+              to the rate specified by the encoded data.
+            </dd>
+          </dl>
+        </section>
         <section>
           <h3 id="lifetime-AudioContext" class="informative">
             Lifetime

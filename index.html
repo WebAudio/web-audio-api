@@ -4975,6 +4975,621 @@ onaudioprocess= function (e) {
           </section>
         </section>
       </section>
+      <section>
+        <h2 id="AudioWorklet">
+          The <dfn>AudioWorklet</dfn> interface
+        </h2>
+        <p>
+          The AudioWorklet object allows importing user-supplied Javascript code
+          that runs on the audio rendering thread. This processing mechanism
+          ensures the aligned execution of the script code with other built-in
+          <a>AudioNode</a>s in the audio graph. The AudioWorklet object imports
+          and stores the definition of custom audio processor and then an
+          <a>AudioWorkletNode</a> object can be constructed based on the
+          processor definition. Note that the registered definition in an
+          AudioWorklet is valid for the entire global scope, therefore any
+          <a>AudioContext</a> in the same global scope can be used to create the
+          custom node.
+        </p>
+        <p>
+          An AudioWorklet object provides the capability to import module
+          scripts into its associated <a>AudioWorkletGlobalScope</a>. The user
+          agent can then create <a>AudioWorkletProcessor</a> classes registered
+          on the <a>AudioWorkletGlobalScopes</a> and construct their instances.
+          A processor object represents an audio processing module that runs on
+          the audio <a>rendering thread</a>. After the processor definition is
+          successfully stored, an instance of <a>AudioWorkletNode</a> can be
+          created in the main global scope. This is the counterpart of the
+          processor but lives on the main <a>control thread</a>. These two
+          components can communicate via message passing.
+        </p>
+        <dl title="interface AudioWorklet : Worklet" class="idl">
+          <dt>
+            Promise&lt;void&gt; import(DOMString moduleUrl)
+          </dt>
+          <dd>
+            <p>
+              Imports a module script returns a promise once it is fully loaded.
+            </p>
+          </dd>
+        </dl>
+
+        <h3>
+          Construction Procedure of AudioWorkletNode and AudioWorkletProcessor
+        </h3>
+        <p>
+          The construction procedure of <a>AudioWokletNode</a> and the
+          corresponding <a>AudioWorkletProcessor</a> object consists of several
+          coordinated interactions and the following algorithm specifies such
+          procedure. Note that these steps must be performed in an atomic
+          fashion.
+        </p>
+        <ol>
+          <li>
+            <em>In the window scope</em>: Start AudioWorkletNode constructor.
+          </li>
+          <li>
+            <em>In the AudioWorkletGlobalScope</em>: Locate a registered
+            AudioWorkletProcessor subclass based on name argument. If none is
+            found, or if subclass does not extend AudioWorkletProcessor, throw
+            an exception from the node constructor.
+            <ol>
+              <li>
+                Start registered constructor for custom processor subclass,
+                passing structured clone of the options object that was provided
+                to AudioWorkletNode.
+              </li>
+              <li>
+                Start super constructor for AudioWorkletProcessor.
+              </li>
+              <li>
+                Initialize the processor’s states.
+              </li>
+              <li>
+                End the construction of an AudioWorkletProcessor and return to
+                AudioWorkletNode constructor.
+              </li>
+            </ol>
+          </li>
+          <li>
+            <em>In the window scope</em>: Construct AudioParam objects in the node
+            based on the information from the processor’s
+            parameterDescriptors getter and initialize parameter values from
+            options where the keys match names declared in
+            AudioParamDescriptors.
+          </li>
+          <li>
+            <em>In the window scope</em>: Return from the AudioWorkletNode
+            constructor.
+          </li>
+        </ol>
+        <section>
+          <h2 id="AudioWorkletNode">
+            The <dfn>AudioWorkletNode</dfn> interface
+          </h2>
+          <p>
+            This interface represens an <a>AudioNode</a> which lives on the main
+            control thread. The user can create this node from an instance of
+            <a>AudioContext</a> and such node can be connected with other built-in
+            <a>AudioNode</a>s to form an audio graph.
+          </p>
+          <dl title=
+          "[Constructor(AudioContext context, DOMString name, optional AudioWorkletNodeOptions options)] interface AudioWorkletNode : AudioNode" 
+          class="idl">
+            <dt>
+              attribute EventHandler onmessage
+            </dt>
+            <dd>
+              <p>
+                The onmessage handler is called whenever the associated
+                <a>AudioWorkletProcessor</a> posts a message back to the main
+                thread.
+              </p>
+            </dd>
+            <dt>
+              void postMessage(any message, optional sequence&lt;Transferable&gt;
+              transfer)
+            </dt>
+            <dd>
+              <p>
+                postMessage May be called to send a message to the corresponding
+                <a>AudioWorkletProcessor</a> via the algorithm defined by the
+                Worker specification.
+              </p>
+            </dd>
+          </dl>
+
+          <section>
+            <h2 id="AudioWorkletNodeOptions">
+              AudioWorkletNodeOptions
+            </h2>
+            <p>
+              The AudioNodeOptions dictionary can be used for the custom
+              initialization of <a>AudioNode</a> attributes in the
+              <a>AudioWorkletNode</a> constructor. Entries in this dictionary whose
+              names that correspond to <a>AudioParam</a>s in the class definition of
+              an <a>AudioWorkletProcessor</a> are used to initialize the parameter
+              values upon the creation of a node.
+            </p>
+            <dl title="dictionary AudioWorkletNodeOptions" class="idl">
+              <dt>
+                unsigned long numberOfInputs
+              </dt>
+              <dd>
+                Similar to <a>numberOfInputs</a> in <a>AudioNode</a>.
+              </dd>
+              <dt>
+                unsigned long numberOfOutputs
+              </dt>
+              <dd>
+                Similar to <a>numberOfOutputs</a> in <a>AudioNode</a>.
+              </dd>
+              <dt>
+                unsigned long channelCount
+              </dt>
+              <dd>
+                Similar to <a>channelCount</a> in <a>AudioNode</a>.
+              </dd>
+              <dt>
+                ChannelCountMode channelCountMode
+              </dt>
+              <dd>
+                Similar to <a>channelCountMode</a> in <a>AudioNode</a>.
+              </dd>
+              <dt>
+                ChannelInterpretation channelInterpretation
+              </dt>
+              <dd>
+                Similar to <a>channelInterpretation</a> in <a>AudioNode</a>.
+              </dd>
+            </dl>
+          </section>
+        </section>
+        <section>
+          <h2 id="AudioWorkletGlobalScope">
+            The <dfn>AudioWorkletGlobalScope</dfn> interface
+          </h2>
+          <p>
+            This interface is derived from <a>WorkletGlobalScope</a>
+            representing a special execution context in which an audio
+            processing script is run. It it is designed to enable the
+            generation, processing, and analysis of audio data directly using
+            JavaScript in the audio <a>rendering thread</a>. The user-supplied
+            script code is evaluated in this scope to define
+            <a>AudioWorkletProcessor</a>.
+          </p>
+          <dl title="interface AudioWorkletGlobalScope : WorkletGlobalScope" 
+          class="idl">
+            <dt>
+              void registerAudioWorkletProcessor (DOMString name, Function classConstructor)
+            </dt>
+            <dd>
+              <p>
+                Registers a definition of a class that is derived from
+                <a>AudioWorkletProcessor</a>.
+              </p>
+              <dl class="parameters">
+                <dt>
+                  DOMString name
+                </dt>
+                <dd>
+                  A string key that represents a class definition to be
+                  registered. <strong>ISSUE</strong>: The conflict between
+                  multiple class definitions under the same name needs to be
+                  addressed. For the time being, WG’s resolution is to apply the
+                  first-come-first- served policy.
+                </dd>
+                <dt>
+                  Function classConstructor
+                </dt>
+                <dd>
+                  A class definition extended from <a>AudioWorkletProcessor</a>.
+                </dd>
+              </dl>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2 id="AudioWorkletProcessor">
+            The <dfn>AudioWorkletProcessor</dfn> interface
+          </h2>
+          <p>
+            This interface represents an audio processing module that runs on
+            the audio <a>rendering thread</a>. It is defined in an
+            <a>AudioWorkletGlobalScope</a> and the definition of such class
+            manifests the actual audio processing mechanism of an
+            <a>AudioWorkletNode</a>. <a>AudioWorkletProcessor</a> can only be
+            instantiated by the construction of an <a>AudioWorkletNode</a>
+            instance.
+          </p>
+          <dl title="interface AudioWorkletProcessor" class="idl">
+            <dt>
+              readonly attribute static sequence&lt;AudioParamDescriptor&gt;
+            </dt>
+            <dd>
+              <p>
+                This array contains <a>AudioParamDescriptors</a>, which are
+                descriptors for each controllable parameter on an
+                <a>AudioNode</a>. This static property is referred in the
+                construction of an <a>AudioWorkletNode</a> to create instances
+                of <a>AudioParam</a> in the node.
+              </p>
+            </dd>
+            <dt>
+              readonly attribute AudioContextInfo contextInfo
+            </dt>
+            <dd>
+              <p>
+                This getter provides an object contains the information of the
+                associated <a>AudioContext</a> such as the sample rate and the
+                current playback time when queried.  
+              </p>
+            </dd>
+            <dt>
+              attribute EventHandler onmessage
+            </dt>
+            <dd>
+              <p>
+                The onmessage handler is called whenever the
+                <a>AudioWorkletNode</a> posts a node message back to the
+                corresponding processor object on the audio <a>rendering
+                thread</a>.  
+              </p>
+            </dd>
+            <dt>
+              void process()
+            </dt>
+            <dd>
+              <p>
+                This method gets executed isochronously by the audio rendering
+                thread along with the rest of an audio graph while the
+                associated <a>AudioWorkletNode</a> is connected.
+              </p>
+              <dl class="parameters">
+                <dt>
+                  Float32Array[][] inputs
+                </dt>
+                <dd>
+                  Represents incoming data from inputs of the node. Each input
+                  can contain multiple channels.
+                </dd>
+                <dt>
+                  Float32Array[][] outputs
+                </dt>
+                <dd>
+                  Represents outgoing data from outputs of the node. Each output
+                  can contain multiple channels.
+                </dd>
+                <dt>
+                  Object parameters
+                </dt>
+                <dd>
+                  Represents an object contains multiple arrays of
+                  <a>AudioParam</a> data with the associated name as a key.
+                </dd>
+              </dl>
+            </dd>
+            <dt>
+              void postMessage()
+            </dt>
+            <dd>
+              <p>
+                It may be called to send a message to the
+                <a>AudioWorkletNode</a>, via the algorithm defined by the
+                Worker specification.
+              </p>
+              <dl class="parameters">
+                <dt>
+                  any message
+                </dt>
+                <dd>
+                </dd>
+                <dt>
+                  optional sequence&lt;Transferable&gt; transfer
+                </dt>
+                <dd>
+                </dd>
+              </dl>
+            </dd>
+          </dl>
+          <section>
+            <h2 id="AudioParamDescriptor">
+              AudioParamDescriptor
+            </h2>
+            <p>
+              The AudioParamDescriptor dictionary is used to specify properties
+              for an <a>AudioParam</a> object that is used in an
+              <a>AudioWorkletNode</a>.
+            </p>
+            <dl title="dictionary AudioParamDescriptor" class="idl">
+              <dt>
+                DOMString name
+              </dt>
+              <dd>
+                Represents the name of a parameter. An exception will be thrown
+                when the duplicated name is found when registering the class
+                definition.
+              </dd>
+              <dt>
+                float defaultValue = 0
+              </dt>
+              <dd>
+                Represents the default value of the parameter. If this value is
+                out of the range of float data type or the range defined by
+                minValue and maxValue, an exception will be thrown.
+              </dd>
+              <dt>
+                float minValue
+              </dt>
+              <dd>
+                Represents the minimum value. An exception will be thrown, if
+                this value is out of range of float data type or it is greater
+                than maxValue.
+              </dd>
+              <dt>
+                float maxValue
+              </dt>
+              <dd>
+                Represents the maximum value. An exception will be thrown, if
+                this value is out of range of float data type or it is smaller
+                than minValue.
+              </dd>
+            </dl>
+          </section>
+
+          <section>
+            <h2 id="AudioContextInfo">
+              AudioContextInfo
+            </h2>
+            <p>
+              The AudioContextInfo dictionary is used to query the current
+              status of the associated <a>AudioContext</a> within the scope of
+              an <a>AudioWorkletProcessor</a>.
+            </p>
+            <dl title="dictionary AudioContextInfo" class="idl">
+              <dt>
+                float playbackTime
+              </dt>
+              <dd>
+                The starting time of the block of audio being processed in
+                response to this event. By definition this will be equal to the
+                value of <a>BaseAudioContext</a>'s <a>currentTime</a> attribute
+                that was most recently observable in the <a>control thread</a>.
+              </dd>
+              <dt>
+                unsigned long sampleRate
+              </dt>
+              <dd>
+                Represents the sample rate of the associated
+                <a>AudioContext</a>.
+              </dd>
+            </dl>
+          </section>
+        </section>
+        <section class="informative">
+          <h2 id="AudioWorklet-Examples">
+            AudioWorklet Examples
+          </h2>
+
+          <section>
+            <h3>
+              The BitCrusher Node
+            </h3>
+            <p>
+              Bitcrushing is a mechanism by which the audio quality of an audio
+              stream is reduced - both by quantizing the value (simulating lower
+              bit-depth in integer-based audio), and by quantizing in time
+              (simulating a lower digital sample rate). This example shows how
+              to use <a>AudioParam</a>s (in this case, treated as
+              <em>a-rate</em>) inside an <a>AudioWorkletProcessor</a>.
+            </p>
+            <h4>
+              Global Scope
+            </h4>
+            <pre>
+window.audioWorklet.import('bitcrusher.js').then(function () {
+  var context = new AudioContext();
+  var osc = new OscillatorNode(context);
+  var amp = new GainNode(context);
+
+  // Create a worklet node. 'BitCrusher' identifies the 
+  // AudioWorkletProcessor previously registered when
+  // bitcrusher.js was imported. The options automatically
+  // initialize the correspondingly named AudioParams.
+  var bitcrusher = new AudioWorkletNode(context, 'BitCrusher', { 
+    bitDepth: 8, 
+    frequencyReduction: 0.5
+  });
+
+  osc.connect(bitcrusher).connect(amp).connect(context.destination);
+  osc.start();
+});
+            </pre>
+            <h4>
+              AudioWorkletGlobalScope: bitcrusher.js
+            </h4>
+            <pre>
+registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor {
+
+  static get parameterDescriptors () {
+    return [{
+      name: 'bitDepth',
+      defaultValue: 12,
+      minValue: 1
+      maxValue: 16 
+    }, {
+      name: 'frequencyReduction',
+      defaultValue: 0.5,
+      minValue: 0,
+      maxValue: 1
+    }]
+  }
+
+  constructor (options) {
+    // We don't need to look at options: only AudioParams are initialized,
+    // which were taken care of by the node.
+    super(options);
+    this.phase = 0;
+    this.lastSampleValue = 0;
+  }
+
+  process (inputs, outputs, parameters) {
+    var input = inputs[0];
+    var output = outputs[0];
+    var bitDepth = parameters.bitDepth;
+    var frequencyReduction = parameters.frequencyReduction;
+
+    for (var channel = 0; channel < output.length; ++channel) { 
+      for (var i = 0; i < output[channel].length; ++i) {
+        let step = Math.pow(1 / 2, bitDepth[i]);
+        this.phase += frequencyReduction[i];
+        if (this.phase >= 1.0) {
+          this.phase -= 1.0;
+          this.lastSampleValue = 
+            step * Math.floor(input[channel][i] / step + 0.5);
+        }
+        output[channel][i] = this.lastSampleValue;
+      }
+    }
+  }
+
+});
+            </pre>
+          </section>
+          <section>
+            <h3>
+              VU Meter Node
+            </h3>
+            <p>
+              This example demonstrates a simple sound level meter. It shows how
+              to exchange states (that do not require sample-accurate
+              scheduling) between <a>AudioWorkletNode</a> and
+              <a>AudioWorkletProcessor</a>. This node does not use any output.
+            </p>
+            <h4>
+              Global Scope: vumeternode.js
+            </h4>
+            <pre>
+class VUMeterNode extends AudioWorkletNode {
+
+  constructor (context, options) {
+
+    // Defaulting from AudioNodeOptions
+    options.numberOfInputs = 1;
+    options.numberOfOutputs = 0;
+    options.channelCount = 1;
+
+    options.updatingInterval = options.hasOwnProperty('updatingInterval') 
+      ? options.updatingInterval 
+      : 100;
+
+    super(context, 'VUMeter', options);
+
+    // Mirrored states of AudioWorkletProcessor.
+    this.updatingInterval = options.updatingInterval;
+    this.volume = 0;
+  }
+
+  get updatingInterval() {
+    return this.updatingInterval;
+  }
+
+  set updatingInterval (intervalValue) {
+    this.updatingInterval = intervalValue;
+    this.postMessage({ updatingInterval: intervalValue });
+  }
+
+  draw () {
+    /** Draw the meter based on the volume value. **/
+  }
+
+  // handle updated values from audio side
+  onmessage (event) {
+    if (event.data.hasOwnProperty('volume'))
+      this.volume = event.data.volume;
+  }
+}
+
+var importAudioWorkletNode = window.audioWorklet.import('vumeterprocessor.js');
+            </pre>
+            <h4>
+              AudioWorkletGlobalScope: vumeterprocessor.js
+            </h4>
+            <pre>
+var VU_METER_SMOOTHING = 0.9;
+
+registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
+
+  // Note: AudioParam definition can be omitted.
+
+  constructor (options) {
+    super(options);
+
+    this.volume = 0;
+    this.updatingInterval = options.updatingInterval;
+    this.nextUpdateFrames = this.interval;
+  }
+
+  get interval () {
+    return this.updatingInterval / 1000 * this.contextInfo.sampleRate;
+  }
+
+  process (inputs, outputs, parameters) {
+    // Note that the input will be downmixed to mono.
+    var buffer = inputs[0][0];
+    var bufferLength = buffer.length;
+    var sum = 0, x = 0, rms = 0;
+
+    // Calculated the squared-sum.
+    for (var i = 0; i < bufferLength; ++i) {
+      x = buffer[i];
+      sum += x * x;
+    }
+
+    // Caluclate the RMS level and update the volume.
+    rms =  Math.sqrt(sum / bufferLength);
+    this.volume = Math.max(rms, this.volume * VU_METER_SMOOTHING);
+
+    // Update and sync the volume property with the main thread.
+    this.nextUpdateFrame -= bufferLength;
+    if (this.nextUpdateFrame < 0) {
+      this.nextUpdateFrame += this.interval;
+      this.postMessage({ volume: this.volume });
+    }
+  }
+
+  onmessage (event) {
+    if (event.data.hasOwnProperty('updatingInterval'))
+      this.updatingInterval = event.data.updatingInterval;
+  }
+});
+            </pre>
+            <h4>
+              Main HTML file
+            </h4>
+            <pre>
+&lt;script src="vumeternode.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  importAudioWorkletNode.then(function () {
+    var context = new AudioContext();
+    var microphone = GET_MIRCOPHONE(); // e.g) a live input from getUserMedia().
+    var vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
+
+    microphone.connnect(vuMeterNode);
+    requestAnimationFrame(function () {
+       vuMeterNode.draw();
+    });
+  });
+&lt;/script&gt;
+            </pre>
+          </section>
+        </section>
+      </section>
+
+
+
+
+      
       <section class="informative">
         <h2>
           The ScriptProcessorNode Interface - DEPRECATED

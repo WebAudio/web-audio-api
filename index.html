@@ -859,12 +859,13 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              The actual processing latency of the AudioContext. This
-              represents the number of seconds of processing latency incurred
-              by the AudioContext in handling audio through the graph. It does
-              not include any additional latency that might be caused by any
-              other processing between the output of the
-              <a>AudioDestinationNode</a> and the audio hardware.
+              This represents the number of seconds of processing latency
+              incurred by the <a>AudioContext</a> passing the audio from the
+              <a>AudioDestinationNode</a> to the audio subsystem. It does not
+              include any additional latency that might be caused by any other
+              processing between the output of the <a>AudioDestinationNode</a>
+              and the audio hardware and specifically does not include any
+              latency incurred the the audio graph itself.
             </p>
             <p>
               For example, if the audio context is running at 44.1 kHz and the
@@ -2077,8 +2078,8 @@ function setupRoutingGraph() {
               rendering <code>length</code> sample-frames of audio into
               <var>buffer</var>.
               </li>
-              <li>For every render quantum, check and suspend the rendering if
-              necessary.
+              <li>For every <a>render quantum</a>, check and suspend the
+              rendering if necessary.
               </li>
               <li>If a suspended context is resumed, continue to render the
               buffer.
@@ -2140,11 +2141,11 @@ function setupRoutingGraph() {
             </p>
             <p>
               Note that the maximum precision of suspension is the size of the
-              render quantum and the specified suspension time will be rounded
-              down to the nearest render quantum boundary. For this reason, it
-              is not allowed to schedule multiple suspends at the same
-              quantized frame. Also scheduling should be done while the context
-              is not running to ensure the precise suspension.
+              <a>render quantum</a> and the specified suspension time will be
+              rounded down to the nearest <a>render quantum</a> boundary. For
+              this reason, it is not allowed to schedule multiple suspends at
+              the same quantized frame. Also scheduling should be done while
+              the context is not running to ensure the precise suspension.
             </p>
             <dl class="parameters">
               <dt>
@@ -2152,8 +2153,8 @@ function setupRoutingGraph() {
               </dt>
               <dd>
                 Schedules a suspension of the rendering at the specified time,
-                which is quantized and rounded down to the render quantum size.
-                If the quantized frame number
+                which is quantized and rounded down to the <a>render
+                quantum</a> size. If the quantized frame number
                 <ol>
                   <li>is negative or
                   </li>
@@ -2732,6 +2733,31 @@ function setupRoutingGraph() {
             </p>
           </dd>
         </dl>
+        <section>
+          <h2>
+            Dictionaries
+          </h2>
+          <dl title="dictionary AudioNodeOptions" class="idl">
+            <dt>
+              unsigned long channelCount
+            </dt>
+            <dd>
+              Desired number of channels for the <a>channelCount</a> attribute.
+            </dd>
+            <dt>
+              ChannelCountMode channelCountMode
+            </dt>
+            <dd>
+              Desired mode for the <a>channelCountMode</a> attribute.
+            </dd>
+            <dt>
+              ChannelIntepretation channelInterpretation
+            </dt>
+            <dd>
+              Desired mode for the <a>channelCountMode</a> attribute.
+            </dd>
+          </dl>
+        </section>
         <section>
           <h3 id="lifetime-AudioNode" class="informative">
             Lifetime
@@ -3472,15 +3498,13 @@ function setupRoutingGraph() {
             each time, which is either the value set directly to the
             <code>value</code> attribute, or, if there are any scheduled
             parameter changes (automation events) with times before or at this
-            time, the value as calculated from these events. If the
-            <code>value</code> attribute is set after any automation events
-            have been scheduled, then these events will be removed. When read,
-            the <code>value</code> attribute always returns the
-            <em>intrinsic</em> value for the current time. If automation events
-            are removed from a given time range, then the <em>intrinsic</em>
-            value will remain unchanged and stay at its previous value until
-            either the <code>value</code> attribute is directly set, or
-            automation events are added for the time range.
+            time, the value as calculated from these events. When read, the
+            <code>value</code> attribute always returns the <em>intrinsic</em>
+            value for the current time. If automation events are removed from a
+            given time range, then the <em>intrinsic</em> value will remain
+            unchanged and stay at its previous value until either the
+            <code>value</code> attribute is directly set, or automation events
+            are added for the time range.
             </li>
             <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
             value and the value of the <a href="#input-audioparam-buffer">input
@@ -4086,7 +4110,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             <p>
-              Schedules a sound to stop playback at an exact time.
+              Schedules a sound to stop playback at an exact time. If
+              <code>stop</code> is called again after already having been
+              called, the last invocation will be the only one applied; stop
+              times set by previous calls will not be applied, unless the
+              buffer has already stopped prior to any subsequent calls. If the
+              buffer has already stopped, further calls to <code>stop</code>
+              will have no effect. If a stop time is reached prior to the
+              scheduled start time, the sound will not play.
             </p>
             <dl class="parameters">
               <dt>
@@ -4103,14 +4134,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
                 then the sound will stop playing immediately. <span class=
                 "synchronous">A TypeError exception MUST be thrown if
-                <code>when</code> is negative</span>. If <code>stop</code> is
-                called again after already have been called, the last
-                invocation will be the only one applied; stop times set by
-                previous calls will not be applied, unless the buffer has
-                already stopped prior to any subsequent calls. If the buffer
-                has already stopped, further calls to <code>stop</code> will
-                have no effect. If a stop time is reached prior to the
-                scheduled start time, the sound will not play.
+                <code>when</code> is negative</span>.
               </dd>
             </dl>
           </dd>
@@ -4262,9 +4286,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           </h2>
           <p>
             <code>HTMLMediaElement</code> allows the playback of cross-origin
-            resources. Because Web Audio can allows one to inspect the content
-            of the resource (e.g. using a <a>MediaElementAudioSourceNode</a>,
-            and a <a>ScriptProcessorNode</a> to read the samples), information
+            resources. Because Web Audio allows inspection of the content of
+            the resource (e.g. using a <a>MediaElementAudioSourceNode</a>, and
+            a <a>ScriptProcessorNode</a> to read the samples), information
             leakage can occur if scripts from one <a href=
             "http://www.w3.org/html/wg/drafts/html/master/browsers.html#origin">
             origin</a> inspect the content of a resource from another <a href=
@@ -5596,9 +5620,27 @@ the event handler.
           listening to the audio scene. All <a><code>PannerNode</code></a>
           objects spatialize in relation to the
           <a><code>BaseAudioContext</code></a>'s <a href=
-          "#widl-BaseAudioContext-listener">listener</a>. See <a href=
-          "#Spatialization">the Spatialization/Panning section</a> for more
-          details about spatialization.
+          "#widl-BaseAudioContext-listener">listener</a>. See
+          <a>Spatialization/Panning</a> for more details about spatialization.
+        </p>
+        <p>
+          The <code>positionX, positionY, positionZ</code> parameters represent
+          the location of the listener in 3D Cartesian coordinate space.
+          <a><code>PannerNode</code></a> objects use this position relative to
+          individual audio sources for spatialization.
+        </p>
+        <p>
+          The <code>forwardX, forwardY, forwardZ</code> parameters represent a
+          direction vector in 3D space. Both a <code>forward</code> vector and
+          an <code>up</code> vector are used to determine the orientation of
+          the listener. In simple human terms, the <code>forward</code> vector
+          represents which direction the person's nose is pointing. The
+          <code>up</code> vector represents the direction the top of a person's
+          head is pointing. These values are expected to be linearly
+          independent (at right angles to each other), and unpredictable
+          behavior may result if they are not. For normative requirements of
+          how these values are to be interpreted, see the
+          <a>Spatialization/Panning</a> section.
         </p>
         <dl title="interface AudioListener" class="idl">
           <dt>
@@ -5607,10 +5649,8 @@ the event handler.
           <dd>
             <p>
               Sets the x coordinate position of the audio listener in a 3D
-              Cartesian coordinate space. <a><code>PannerNode</code></a>
-              objects use this position relative to individual audio sources
-              for spatialization. The default value is 0. This parameter is
-              a-rate.
+              Cartesian coordinate space. The default value is 0. This
+              parameter is a-rate.
             </p>
           </dd>
           <dt>
@@ -5638,22 +5678,6 @@ the event handler.
           </dt>
           <dd>
             <p>
-              The <code>forwardX, forwardY, forwardZ</code> parameters
-              represent a direction vector in 3D space. Both a
-              <code>forward</code> vector and an <code>up</code> vector are
-              used to determine the orientation of the listener. In simple
-              human terms, the <code>forward</code> vector represents which
-              direction the person's nose is pointing. The <code>up</code>
-              vector represents the direction the top of a person's head is
-              pointing. These values are expected to be linearly independent
-              (at right angles to each other), and unpredictable behavior may
-              result if they are not. For normative requirements of how these
-              values are to be interpreted, see the <a href=
-              "#Spatialization">spatialization section</a>.
-            </p>
-          </dd>
-          <dd>
-            <p>
               Sets the x coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
               default value is 0. This parameter is a-rate.
@@ -5676,20 +5700,13 @@ the event handler.
             <p>
               Sets the z coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is -1. This parameter is a-rate.
             </p>
           </dd>
           <dt>
             readonly attribute AudioParam upX
           </dt>
           <dd>
-            <p>
-              The <code>upX, upY, upZ</code> parameters represent a direction
-              vector in 3D space, indicating the direction of "up" to the
-              listener. For normative requirements of how these values are to
-              be interpreted, see the <a href="#Spatialization">spatialization
-              section</a>.
-            </p>
             <p>
               Sets the x coordinate component of the up direction the listener
               is pointing in 3D Cartesian coordinate space. The default value
@@ -5703,7 +5720,7 @@ the event handler.
             <p>
               Sets the y coordinate component of the up direction the listener
               is pointing in 3D Cartesian coordinate space. The default value
-              is 0. This parameter is a-rate.
+              is 1. This parameter is a-rate.
             </p>
           </dd>
           <dt>
@@ -5722,8 +5739,10 @@ the event handler.
           <dd>
             <p>
               This method is DEPRECATED. It is equivalent to setting
-              <code>positionX</code>, <code>positionY</code>, and
-              <code>positionZ</code> AudioParams directly.
+              <code>positionX.value</code>, <code>positionY.value</code>, and
+              <code>positionZ.value</code> directly with the given
+              <code>x</code>, <code>y</code>, and <code>z</code> values,
+              respectively.
             </p>
             <p>
               Sets the position of the listener in a 3D cartesian coordinate
@@ -5745,9 +5764,12 @@ the event handler.
           <dd>
             <p>
               This method is DEPRECATED. It is equivalent to setting
-              <code>orientationX</code>, <code>orientationY</code>,
-              <code>orientationZ</code>, <code>upX</code>, <code>upY</code>,
-              and <code>upZ</code> AudioParams directly.
+              <code>orientationX.value</code>, <code>orientationY.value</code>,
+              <code>orientationZ.value</code>, <code>upX.value</code>,
+              <code>upY.value</code>, and <code>upZ.value</code> directly with
+              the given <code>x</code>, <code>y</code>, <code>z</code>,
+              <code>xUp</code>, <code>yUp</code>, and <code>zUp</code> values,
+              respectively.
             </p>
             <p>
               Describes which direction the listener is pointing in the 3D
@@ -6438,7 +6460,24 @@ function calculateNormalizationScale(buffer)
           "matrix mixing" where individual gain control of each channel is
           desired.
         </p>
-        <dl title="interface ChannelSplitterNode : AudioNode" class="idl"></dl>
+        <dl title=
+        "[Constructor(BaseAudioContext context, optional ChannelSplitterOptions options)] interface ChannelSplitterNode : AudioNode"
+        class="idl"></dl>
+        <section>
+          <h2>
+            ChannelSplitterOptions
+          </h2>
+          <dl title="dictionary ChannelSplitterOptions : AudioNodeOptions"
+          class="idl">
+            <dt>
+              unsigned long numberOfOutputs = 6
+            </dt>
+            <dd>
+              The number outputs for the
+              <a><code>ChannelSplitterNode</code></a>.
+            </dd>
+          </dl>
+        </section>
       </section>
       <section>
         <h2>
@@ -6499,7 +6538,24 @@ function calculateNormalizationScale(buffer)
             A diagram of ChannelMerger
           </figcaption>
         </figure>
-        <dl title="interface ChannelMergerNode : AudioNode" class="idl"></dl>
+        <dl title=
+        "[Constructor(BaseAudioContext context, optional ChannelSplitterOptions options)] interface ChannelMergerNode : AudioNode"
+        class="idl"></dl>
+        <section>
+          <h2>
+            ChannelMergerOptions
+          </h2>
+          <dl title="dictionary ChannelMergerOptions : AudioNodeOptions" class=
+          "idl">
+            <dt>
+              unsigned long numberOfInputs = 6
+            </dt>
+            <dd>
+              The number inputs for the
+              <a><code>ChannelSplitterNode</code></a>.
+            </dd>
+          </dl>
+        </section>
       </section>
       <section>
         <h2>
@@ -7639,21 +7695,52 @@ $$
             </p>
           </dd>
           <dt>
-            void start(optional double when = 0)
+            void start()
           </dt>
           <dd>
             <p>
-              Defined the same as the <code>when</code> parameter of the
-              <a><code>AudioBufferSourceNode</code></a>
+              Schedules a sound to playback at an exact time. This behaves
+              exactly the same as the <a href=
+              "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+              <code>start()</code></a> method for an
+              <a>AudioBufferSourceNode</a> except the optional
+              <code>offset</code> and <code>duration</code> parameters are not
+              allowed.
             </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                Defined the same as the <code>when</code> parameter of the
+                <a href=
+                "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+                <code>start()</code></a> method of the
+                <a>AudioBufferSourceNode</a>.
+              </dd>
+            </dl>
           </dd>
           <dt>
-            void stop(optional double when = 0)
+            void stop()
           </dt>
           <dd>
             <p>
-              Defined as in <a><code>AudioBufferSourceNode</code></a>.
+              Schedules a sound to stop playback at an exact time. This behaves
+              exactly the same as the <a href=
+              "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
+              method for an <a>AudioBufferSourceNode</a>
             </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                Defined the same as the <code>when</code> parameter of the
+                <a href=
+                "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
+                method of the <a>AudioBufferSourceNode</a>.
+              </dd>
+            </dl>
           </dd>
           <dt>
             void setPeriodicWave(PeriodicWave periodicWave)
@@ -8150,7 +8237,8 @@ odd function with period \(2\pi\).
           Rendering an audio graph
         </h3>
         <p>
-          Rendering an audio graph is done in blocks of 128 samples-frames.
+          Rendering an audio graph is done in blocks of 128 samples-frames. A
+          block of 128 samples-frames is called a <dfn>render quantum</dfn>.
         </p>
         <p>
           Operations that happen <dfn data-lt="atomic">atomically</dfn> on a
@@ -8942,7 +9030,7 @@ Quad up-mix:
     </section>
     <section>
       <h2 id="Spatialization">
-        Spatialization / Panning
+        <dfn>Spatialization/Panning</dfn>
       </h2>
       <section>
         <h3 id="Spatialization-background">

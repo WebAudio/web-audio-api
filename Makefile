@@ -7,7 +7,7 @@
 support_dir ?= $(CURDIR)/.support
 # We pin tidy to a specific revision to avoid failures caused by changes to tidy
 # itself
-tidy_revision = 67192ba77e539539d15cc716303ac686bacddd61
+tidy_revision = 5.2.0
 tidy ?= $(shell which tidy 2>/dev/null)
 ifeq (,$(tidy))
 tidy := $(support_dir)/bin/tidy

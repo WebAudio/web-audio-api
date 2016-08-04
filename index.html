@@ -5012,10 +5012,8 @@ onaudioprocess= function (e) {
           </dt>
           <dd>
             <p>
-              Imports a module script at <code>moduleURL</code>. The returned
-              promise is resolved when the code is successfully imported and
-              parsed. It is rejected if any uncaught exception occurs during
-              the execution of the imported script.
+              Imports a module script at <code>moduleURL</code>, similar to the
+              algorithm defined by [[!worklets-1]].
             </p>
           </dd>
         </dl>
@@ -5025,7 +5023,7 @@ onaudioprocess= function (e) {
           </h2>
           <p>
             This interface represents a user-defined
-            <a><code>AudioNode</code></a> which lives on the main <a>control
+            <a><code>AudioNode</code></a> which lives on the <a>control
             thread</a>. The user can create an <code>AudioWorkletNode</code>
             from an <a><code>AudioContext</code></a> and such a node can be
             connected with other built-in <a><code>AudioNode</code></a>s to
@@ -5042,7 +5040,7 @@ onaudioprocess= function (e) {
                 <a><code>AudioWorkletNode</code></a> and the corresponding
                 <a><code>AudioWorkletProcessor</code></a> object consists of
                 several coordinated interactions. The following algorithm
-                specifies the steps in constructing an
+                specifies the steps for constructing an
                 <a><code>AudioWorkletNode</code></a> with the given parameters.
                 This sequence must be performed by the user agent <a data-lt=
                 "atomic">atomically</a>.
@@ -5052,9 +5050,9 @@ onaudioprocess= function (e) {
                   <em>In the <code>AudioWorkletGlobalScope</code></em>: Locate
                   a definition of <a><code>AudioWorkletProcessor</code></a>
                   subclass that is registered under the <code>name</code>
-                  argument. If none is found, an InvalidAccessError exception
-                  MUST be thrown by the <a><code>AudioWorkletNode</code></a>
-                  constructor.
+                  argument. If none is found, an
+                  <code>InvalidAccessError</code> exception MUST be thrown by
+                  the <a><code>AudioWorkletNode</code></a> constructor.
                 </li>
                 <li>Run the <a><code>AudioWorkletProcessor</code></a>
                 constructor, passing a structured clone of the
@@ -5062,24 +5060,26 @@ onaudioprocess= function (e) {
                 <a><code>AudioWorkletNode</code></a>.
                   <ol>
                     <li>Run the constructor of the
-                    <a><code>AudioWorkletProcessor</code> subclass</a>. In this
-                    constructor, The <code>options</code> parameter can be used
-                    to initialize the state of the processor.
+                    <a><code>AudioWorkletProcessor</code> subclass</a>. The
+                    constructor uses the <code>options</code> parameter to
+                    initialize this <a><code>AudioWorkletProcessor</code></a>
+                    instance.
                     </li>
                   </ol>
                 </li>
                 <li>
-                  <em>In the <code>window</code> scope</em>: Construct
+                  <em>In the global scope</em>: Construct
                   <a><code>AudioParam</code></a> objects based on the
                   information from the processor's
                   <a><code>parameterDescriptors</code></a>.
                   <ol>
-                    <li>Initialize the value of AudioParam objects with
-                    key-value pairs in the <code>option</code> parameter. Find
-                    the key that matches the name of AudioParam object and
-                    assign the value to it. Any key does not match the name of
-                    <a><code>AudioParam</code></a> object and anything other
-                    than <code>Number</code> for the value are ignored.
+                    <li>Initialize the value of <a><code>AudioParam</code></a>
+                    objects with key-value pairs in the <code>option</code>
+                    parameter. Find the key that matches the name of AudioParam
+                    object and assign the value to it. Any key does not match
+                    the name of <a><code>AudioParam</code></a> object and
+                    anything other than <code>Number</code> for the value are
+                    ignored.
                     </li>
                   </ol>
                 </li>
@@ -5212,8 +5212,8 @@ onaudioprocess= function (e) {
             The <dfn>AudioWorkletProcessor</dfn> interface
           </h2>
           <p>
-            This interface represents an audio processing module that runs on
-            the audio <a>rendering thread</a>. It is defined in an
+            This interface represents an audio processing code that runs on the
+            audio <a>rendering thread</a>. It lives in an
             <a><code>AudioWorkletGlobalScope</code></a> and the definition of
             the class manifests the actual audio processing mechanism of a
             custom audio node. <a><code>AudioWorkletProcessor</code></a> can
@@ -5229,8 +5229,8 @@ onaudioprocess= function (e) {
               <p>
                 This getter returns an array containing
                 <a>AudioParamDescriptor</a>s, which are descriptors for each
-                controllable parameter on an <a>AudioNode</a>. This static
-                property is referenced in the construction on an
+                <a><code>AudioParam</code></a> on an <a>AudioNode</a>. This
+                static property is referenced in the construction on an
                 <a>AudioWorkletNode</a> to create instances of an
                 <a>AudioParam</a> in the node.
               </p>
@@ -5259,8 +5259,8 @@ onaudioprocess= function (e) {
             </dt>
             <dd>
               <p>
-                This method gets executed isochronously by the audio
-                <a>rendering thread</a>.
+                This method is called synchronously by the audio <a>rendering
+                thread</a> that executes in an isochronous fashion.
               </p>
               <dl class="parameters">
                 <dt>
@@ -5303,8 +5303,7 @@ onaudioprocess= function (e) {
             <dd>
               <p>
                 It may be called to send a message to the
-                <a><code>AudioWorkletNode</code></a>, via the algorithm defined
-                by the Worker specification.
+                <a><code>AudioWorkletNode</code></a>.
               </p>
               <dl class="parameters">
                 <dt>
@@ -5332,9 +5331,9 @@ onaudioprocess= function (e) {
                 DOMString name
               </dt>
               <dd>
-                Represents the name of a parameter. An NotSupportedError
-                exception MUST be thrown when a duplicated name is found when
-                registering the class definition.
+                Represents the name of a parameter. An
+                <code>NotSupportedError</code> exception MUST be thrown when a
+                duplicated name is found when registering the class definition.
               </dd>
               <dt>
                 float defaultValue = 0
@@ -5343,23 +5342,23 @@ onaudioprocess= function (e) {
                 Represents the default value of the parameter. If this value is
                 out of the range of float data type or the range defined by
                 <code>minValue</code> and <code>maxValue</code>, an
-                NotSupportedError exception MUST be thrown.
+                <code>NotSupportedError</code> exception MUST be thrown.
               </dd>
               <dt>
                 float minValue
               </dt>
               <dd>
-                Represents the minimum value. An NotSupportedError exception
-                MUST be thrown if this value is out of range of float data type
-                or it is greater than <code>maxValue</code>.
+                Represents the minimum value. An <code>NotSupportedError</code>
+                exception MUST be thrown if this value is out of range of float
+                data type or it is greater than <code>maxValue</code>.
               </dd>
               <dt>
                 float maxValue
               </dt>
               <dd>
-                Represents the maximum value. An NotSupportedError exception
-                MUST be thrown if this value is out of range of float data type
-                or it is smaller than <code>minValue</code>.
+                Represents the maximum value. An <code>NotSupportedError</code>
+                exception MUST be thrown if this value is out of range of float
+                data type or it is smaller than <code>minValue</code>.
               </dd>
             </dl>
           </section>
@@ -5377,9 +5376,9 @@ onaudioprocess= function (e) {
                 double playbackTime
               </dt>
               <dd>
-                The starting time of the block of audio being processed in
-                response to this event. By definition this will be equal to the
-                value of <a><code>BaseAudioContext</code></a>'s
+                The context time of the block of audio being processed. By
+                definition this will be equal to the value of
+                <a><code>BaseAudioContext</code></a>'s
                 <a><code>currentTime</code></a> attribute that was most
                 recently observable in the <a>control thread</a>.
               </dd>
@@ -5388,7 +5387,7 @@ onaudioprocess= function (e) {
               </dt>
               <dd>
                 Represents the sample rate of the associated
-                <a><code>AudioContext</code></a>.
+                <a><code>BaseAudioContext</code></a>.
               </dd>
             </dl>
           </section>
@@ -5516,16 +5515,16 @@ class VUMeterNode extends AudioWorkletNode {
     super(context, 'VUMeter', options);
 
     // Mirrored states of AudioWorkletProcessor.
-    this.updatingInterval = options.updatingInterval;
-    this.volume = 0;
+    this._updatingInterval = options.updatingInterval;
+    this._volume = 0;
   }
 
   get updatingInterval() {
-    return this.updatingInterval;
+    return this._updatingInterval;
   }
 
   set updatingInterval (intervalValue) {
-    this.updatingInterval = intervalValue;
+    this._updatingInterval = intervalValue;
     this.postMessage({ updatingInterval: intervalValue });
   }
 
@@ -5536,7 +5535,7 @@ class VUMeterNode extends AudioWorkletNode {
   // handle updated values from audio side
   onmessage (event) {
     if (event.data.hasOwnProperty('volume'))
-      this.volume = event.data.volume;
+      this._volume = event.data.volume;
   }
 }
 

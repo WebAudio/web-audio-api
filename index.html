@@ -2788,7 +2788,7 @@ function setupRoutingGraph() {
             <li>A <em>connection</em> reference which occurs if another
             <a><code>AudioNode</code></a> is connected to it.
             </li>
-            <li>A <em>tail-time</em> reference which an
+            <li>A <em><dfn>tail-time</dfn></em> reference which an
             <a><code>AudioNode</code></a> maintains on itself as long as it has
             any internal processing state which has not yet been emitted. For
             example, a <a><code>ConvolverNode</code></a> has a tail which
@@ -3617,6 +3617,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           "#widl-GainNode-gain"><code>gain</code></a>
           <a><code>AudioParam</code></a>.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional GainOptions options)]interface GainNode : AudioNode"
         class="idl">
@@ -3690,6 +3693,12 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           delay-line mixing takes place using the single prevailing channel
           layout.
         </p>
+	<p>
+	  This node has a <a>tail-time</a> reference such that this node
+	  continues to output non-silent audio with zero input up to the <a
+	  href="#widl-DelayOptions-maxDelayTime"><code>maxDelayTime</code></a>
+	  of the node.
+	</p>
         <dl title=
         "[Construct(BaseAudioContext context, optional DelayOptions options)]interface DelayNode : AudioNode"
         class="idl">
@@ -3993,6 +4002,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           channels of the AudioBuffer assigned to the .buffer attribute, or is
           one channel of silence if .buffer is NULL.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title="interface AudioBufferSourceNode : AudioNode" class="idl">
           <dt>
             attribute AudioBuffer? buffer
@@ -4300,6 +4312,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           If the .src attribute is not set, then the number of channels output
           will be one silent channel.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title=
         "[Constructor(AudioContext context, MediaElemenAudioSourceOptions options)]interface MediaElementAudioSourceNode : AudioNode"
         class="idl"></dl>
@@ -5385,6 +5400,12 @@ the event handler.
           spatialization algorithm will be used to position the audio in 3D
           space. The default is <code>"equalpower"</code>.
         </p>
+	<p>
+	  This node may have a <a>tail-time</a> reference.  If the <a
+	  href="#widl-PannerNode-panningModel">panningModel</a> is set to
+	  "HRTF", the node will produce non-silent output for silent input due
+	  to the inherent processing for the head responses.
+	</p>
         <dl title="enum PanningModelType" class="idl">
           <dt>
             equalpower
@@ -6016,6 +6037,9 @@ the event handler.
           The output of this node is hard-coded to stereo (2 channels) and
           cannot be configured.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional StereoPannerOptions options)]interface StereoPannerNode : AudioNode"
         class="idl">
@@ -6092,6 +6116,11 @@ the event handler.
           attempt is made to set channelCount to a value great than 2 or if
           channelCountMode is set to "max".
         </p>
+	<p>
+	  This node has a <a>tail-time</a> reference such that this node
+	  continues to output non-silent audio with zero input for the length of
+	  the <a href="#widl-ConvolverNode-buffer"><code>buffer</code></a>.
+	</p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional ConvolverOptions options)]interface ConvolverNode : AudioNode"
         class="idl">
@@ -6290,6 +6319,9 @@ function calculateNormalizationScale(buffer)
     channelCountMode = "max";
     channelInterpretation = "speakers";
 </pre>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional AnalyserOptions options)]interface AnalyserNode : AudioNode"
         class="idl">
@@ -6683,6 +6715,9 @@ function calculateNormalizationScale(buffer)
           this value is not provided. Any outputs which are not "active" will
           output silence and would typically not be connected to anything.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <h3>
           Example:
         </h3>
@@ -6757,6 +6792,9 @@ function calculateNormalizationScale(buffer)
           and <code>channelCountMode</code> properties cannot be changed.
           <code>InvalidState</code> error MUST be thrown when they changed.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <h3 id="example-2">
           Example:
         </h3>
@@ -6826,6 +6864,9 @@ function calculateNormalizationScale(buffer)
     channelCountMode = "explicit";
     channelInterpretation = "speakers";
 </pre>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional DynamicsCompressorOptions options)]interface DynamicsCompressorNode : AudioNode"
         class="idl">
@@ -6993,6 +7034,14 @@ function calculateNormalizationScale(buffer)
           The number of channels of the output always equals the number of
           channels of the input.
         </p>
+	<p>
+	  This node has a <a>tail-time</a> reference such that this node
+	  continues to output non-silent audio with zero input. Since this is an
+	  IIR filter, the filter produces non-zero input forever, but in
+	  practice, this can be limited after some finite time where the output
+	  is sufficiently close to zero. The actual time depends on the filter
+	  coefficients.
+	</p>
         <dl title="enum BiquadFilterType" class="idl">
           <dt>
             lowpass
@@ -7706,6 +7755,14 @@ $$
           The number of channels of the output always equals the number of
           channels of the input.
         </p>
+	<p>
+	  This node has a <a>tail-time</a> reference such that this node
+	  continues to output non-silent audio with zero input. Since this is an
+	  IIR filter, the filter produces non-zero input forever, but in
+	  practice, this can be limited after some finite time where the output
+	  is sufficiently close to zero. The actual time depends on the filter
+	  coefficients.
+	</p>
         <dl title=
         "[Constructor(BaseAudioContext context, IIRFilterOptions options)] interface IIRFilterNode : AudioNode"
         class="idl">
@@ -7834,6 +7891,9 @@ $$
           The number of channels of the output always equals the number of
           channels of the input.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title="enum OverSampleType" class="idl">
           <dt>
             none
@@ -8516,6 +8576,9 @@ odd function with period \(2\pi\).
           valid audio track, then the number of channels output will be one
           silent channel.
         </p>
+	<p>
+	  This node has no <a>tail-time</a> reference.
+	</p>
         <dl title="interface MediaStreamAudioSourceNode : AudioNode" class=
         "idl"></dl>
       </section>

@@ -5071,40 +5071,94 @@ onaudioprocess= function (e) {
         <h2 id="AudioWorklet">
           The <dfn>AudioWorklet</dfn> interface
         </h2>
-        <p>
-          The <code>AudioWorklet</code> object allows developers to supply
-          Javascript to process audio on the <a>rendering thread</a>,
-          supporting custom AudioNodes. This processing mechanism ensures the
-          synchronous execution of the script code with other built-in
-          <code>AudioNode</code>s in the audio graph.
-        </p>
-        <p>
-          The <code>AudioWorklet</code> object stores the definitions of custom
-          audio processors and <code>AudioWorkletNode</code>s can be
-          constructed based on these definitions. The registered definition in
-          an AudioWorklet is valid for the entire global scope (i.e.
-          <code>window</code>), therefore any <a><code>AudioContext</code></a>
-          instance in the same global scope can access the registered
-          definition to create a custom node.
-        </p>
-        <p>
-          After importing a module script into the
-          <a><code>AudioWorkletGlobalScope</code></a>, an instance of
-          <a><code>AudioWorkletNode</code></a> can be created in the main
-          global scope, based on any of the definitions in the script. At the
-          same time, the user agent automatically creates an instance of
-          <a><code>AudioWorkletProcessor</code></a>. This counterpart
-          represents an audio processing module that runs on the audio
-          <a>rendering thread</a>. These two components can communicate via
-          message passing.
-        </p>
+        <section>
+          <h2 id="AudioWorklet-concepts">
+            Concepts
+          </h2>
+          <p>
+            The <a><code>AudioWorklet</code></a> object allows developers to
+            supply JavaScript to process audio on the <a>rendering thread</a>,
+            supporting custom AudioNodes. This processing mechanism ensures the
+            synchronous execution of the script code with other built-in
+            <a><code>AudioNode</code></a>s in the audio graph.
+          </p>
+          <p>
+            An associated pair of objects must be defined in order to realize
+            this mechanism: <a><code>AudioWorkletNode</code></a> and
+            <a><code>AudioWorkletProcessor</code></a>. The former represents
+            the interface for the main global scope similar to other AudioNode
+            objects and the latter implements the internal audio processing
+            within a special scope named
+            <a><code>AudioWorkletGlobalScope</code></a>.
+          </p>
+          <figure>
+            <img alt="AudioWorklet concept" src=
+            "images/audioworklet-concept.png" width="756" height="144">
+            <figcaption>
+              <a><code>AudioWorkletNode</code></a> and
+              <a><code>AudioWorkletProcessor</code></a>
+            </figcaption>
+          </figure>
+          <blockquote>
+            <pre>
+// In the main global scope
+window.audioWorklet.import("bypass.js").then(function () {
+  var context = new AudioContext();
+  var bypass = new AudioWorkletNode(context, "Bypass");
+});
+</pre>
+          </blockquote>
+          <p>
+            Importing a JavaScript file via <code>import(url)</code> method
+            registers class definitions of
+            <a><code>AudioWorkletProcessor</code></a> under the
+            <a><code>AudioWorkletGlobalScope</code></a>. Imported definitions
+            are stored in the <a><em>node name to processor definition
+            map</em></a> and any <a><code>AudioContext</code></a> instance from
+            the associated main global scope can access this map to create a
+            custom node.
+          </p>
+          <blockquote>
+            <pre>
+// 'bypass.js' in AudioWorkletGlobalScope
+registerProcessor("Bypass", class extends AudioWorkletProcessor {
+  process (inputs, outputs) {
+    // Single input, single channel.
+    var input = inputs[0], output = outputs[0];
+    output[0].set(input[0]);
+  }
+});
+</pre>
+          </blockquote>
+          <p>
+            At the instantiation of <code>AudioWorkletNode</code> in the main
+            global scope, the counterpart <code>AudioWorkletProcessor</code>
+            will also be created in <code>AudioWorkletGlobalScope</code>. These
+            two objects communicate via the asynchronous message passing
+            described in the <a href="#processing-model">processing model</a>
+            section.
+          </p>
+        </section>
+        <dl title="partial interface Window" class="idl">
+          <dt>
+            [SameObject] readonly attribute Worklet audioWorklet
+          </dt>
+          <dd>
+            <p>
+              The <code>audioWorklet</code> attributes allows access to the
+              <code>Worklet</code> object that can import a JavaScript file
+              containing <a><code>AudioWorkletProcessor</code></a> class
+              definitions.
+            </p>
+          </dd>
+        </dl>
         <dl title="interface AudioWorklet : Worklet" class="idl">
           <dt>
             Promise&lt;void&gt; import(DOMString moduleUrl)
           </dt>
           <dd>
             <p>
-              Imports a module script at <code>moduleURL</code>, similar to the
+              Imports a module script at <code>moduleURL</code> via the
               algorithm defined by [[!worklets-1]].
             </p>
           </dd>

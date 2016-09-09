@@ -5422,26 +5422,13 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
           </p>
           <dl title="interface AudioWorkletProcessor" class="idl">
             <dt>
-              [SameObject] readonly attribute
-              FrozenArray&lt;AudioParamDescriptor&gt; parameterDescriptors
-            </dt>
-            <dd>
-              <p>
-                This getter returns an array containing
-                <a>AudioParamDescriptor</a>s, which are descriptors for each
-                <a><code>AudioParam</code></a> on an <a>AudioNode</a>. This
-                static property is referenced in the construction on an
-                <a>AudioWorkletNode</a> to create instances of an
-                <a>AudioParam</a> in the node.
-              </p>
-            </dd>
-            <dt>
               readonly attribute AudioContextInfo contextInfo
             </dt>
             <dd>
               <p>
                 This getter returns an <a><code>AudioContextInfo</code></a>
-                object that describes the associated <a>AudioContext</a>.
+                object that describes various states of the associated
+                <a>BaseAudioContext</a>.
               </p>
             </dd>
             <dt>
@@ -5455,56 +5442,11 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
               </p>
             </dd>
             <dt>
-              void process()
-            </dt>
-            <dd>
-              <p>
-                Processes the audio data from the input and produce the content
-                of output buffer by executing the user-supplied script code.
-                This method is called synchronously by the audio <a>rendering
-                thread</a> that executes in an isochronous fashion.
-              </p>
-              <dl class="parameters">
-                <dt>
-                  sequence&lt;sequence&lt;Float32Array&gt;&gt; inputs
-                </dt>
-                <dd>
-                  <code>inputs[n][m]</code> is a <code>Float32Array</code> of
-                  audio samples for the <code>m</code>th channel of
-                  <code>n</code>th input. While the number of inputs is fixed
-                  at the construction, the number of channels can be changed
-                  dynamically.
-                </dd>
-                <dt>
-                  sequence&lt;sequence&lt;Float32Array&gt;&gt; outputs
-                </dt>
-                <dd>
-                  <code>outputs[n][m]</code> is a Float32Array object
-                  containing the audio samples for <code>m</code>th channel of
-                  <code>n</code>th output.
-                </dd>
-                <dt>
-                  Object parameters
-                </dt>
-                <dd>
-                  Provides an association between the names of the
-                  <a><code>AudioParam</code></a>s specified by the
-                  <a><code>AudioParamDescriptor</code></a>s during construction
-                  and the automation values for the
-                  <a><code>AudioParam</code></a>. Thus,
-                  <code>parameters["name"]</code> returns a
-                  <code>Float32Array</code> of the automation values
-                  corresponding to the <a><code>AudioParam</code></a> named
-                  <code>"name"</code>.
-                </dd>
-              </dl>
-            </dd>
-            <dt>
               void postMessage()
             </dt>
             <dd>
               <p>
-                It may be called to send a message to the
+                It may be called to send a message to the associated
                 <a><code>AudioWorkletNode</code></a>.
               </p>
               <dl class="parameters">
@@ -5512,13 +5454,54 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
                   any message
                 </dt>
                 <dd></dd>
-                <dt>
-                  optional sequence&lt;Object&gt; transfer
-                </dt>
-                <dd></dd>
               </dl>
             </dd>
           </dl>
+          <p>
+            User can define a custom audio processor by extending
+            <a>AudioWorkletProcessor</a>. The subclass must define a method
+            named <strong>process()</strong> that implements the audio
+            processing algorithm and have a static property named
+            <strong>parameterDescriptors</strong> which is an iterable of
+            <a>AudioParamDescriptor</a> that is looked up by the
+            <a>AudioWorkletProcessor</a> constructor to create instances of
+            <a>AudioParam</a> in the node.
+          </p>
+          <p>
+            An example of subclass is as follows:
+          </p>
+          <pre class="example" title="Subclassing AudioWorkletProcessor">
+class MyProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() { 
+    return [{
+      name: 'myParam',
+      defaultValue: 0.5,
+      minValue: 0
+      maxValue: 1 
+    }];
+  }
+
+  process(inputs, outputs, parameters) {
+    // Custom audio processing implementation.
+  }
+}
+</pre>
+          <p>
+            <strong>process()</strong> method is called synchronously by the
+            audio <a>rendering thread</a> in an isochronous fashion. The first
+            argument <code>input</code> is an array of
+            <code>Float32Array</code>s. <code>inputs[n][m]</code> is a
+            <code>Float32Array</code> of audio samples for the <code>m</code>th
+            channel of <code>n</code>th input. Similarly,
+            <code>outputs[n][m]</code> is a <code>Float32Array</code> object
+            containing the audio samples for <code>m</code>th channel of
+            <code>n</code>th output. While the number of inputs is fixed at the
+            construction, the number of channels can be changed dynamically.
+            The last argument <code>parameters</code> is an associated map of
+            <code>Float32Array</code>s. <code>parameter["name"]</code>
+            corresponds to the automation values of the
+            <a><code>AudioParam</code></a> named <code>"name"</code>.
+          </p>
           <section>
             <h2 id="AudioParamDescriptor">
               <dfn>AudioParamDescriptor</dfn>

@@ -7,6 +7,24 @@
     <meta charset="utf-8">
     <script src='respec-w3c-common-3.3.2.js' class='remove'>
     </script>
+    <link rel="preload" href=
+    "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    as="script">
+    <link rel="preload" href=
+    "https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/jax.js?rev=2.6.1"
+    as="script">
+    <link rel="preload" href=
+    "https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.6.1"
+    as="script">
+    <link rel="preload" href=
+    "https://www.w3.org/scripts/MathJax/2.6.1/config/TeX-AMS-MML_HTMLorMML.js?rev=2.6.1"
+    as="script">
+    <link rel="preload" href=
+    "https://www.w3.org/scripts/MathJax/2.6.1/jax/element/mml/optable/BasicLatin.js?rev=2.6.1"
+    as="script">
+    <link rel="preload" href=
+    "https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/autoload/mtable.js?rev=2.6.1"
+    as="script">
     <script class='remove'>
     var respecConfig = {
         specStatus: "ED",
@@ -168,7 +186,7 @@
         objects are connected together to define the overall audio rendering.
         The actual processing will primarily take place in the underlying
         implementation (typically optimized Assembly / C / C++ code), but
-        <a href="#AudioWorker">direct JavaScript processing and synthesis</a>
+        <a href="#AudioWorklet">direct JavaScript processing and synthesis</a>
         is also supported.
       </p>
       <p>
@@ -268,7 +286,7 @@
             </ul>
           </li>
           <li>Audio stream synthesis and processing <a href=
-          "#AudioWorker">directly in JavaScript</a>.
+          "#AudioWorklet">directly in JavaScript</a>.
           </li>
           <li>
             <a href="#Spatialization">Spatialized audio</a> supporting a wide
@@ -356,7 +374,8 @@
             "#AudioDestinationNode"><code>AudioDestinationNode</code></a>:
           </p>
           <figure>
-            <img alt="modular routing" src="images/modular-routing1.png">
+            <img alt="modular routing" src="images/modular-routing1.png" width=
+            "305" height="128">
             <figcaption>
               A simple example of modular routing.
             </figcaption>
@@ -381,7 +400,8 @@ function playSound() {
             reverb send with a dynamics compressor at the final output stage:
           </p>
           <figure>
-            <img alt="modular routing2" src="images/modular-routing2.png">
+            <img alt="modular routing2" src="images/modular-routing2.png"
+            width="561" height="411">
             <figcaption>
               A more complex example of modular routing.
             </figcaption>
@@ -486,7 +506,8 @@ function setupRoutingGraph () {
             input signal.
           </p>
           <figure>
-            <img alt="modular routing3" src="images/modular-routing3.png">
+            <img alt="modular routing3" src="images/modular-routing3.png"
+            width="346" height="337">
             <figcaption>
               Modular routing illustrating one Oscillator modulating the
               frequency of another.
@@ -561,18 +582,18 @@ function setupRoutingGraph() {
           an <a><code>AudioNode</code></a> which is the audio destination to a
           MediaStream sent to a remote peer.
           </li>
-          <li>An <a><code>AudioWorker</code></a> interface representing a
+          <li>An <a><code>AudioWorklet</code></a> interface representing a
           factory for creating custom nodes that can process audio directly in
           JavaScript.
           </li>
-          <li>An <a><code>AudioWorkerNode</code></a> interface, an
+          <li>An <a><code>AudioWorkletNode</code></a> interface, an
           <a><code>AudioNode</code></a> representing a node processed in an
-          AudioWorker.
+          AudioWorkletProcessor.
           </li>
-          <li>An <a><code>AudioWorkerGlobalScope</code></a> interface, the
-          context in which AudioWorker processing scripts run.
+          <li>An <a><code>AudioWorkletGlobalScope</code></a> interface, the
+          context in which AudioWorkletProcessor processing scripts run.
           </li>
-          <li>An <a><code>AudioWorkerNodeProcessor</code></a> interface,
+          <li>An <a><code>AudioWorkletProcessor</code></a> interface,
           representing a single node instance inside an audio worker.
           </li>
           <li>An <a><code>AudioParam</code></a> interface, for controlling an
@@ -865,7 +886,7 @@ function setupRoutingGraph() {
               include any additional latency that might be caused by any other
               processing between the output of the <a>AudioDestinationNode</a>
               and the audio hardware and specifically does not include any
-              latency incurred the the audio graph itself.
+              latency incurred the audio graph itself.
             </p>
             <p>
               For example, if the audio context is running at 44.1 kHz and the
@@ -955,16 +976,16 @@ function setupRoutingGraph() {
               <code>MediaStream</code>s will have their output ignored; that
               is, data will be lost by the real time nature of media streams.
               <code>HTMLMediaElement</code>s will similarly have their output
-              ignored until the system is resumed. <a>AudioWorker</a>s and
-              <a>ScriptProcessorNode</a>s will simply not fire their
-              <code>onaudioprocess</code> events while suspended, but will
-              resume when resumed. For the purpose of <a>AnalyserNode</a>
-              window functions, the data is considered as a continuous stream -
-              i.e. the <code>resume()</code>/<code>suspend()</code> does not
-              cause silence to appear in the <a>AnalyserNode</a>'s stream of
-              data. In particular, calling <a>AnalyserNode</a> functions
-              repeatedly when a <a>BaseAudioContext</a> is suspended MUST
-              return the same data.
+              ignored until the system is resumed.
+              <a>AudioWorkletProcessor</a>s and <a>ScriptProcessorNode</a>s
+              will cease to have their processing handlers invoked while
+              suspended, but will resume when resumed. For the purpose of
+              <a>AnalyserNode</a> window functions, the data is considered as a
+              continuous stream - i.e. the
+              <code>resume()</code>/<code>suspend()</code> does not cause
+              silence to appear in the <a>AnalyserNode</a>'s stream of data. In
+              particular, calling <a>AnalyserNode</a> functions repeatedly when
+              a <a>BaseAudioContext</a> is suspended MUST return the same data.
             </p>
           </dd>
           <dt>
@@ -1321,35 +1342,14 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
-            Promise&lt;AudioWorker&gt; createAudioWorker()
-          </dt>
-          <dd>
-            <p>
-              Creates an <a><code>AudioWorker</code></a> object and loads the
-              associated script into an
-              <a><code>AudioWorkerGlobalScope</code></a>, then resolves the
-              returned Promise.
-            </p>
-            <dl class="parameters">
-              <dt>
-                DOMString scriptURL
-              </dt>
-              <dd>
-                This parameter represents the URL of the script to be loaded as
-                an <a>AudioWorker</a> node factory. See <a>AudioWorker</a>
-                section for more detail.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
             ScriptProcessorNode createScriptProcessor()
           </dt>
           <dd>
             <p>
               This method is DEPRECATED, as it is intended to be replaced by
-              createAudioWorker. Creates a
-              <a><code>ScriptProcessorNode</code></a> for direct audio
-              processing using JavaScript. <span class="synchronous">An
+              <a href="#AudioWorkletNode"><code>AudioWorkletNode</code></a>.
+              Creates a <a><code>ScriptProcessorNode</code></a> for direct
+              audio processing using JavaScript. <span class="synchronous">An
               IndexSizeError exception MUST be thrown if
               <a><code>bufferSize</code></a> or
               <a><code>numberOfInputChannels</code></a> or
@@ -1369,8 +1369,10 @@ function setupRoutingGraph() {
                 Otherwise if the author explicitly specifies the bufferSize, it
                 must be one of the following values: 256, 512, 1024, 2048,
                 4096, 8192, 16384. This value controls how frequently the
-                <code>audioprocess</code> event is dispatched and how many
-                sample-frames need to be processed each call. Lower values for
+                <a href=
+                "#widl-ScriptProcessorNode-onaudioprocess"><code>audioprocess</code></a>
+                event is dispatched and how many sample-frames need to be
+                processed each call. Lower values for
                 <a><code>bufferSize</code></a> will result in a lower (better)
                 <a href="#latency">latency</a>. Higher values will be necessary
                 to avoid audio breakup and <a href=
@@ -2667,7 +2669,7 @@ function setupRoutingGraph() {
               <a><code>AudioNode</code></a> types, but some
               <a><code>AudioNode</code></a>, like the
               <a><code>ChannelMergerNode</code></a> and the
-              <a><code>AudioWorkerNode</code></a> have variable number of
+              <a><code>AudioWorkletNode</code></a> have variable number of
               inputs.
             </p>
           </dd>
@@ -2680,7 +2682,7 @@ function setupRoutingGraph() {
               <a><code>AudioNode</code></a>. This attribute is predetermined
               for some <a><code>AudioNode</code></a> types, but can be
               variable, like for the <a><code>ChannelSplitterNode</code></a>
-              and the <a><code>AudioWorkerNode</code></a>.
+              and the <a><code>AudioWorkletNode</code></a>.
             </p>
           </dd>
           <dt>
@@ -2788,7 +2790,7 @@ function setupRoutingGraph() {
             <li>A <em>connection</em> reference which occurs if another
             <a><code>AudioNode</code></a> is connected to it.
             </li>
-            <li>A <em>tail-time</em> reference which an
+            <li>A <em><dfn>tail-time</dfn></em> reference which an
             <a><code>AudioNode</code></a> maintains on itself as long as it has
             any internal processing state which has not yet been emitted. For
             example, a <a><code>ConvolverNode</code></a> has a tail which
@@ -2946,12 +2948,13 @@ function setupRoutingGraph() {
           each sample-frame of the block.
         </p>
         <p>
-          Each <code>AudioParam</code> includes <code>min</code> and
-          <code>max</code> attributes that together form the <a>nominal
-          range</a> for the parameter. In effect, value of the parameter is
-          clamped to the range \([\mathrm{minValue}, \mathrm{maxValue}]\). See
-          the section <a href="#computation-of-value">Computation of Value</a>
-          for full details.
+          Each <code>AudioParam</code> includes <a href=
+          "#widl-AudioParam-minValue"><code>minValue</code></a> and <a href=
+          "#widl-AudioParam-maxValue"><code>maxValue</code></a> attributes that
+          together form the <a>nominal range</a> for the parameter. In effect,
+          value of the parameter is clamped to the range \([\mathrm{minValue},
+          \mathrm{maxValue}]\). See the section <a href=
+          "#computation-of-value">Computation of Value</a> for full details.
         </p>
         <p>
           An <code>AudioParam</code> maintains a time-ordered event list which
@@ -3535,14 +3538,28 @@ function setupRoutingGraph() {
           </p>
           <pre class="example">
             N.p.setValueAtTime(0, 0);
-            N.p.linearRampToValueAtTime(100, 1);
+            N.p.linearRampToValueAtTime(4, 1);
             N.p.linearRampToValueAtTime(0, 2)
           </pre>
           <p>
-            The initial slope of the curve is 100, until it reaches the maximum
+            The initial slope of the curve is 4, until it reaches the maximum
             value of 1, at which time, the output is held constant. Finally,
-            near time 2, the slope of the curve is -100.
+            near time 2, the slope of the curve is -4. This is illustrated in
+            the graph below where the dashed line indicates what would have
+            happened without clipping, and the solid line indicates the actual
+            expected behavior of the audioparam due to clipping to the nominal
+            range.
           </p>
+          <figure>
+            <!-- The image here was created from
+  http://googlechrome.github.io/web-audio-samples/samples/audio/timeline-limits.html -->
+            <img alt="AudioParam automation clipping to nominal" src=
+            "images/audioparam-automation-clipping.png">
+            <figcaption>
+              An example of clipping of an AudioParam automation from the
+              nominal range.
+            </figcaption>
+          </figure>
         </section>
         <section>
           <h3 id="example1-AudioParam">
@@ -3552,7 +3569,7 @@ function setupRoutingGraph() {
             <!-- The image here was created from
   http://googlechrome.github.io/web-audio-samples/samples/audio/timeline.html -->
             <img alt="AudioParam automation" src=
-            "images/audioparam-automation1.png">
+            "images/audioparam-automation1.png" width="917" height="541">
             <figcaption>
               An example of parameter automation.
             </figcaption>
@@ -3616,6 +3633,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a>computedValue</a> of the <a href=
           "#widl-GainNode-gain"><code>gain</code></a>
           <a><code>AudioParam</code></a>.
+        </p>
+        <p>
+          This node has no <a>tail-time</a> reference.
         </p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional GainOptions options)]interface GainNode : AudioNode"
@@ -3690,6 +3710,13 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           delay-line mixing takes place using the single prevailing channel
           layout.
         </p>
+        <p>
+          This node has a <a>tail-time</a> reference such that this node
+          continues to output non-silent audio with zero input up to the
+          <a href=
+          "#widl-DelayOptions-maxDelayTime"><code>maxDelayTime</code></a> of
+          the node.
+        </p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional DelayOptions options)]interface DelayNode : AudioNode"
         class="idl">
@@ -3755,11 +3782,12 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         <p>
           This interface represents a memory-resident audio asset (for one-shot
           sounds and other short audio clips). Its format is non-interleaved
-          IEEE 32-bit linear PCM with a nominal range of -1 -&gt; +1. It can
-          contain one or more channels. Typically, it would be expected that
-          the length of the PCM data would be fairly short (usually somewhat
-          less than a minute). For longer sounds, such as music soundtracks,
-          streaming should be used with the <code>audio</code> element and
+          32-bit linear floating-point PCM values with a normal range of \([-1,
+          1]\), but values are not limited to this range. It can contain one or
+          more channels. Typically, it would be expected that the length of the
+          PCM data would be fairly short (usually somewhat less than a minute).
+          For longer sounds, such as music soundtracks, streaming should be
+          used with the <code>audio</code> element and
           <code>MediaElementAudioSourceNode</code>.
         </p>
         <p>
@@ -3768,7 +3796,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a><code>OfflineAudioContext</code></a> and an
           <a><code>AudioContext</code></a>.
         </p>
-        <dl title="interface AudioBuffer" class="idl">
+        <dl title=
+        "[Constructor(BaseAudioContext context, AudioBufferOptions options)]interface AudioBuffer"
+        class="idl">
           <dt>
             readonly attribute float sampleRate
           </dt>
@@ -3961,6 +3991,37 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           since the <a>AudioNode</a> will continue to use the data previously
           acquired.
         </p>
+        <section>
+          <h2>
+            AudioBufferOptions
+          </h2>
+          <p>
+            This specifies the options to use in constructing an
+            <a><code>AudioBuffer</code></a>. All members are required. A
+            NotFoundError exception MUST be thrown if any of the required
+            members are not specified.
+          </p>
+          <dl title="dictionary AudioBufferOptions" class="idl">
+            <dt>
+              unsigned long numberOfChannels
+            </dt>
+            <dd>
+              The number of channels for the buffer
+            </dd>
+            <dt>
+              unsigned long length
+            </dt>
+            <dd>
+              The length in sample frames of the buffer.
+            </dd>
+            <dt>
+              float sampleRate
+            </dt>
+            <dd>
+              The sample rate in Hz for the buffer.
+            </dd>
+          </dl>
+        </section>
       </section>
       <section>
         <h2 id="AudioBufferSourceNode">
@@ -3972,16 +4033,26 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           assets which require a high degree of scheduling flexibility, for
           instance, playing back in rhythmically-perfect ways. If
           sample-accurate playback of network- or disk-backed assets is
-          required, an implementer should use <a><code>AudioWorker</code></a>
-          to implement playback.
+          required, an implementer should use
+          <a><code>AudioWorkletNode</code></a> to implement playback.
         </p>
         <p>
-          The start() method is used to schedule when sound playback will
-          happen. The start() method may not be issued multiple times. The
+          The <a href=
+          "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+          <code>start()</code></a> method is used to schedule when sound
+          playback will happen. The <a href=
+          "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+          <code>start()</code></a> method may not be issued multiple times. The
           playback will stop automatically when the buffer's audio data has
-          been completely played (if the <code>loop</code> attribute is false),
-          or when the stop() method has been called and the specified time has
-          been reached. Please see more details in the start() and stop()
+          been completely played (if the <a href=
+          "#widl-AudioBufferSourceNode-loop"><code>loop</code></a> attribute is
+          <code>false</code>), or when the <a href=
+          "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
+          method has been called and the specified time has been reached.
+          Please see more details in the <a href=
+          "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+          <code>start()</code></a> and <a href=
+          "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
           description.
         </p>
         <pre>
@@ -3990,10 +4061,18 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
 </pre>
         <p>
           The number of channels of the output always equals the number of
-          channels of the AudioBuffer assigned to the .buffer attribute, or is
-          one channel of silence if .buffer is NULL.
+          channels of the AudioBuffer assigned to the <a href=
+          "#widl-AudioBufferSourceNode-buffer"><code>buffer</code></a>
+          attribute, or is one channel of silence if <a href=
+          "#widl-AudioBufferSourceNode-buffer"><code>buffer</code></a> is
+          <code>null</code>.
         </p>
-        <dl title="interface AudioBufferSourceNode : AudioNode" class="idl">
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
+        <dl title=
+        "[Constructor(BaseAudioContext context, optional AudioBufferSourceOptions)]interface AudioBufferSourceNode : AudioNode"
+        class="idl">
           <dt>
             attribute AudioBuffer? buffer
           </dt>
@@ -4025,8 +4104,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             <p>
               The speed at which to render the audio stream. Its default
               <code>value</code> is 1. This parameter is <a>k-rate</a>. This is
-              a <a>compound parameter</a> with <code>detune</code>. Its nominal
-              range is \([-\infty, \infty]\).
+              a <a>compound parameter</a> with <code>detune</code>. Its
+              <a>nominal range</a> is \([-\infty, \infty]\).
             </p>
           </dd>
           <dt>
@@ -4037,8 +4116,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               An additional parameter, in cents, to modulate the speed at which
               is rendered the audio stream. Its default value is 0. This
               parameter is <a>k-rate</a>. This parameter is a <a>compound
-              parameter</a> with <code>playbackRate</code>. Its nominal range
-              is \((-\infty, \infty)\).
+              parameter</a> with <code>playbackRate</code>. Its <a>nominal
+              range</a> is \((-\infty, \infty)\).
             </p>
           </dd>
           <dt>
@@ -4218,14 +4297,76 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         <p>
           The <code>computedPlaybackRate</code> is the effective speed at which
           the <a><code>AudioBuffer</code></a> of this
-          <a><code>AudioBufferSourceNode</code></a> MUST be played. Its nominal
-          range is [-100, 100].
+          <a><code>AudioBufferSourceNode</code></a> MUST be played. Its
+          <a>nominal range</a> is [-100, 100].
         </p>
         <p>
           This MUST be implemented by <em>resampling</em> the input data using
           a resampling ratio of 1 / <code>computedPlaybackRate</code>, hence
           changing both the pitch and speed of the audio.
         </p>
+        <section>
+          <h2>
+            AudioBufferSourceOptions
+          </h2>
+          <p>
+            This specifies options for constructing a
+            <a><code>AudioBufferSourceNode</code></a>. All members are
+            optional; if not specified, the normal default is used in
+            constructing the node.
+          </p>
+          <dl title="dictionary AudioBufferSourceOptions" class="idl">
+            <dt>
+              AudioBuffer buffer
+            </dt>
+            <dd>
+              The audio asset to be played. This is equivalent to assigning
+              <code>buffer</code> to the <a href=
+              "#widl-AudioBufferSourceNode-buffer"><code>buffer</code></a>
+              attribute of the <a>AudioBufferSourceNode</a>.
+            </dd>
+            <dt>
+              float detune
+            </dt>
+            <dd>
+              The initial value for the <a href=
+              "#widl-AudioBufferSourceNode-detune"><code>detune</code></a>
+              AudioParam.
+            </dd>
+            <dt>
+              boolean loop
+            </dt>
+            <dd>
+              The initial value for the <a href=
+              "#widl-AudioBufferSourceNode-loop"><code>loop</code></a>
+              attribute.
+            </dd>
+            <dt>
+              double loopEnd
+            </dt>
+            <dd>
+              The initial value for the <a href=
+              "#widl-AudioBufferSourceNode-loopEnd"><code>loopEnd</code></a>
+              attribute.
+            </dd>
+            <dt>
+              double loopStart
+            </dt>
+            <dd>
+              The initial value for the <a href=
+              "#widl-AudioBufferSourceNode-loopStart"><code>loopStart</code></a>
+              attribute.
+            </dd>
+            <dt>
+              float playbackRate
+            </dt>
+            <dd>
+              The initial value for the <a href=
+              "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
+              AudioParam.
+            </dd>
+          </dl>
+        </section>
         <section>
           <h3 id="looping-AudioBufferSourceNode">
             Looping
@@ -4300,6 +4441,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           If the .src attribute is not set, then the number of channels output
           will be one silent channel.
         </p>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
         <dl title=
         "[Constructor(AudioContext context, MediaElementAudioSourceOptions options)]interface MediaElementAudioSourceNode : AudioNode"
         class="idl"></dl>
@@ -4373,698 +4517,6 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             "http://www.w3.org/html/wg/drafts/html/master/infrastructure.html#cors-cross-origin">
             CORS-cross-origin</a>.
           </p>
-        </section>
-      </section>
-      <section>
-        <h2 id="AudioWorker">
-          The <dfn>AudioWorker</dfn> interface
-        </h2>
-        <p>
-          An AudioWorker object is the main-thread representation of a worker
-          "thread" that supports processing of audio in Javascript. This
-          AudioWorker object is a factory that is used to create multiple audio
-          nodes of the same type; this enables easy sharing of code, program
-          data and global state across nodes. An AudioWorker can then be used
-          to create instances of <a>AudioWorkerNode</a>, which is the
-          main-thread representation of an individual node processed by that
-          AudioWorker.
-        </p>
-        <p>
-          These <a>control thread</a> objects cause the instantiation of a
-          processing context in the <a>rendering thread</a>. All audio
-          processing by AudioWorkerNodes run in the audio processing thread.
-          This has a few side effects that bear mentioning: blocking the audio
-          worker's thread can cause glitches in the audio, and if the audio
-          thread is normally elevated in thread priority (to reduce glitching
-          possibility), it must be demoted to normal thread priority (in order
-          to avoid escalating thread priority of user-supplied script code).
-        </p>
-        <p>
-          From inside an audio worker script, the Audio Worker factory is
-          represented by an <a><code>AudioWorkerGlobalScope</code></a> object
-          representing the node's contextual information, and individual audio
-          nodes created by the factory are represented by
-          <a><code>AudioWorkerNodeProcessor</code></a> objects.
-        </p>
-        <p>
-          In addition, all <a>AudioWorkerNode</a>s that are created by the same
-          <a>AudioWorker</a> share an <a>AudioWorkerGlobalScope</a>; this can
-          allow them to share context and data across nodes (for example,
-          loading a single instance of a shared database used by the individual
-          nodes, or sharing context in order to implement oscillator
-          synchronization).
-        </p>
-        <dl title="interface AudioWorker : Worker" class="idl">
-          <dt>
-            void terminate()
-          </dt>
-          <dd>
-            <p>
-              The terminate() method, when invoked, must cause the cessation of
-              any <a>AudioProcessEvent</a>s being dispatched inside the
-              AudioWorker's associated <a>AudioWorkerGlobalScope</a>. It will
-              also cause all associated AudioWorkerNodes to cease processing,
-              and will cause the destruction of the worker's context. In
-              practical terms, this means all nodes created from this
-              AudioWorker will disconnect themselves, and will cease performing
-              any useful functions.
-            </p>
-          </dd>
-          <dt>
-            void postMessage(any message, optional sequence&lt;Transferable&gt;
-            transfer)
-          </dt>
-          <dd>
-            <p>
-              postMessage may be called to send a message to the
-              <a>AudioWorkerGlobalScope</a>, similar to the algorithm defined
-              by [[!Workers]].
-            </p>
-          </dd>
-          <dt>
-            readonly attribute AudioWorkerParamDescriptor[] parameters
-          </dt>
-          <dd>
-            <p>
-              This array contains descriptors for each of the current
-              parameters on nodes created by this AudioWorker. This enables
-              users of the AudioWorker to easily iterate over the AudioParam
-              names and default values.
-            </p>
-          </dd>
-          <dt>
-            attribute EventHandler onmessage
-          </dt>
-          <dd>
-            <p>
-              The onmessage handler is called whenever the
-              <a>AudioWorkerGlobalScope</a> posts a message back to the main
-              thread.
-            </p>
-          </dd>
-          <dt>
-            attribute EventHandler onloaded
-          </dt>
-          <dd>
-            <p>
-              The onloaded handler is called after the script is successfully
-              loaded and its global scope code is run to initialize the
-              <a>AudioWorkerGlobalScope</a>.
-            </p>
-          </dd>
-          <dt>
-            AudioWorkerNode createNode(int numberOfInputs, int numberOfOutputs)
-          </dt>
-          <dd>
-            <p>
-              Creates a node instance in the audio worker.
-            </p>
-          </dd>
-          <dt>
-            AudioParam addParameter(DOMString name, float defaultValue)
-          </dt>
-          <dd>
-            <p>
-              Causes a correspondingly-named read-only <a>AudioParam</a> to be
-              present on any <a>AudioWorkerNode</a>s created (previously or
-              subsequently) by this <a>AudioWorker</a>, and a
-              correspondingly-named read-only <a>Float32Array</a> to be present
-              on the <a><code>parameters</code></a> object exposed on the
-              <a>AudioProcessEvent</a> on subsequent audio processing events
-              for such nodes. The AudioParam may immediately have its
-              scheduling methods called, its .<a>value</a> set, or
-              <a>AudioNode</a>s connected to it.
-            </p>
-            <p>
-              The <code>name</code> parameter is the name used for the
-              read-only AudioParam added to the AudioWorkerNode, and the name
-              used for the read-only <code>Float32Array</code> that will be
-              present on the <a><code>parameters</code></a> object exposed on
-              subsequent <a>AudioProcessEvent</a>s.
-            </p>
-            <p>
-              The <a><code>defaultValue</code></a> parameter is the default
-              value for the <a>AudioParam</a>'s <a>value</a> attribute, as well
-              as therefore the default value that will appear in the
-              Float32Array in the worker script (if no other parameter changes
-              or connections affect the value).
-            </p>
-          </dd>
-          <dt>
-            void removeParameter(DOMString name)
-          </dt>
-          <dd>
-            <p>
-              Removes a previously-added parameter named <code>name</code> from
-              all <a>AudioWorkerNode</a>s associated with this
-              <a>AudioWorker</a> and its <a>AudioWorkerGlobalScope</a>. This
-              will also remove the correspondingly-named read-only
-              <a>AudioParam</a> from the <a>AudioWorkerNode</a>, and will
-              remove the correspondingly-named read-only <a>Float32Array</a>s
-              from the <a>AudioProcessEvent</a>'s
-              <a><code>parameters</code></a> member on subsequent audio
-              processing events. <span class="synchronous">A NotFoundError
-              exception must be thrown if no parameter with that name exists on
-              this <a>AudioWorker</a></span>.
-            </p>
-            <p>
-              The <code>name</code> parameter identifies the parameter to be
-              removed.
-            </p>
-          </dd>
-        </dl>
-        <p>
-          Note that <a>AudioWorkerNode</a> objects will also have read-only
-          AudioParam objects for each named parameter added via the
-          <code>addParameter</code> method. As this is dynamic, it cannot be
-          captured in IDL.
-        </p>
-        <p>
-          As the <a>AudioWorker</a> interface inherits from
-          <code>Worker</code>, <a>AudioWorker</a>s must implement the
-          <code>Worker</code> interface for communication with the audio worker
-          script.
-        </p>
-        <section>
-          <h2 id="AudioWorkerNode">
-            The <dfn>AudioWorkerNode</dfn> Interface
-          </h2>
-          <p>
-            This interface represents an <a><code>AudioNode</code></a> which
-            interacts with a <code>Worker</code> thread to generate, process,
-            or analyse audio directly. The user creates a separate audio
-            processing worker script, which is hosted inside the
-            AudioWorkerGlobalScope and runs inside the audio processing thread,
-            rather than the main UI thread. The AudioWorkerNode represents the
-            processing node in the main processing thread's node graph; the
-            AudioWorkerGlobalScope represents the context in which the user's
-            audio processing script is run.
-          </p>
-          <p>
-            Nota bene that if the Web Audio implementation normally runs audio
-            process at higher than normal thread priority, utilizing
-            AudioWorkerNodes may cause demotion of the priority of the audio
-            thread (since user scripts cannot be run with higher than normal
-            priority).
-          </p>
-          <pre>
-    numberOfInputs  : variable
-    numberOfOutputs : variable
-
-    channelCount = numberOfInputChannels;
-    channelCountMode = "explicit";
-    channelInterpretation = "speakers";
-</pre>
-          <p>
-            The number of input and output channels specified in the
-            createAudioWorkerNode() call determines the initial number of input
-            and output channels (and the number of channels present for each
-            input and output in the AudioBuffers passed to the AudioProcess
-            event handler inside the <a>AudioWorkerGlobalScope</a>). It is
-            invalid for both <!--a href=
-            "#AudioWorker-numberOfInputChannels"--><a><code>numberOfInputChannels</code></a>
-and <!--a href=
-            "#AudioWorker-numberOfOutputChannels"--><a><code>numberOfOutputChannels</code></a>
-to be zero.
-          </p>
-          <p>
-            Example usage:
-          </p>
-          <pre>
-    var bitcrusherFactory = context.createAudioWorker( "bitcrusher.js" );
-    var bitcrusherNode = bitcrusherFactory.createNode();
-</pre>
-          <dl title="interface AudioWorkerNode : AudioNode" class="idl">
-            <dt>
-              void postMessage(any message, optional
-              sequence&lt;Transferable&gt; transfer)
-            </dt>
-            <dd>
-              <p>
-                postMessage may be called to send a message to the
-                AudioWorkerNodeProcessor, via the algorithm defined by <a href=
-                "https://w3c.github.io/workers/#dom-worker-postmessage">the
-                Worker specification</a>. Note that this is different from
-                calling postMessage() on the AudioWorker itself, as that would
-                affect the AudioWorkerGlobalScope.
-              </p>
-            </dd>
-            <dt>
-              attribute EventHandler onmessage
-            </dt>
-            <dd>
-              <p>
-                The onmessage handler is called whenever the
-                AudioWorkerNodeProcessor posts a node message back to the main
-                thread.
-              </p>
-            </dd>
-          </dl>
-          <p>
-            Note that <a>AudioWorkerNode</a> objects will also have read-only
-            AudioParam objects for each named parameter added via the
-            <code>addParameter</code> method on the AudioWorker. As this is
-            dynamic, it cannot be captured here in IDL.
-          </p>
-        </section>
-        <section>
-          <h2 id="AudioWorkerParamDescriptor">
-            The <dfn>AudioWorkerParamDescriptor</dfn> Interface
-          </h2>
-          <p>
-            This interface represents the description of an AudioWorkerNode
-            AudioParam - in short, its name and default value. This enables
-            easy iteration over the AudioParams from an AudioWorkerGlobalScope
-            (which does not have an instance of those AudioParams).
-          </p>
-          <dl title="interface AudioWorkerParamDescriptor" class="idl">
-            <dt>
-              readonly attribute DOMString name
-            </dt>
-            <dd>
-              <p>
-                The name of the AudioParam.
-              </p>
-            </dd>
-            <dt>
-              readonly attribute float defaultValue
-            </dt>
-            <dd>
-              <p>
-                The default value of the AudioParam.
-              </p>
-            </dd>
-          </dl>
-        </section>
-        <section>
-          <h2>
-            The AudioWorkerGlobalScope Interface
-          </h2>
-          <p>
-            This interface is a <code>DedicatedWorkerGlobalScope</code>-derived
-            object representing the context in which an audio processing script
-            is run; it is designed to enable the generation, processing, and
-            analysis of audio data directly using JavaScript in a Worker
-            thread, with shared context between multiple instances of audio
-            nodes. This facilitates nodes that may have substantial shared
-            data, e.g. a convolution node.
-          </p>-
-          <p>
-            The <a><code>AudioWorkerGlobalScope</code></a> handles - <dfn id=
-            "audioprocess-worker">audioprocess</dfn> events dispatched -
-            synchronously to process audio frame blocks for nodes created by
-            this worker. - <a href=
-            "#audioprocess-worker"><code>audioprocess</code></a> events are
-            only - dispatched for nodes that have at least one input - or one
-            output connected. TODO: should this be true?
-          </p>
-          <dl title=
-          "interface AudioWorkerGlobalScope : DedicatedWorkerGlobalScope"
-          class="idl">
-            <dt>
-              readonly attribute float sampleRate
-            </dt>
-            <dd>
-              <p>
-                The sample rate of the host <a>AudioContext</a> (since inside
-                the <code>Worker</code> scope, the user will not have direct
-                access to the <a>AudioContext</a>.
-              </p>
-            </dd>
-            <dt>
-              AudioParam addParameter(DOMString name, float defaultValue)
-            </dt>
-            <dd>
-              <p>
-                Causes a correspondingly-named read-only <a>AudioParam</a> to
-                be present on previously-created and subsequently-created
-                <a>AudioWorkerNode</a>s created by this factory, and a
-                correspondingly-named read-only <a>Float32Array</a> to be
-                present on the <a><code>parameters</code></a> object exposed on
-                the <a>AudioProcessEvent</a> on subsequent audio processing
-                events for nodes created from this factory.
-              </p>
-              <p>
-                It is purposeful that AudioParams can be added (or removed)
-                from an Audio Worker from either the control thread or the
-                worker script; this enables immediate creation of worker-based
-                nodes and their prototypes, but also enables packaging an
-                entire worker including its AudioParam configuration into a
-                single script. It is recommended that nodes be used only after
-                the AudioWorkerNode's oninitialized has been called, in order
-                to allow the worker script to configure the node.
-              </p>
-              <p>
-                The <code>name</code> parameter is the name used for the
-                read-only AudioParam added to the AudioWorkerNode, and the name
-                used for the read-only <code>Float32Array</code> that will be
-                present on the <a><code>parameters</code></a> object exposed on
-                subsequent <a>AudioProcessEvent</a>s.
-              </p>
-              <p>
-                The <dfn id="dfn-defaultValue">defaultValue</dfn> parameter is
-                the default value for the <a>AudioParam</a>'s <a>value</a>
-                attribute, as well as therefore the default value that will
-                appear in the Float32Array in the worker script (if no other
-                parameter changes or connections affect the value).
-              </p>
-            </dd>
-            <dt>
-              void removeParameter(DOMString name)
-            </dt>
-            <dd>
-              <p>
-                Removes a previously-added parameter named <code>name</code>
-                from nodes processed by this factory. This will also remove the
-                correspondingly-named read-only <a>AudioParam</a> from the
-                <a>AudioWorkerNode</a>, and will remove the
-                correspondingly-named read-only <a>Float32Array</a> from the
-                <a>AudioProcessEvent</a>'s <a><code>parameters</code></a>
-                member on subsequent audio processing events. <span class=
-                "synchronous">A NotFoundError exception MUST be thrown if no
-                parameter with that name exists on this node.</span>
-              </p>
-              <p>
-                The <code>name</code> parameter identifies the parameter to be
-                removed.
-              </p>
-            </dd>
-            <dt>
-              attribute EventHandler onaudioprocess
-            </dt>
-            <dd>
-              <p>
-                A property used to set the <code>EventHandler</code> (described
-                in [[!HTML]]) for the <a href=
-                "#audioprocess-worker"><code>audioprocess</code></a> event that
-                is dispatched to <a><code>AudioWorkerGlobalScope</code></a> to
-                process audio while the associated nodes are connected (to at
-                least one input or output). An event of type
-                <a><code>AudioProcessEvent</code></a> will be dispatched to the
-                event handler.
-              </p>
-            </dd>
-            <dt>
-              attribute EventHandler onnodecreate
-            </dt>
-            <dd>
-              <p>
-                A property used to set the <code>EventHandler</code> (described
-                in [[!HTML]]) for the <a href=
-                "#audioprocess-worker"><code>nodecreate</code></a> event that
-                is dispatched to <a><code>AudioWorkerGlobalScope</code></a>
-                when a new <a><code>AudioWorkerNode</code></a> has been
-                created. This enables the scope to do node-level initialization
-                of the <a>AudioNodeProcessor</a> object. An event of type
-                <a><code>AudioWorkerNodeCreationEvent</code></a> will be
-                dispatched to the event handler.
-              </p>
-            </dd>
-            <dt>
-              readonly attribute AudioWorkerParamDescriptor[] parameters
-            </dt>
-            <dd>
-              <p>
-                This array contains descriptors for each of the current
-                parameters on nodes created in this AudioWorkerGlobalScope.
-                This enables audio worker implementations to easily iterate
-                over the AudioParam names and default values.
-              </p>
-            </dd>
-          </dl>
-        </section>
-        <section>
-          <h2>
-            The AudioWorkerNodeProcessor Interface
-          </h2>
-          <p>
-            An object supporting this interface represents each individual node
-            instantiated in an <a><code>AudioWorkerGlobalScope</code></a>; it
-            is designed to manage the data for an individual node. Shared
-            context between multiple instances of audio nodes is accessible
-            from the <a>AudioWorkerGlobalScope</a>; this object represents the
-            individual node and can be used for data storage or main-thread
-            communication.
-          </p>
-          <dl title="interface AudioWorkerNodeProcessor : EventTarget" class=
-          "idl">
-            <dt>
-              void postMessage(any message, optional
-              sequence&lt;Transferable&gt; transfer)
-            </dt>
-            <dd>
-              <p>
-                postMessage may be called to send a message to the
-                AudioWorkerNode, via the algorithm defined by <a href=
-                "https://w3c.github.io/workers/#dom-worker-postmessage">the
-                Worker specification</a>. Note that this is different from
-                calling postMessage() on the AudioWorker itself, as that would
-                dispatch to the AudioWorkerGlobalScope.
-              </p>
-            </dd>
-            <dt>
-              attribute EventHandler onmessage
-            </dt>
-            <dd>
-              <p>
-                The onmessage handler is called whenever the AudioWorkerNode
-                posts a node message back to the audio thread.
-              </p>
-            </dd>
-          </dl>
-        </section>
-        <section class="informative">
-          <h3>
-            Audio Worker Examples
-          </h3>
-          <section>
-            <h4>
-              A Bitcrusher Node
-            </h4>
-            <p>
-              Bitcrushing is a mechanism by which the audio quality of an audio
-              stream is reduced - both by quantizing the value (simulating
-              lower bit-depth in integer-based audio), and by quantizing in
-              time (simulating a lower digital sample rate). This example shows
-              how to use AudioParams (in this case, treated as a-rate) inside
-              an AudioWorker.
-            </p>
-            <h5>
-              Main file javascript
-            </h5>
-            <pre>
-var bitcrusherFactory = null;
-audioContext.createAudioWorker("bitcrusher_worker.js").then(function (factory) {
-  // cache 'factory' in case you want to create more nodes!
-  bitcrusherFactory = factory;
-  var bitcrusherNode = factory.createNode();
-  bitcrusherNode.bits.setValueAtTime(8, 0);
-  bitcrusherNode.connect(output);
-  input.connect(bitcrusherNode);
-});
-</pre>
-            <h5>
-              bitcrusher_worker.js
-            </h5>
-            <pre>
-// Custom parameter - number of bits to crush down to - default 8
-this.addParameter("bits", 8);
-
-// Custom parameter - frequency reduction, 0-1, default 0.5
-this.addParameter("frequencyReduction", 0.5);
-
-onnodecreate = function (e) {
-  e.node.phaser = 0;
-  e.node.lastDataValue = 0;
-}
-
-onaudioprocess = function (e) {
-  for (var channel = 0; channel &lt; e.inputs[0].length; channel++) {
-    var inputBuffer = e.inputs[0][channel];
-    var outputBuffer = e.outputs[0][channel];
-    var bufferLength = inputBuffer.length;
-    var bitsArray = e.parameters.bits;
-    var frequencyReductionArray = e.parameters.frequencyReduction;
-
-    for (var i = 0; i &lt; bufferLength; i++) {
-      var bits = bitsArray ? bitsArray[i] : 8;
-      var frequencyReduction = frequencyReductionArray ?
-        frequencyReductionArray[i] : 0.5;
-
-      var step = Math.pow(1 / 2, bits);
-      e.node.phaser += frequencyReduction;
-      if (e.node.phaser &gt;= 1.0) {
-        e.node.phaser -= 1.0;
-        e.node.lastDataValue = step * Math.floor(inputBuffer[i] / step + 0.5);
-      }
-      outputBuffer[i] = e.node.lastDataValue;
-    }
-  }
-};
-</pre>
-          </section>
-          <section>
-            <h4>
-              TODO: fix up this example. A Volume Meter and Clip Detector
-            </h4>
-            <p>
-              Another common need is a clip-detecting volume meter. This
-              example shows how to communicate basic parameters (that do not
-              need AudioParam scheduling) across to a Worker, as well as
-              communicating data back to the control thread. This node does not
-              use any output.
-            </p>
-            <h5>
-              Main file javascript
-            </h5>
-            <pre>
-function setupNodeMessaging(node) {
-  // This handles communication back from the volume meter
-  node.onmessage = function (event) {
-    if (event.data instanceof Object) {
-      if (event.data.hasOwnProperty("clip"))
-        this.clip = event.data.clip;
-      if (event.data.hasOwnProperty("volume"))
-        this.volume = event.data.volume;
-    }
-  }
-
-  // Set up some default configuration parameters
-  node.postMessage({
-    "smoothing": 0.9, // Smoothing parameter
-    "clipLevel": 0.9, // Level to consider "clipping"
-    "clipLag": 750, // How long to keep "clipping" lit up after clip (ms)
-    "updating": 100 // How frequently to update volume and clip param (ms)
-  });
-
-  // Set up volume and clip attributes.  These will be updated by our onmessage.
-  node.volume = 0;
-  node.clip = false;
-}
-
-var vuNode = null;
-
-audioContext.createAudioWorker("vu_meter_worker.js").then(function (factory) {
-  // cache 'factory' in case you want to create more nodes!
-  vuFactory = factory;
-  // we don't need an output, and let's force to mono
-  vuNode = factory.createNode([1], []);
-  setupNodeMessaging(vuNode);
-});
-
-window.requestAnimationFrame(function (timestamp) {
-  if (vuNode) {
-    // Draw a bar based on vuNode.volume and vuNode.clip
-  }
-});
-
-</pre>
-            <h5>
-              vu_meter_worker.js
-            </h5>
-            <pre>
-// Custom parameter - number of bits to crush down to - default 8
-this.addParameter("bits", 8);
-
-// Custom parameter - frequency reduction, 0-1, default 0.5
-this.addParameter("frequencyReduction", 0.5);
-
-onnodecreate = function (e) {
-  e.node.timeToNextUpdate = 0.1 * sampleRate;
-  e.node.smoothing = 0.5;
-  e.node.clipLevel = 0.95;
-  e.node.clipLag = 1;
-  e.node.updatingInterval = 150;
-  // This just handles setting attribute values
-  e.node.onmessage = function (event) {
-    if (event.data instanceof Object) {
-      if (event.data.hasOwnProperty("smoothing"))
-        this.smoothing = event.data.smoothing;
-      if (event.data.hasOwnProperty("clipLevel"))
-        this.clipLevel = event.data.clipLevel;
-      if (event.data.hasOwnProperty("clipLag"))
-        this.clipLag = event.data.clipLag / 1000; // convert to seconds
-      if (event.data.hasOwnProperty("updating")) // convert to samples
-        this.updatingInterval = event.data.updating * sampleRate / 1000;
-    }
-  };
-}
-
-onaudioprocess = function (event) {
-  var buf = event.inputs[0][0]; // Node forces mono
-  var bufLength = buf.length;
-  var sum = 0;
-  var x;
-
-  // Do a root-mean-square on the samples: sum up the squares...
-  for (var i = 0; i &lt; bufLength; i++) {
-    x = buf[i];
-    if (Math.abs(x) &gt;= event.node.clipLevel) {
-      event.node.clipping = true;
-      event.node.unsentClip = true; // Make sure, for every clip, we send a message.
-      event.node.lastClip = event.playbackTime + (i / sampleRate);
-    }
-    sum += x * x;
-  }
-
-  // ... then take the square root of the sum.
-  var rms = Math.sqrt(sum / bufLength);
-
-  // Now smooth this out with the smoothing factor applied
-  // to the previous sample - take the max here because we
-  // want "fast attack, slow release."
-  event.node.volume = Math.max(rms, event.node.volume * event.node.smoothing);
-  if (event.node.clipping &amp;& (!event.node.unsentClip) &amp;& (event.playbackTime
-      &gt; (this.lastClip + clipLag)))
-    event.node.clipping = false;
-
-  // How long has it been since our last update?
-  event.node.timeToNextUpdate -= event.node.last;
-  if (event.node.timeToNextUpdate & lt; 0) {
-    event.node.timeToNextUpdate = event.node.updatingInterval;
-    event.node.postMessage({
-      "volume": event.node.volume,
-      "clip": event.node.clipping
-    });
-    event.node.unsentClip = false;
-  }
-};
-</pre>
-          </section>
-          <section>
-            <h4>
-              Reimplementing ChannelMerger
-            </h4>
-            <p>
-              This worker shows how to merge inputs into a single output
-              channel.
-            </p>
-            <h5>
-              Main file javascript
-            </h5>
-            <pre>
-var mergerNode = audioContext.createAudioWorker("merger_worker.js", [1, 1, 1, 1, 1, 1], [6]);
-</pre>
-            <pre>
-var mergerFactory = null;
-
-audioContext.createAudioWorker("merger_worker.js").then(function (factory) {
-  // cache 'factory' in case you want to create more nodes!
-  mergerFactory = factory;
-  var merger6channelNode = factory.createNode([1, 1, 1, 1, 1, 1], [6]);
-  // connect inputs and outputs here
-});
-</pre>
-            <h5>
-              merger_worker.js
-            </h5>
-            <pre>
-onaudioprocess= function (e) {
-  for (var input=0; input&lt;e,node.inputs.length; input++)
-    e.node.outputs[0][input].set(e.node.inputs[input][0]);
-};
-</pre>
-          </section>
         </section>
       </section>
       <section>
@@ -5814,7 +5266,7 @@ registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
           This interface is an <a><code>AudioNode</code></a> which can
           generate, process, or analyse audio directly using JavaScript. This
           node type is deprecated, to be replaced by the
-          <a>AudioWorkerNode</a>; this text is only here for informative
+          <a>AudioWorkletNode</a>; this text is only here for informative
           purposes until implementations remove this node type.
         </p>
         <pre>
@@ -5835,10 +5287,11 @@ registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
           The <a><code>ScriptProcessorNode</code></a> is constructed with a
           <dfn>bufferSize</dfn> which must be one of the following values: 256,
           512, 1024, 2048, 4096, 8192, 16384. This value controls how
-          frequently the 
-          <!--a href="#audioprocess-spnode"--><a>audioprocess</a> event is
+          frequently the <a href=
+          "#widl-ScriptProcessorNode-onaudioprocess">audioprocess</a> event is
           dispatched and how many sample-frames need to be processed each call.
-          <!--a href="#audioprocess-spnode"--><a><code>audioprocess</code></a>
+          <a href=
+          "#widl-ScriptProcessorNode-onaudioprocess"><code>audioprocess</code></a>
           events are only dispatched if the
           <a><code>ScriptProcessorNode</code></a> has at least one input or one
           output connected. Lower numbers for <a href=
@@ -5869,11 +5322,12 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
               A property used to set the <code>EventHandler</code> (described
               in <cite><a href=
               "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
-              HTML</a></cite>[[!HTML]]) for the <!--a href=
-            "#audioprocess-spnode"--><a><code>audioprocess</code></a> event
-that is dispatched to <a><code>ScriptProcessorNode</code></a> node types. An
-event of type <a><code>AudioProcessingEvent</code></a> will be dispatched to
-the event handler.
+              HTML</a></cite>[[!HTML]]) for the <a href=
+              "#widl-ScriptProcessorNode-onaudioprocess"><code>audioprocess</code></a>
+              event that is dispatched to
+              <a><code>ScriptProcessorNode</code></a> node types. An event of
+              type <a><code>AudioProcessingEvent</code></a> will be dispatched
+              to the event handler.
             </p>
           </dd>
           <dt>
@@ -5882,149 +5336,10 @@ the event handler.
           <dd>
             <p>
               The size of the buffer (in sample-frames) which needs to be
-              processed each time <code>onaudioprocess</code> is called. Legal
-              values are (256, 512, 1024, 2048, 4096, 8192, 16384).
-            </p>
-          </dd>
-        </dl>
-      </section>
-      <section>
-        <h2>
-          The AudioWorkerNodeCreationEvent Interface
-        </h2>
-        <p>
-          This is an <code>Event</code> object which is dispatched to
-          <a><code>AudioWorkerGlobalScope</code></a> objects when a new node
-          instance is created. This allows AudioWorkers to initialize any
-          node-local data (e.g. allocating a delay or initializing local
-          variables).
-        </p>
-        <dl title="interface AudioWorkerNodeCreationEvent : Event" class="idl">
-          <dt>
-            readonly attribute AudioWorkerNodeProcessor node
-          </dt>
-          <dd>
-            <p>
-              The new node being created. Any node-local data storage (e.g.,
-              the buffer for a delay node) should be created on this object.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute Array inputs
-          </dt>
-          <dd>
-            <p>
-              An array of channelCounts for the inputs.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute Array outputs
-          </dt>
-          <dd>
-            <p>
-              An array of channelCounts for the outputs.
-            </p>
-          </dd>
-        </dl>
-      </section>
-      <section>
-        <h2>
-          The AudioProcessEvent Interface
-        </h2>
-        <p>
-          This is an <code>Event</code> object which is dispatched to
-          <a><code>AudioWorkerGlobalScope</code></a> objects to perform
-          processing.
-        </p>
-        <p>
-          The event handler processes audio from the input (if any) by
-          accessing the audio data from the <code>inputBuffers</code>
-          attribute. The audio data which is the result of the processing (or
-          the synthesized data if there are no inputs) is then placed into the
-          <code>outputBuffers</code>.
-        </p>
-        <dl title="interface AudioProcessEvent : Event" class="idl">
-          <dt>
-            readonly attribute double playbackTime
-          </dt>
-          <dd>
-            <p>
-              The starting time of the block of audio being processed in
-              response to this event. By definition this will be equal to the
-              value of <a><code>BaseAudioContext</code></a>'s <a href=
-              "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
-              that was most recently observable in the control thread.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute AudioWorkerNodeProcessor node
-          </dt>
-          <dd>
-            <p>
-              The node to which this processing event is being dispatched. Any
-              node-local data storage (e.g., the buffer for a delay node)
-              should be maintained on this object.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute Float32Array[][] inputs
-          </dt>
-          <dd>
-            <p>
-              A readonly Array of Arrays of Float32Arrays. The top-level Array
-              is organized by input; each input may contain multiple channels;
-              each channel contains a Float32Array of sample data. The initial
-              size of the channel array will be determined by the number of
-              channels specified for that input in the createAudioWorkerNode()
-              method. However, an onprocess handler may alter this number of
-              channels in the input dynamically, either by adding a
-              Float32Array of blocksize length (128) or by reducing the Array
-              (by reducing the Array.length or by using Array.pop() or
-              Array.slice(). The event object, the Array and the Float32Arrays
-              will be reused by the processing system, in order to minimize
-              memory churn.
-            </p>
-            <p>
-              Any reordering performed on the Array for an input will not
-              reorganize the connections to the channels for subsequent events.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute Float32Array[][] outputs
-          </dt>
-          <dd>
-            <p>
-              A readonly Array of Arrays of Float32Arrays. The top-level Array
-              is organized by output; each output may contain multiple
-              channels; each channel contains a Float32Array of sample data.
-              The initial size of the channel array will be determined by the
-              number of channels specified for that output in the
-              createAudioWorkerNode() method. However, an onprocess handler may
-              alter this number of channels in the output dynamically, either
-              by adding a Float32Array of blocksize length (128) or by reducing
-              the Array (by reducing the Array.length or by using Array.pop()
-              or Array.slice(). The event object, the Array and the
-              Float32Arrays will be reused by the processing system, in order
-              to minimize memory churn.
-            </p>
-            <p>
-              Any reordering performed on the Array for an output will not
-              reorganize the connections to the channels for subsequent events.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute object parameters
-          </dt>
-          <dd>
-            <p>
-              This object attribute exposes a correspondingly-named read-only
-              <a>Float32Array</a> for each parameter that has been added via
-              <a>addParameter</a>. As this is dynamic, this cannot be captured
-              in IDL. The length of this Float32Array will correspond to the
-              length of the inputBuffer. The contents of this Float32Array will
-              be the values to be used for the AudioParam at the corresponding
-              points in time. It is expected that this Float32Array will be
-              reused by the audio engine.
+              processed each time <a href=
+              "#widl-ScriptProcessorNode-onaudioprocess"><code>onaudioprocess</code></a>
+              is called. Legal values are (256, 512, 1024, 2048, 4096, 8192,
+              16384).
             </p>
           </dd>
         </dl>
@@ -6037,7 +5352,7 @@ the event handler.
           This is an <code>Event</code> object which is dispatched to
           <a><code>ScriptProcessorNode</code></a> nodes. It will be removed
           when the ScriptProcessorNode is removed, as the replacement
-          <a>AudioWorker</a> uses the <a>AudioProcessEvent</a>.
+          <a>AudioWorkletNode</a> uses a different approach.
         </p>
         <p>
           The event handler processes audio from the input (if any) by
@@ -6066,8 +5381,9 @@ the event handler.
               number of channels equal to the
               <code>numberOfInputChannels</code> parameter of the
               createScriptProcessor() method. This AudioBuffer is only valid
-              while in the scope of the <code>onaudioprocess</code> function.
-              Its values will be meaningless outside of this scope.
+              while in the scope of the <a href=
+              "#widl-ScriptProcessorNode-onaudioprocess"><code>onaudioprocess</code></a>
+              function. Its values will be meaningless outside of this scope.
             </p>
           </dd>
           <dt>
@@ -6079,10 +5395,12 @@ the event handler.
               will have a number of channels equal to the
               <code>numberOfOutputChannels</code> parameter of the
               createScriptProcessor() method. Script code within the scope of
-              the <code>onaudioprocess</code> function is expected to modify
-              the <code>Float32Array</code> arrays representing channel data in
-              this AudioBuffer. Any script modifications to this AudioBuffer
-              outside of this scope will not produce any audible effects.
+              the <a href=
+              "#widl-ScriptProcessorNode-onaudioprocess"><code>onaudioprocess</code></a>
+              function is expected to modify the <code>Float32Array</code>
+              arrays representing channel data in this AudioBuffer. Any script
+              modifications to this AudioBuffer outside of this scope will not
+              produce any audible effects.
             </p>
           </dd>
         </dl>
@@ -6124,6 +5442,12 @@ the event handler.
           spatialization algorithm will be used to position the audio in 3D
           space. The default is <code>"equalpower"</code>.
         </p>
+        <p>
+          This node may have a <a>tail-time</a> reference. If the <a href=
+          "#widl-PannerNode-panningModel">panningModel</a> is set to "HRTF",
+          the node will produce non-silent output for silent input due to the
+          inherent processing for the head responses.
+        </p>
         <dl title="enum PanningModelType" class="idl">
           <dt>
             equalpower
@@ -6131,6 +5455,10 @@ the event handler.
           <dd>
             A simple and efficient spatialization algorithm using equal-power
             panning.
+            <div class="note">
+              When this panning model is used, all the <a>AudioParam</a>s used
+              to compute the output of this node are <a>a-rate</a>.
+            </div>
           </dd>
           <dt>
             HRTF
@@ -6139,6 +5467,10 @@ the event handler.
             A higher quality spatialization algorithm using a convolution with
             measured impulse responses from human subjects. This panning method
             renders stereo output.
+            <div class="note">
+              When this panning model is used, all the <a>AudioParam</a>s used
+              to compute the output of this node are <a>k-rate</a>.
+            </div>
           </dd>
         </dl>
         <p>
@@ -6232,7 +5564,9 @@ the event handler.
             <p>
               Sets the x coordinate position of the audio source in a 3D
               Cartesian system. The default value is 0. This parameter is
-              a-rate.
+              <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6242,7 +5576,9 @@ the event handler.
             <p>
               Sets the y coordinate position of the audio source in a 3D
               Cartesian system. The default value is 0. This parameter is
-              a-rate.
+              <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6251,8 +5587,10 @@ the event handler.
           <dd>
             <p>
               Sets the z coordinate position of the audio source in a 3D
-              Cartesian system. The default value is 0. This parameter is
-              a-rate.
+              Cartesian system. The default value is 0. The default value is 0.
+              This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6265,7 +5603,9 @@ the event handler.
               Depending on how directional the sound is (controlled by the
               <b>cone</b> attributes), a sound pointing away from the listener
               can be very quiet or completely silent. The default value is 1.
-              This parameter is a-rate.
+              This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6275,7 +5615,9 @@ the event handler.
             <p>
               Describes the y component of the vector of the direction the
               audio source is pointing in 3D cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6285,7 +5627,9 @@ the event handler.
             <p>
               Describes the Z component of the vector of the direction the
               audio source is pointing in 3D cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd><!--<dt> // Distance model and attributes </dt>-->
           <dt>
@@ -6578,7 +5922,10 @@ the event handler.
             <p>
               Sets the x coordinate position of the audio listener in a 3D
               Cartesian coordinate space. The default value is 0. This
-              parameter is a-rate.
+              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
+              that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6588,7 +5935,10 @@ the event handler.
             <p>
               Sets the y coordinate position of the audio listener in a 3D
               Cartesian coordinate space. The default value is 0. This
-              parameter is a-rate.
+              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
+              that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6598,7 +5948,10 @@ the event handler.
             <p>
               Sets the z coordinate position of the audio listener in a 3D
               Cartesian coordinate space. The default value is 0. This
-              parameter is a-rate.
+              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
+              that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6608,7 +5961,10 @@ the event handler.
             <p>
               Sets the x coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when used
+              with a <a>PannerNode</a> that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6618,7 +5974,10 @@ the event handler.
             <p>
               Sets the y coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when used
+              with a <a>PannerNode</a> that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6628,7 +5987,10 @@ the event handler.
             <p>
               Sets the z coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is -1. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when used
+              with a <a>PannerNode</a> that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6755,6 +6117,9 @@ the event handler.
           The output of this node is hard-coded to stereo (2 channels) and
           cannot be configured.
         </p>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional StereoPannerOptions options)]interface StereoPannerNode : AudioNode"
         class="idl">
@@ -6830,6 +6195,11 @@ the event handler.
           appropriately</a>, but a NotSupportedError MUST be thrown if an
           attempt is made to set channelCount to a value great than 2 or if
           channelCountMode is set to "max".
+        </p>
+        <p>
+          This node has a <a>tail-time</a> reference such that this node
+          continues to output non-silent audio with zero input for the length
+          of the <a href="#widl-ConvolverNode-buffer"><code>buffer</code></a>.
         </p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional ConvolverOptions options)]interface ConvolverNode : AudioNode"
@@ -7003,7 +6373,8 @@ function calculateNormalizationScale(buffer)
             <a><code>ChannelMergerNode</code></a>.
           </p>
           <figure>
-            <img alt="reverb matrixing" src="images/reverb-matrixing.png">
+            <img alt="reverb matrixing" src="images/reverb-matrixing.png"
+            width="469" height="771">
             <figcaption>
               A graphical representation of supported input and output channel
               count possibilities when using a
@@ -7029,6 +6400,9 @@ function calculateNormalizationScale(buffer)
     channelCountMode = "max";
     channelInterpretation = "speakers";
 </pre>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional AnalyserOptions options)]interface AnalyserNode : AudioNode"
         class="idl">
@@ -7422,11 +6796,15 @@ function calculateNormalizationScale(buffer)
           this value is not provided. Any outputs which are not "active" will
           output silence and would typically not be connected to anything.
         </p>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
         <h3>
           Example:
         </h3>
         <figure>
-          <img alt="channel splitter" src="images/channel-splitter.png">
+          <img alt="channel splitter" src="images/channel-splitter.png" width=
+          "601" height="398">
           <figcaption>
             A diagram of a ChannelSplitter
           </figcaption>
@@ -7496,6 +6874,9 @@ function calculateNormalizationScale(buffer)
           and <code>channelCountMode</code> properties cannot be changed.
           <code>InvalidState</code> error MUST be thrown when they changed.
         </p>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
         <h3 id="example-2">
           Example:
         </h3>
@@ -7514,7 +6895,8 @@ function calculateNormalizationScale(buffer)
           simply combines channels in the order that they are input.
         </p>
         <figure>
-          <img alt="channel merger" src="images/channel-merger.png">
+          <img alt="channel merger" src="images/channel-merger.png" width="498"
+          height="402">
           <figcaption>
             A diagram of ChannelMerger
           </figcaption>
@@ -7565,6 +6947,9 @@ function calculateNormalizationScale(buffer)
     channelCountMode = "explicit";
     channelInterpretation = "speakers";
 </pre>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
         <dl title=
         "[Constructor(BaseAudioContext context, optional DynamicsCompressorOptions options)]interface DynamicsCompressorNode : AudioNode"
         class="idl">
@@ -7718,7 +7103,7 @@ function calculateNormalizationScale(buffer)
   computedFrequency(t) = frequency(t) * pow(2, detune(t) / 1200)
 </pre>
         <p>
-          The nominal range for this <a>compound parameter</a> is [0,
+          The <a>nominal range</a> for this <a>compound parameter</a> is [0,
           <a>Nyquist frequency</a>].
         </p>
         <pre>
@@ -7731,6 +7116,14 @@ function calculateNormalizationScale(buffer)
         <p>
           The number of channels of the output always equals the number of
           channels of the input.
+        </p>
+        <p>
+          This node has a <a>tail-time</a> reference such that this node
+          continues to output non-silent audio with zero input. Since this is
+          an IIR filter, the filter produces non-zero input forever, but in
+          practice, this can be limited after some finite time where the output
+          is sufficiently close to zero. The actual time depends on the filter
+          coefficients.
         </p>
         <dl title="enum BiquadFilterType" class="idl">
           <dt>
@@ -8045,8 +7438,8 @@ function calculateNormalizationScale(buffer)
             <p>
               The frequency at which the <a><code>BiquadFilterNode</code></a>
               will operate, in Hz. Its default value is 350Hz. It forms a
-              <a>compound parameter</a> with <code>detune</code>. Its nominal
-              range is [0, <a>Nyquist frequency</a>].
+              <a>compound parameter</a> with <code>detune</code>. Its
+              <a>nominal range</a> is [0, <a>Nyquist frequency</a>].
             </p>
           </dd>
           <dt>
@@ -8056,7 +7449,7 @@ function calculateNormalizationScale(buffer)
             <p>
               A detune value, in cents, for the frequency. Its default value is
               0. It forms a <a>compound parameter</a> with
-              <code>frequency</code>. Its nominal range is \((-\infty,
+              <code>frequency</code>. Its <a>nominal range</a> is \((-\infty,
               \infty)\).
             </p>
           </dd>
@@ -8445,6 +7838,14 @@ $$
           The number of channels of the output always equals the number of
           channels of the input.
         </p>
+        <p>
+          This node has a <a>tail-time</a> reference such that this node
+          continues to output non-silent audio with zero input. Since this is
+          an IIR filter, the filter produces non-zero input forever, but in
+          practice, this can be limited after some finite time where the output
+          is sufficiently close to zero. The actual time depends on the filter
+          coefficients.
+        </p>
         <dl title=
         "[Constructor(BaseAudioContext context, IIRFilterOptions options)] interface IIRFilterNode : AudioNode"
         class="idl">
@@ -8572,6 +7973,9 @@ $$
         <p>
           The number of channels of the output always equals the number of
           channels of the input.
+        </p>
+        <p>
+          This node has no <a>tail-time</a> reference.
         </p>
         <dl title="enum OverSampleType" class="idl">
           <dt>
@@ -8820,7 +8224,7 @@ $$
               The frequency (in Hertz) of the periodic waveform. Its default
               <code>value</code> is 440. This parameter is <a>a-rate</a>. It
               forms a <a>compound parameter</a> with <code>detune</code>. Its
-              nominal range is [-<a>Nyquist frequency</a>, <a>Nyquist
+              <a>nominal range</a> is [-<a>Nyquist frequency</a>, <a>Nyquist
               frequency</a>].
             </p>
           </dd>
@@ -8833,7 +8237,7 @@ $$
               <a><code>frequency</code></a> by the given amount. Its default
               <code>value</code> is 0. This parameter is <a>a-rate</a>. It
               forms a <a>compound parameter</a> with <code>frequency</code>.
-              Its nominal range is \((-\infty, \infty)\).
+              Its <a>nominal range</a> is \((-\infty, \infty)\).
             </p>
           </dd>
           <dt>
@@ -9255,8 +8659,30 @@ odd function with period \(2\pi\).
           valid audio track, then the number of channels output will be one
           silent channel.
         </p>
-        <dl title="interface MediaStreamAudioSourceNode : AudioNode" class=
-        "idl"></dl>
+        <p>
+          This node has no <a>tail-time</a> reference.
+        </p>
+        <dl title=
+        "[Constructor(AudioContext context, MediaStreamAudioSourceOptions options)]interface MediaStreamAudioSourceNode : AudioNode"
+        class="idl"></dl>
+        <section>
+          <h2>
+            MediaStreamAudioSourceOptions
+          </h2>
+          <p>
+            This specifies the options for constructing a
+            <a><code>MediaStreamAudioSourceNode</code></a>. This is required.
+          </p>
+          <dl title="dictionary MediaStreamAudioSourceOptions" class="idl">
+            <dt>
+              MediaStream mediaStream
+            </dt>
+            <dd>
+              The media stream that will act as a source. This MUST be
+              specified.
+            </dd>
+          </dl>
+        </section>
       </section>
       <section>
         <h2>
@@ -9553,6 +8979,10 @@ odd function with period \(2\pi\).
           available for reading</a> a block of audio from the <a>DelayNode</a>
           buffer, available for reading.
           </li>
+          <li>
+            <a href="#computation-of-value">Compute the value(s)</a> of the
+            <a>AudioListener</a>'s <a>AudioParam</a>s for this block.
+          </li>
           <li>For each <a>AudioNode</a>, in the order determined previously:
             <ol>
               <li>For each <a>AudioParam</a> of this <a>AudioNode</a>, execute
@@ -9664,7 +9094,7 @@ odd function with period \(2\pi\).
         </p>
         <figure>
           <img alt="unity gain summing junction" src=
-          "images/unity-gain-summing-junction.png">
+          "images/unity-gain-summing-junction.png" width="442" height="198">
           <figcaption>
             A graph showing Source 1 and Source 2 output summed at the input of
             Destination
@@ -9692,7 +9122,7 @@ odd function with period \(2\pi\).
         </p>
         <figure>
           <img alt="mixer architecture new" src=
-          "images/mixer-architecture-new.png">
+          "images/mixer-architecture-new.png" width="455" height="198">
           <figcaption>
             A graph featuring volume control for each voice
           </figcaption>
@@ -9720,8 +9150,8 @@ odd function with period \(2\pi\).
           are not illustrated:
         </p>
         <figure>
-          <img alt="mixer gain structure" src=
-          "images/mixer-gain-structure.png">
+          <img alt="mixer gain structure" src="images/mixer-gain-structure.png"
+          width="710" height="634">
           <figcaption>
             A graph showing a full mixer with send busses.
           </figcaption>
@@ -9878,7 +9308,8 @@ odd function with period \(2\pi\).
           Example
         </h3>
         <figure>
-          <img alt="dynamic allocation" src="images/dynamic-allocation.png">
+          <img alt="dynamic allocation" src="images/dynamic-allocation.png"
+          width="671" height="221">
           <figcaption>
             A graph featuring a subgraph that will be releases early.
           </figcaption>
@@ -10247,10 +9678,10 @@ Quad up-mix:
         Audio Signal Values
       </h2>
       <p>
-        The nominal range of all audio signals at a destination node of any
-        audio graph is [-1, 1]. The audio rendition of signal values outside
-        this range, or of the values <code>NaN</code>, positive infinity or
-        negative infinity, is undefined by this specification.
+        The range of all audio signals at a destination node of any audio graph
+        is nominally [-1, 1]. The audio rendition of signal values outside this
+        range, or of the values <code>NaN</code>, positive infinity or negative
+        infinity, is undefined by this specification.
       </p>
     </section>
     <section>
@@ -10307,8 +9738,8 @@ Quad up-mix:
         </h3>
         <p>
           The following algorithm must be used to calculate the
-          <em>azimuth</em> and <em>elevation</em>: for the
-          <a><code>PannerNode</code></a>
+          <em>azimuth</em> and <em>elevation</em> for the
+          <a><code>PannerNode</code></a>:
         </p>
         <pre>
   // Calculate the source-listener vector.
@@ -10382,25 +9813,24 @@ Quad up-mix:
             <a><code>PannerNode</code></a> when the <a href=
             "#widl-PannerNode-panningModel"><code>panningModel</code></a>
             attribute is set to <code>"equalpower"</code>, in which case the
-            the <em>elevation</em> value is ignored.
-          </p>
-          <p>
-            For a <a><code>PannerNode</code></a>, the following algorithm MUST
-            be implemented.
+            <em>elevation</em> value is ignored. This algorithm MUST be
+            implemented using <a>a-rate</a> parameters.
           </p>
           <ol>
-            <li>
-              <p>
-                Let <em>azimuth</em> be the value computed in the <a href=
-                "#azimuth-elevation">azimuth and elevation</a> section.
-              </p>
-            </li>
-            <li>
-              <p>
-                The <em>azimuth</em> value is first contained to be within the
-                range [-90, 90] according to:
-              </p>
-              <pre>
+            <li>For each sample to be computed by this <a>AudioNode</a>:
+              <ol>
+                <li>
+                  <p>
+                    Let <em>azimuth</em> be the value computed in the <a href=
+                    "#azimuth-elevation">azimuth and elevation</a> section.
+                  </p>
+                </li>
+                <li>
+                  <p>
+                    The <em>azimuth</em> value is first contained to be within
+                    the range [-90, 90] according to:
+                  </p>
+                  <pre>
   // First, clamp azimuth to allowed range of [-180, 180].
   azimuth = max(-180, azimuth);
   azimuth = min(180, azimuth);
@@ -10410,22 +9840,22 @@ Quad up-mix:
     azimuth = -180 - azimuth;
   else if (azimuth &gt; 90)
     azimuth = 180 - azimuth;
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                A normalized value <em>x</em> is calculated from
-                <em>azimuth</em> for a mono input as:
-              </p>
-              <pre>
+
+              </pre>
+                </li>
+                <li>
+                  <p>
+                    A normalized value <em>x</em> is calculated from
+                    <em>azimuth</em> for a mono input as:
+                  </p>
+                  <pre>
   x = (azimuth + 90) / 180;
-        
-</pre>
-              <p>
-                Or for a stereo input as:
-              </p>
-              <pre>
+
+              </pre>
+                  <p>
+                    Or for a stereo input as:
+                  </p>
+                  <pre>
   if (azimuth &lt;= 0) { // -90 ~ 0
     // Transform the azimuth value from [-90, 0] degrees into the range [-90, 90].
     x = (azimuth + 90) / 90;
@@ -10433,8 +9863,10 @@ Quad up-mix:
     // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
     x = azimuth / 90;
   }
-        
-</pre>
+
+                  </pre>
+                </li>
+              </ol>
             </li>
           </ol>
           <p>
@@ -10442,82 +9874,86 @@ Quad up-mix:
             MUST be implemented.
           </p>
           <ol>
-            <li>
+            <li>For each sample to be computed by this <a>AudioNode</a>
+              <ol>
+                <li>
+                  <p>
+                    Let <em>pan</em> be the <a>computedValue</a> of the
+                    <code>pan</code> <a>AudioParam</a> of this
+                    <a><code>StereoPannerNode</code></a>.
+                  </p>
+                </li>
+                <li>
+                  <p>
+                    Clamp <em>pan</em> to [-1, 1].
+                  </p>
+                  <pre>
+    pan = max(-1, pan);
+    pan = min(1, pan);
+
+              </pre>
+                </li>
+                <li>
+                  <p>
+                    Calculate <em>x</em> by normalizing <em>pan</em> value to
+                    [0, 1]. For mono input:
+                  </p>
+                  <pre>
+    x = (pan + 1) / 2;
+
+              </pre>
+                  <p>
+                    For stereo input:
+                  </p>
+                  <pre>
+    if (pan &lt;= 0)
+      x = pan + 1;
+    else
+      x = pan;
+
+              </pre>
+                </li>
+              </ol>
               <p>
-                Let <em>pan</em> be the <a>computedValue</a> of the
-                <code>pan</code> <a>AudioParam</a> of this
-                <a><code>StereoPannerNode</code></a>.
+                Then following steps are used to achieve equal-power panning:
               </p>
-            </li>
-            <li>
-              <p>
-                Clamp <em>pan</em> to [-1, 1].
-              </p>
-              <pre>
-pan = max(-1, pan);
-pan = min(1, pan);
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                Calculate <em>x</em> by normalizing <em>pan</em> value to [0,
-                1]. For mono input:
-              </p>
-              <pre>
-x = (pan + 1) / 2;
-        
-</pre>
-              <p>
-                For stereo input:
-              </p>
-              <pre>
-if (pan &lt;= 0)
-  x = pan + 1;
-else
-  x = pan;
-        
-</pre>
-            </li>
-          </ol>
-          <p>
-            Then following steps are used to achieve equal-power panning:
-          </p>
-          <ol>
-            <li>
-              <p>
-                Left and right gain values are calculated as:
-              </p>
-              <pre>
-gainL = cos(x * Math.PI / 2);
-gainR = sin(x * Math.PI / 2);
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                For mono input, the stereo output is calculated as:
-              </p>
-              <pre>
-outputL = input * gainL;
-outputR = input * gainR;
-        
-</pre>
-              <p>
-                Else for stereo input, the output is calculated as:
-              </p>
-              <pre>
-if (pan &lt;= 0) {
-  // Pass through inputL to outputL and equal-power pan inputR as in mono case.
-  outputL = inputL + inputR * gainL;
-  outputR = inputR * gainR;
-} else {
-  // Pass through inputR to outputR and equal-power pan inputL as in mono case.
-  outputL = inputL * gainL;
-  outputR = inputR + inputL * gainR;
-}
-        
-</pre>
+              <ol>
+                <li>
+                  <p>
+                    Left and right gain values are calculated as:
+                  </p>
+                  <pre>
+    gainL = cos(x * Math.PI / 2);
+    gainR = sin(x * Math.PI / 2);
+
+              </pre>
+                </li>
+                <li>
+                  <p>
+                    For mono input, the stereo output is calculated as:
+                  </p>
+                  <pre>
+    outputL = input * gainL;
+    outputR = input * gainR;
+
+              </pre>
+                  <p>
+                    Else for stereo input, the output is calculated as:
+                  </p>
+                  <pre>
+    if (pan &lt;= 0) {
+      // Pass through inputL to outputL and equal-power pan inputR as in mono case.
+      outputL = inputL + inputR * gainL;
+      outputR = inputR * gainR;
+    } else {
+      // Pass through inputR to outputR and equal-power pan inputL as in mono case.
+      outputL = inputL * gainL;
+      outputR = inputR + inputL * gainR;
+    }
+
+              </pre>
+                </li>
+              </ol>
             </li>
           </ol>
         </section>
@@ -10535,7 +9971,8 @@ if (pan &lt;= 0) {
             sound.
           </p>
           <figure>
-            <img alt="HRTF panner" src="images/HRTF_panner.png">
+            <img alt="HRTF panner" src="images/HRTF_panner.png" width="644"
+            height="419">
             <figcaption>
               A diagram showing the process of panning a source using HRTF.
             </figcaption>
@@ -10664,7 +10101,7 @@ function coneGain() {
           Latency
         </h3>
         <figure>
-          <img alt="latency" src="images/latency.png">
+          <img alt="latency" src="images/latency.png" width="700" height="201">
           <figcaption>
             Use cases in which the latency can be important
           </figcaption>
@@ -10702,8 +10139,8 @@ function coneGain() {
         </p>Additionally, some <a>AudioNode</a>s can add latency to some paths
         of the audio graph, notably:
         <ul>
-          <li>The <a>AudioWorker</a> can run a script that buffers internally,
-          adding delay to the signal path.
+          <li>The <a>AudioWorkletNode</a> can run a script that buffers
+          internally, adding delay to the signal path.
           </li>
           <li>The <a>DelayNode</a>, whose role is to add controlled latency
           time.
@@ -10881,7 +10318,7 @@ function coneGain() {
             persists across browsing sessions?
           </p>
           <p>
-            No. AudioWorker does not persist across browsing sessions.
+            No. AudioWorklet does not persist across browsing sessions.
             <em>right?</em>
           </p>
         </li>

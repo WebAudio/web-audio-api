@@ -4523,20 +4523,19 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             Concepts
           </h2>
           <p>
-            The <a><code>AudioWorklet</code></a> object allows developers to
-            supply JavaScript to process audio on the <a>rendering thread</a>,
-            supporting custom AudioNodes. This processing mechanism ensures the
-            synchronous execution of the script code with other built-in
-            <a><code>AudioNode</code></a>s in the audio graph.
+            The <a>AudioWorklet</a> object allows developers to supply
+            JavaScript to process audio on the <a>rendering thread</a>,
+            supporting custom <a>AudioNode</a>s. This processing mechanism
+            ensures the synchronous execution of the script code with other
+            built-in <a>AudioNode</a>s in the audio graph.
           </p>
           <p>
             An associated pair of objects must be defined in order to realize
-            this mechanism: <a><code>AudioWorkletNode</code></a> and
-            <a><code>AudioWorkletProcessor</code></a>. The former represents
-            the interface for the main global scope similar to other AudioNode
-            objects and the latter implements the internal audio processing
-            within a special scope named
-            <a><code>AudioWorkletGlobalScope</code></a>.
+            this mechanism: <a>AudioWorkletNode</a> and
+            <a>AudioWorkletProcessor</a>. The former represents the interface
+            for the main global scope similar to other <a>AudioNode</a> objects
+            and the latter implements the internal audio processing within a
+            special scope named <a>AudioWorkletGlobalScope</a>.
           </p>
           <figure>
             <img alt="AudioWorklet concept" src=
@@ -4546,28 +4545,34 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               <a><code>AudioWorkletProcessor</code></a>
             </figcaption>
           </figure>
-          <blockquote>
-            <pre>
-// In the main global scope
-window.audioWorklet.import("bypass.js").then(function () {
-  var context = new AudioContext();
-  var bypass = new AudioWorkletNode(context, "Bypass");
-});
-</pre>
-          </blockquote>
           <p>
-            Importing a JavaScript file via <code>import(url)</code> method
-            registers class definitions of
-            <a><code>AudioWorkletProcessor</code></a> under the
-            <a><code>AudioWorkletGlobalScope</code></a>. Imported definitions
-            are stored in the <a><em>node name to processor definition
-            map</em></a> and any <a><code>AudioContext</code></a> instance from
-            the associated main global scope can access this map to create a
-            custom node.
+            Importing a JavaScript file via <a href=
+            "https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
+            method registers class definitions of <a>AudioWorkletProcessor</a>
+            under the <a>AudioWorkletGlobalScope</a>. There are two internal
+            storages for the imported class definitions and the active
+            instances created from the definition.
           </p>
-          <blockquote>
-            <pre>
-// 'bypass.js' in AudioWorkletGlobalScope
+          <ul>
+            <li>
+              <dfn>node name to processor definition map</dfn><br>
+              Belongs to <a>AudioWorkletGlobalScope</a>. This map stores
+              definitions of <a>AudioWorkletProcessor</a> with the associated
+              string key. Initially it is empty and populated when
+              <a href="widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorConstructor">registerProcessor</a> method is called.
+            </li>
+            <li>
+              <dfn>node instance set</dfn><br>
+              Belongs to an instance of <a>BaseAudioContext</a>. This set
+              stores the reference to all the active instances of
+              <a>AudioWorkletNode</a> that are created by the associated
+              <a>BaseAudioContext</a>. The context keeps the track of instances
+              until they are destroyed by UA.
+            </li>
+          </ul>
+          <pre class="example" title=
+          "Defining and registering an AudioWorkletProcessor in AudioWorkletGlobalScope">
+// bypass.js script file
 registerProcessor("Bypass", class extends AudioWorkletProcessor {
   process (inputs, outputs) {
     // Single input, single channel.
@@ -4575,15 +4580,20 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
     output[0].set(input[0]);
   }
 });
-</pre>
-          </blockquote>
+          </pre>
+          <pre class="example" title=
+          "Importing a script and creating AudioWorkletNode in the main global scope">
+window.audioWorklet.import("bypass.js").then(function () {
+  var context = new AudioContext();
+  var bypass = new AudioWorkletNode(context, "Bypass");
+});
+          </pre>
           <p>
-            At the instantiation of <code>AudioWorkletNode</code> in the main
-            global scope, the counterpart <code>AudioWorkletProcessor</code>
-            will also be created in <code>AudioWorkletGlobalScope</code>. These
-            two objects communicate via the asynchronous message passing
-            described in the <a href="#processing-model">processing model</a>
-            section.
+            At the instantiation of <a>AudioWorkletNode</a> in the main global
+            scope, the counterpart <a>AudioWorkletProcessor</a> will also be
+            created in <a>AudioWorkletGlobalScope</a>. These two objects
+            communicate via the asynchronous message passing described in the
+            <a href="#processing-model">processing model</a> section.
           </p>
         </section>
         <dl title="partial interface Window" class="idl">
@@ -4611,8 +4621,8 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             <a>AudioWorkletProcessor</a>.
           </p>
           <p>
-            <a>AudioWorkletGlobalScope</a> has a <dfn>node name to processor
-            definition map</dfn>. This map stores definitions of
+            <a>AudioWorkletGlobalScope</a> has a <a>node name to processor
+            definition map</a>. This map stores definitions of
             <a>AudioWorkletProcessor</a> with the associated string key.
             Initially it is empty and populated when
             <code>registerProcessor</code> method is called, but this storage
@@ -4720,12 +4730,12 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             The <dfn>AudioWorkletNode</dfn> interface
           </h2>
           <p>
-            This interface represents a user-defined
-            <a><code>AudioNode</code></a> which lives on the <a>control
-            thread</a>. The user can create an <code>AudioWorkletNode</code>
-            from an <a><code>AudioContext</code></a> and such a node can be
-            connected with other built-in <a><code>AudioNode</code></a>s to
-            form an audio graph.
+            This interface represents a user-defined <a>AudioNode</a> which
+            lives on the <a>control thread</a>. The user can create an
+            <a>AudioWorkletNode</a> from an <a>BaseAudioContext</a> and such a
+            node can be connected with other built-in <a>AudioNode</a>s to form
+            an audio graph. Every <a>AudioWorkletNode</a> has an associated
+            <dfn>processor reference</dfn>, initially null.
           </p>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
@@ -4734,54 +4744,12 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             </dt>
             <dd>
               <p>
-                The construction procedure of an
-                <a><code>AudioWorkletNode</code></a> and the corresponding
-                <a><code>AudioWorkletProcessor</code></a> object consists of
-                several coordinated interactions. The following algorithm
-                specifies the steps for constructing an
-                <a><code>AudioWorkletNode</code></a> with the given parameters.
-                This sequence must be performed by the user agent <a data-lt=
-                "atomic">atomically</a>.
+                Performs the <a href=
+                "#instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">construction
+                procedure</a> of an <a><code>AudioWorkletNode</code></a> and
+                the corresponding <a><code>AudioWorkletProcessor</code></a>
+                object.
               </p>
-              <ol>
-                <li>
-                  <em>In the <code>AudioWorkletGlobalScope</code></em>: Locate
-                  a definition of <a><code>AudioWorkletProcessor</code></a>
-                  subclass that is registered under the <code>name</code>
-                  argument. If none is found, an
-                  <code>InvalidAccessError</code> exception MUST be thrown by
-                  the <a><code>AudioWorkletNode</code></a> constructor.
-                </li>
-                <li>Run the <a><code>AudioWorkletProcessor</code></a>
-                constructor, passing a structured clone of the
-                <code>options</code> parameter that was provided to
-                <a><code>AudioWorkletNode</code></a>.
-                  <ol>
-                    <li>Run the constructor of the
-                    <a><code>AudioWorkletProcessor</code> subclass</a>. The
-                    constructor uses the <code>options</code> parameter to
-                    initialize this <a><code>AudioWorkletProcessor</code></a>
-                    instance.
-                    </li>
-                  </ol>
-                </li>
-                <li>
-                  <em>In the global scope</em>: Construct
-                  <a><code>AudioParam</code></a> objects based on the
-                  information from the processor's
-                  <a><code>parameterDescriptors</code></a>.
-                  <ol>
-                    <li>Initialize the value of <a><code>AudioParam</code></a>
-                    objects with key-value pairs in the <code>option</code>
-                    parameter. Find the key that matches the name of AudioParam
-                    object and assign the value to it. Any key does not match
-                    the name of <a><code>AudioParam</code></a> object and
-                    anything other than <code>Number</code> for the value are
-                    ignored.
-                    </li>
-                  </ol>
-                </li>
-              </ol>
             </dd>
             <dt>
               attribute EventHandler onmessage
@@ -4865,7 +4833,9 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             the class manifests the actual audio processing mechanism of a
             custom audio node. <a><code>AudioWorkletProcessor</code></a> can
             only be instantiated by the construction of an
-            <a><code>AudioWorkletNode</code></a> instance.
+            <a><code>AudioWorkletNode</code></a> instance. Every
+            <a>AudioWorkletProcessor</a> has an associated <dfn>node
+            reference</dfn>, initially null.
           </p>
           <dl title="interface AudioWorkletProcessor : EventTarget" class=
           "idl">
@@ -5075,126 +5045,88 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             <a>AudioWorkletNode</a> instance is destroyed.
           </p>
           <p>
-            When <code><a>AudioWorkletNode</a>(<em>context</em>, <em>name</em>,
-            <em>options</em>)</code> constructor is called, the user agent must
-            run the following steps in a synchronous fashion:
+            When <a>AudioWorkletNode</a>(<var>context</var>, <var>name</var>,
+            <var>options</var>) constructor is called, the user agent must run
+            the following steps <a data-lt="atomic">atomically</a>.
           </p>
           <ol>
-            <li>If the <code><em>context</em></code> is not an instance of <a>
-              BaseAudioContext</a>, throw a <code>TypeError</code> and abort
-              all these steps.
+            <li>Let <var>this</var> be the instance being created by
+            constructor of <a>AudioWorkletNode</a> or its subclass.
             </li>
-            <li>If the <code><em>name</em></code> is not a valid
-            <code>DOMString</code> or does not exists as a key in the
+            <li>If the <var>context</var> is not a platform object implements
+            <a>BaseAudioContext</a>, throw a <code>TypeError</code> and abort
+            all these steps.
+            </li>
+            <li>If the <var>name</var> does not exists as a key in the
             <a>AudioWorkletGlobalScope</a>’s <a>node name to processor
             definition map</a>, throw a <code>NotSupportedError</code>
             exception and abort all these steps.
             </li>
-            <li>Let <code><em>processorConstructor</em></code> be the result of
-            looking up name on the <a>AudioWorkletGlobalScope</a>’s <a>node
-            name to processor definition map</a>.
+            <li>Let <var>processorConstructor</var> be the result of looking up
+            name on the <a>AudioWorkletGlobalScope</a>’s <a>node name to
+            processor definition map</a>.
             </li>
-            <li>Let <code><em>baseNodeInstance</em></code> be a new instance of
-            <a>AudioWorkletNode</a>.
+            <li>Let <var>processorInstance</var> be the result of <a href=
+            "http://www.ecma-international.org/ecma-262/6.0/#sec-construct">Construct</a>(<var>processorConstructor</var>,
+            <var>options</var>).
             </li>
-            <li>Let <code><em>options</em></code> be the optional
-            <code>options</code> argument in the constructor.
+            <li>Let <var>parameterDescriptors</var> be the result of <a href=
+            "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>processorConstructor</var>,
+            P="parameterDescriptors"). If <var>parameterDescriptors</var> is
+            <code>undefined</code>, skip to the step 8.
             </li>
-            <li>Let <code><em>processorInstance</em></code> be a new instance
-            of <a>AudioWorkletProcessor</a> created by processorConstructor.
-            </li>
-            <li>Let <code><em>parameterDescriptors</em></code> be the result of
-            <code><a href=
-            "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=processorConstructor,
-            P="parameterDescriptors")</code>. If
-            <code><em>parameterDescriptors</em></code> in
-            <code>undefined</code>, skip to the step 9.
-            </li>
-            <li>For each <code><em>descriptor</em></code> in
-            <code><em>parameterDescriptors</em></code> perform the following
-            substeps:
+            <li>For each <var>descriptor</var> in
+            <var>parameterDescriptors</var> perform the following substeps:
               <ol>
-                <li>Let <code><em>audioParam</em></code> be a new
-                <a>AudioParam</a> instance with:
+                <li>Let <var>audioParam</var> be a new <a>AudioParam</a>
+                instance with:
                   <ul>
                     <li>
-                      <code><em>paramName</em></code> being the result
-                      <code><a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
-                      P="name")</code>.
+                      <var>paramName</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="name").
                     </li>
                     <li>
-                      <code><em>defaultValue</em></code> being the result
-                      <code><a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
-                      P="defaultValue")</code>.
+                      <var>defaultValue</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="defaultValue").
                     </li>
                     <li>
-                      <code><em>minValue</em></code> being the result
-                      <code><a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
-                      P="minValue")</code>.
+                      <var>minValue</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="minValue").
                     </li>
                     <li>
-                      <code><em>maxValue</em></code> being the result
-                      <code><a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
-                      P="maxValue")</code>.
+                      <var>maxValue</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="maxValue").
                     </li>
                   </ul>
                 </li>
-                <li>Let <code><em>initialValue</em></code> be the result of
-                <code><a href=
-                "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<em>options</em>,
-                P=<em>paramName</em>)</code>.
-                  <ul>
-                    <li>If the result of <a href=
-                    "https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">
-                      Type</a><code>(<em>initialValue</em>)</code> is
-                      <code>Number</code>, perform <code><a href=
-                      "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(O=<em>audioParam</em>,
-                      P="value", V=<em>initialValue</em>)</code>. Otherwise
-                      ignore and go to the next step.
-                    </li>
-                  </ul>
+                <li>If <var>options</var> contains a dictionary member with
+                name <var>paramName</var> whose type is <code>Number</code>,
+                perform <a href=
+                "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(<var>audioParam</var>,
+                "value", <a href="https://tc39.github.io/ecma262/#sec-get-o-p">
+                  Get</a>(O=<var>options</var>, P=<var>paramName</var>),
+                  false).
                 </li>
-                <li>Perform <code><a href=
-                "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(O=<em>baseNodeInstance</em>,
-                P=<em>paramName</em>, V=<em>audioParam</em>, false)</code>.
+                <li>Perform <a href=
+                "https://tc39.github.io/ecma262/#sec-createdataproperty">CreateDataProperty</a>(O=<var>this</var>,
+                P=<var>paramName</var>, V=<var>audioParam</var>).
                 </li>
               </ol>
             </li>
-            <li>Let <code><em>nodeInstance</em></code> be the result of
-              <a href="http://www.ecma-international.org/ecma-262/6.0/#sec-construct">
-              Construct</a><code>(<a>AudioWorkletNode</a>, <em>options</em>,
-              <em>baseNodeInstance</em>)</code>.
-              <ul>
-                <li>If the constructor throws an exception, set the
-                definition’s constructor valid flag to <code>false</code>,
-                abort all these steps.
-                </li>
-              </ul>
+            <li>Set <a>node reference</a> in <var>processorInstance</var> to
+            <var>this</var>.
             </li>
-            <li>Create the internal association between
-            <code><em>nodeInstance</em></code> and
-            <code><em>processorInstance</em></code>. Note that these are not
-            exposed to users:
-              <ol>
-                <li>Set <code><em>processorReference</em></code> in <code><em>
-                  nodeInstance</em></code> to
-                  <code><em>processorInstance</em></code>
-                </li>
-                <li>Set <code><em>nodeReference</em></code> in
-                <code><em>processorInstance</em></code> to
-                <code><em>nodeInstance</em></code>.
-                </li>
-              </ol>
+            <li>Set <a>processor reference</a> in <var>this</var> to
+            <var>processorInstance</var>.
             </li>
-            <li>Add <code><em>nodeInstance</em></code> to the <a>node instance
-            set</a> in the <a>BaseAudioContext</a>.
+            <li>Add <var>nodeInstance</var> to the <a>node
+            instance set</a> in the <a>BaseAudioContext</a>.
             </li>
-            <li>Return <code><em>nodeInstance</em></code> as a result of the
-            constructor.
+            <li>Return <var>this</var> as a result of the construction.
             </li>
           </ol>
         </section>

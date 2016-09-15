@@ -5061,6 +5061,143 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             </dl>
           </section>
         </section>
+        <section>
+          <h2 id="instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
+            The instantiation of <a>AudioWorkletNode</a> and
+            <a>AudioWorkletProcessor</a>
+          </h2>
+          <p>
+            When the constructor of <a>AudioWorkletNode</a> is invoked in the
+            main global scope, the corresponding <a>AudioWorkletProcessor</a>
+            instance is automatically created in
+            <a>AudioWorkletGlobalScope</a>. After the construction, they
+            maintain the internal reference to each other until the
+            <a>AudioWorkletNode</a> instance is destroyed.
+          </p>
+          <p>
+            When <code><a>AudioWorkletNode</a>(<em>context</em>, <em>name</em>,
+            <em>options</em>)</code> constructor is called, the user agent must
+            run the following steps in a synchronous fashion:
+          </p>
+          <ol>
+            <li>If the <code><em>context</em></code> is not an instance of <a>
+              BaseAudioContext</a>, throw a <code>TypeError</code> and abort
+              all these steps.
+            </li>
+            <li>If the <code><em>name</em></code> is not a valid
+            <code>DOMString</code> or does not exists as a key in the
+            <a>AudioWorkletGlobalScope</a>’s <a>node name to processor
+            definition map</a>, throw a <code>NotSupportedError</code>
+            exception and abort all these steps.
+            </li>
+            <li>Let <code><em>processorConstructor</em></code> be the result of
+            looking up name on the <a>AudioWorkletGlobalScope</a>’s <a>node
+            name to processor definition map</a>.
+            </li>
+            <li>Let <code><em>baseNodeInstance</em></code> be a new instance of
+            <a>AudioWorkletNode</a>.
+            </li>
+            <li>Let <code><em>options</em></code> be the optional
+            <code>options</code> argument in the constructor.
+            </li>
+            <li>Let <code><em>processorInstance</em></code> be a new instance
+            of <a>AudioWorkletProcessor</a> created by processorConstructor.
+            </li>
+            <li>Let <code><em>parameterDescriptors</em></code> be the result of
+            <code><a href=
+            "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=processorConstructor,
+            P="parameterDescriptors")</code>. If
+            <code><em>parameterDescriptors</em></code> in
+            <code>undefined</code>, skip to the step 9.
+            </li>
+            <li>For each <code><em>descriptor</em></code> in
+            <code><em>parameterDescriptors</em></code> perform the following
+            substeps:
+              <ol>
+                <li>Let <code><em>audioParam</em></code> be a new
+                <a>AudioParam</a> instance with:
+                  <ul>
+                    <li>
+                      <code><em>paramName</em></code> being the result
+                      <code><a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
+                      P="name")</code>.
+                    </li>
+                    <li>
+                      <code><em>defaultValue</em></code> being the result
+                      <code><a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
+                      P="defaultValue")</code>.
+                    </li>
+                    <li>
+                      <code><em>minValue</em></code> being the result
+                      <code><a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
+                      P="minValue")</code>.
+                    </li>
+                    <li>
+                      <code><em>maxValue</em></code> being the result
+                      <code><a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=item,
+                      P="maxValue")</code>.
+                    </li>
+                  </ul>
+                </li>
+                <li>Let <code><em>initialValue</em></code> be the result of
+                <code><a href=
+                "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<em>options</em>,
+                P=<em>paramName</em>)</code>.
+                  <ul>
+                    <li>If the result of <a href=
+                    "https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">
+                      Type</a><code>(<em>initialValue</em>)</code> is
+                      <code>Number</code>, perform <code><a href=
+                      "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(O=<em>audioParam</em>,
+                      P="value", V=<em>initialValue</em>)</code>. Otherwise
+                      ignore and go to the next step.
+                    </li>
+                  </ul>
+                </li>
+                <li>Perform <code><a href=
+                "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(O=<em>baseNodeInstance</em>,
+                P=<em>paramName</em>, V=<em>audioParam</em>, false)</code>.
+                </li>
+              </ol>
+            </li>
+            <li>Let <code><em>nodeInstance</em></code> be the result of
+              <a href="http://www.ecma-international.org/ecma-262/6.0/#sec-construct">
+              Construct</a><code>(<a>AudioWorkletNode</a>, <em>options</em>,
+              <em>baseNodeInstance</em>)</code>.
+              <ul>
+                <li>If the constructor throws an exception, set the
+                definition’s constructor valid flag to <code>false</code>,
+                abort all these steps.
+                </li>
+              </ul>
+            </li>
+            <li>Create the internal association between
+            <code><em>nodeInstance</em></code> and
+            <code><em>processorInstance</em></code>. Note that these are not
+            exposed to users:
+              <ol>
+                <li>Set <code><em>processorReference</em></code> in <code><em>
+                  nodeInstance</em></code> to
+                  <code><em>processorInstance</em></code>
+                </li>
+                <li>Set <code><em>nodeReference</em></code> in
+                <code><em>processorInstance</em></code> to
+                <code><em>nodeInstance</em></code>.
+                </li>
+              </ol>
+            </li>
+            <li>Add <code><em>nodeInstance</em></code> to the <a>node instance
+            set</a> in the <a>BaseAudioContext</a>.
+            </li>
+            <li>Return <code><em>nodeInstance</em></code> as a result of the
+            constructor.
+            </li>
+          </ol>
+        </section>
         <section class="informative">
           <h2 id="AudioWorklet-Examples">
             AudioWorklet Examples

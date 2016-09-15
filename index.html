@@ -4939,27 +4939,54 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
     }
 
     process(inputs, outputs, parameters) {
-      // Custom audio processing implementation.
+      // Get the first input and output.
+      var input = inputs[0];
+      var output = outputs[0];
+      var myParam = parameters.myParam;
+
+      // A simple amplifier for single input and output.
+      for (var channel = 0; channel &lt; output.length; ++channel) {
+        for (var i = 0; i &lt; output[channel].length; ++i) {
+          output[channel][i] = input[channel][i] * myParam[i];
+        }
+      }
     }
   }
             </pre>
             <p>
               <code>process()</code> method is called synchronously by the
-              audio <a>rendering thread</a> in an isochronous fashion. The
-              first argument <code>input</code> is an array of
-              <code>Float32Array</code>s. <code>inputs[n][m]</code> is a
-              <code>Float32Array</code> of audio samples for the
-              <code>m</code>th channel of <code>n</code>th input. Similarly,
-              <code>outputs[n][m]</code> is a <code>Float32Array</code> object
-              containing the audio samples for <code>m</code>th channel of
-              <code>n</code>th output. While the number of inputs is fixed at
-              the construction, the number of channels can be changed
-              dynamically. The last argument <code>parameters</code> is an
-              associated map of <code>Float32Array</code>s.
-              <code>parameter["name"]</code> corresponds to the automation
-              values of the <a><code>AudioParam</code></a> named
-              <code>"name"</code>.
+              audio <a>rendering thread</a> at every <a>render quantum</a>. It
+              is invoked with the following arguments:
             </p>
+            <ol>
+              <li>
+                <code>input</code> of type
+                <code>sequence&lt;sequence&lt;Float32Array&gt;&gt;</code><br>
+                The input audio buffer from the incoming connections provided
+                by the user agent. <code>inputs[n][m]</code> is a
+                <code>Float32Array</code> of audio samples for the
+                <code>m</code>th channel of <code>n</code>th input. While the
+                number of inputs is fixed at the construction, the number of
+                channels can be changed dynamically.
+              </li>
+              <li>
+                <code>output</code> of type
+                <code>sequence&lt;sequence&lt;Float32Array&gt;&gt;</code><br>
+                The output audio buffer that is to be consumed by the user
+                agent. <code>outputs[n][m]</code> is a
+                <code>Float32Array</code> object containing the audio samples
+                for <code>m</code>th channel of <code>n</code>th output. While
+                the number of outputs is fixed at the construction, the number
+                of channels can be changed dynamically.
+              </li>
+              <li>
+                <code>parameters</code> of type <code>Object</code><br>
+                A map of string keys and associated <code>Float32Array</code>s.
+                <code>parameter["name"]</code> corresponds to the automation
+                values of the <a><code>AudioParam</code></a> named
+                <code>"name"</code>.
+              </li>
+            </ol>
           </section>
           <section>
             <h2 id="AudioParamDescriptor">

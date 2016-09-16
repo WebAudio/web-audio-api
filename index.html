@@ -4550,7 +4550,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             "https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
             method registers class definitions of <a>AudioWorkletProcessor</a>
             under the <a>AudioWorkletGlobalScope</a>. There are two internal
-            storages for the imported class definitions and the active
+            storage areas for the imported class definitions and the active
             instances created from the definition.
           </p>
           <ul>
@@ -4558,7 +4558,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               <dfn>node name to processor definition map</dfn><br>
               Belongs to <a>AudioWorkletGlobalScope</a>. This map stores
               definitions of <a>AudioWorkletProcessor</a> with the associated
-              string key. Initially it is empty and populated when <a href=
+              string key. Initially it is empty. It becomes populated when
+              <a href=
               "widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorConstructor">
               registerProcessor</a> method is called.
             </li>
@@ -4571,9 +4572,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               until they are destroyed by UA.
             </li>
           </ul>
-          <pre class="example">
-// Registering an AudioWorkletProcessor in AudioWorkletGlobalScope.
-// (bypass.js script file)
+          <pre class="example" title=
+          "Registering an AudioWorkletProcessor class definition">
+// bypass.js script file, AudioWorkletGlobalScope
 registerProcessor("Bypass", class extends AudioWorkletProcessor {
   process (inputs, outputs) {
     // Single input, single channel.
@@ -4582,8 +4583,9 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
   }
 });
           </pre>
-          <pre class="example">
-// Importing a script and creating AudioWorkletNode in the main global scope.
+          <pre class="example" title=
+          "Importing a script and creating AudioWorkletNode">
+// The main global scope
 window.audioWorklet.import("bypass.js").then(function () {
   var context = new AudioContext();
   var bypass = new AudioWorkletNode(context, "Bypass");
@@ -4897,30 +4899,30 @@ window.audioWorklet.import("bypass.js").then(function () {
               An example of subclass is as follows:
             </p>
             <pre class="example" title="Subclassing AudioWorkletProcessor">
-  class MyProcessor extends AudioWorkletProcessor {
-    static get parameterDescriptors() { 
-      return [{
-        name: 'myParam',
-        defaultValue: 0.5,
-        minValue: 0
-        maxValue: 1 
-      }];
-    }
+class MyProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() { 
+    return [{
+      name: 'myParam',
+      defaultValue: 0.5,
+      minValue: 0
+      maxValue: 1 
+    }];
+  }
 
-    process(inputs, outputs, parameters) {
-      // Get the first input and output.
-      var input = inputs[0];
-      var output = outputs[0];
-      var myParam = parameters.myParam;
+  process(inputs, outputs, parameters) {
+    // Get the first input and output.
+    var input = inputs[0];
+    var output = outputs[0];
+    var myParam = parameters.myParam;
 
-      // A simple amplifier for single input and output.
-      for (var channel = 0; channel &lt; output.length; ++channel) {
-        for (var i = 0; i &lt; output[channel].length; ++i) {
-          output[channel][i] = input[channel][i] * myParam[i];
-        }
+    // A simple amplifier for single input and output.
+    for (var channel = 0; channel &lt; output.length; ++channel) {
+      for (var i = 0; i &lt; output[channel].length; ++i) {
+        output[channel][i] = input[channel][i] * myParam[i];
       }
     }
   }
+}
             </pre>
             <p>
               <code>process()</code> method is called synchronously by the
@@ -5054,9 +5056,9 @@ window.audioWorklet.import("bypass.js").then(function () {
             <li>Let <var>this</var> be the instance being created by
             constructor of <a>AudioWorkletNode</a> or its subclass.
             </li>
-            <li>If the <var>context</var> is not a platform object implements
-            <a>BaseAudioContext</a>, throw a <code>TypeError</code> and abort
-            all these steps.
+            <li>If the <var>context</var> is not a platform object which
+            implements <a>BaseAudioContext</a>, throw a <code>TypeError</code>
+            and abort all these steps.
             </li>
             <li>If the <var>name</var> does not exists as a key in the
             <a>AudioWorkletGlobalScope</a>’s <a>node name to processor
@@ -5069,7 +5071,10 @@ window.audioWorklet.import("bypass.js").then(function () {
             </li>
             <li>Let <var>processorInstance</var> be the result of <a href=
             "http://www.ecma-international.org/ecma-262/6.0/#sec-construct">Construct</a>(<var>processorConstructor</var>,
-            <var>options</var>).
+            <var>« options »</var>). The argument list <var>options</var> is
+            serialized using the <a href=
+            "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
+              structured clone</a> algorithm.
             </li>
             <li>Let <var>parameterDescriptors</var> be the result of <a href=
             "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>processorConstructor</var>,

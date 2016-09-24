@@ -1018,6 +1018,10 @@ function setupRoutingGraph() {
               of the <a>AudioContext</a> is already <code>running</code>,
               resolve <em>promise</em>, return it, and abort these steps.
               </li>
+              <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
+              append <em>promise</em> to <a>pendingResumePromises</a> and abort
+              these steps, returning <em>promise</em>.
+              </li>
               <li>Set the <em>control thread state</em> flag on the
               <a>AudioContext</a> to <code>running</code>.
               </li>
@@ -1038,6 +1042,9 @@ function setupRoutingGraph() {
               <li>In case of failure, queue a task on the <a>control thread</a>
               to execute the following, and abort these steps
                 <ol>
+                  <li>Reject all promises from <a>pendingResumePromises</a> in
+                  order, then clear <a>pendingResumePromises</a>.
+                  </li>
                   <li>Reject <em>promise</em>
                   </li>
                 </ol>
@@ -1045,6 +1052,9 @@ function setupRoutingGraph() {
               <li>Queue a task on the <a>control thread</a>'s event loop, to
               execute these steps:
                 <ol>
+                  <li>Resolve all promises from <a>pendingResumePromises</a> in
+                  order, then clear <a>pendingResumePromises</a>.
+                  </li>
                   <li>Resolve <em>promise</em>.
                   </li>
                   <li>If the <a href="#widl-audiocontext-state">state</a>
@@ -1673,6 +1683,21 @@ function setupRoutingGraph() {
           use cases, only a single <a><code>AudioContext</code></a> is used per
           document.
         </p>
+        <p>
+          An <a><code>AudioContext</code></a> is said to be <dfn>allowed to
+          start</dfn> if the user agent and the system allow audio output in
+          the current context. In other words, if the
+          <a><code>AudioContext</code></a> <em>control thread state</em> is
+          allowed to transition from <code>suspended</code> to
+          <code>running</code>.
+        </p>
+        <p class='note'>
+          For example, a user agent could require that an
+          <a><code>AudioContext</code></a> control thread state change to
+          running is <a href=
+          "https://html.spec.whatwg.org/multipage/interaction.html#triggered-by-user-activation">
+          triggered by a user activation</a> (as described in [[HTML]]).
+        </p>
         <dl title=
         '[Constructor(optional AudioContextOptions contextOptions)] interface AudioContext : BaseAudioContext'
         class='idl'>
@@ -1688,6 +1713,12 @@ function setupRoutingGraph() {
               <li>Set a <code>control thread state</code> to
               <code>suspended</code> on the <a>AudioContext</a>.
               </li>
+              <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered list
+              of promises.
+              </li>
+              <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
+              abort these steps.
+              </li>
               <li>Send a <a>control message</a> to start processing.
               </li>
             </ol>
@@ -1696,7 +1727,7 @@ function setupRoutingGraph() {
               executing the following steps:
             </p>
             <ol>
-              <li>Attempt to <a href="#acquiring">Acquire system resources</a>.
+              <li>Attempt to <a href="#acquiring">acquire system resources</a>.
               </li>
               <li>In case of failure, abort these steps.
               </li>

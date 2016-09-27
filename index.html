@@ -5369,7 +5369,7 @@ window.audioWorklet.import('bitcrusher.js').then(function () {
               AudioWorkletGlobalScope: bitcrusher.js
             </h4>
             <pre>
-registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor {
+registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
   static get parameterDescriptors () {
     return [{
@@ -5486,7 +5486,7 @@ var importPromise = window.audioWorklet.import('vumeterprocessor.js');
 var VU_METER_SMOOTHING = 0.9;
 var VU_METER_MINIMUM = 0.00001;
 
-registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
+registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 
   // Note: AudioParam definition can be omitted.
 
@@ -5503,26 +5503,29 @@ registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
   }
 
   process (inputs, outputs, parameters) {
-    // Note that the input will be downmixed to mono.
-    var buffer = inputs[0][0];
-    var bufferLength = buffer.length;
-    var sum = 0, x = 0, rms = 0;
+    // Note that the input will be downmixed to mono; however,
+    // if no inputs are connected then zero channels will be passed in.
+    if (inputs[0].length > 0) {
+      var buffer = inputs[0][0];
+      var bufferLength = buffer.length;
+      var sum = 0, x = 0, rms = 0;
 
-    // Calculated the squared-sum.
-    for (var i = 0; i &lt; bufferLength; ++i) {
-      x = buffer[i];
-      sum += x * x;
-    }
+      // Calculated the squared-sum.
+      for (var i = 0; i &lt; bufferLength; ++i) {
+        x = buffer[i];
+        sum += x * x;
+      }
 
-    // Caluclate the RMS level and update the volume.
-    rms =  Math.sqrt(sum / bufferLength);
-    this.volume = Math.max(rms, this.volume * VU_METER_SMOOTHING);
+      // Caluclate the RMS level and update the volume.
+      rms =  Math.sqrt(sum / bufferLength);
+      this.volume = Math.max(rms, this.volume * VU_METER_SMOOTHING);
 
-    // Update and sync the volume property with the main thread.
-    this.nextUpdateFrame -= bufferLength;
-    if (this.nextUpdateFrame &lt; 0) {
-      this.nextUpdateFrame += this.interval;
-      this.postMessage({ volume: this.volume });
+      // Update and sync the volume property with the main thread.
+      this.nextUpdateFrame -= bufferLength;
+      if (this.nextUpdateFrame &lt; 0) {
+        this.nextUpdateFrame += this.interval;
+        this.postMessage({ volume: this.volume });
+      }
     }
 
     // Retain an active reference if the volume is above a threshold,

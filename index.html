@@ -665,6 +665,10 @@ function setupRoutingGraph() {
           <li>A <a><code>OscillatorNode</code></a> interface, an
           <a><code>AudioNode</code></a> for generating a periodic waveform.
           </li>
+          <li>A <a><code>ConstantSourceNode</code></a> interface, an
+          <a>AudioNode</a> for generating a nominally constant output value
+          with an <a>AudioParam</a> to allow automation of the value.
+          </li>
         </ul>
         <p>
           There are also several features that have been deprecated from the
@@ -886,7 +890,7 @@ function setupRoutingGraph() {
               include any additional latency that might be caused by any other
               processing between the output of the <a>AudioDestinationNode</a>
               and the audio hardware and specifically does not include any
-              latency incurred the the audio graph itself.
+              latency incurred the audio graph itself.
             </p>
             <p>
               For example, if the audio context is running at 44.1 kHz and the
@@ -1059,83 +1063,6 @@ function setupRoutingGraph() {
                 </ol>
               </li>
             </ol>
-          </dd>
-          <dt>
-            Promise&lt;void&gt; close()
-          </dt>
-          <dd>
-            <p>
-              Closes the <a>BaseAudioContext</a>, <a>releasing the system
-              resources</a> it's using. This will not automatically release all
-              <a>AudioContext</a>-created objects, but will suspend the
-              progression of the <a><code>AudioContext</code></a>'s <a href=
-              "#widl-AudioContext-currentTime">currentTime</a>, and stop
-              processing audio data.
-            </p>
-            <p>
-              <span class="synchronous">When close is called, execute these
-              steps:</span>
-            </p>
-            <ol>
-              <li>Let <em>promise</em> be a new Promise.
-              </li>
-              <li>If this <a>BaseAudioContext</a> is an
-              <a>OfflineAudioContext</a>, reject <em>promise</em> with
-              <code>NotSupportedError</code>, return it, and abort these steps.
-              </li>
-              <li>If the <em>control thread state</em> flag on the
-              <a>AudioContext</a> is <code>closed</code> reject the promise
-              with <code>InvalidStateError</code>, abort these steps, returning
-              <em>promise</em>.
-              </li>
-              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
-              of the <a>AudioContext</a> is already <code>closed</code>,
-              resolve <em>promise</em>, return it, and abort these steps.
-              </li>
-              <li>Set the <em>control thread state</em> flag on the
-              <a>AudioContext</a> to <code>closed</code>.
-              </li>
-              <li>
-                <a href="#queue">Queue a control message</a> to the
-                <a>AudioContext</a>.
-              </li>
-              <li>Return <em>promise</em>.
-              </li>
-            </ol>
-            <p>
-              Running a <a>control message</a> to close an
-              <a>BaseAudioContext</a> means running these steps on the
-              <a>rendering thread</a>:
-            </p>
-            <ol>
-              <li>Attempt to <a>release system resources</a>.
-              </li>
-              <li>Queue a task on the <a>control thread</a>'s event loop, to
-              execute these steps:
-                <ol>
-                  <li>Resolve <em>promise</em>.
-                  </li>
-                  <li>If the <a href="#widl-audiocontext-state">state</a>
-                  attribute of the <a>AudioContext</a> is not already
-                  <code>closed</code>:
-                    <ol>
-                      <li>Set the <a href="#widl-audiocontext-state">state</a>
-                      attribute of the <a>AudioContext</a> to
-                      <code>closed</code>.
-                      </li>
-                      <li>Queue a task to fire a simple event named
-                      <code>statechange</code> at the <a>AudioContext</a>
-                      </li>
-                    </ol>
-                  </li>
-                </ol>
-              </li>
-            </ol>
-            <p class="note">
-              When an <a>BaseAudioContext</a> has been closed, implementation
-              can choose to aggressively release more resources than when
-              suspending.
-            </p>
           </dd>
           <dt>
             attribute EventHandler onstatechange
@@ -1339,6 +1266,14 @@ function setupRoutingGraph() {
               Creates an <a><code>AudioBufferSourceNode</code></a>.
               <a>AudioBufferSourceNode</a> are created with an internal flag
               <code>buffer set</code>, initially set to false.
+            </p>
+          </dd>
+          <dt>
+            ConstantSourceNode createConstantSource()
+          </dt>
+          <dd>
+            <p>
+              Creates a <a><code>ConstantSourceNode</code></a>.
             </p>
           </dd>
           <dt>
@@ -1877,6 +1812,78 @@ function setupRoutingGraph() {
               may be incremented at non-uniform time intervals, so <a href=
               "#widl-AudioContext-outputLatency"><code>outputLatency</code></a>
               attribute should be used instead.
+            </p>
+          </dd>
+          <dt>
+            Promise&lt;void&gt; close()
+          </dt>
+          <dd>
+            <p>
+              Closes the <a>AudioContext</a>, <a>releasing the system
+              resources</a> it's using. This will not automatically release all
+              <a>AudioContext</a>-created objects, but will suspend the
+              progression of the <a><code>AudioContext</code></a>'s <a href=
+              "#widl-AudioContext-currentTime">currentTime</a>, and stop
+              processing audio data.
+            </p>
+            <p>
+              <span class="synchronous">When close is called, execute these
+              steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>closed</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>closed</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>closed</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to close an <a>AudioContext</a>
+              means running these steps on the <a>rendering thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>closed</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>closed</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>statechange</code> at the <a>AudioContext</a>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p class="note">
+              When an <a>AudioContext</a> has been closed, implementation can
+              choose to aggressively release more resources than when
+              suspending.
             </p>
           </dd>
           <dt>
@@ -4025,13 +4032,17 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           operation occurs on an <a>AudioBuffer</a>, run the following steps:
         </p>
         <ol>
-          <li>If any of the <a>AudioBuffer</a>'s <code>ArrayBuffer</code> have
-          been <em>detached</em>, abort these steps, and return a zero-length
+          <li>If the operation <a href=
+          "https://tc39.github.io/ecma262/#sec-isdetachedbuffer"><code>IsDetachedBuffer</code></a>
+          on any of the <a>AudioBuffer</a>'s <code>ArrayBuffer</code> return
+          <code>true</code>, abort these steps, and return a zero-length
           channel data buffers to the invoker.
           </li>
           <li>
-            <em>Detach</em>all <code>ArrayBuffer</code>s for arrays previously
-            returned by <code>getChannelData</code> on this <a>AudioBuffer</a>.
+            <a href=
+            "https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
+            all <code>ArrayBuffer</code>s for arrays previously returned by
+            <code>getChannelData</code> on this <a>AudioBuffer</a>.
           </li>
           <li>Retain the underlying data buffers from those
           <code>ArrayBuffer</code>s and return references to them to the
@@ -4075,16 +4086,17 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </h2>
           <p>
             This specifies the options to use in constructing an
-            <a><code>AudioBuffer</code></a>. All members are required. A
-            NotFoundError exception MUST be thrown if any of the required
-            members are not specified.
+            <a><code>AudioBuffer</code></a>. Only the <a href=
+            "#widl-AudioBufferOptions-length"><code>length</code></a> member is
+            required. A NotFoundError exception MUST be thrown if any of the
+            required members are not specified.
           </p>
           <dl title="dictionary AudioBufferOptions" class="idl">
             <dt>
-              unsigned long numberOfChannels
+              unsigned long numberOfChannels = 1
             </dt>
             <dd>
-              The number of channels for the buffer
+              The number of channels for the buffer.
             </dd>
             <dt>
               unsigned long length
@@ -4096,7 +4108,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               float sampleRate
             </dt>
             <dd>
-              The sample rate in Hz for the buffer.
+              The sample rate in Hz for the buffer. The default is the sample
+              rate of the <code>context</code> used in constructing this
+              object.
             </dd>
           </dl>
         </section>
@@ -4115,12 +4129,22 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a><code>AudioWorkletNode</code></a> to implement playback.
         </p>
         <p>
-          The start() method is used to schedule when sound playback will
-          happen. The start() method may not be issued multiple times. The
+          The <a href=
+          "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+          <code>start()</code></a> method is used to schedule when sound
+          playback will happen. The <a href=
+          "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+          <code>start()</code></a> method may not be issued multiple times. The
           playback will stop automatically when the buffer's audio data has
-          been completely played (if the <code>loop</code> attribute is false),
-          or when the stop() method has been called and the specified time has
-          been reached. Please see more details in the start() and stop()
+          been completely played (if the <a href=
+          "#widl-AudioBufferSourceNode-loop"><code>loop</code></a> attribute is
+          <code>false</code>), or when the <a href=
+          "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
+          method has been called and the specified time has been reached.
+          Please see more details in the <a href=
+          "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+          <code>start()</code></a> and <a href=
+          "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
           description.
         </p>
         <pre>
@@ -4129,8 +4153,11 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
 </pre>
         <p>
           The number of channels of the output always equals the number of
-          channels of the AudioBuffer assigned to the .buffer attribute, or is
-          one channel of silence if .buffer is NULL.
+          channels of the AudioBuffer assigned to the <a href=
+          "#widl-AudioBufferSourceNode-buffer"><code>buffer</code></a>
+          attribute, or is one channel of silence if <a href=
+          "#widl-AudioBufferSourceNode-buffer"><code>buffer</code></a> is
+          <code>null</code>.
         </p>
         <p>
           This node has no <a>tail-time</a> reference.
@@ -4319,7 +4346,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               </dt>
               <dd>
                 The <a><code>when</code></a> parameter describes at what time
-                (in seconds) the sound should stop playing. It is in the same
+                (in seconds) the source should stop playing. It is in the same
                 time coordinate system as the
                 <a><code>AudioContext</code></a>'s <a href=
                 "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
@@ -4382,7 +4409,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </p>
           <dl title="dictionary AudioBufferSourceOptions" class="idl">
             <dt>
-              AudioBuffer buffer
+              AudioBuffer? buffer
             </dt>
             <dd>
               The audio asset to be played. This is equivalent to assigning
@@ -4484,6 +4511,122 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             the sample rate of the <a><code>AudioContext</code></a>. That is,
             no sub-sample scheduling is possible.
           </p>
+        </section>
+      </section>
+      <section>
+        <h2 id="ConstantSourceNode">
+          The ConstantSourceNode Interface
+        </h2>
+        <p>
+          This interface represents a constant audio source whose output is
+          nominally a constant value. It is useful as a constant source node in
+          general and can be used as if it were a constructible
+          <a><code>AudioParam</code></a> by automating its
+          <a><code>offset</code></a> or connecting another node to it.
+        </p>
+        <p>
+          The single output of this node consists of one channel (mono).
+        </p>
+        <pre>
+  numberOfInputs  : 0
+  numberOfOutputs : 1
+        </pre>
+        <dl title=
+        "[Constructor(BaseAudioContext context, optional ConstantSourceOptions options)]interface ConstantSourceNode : AudioNode"
+        class="idl">
+          <dt>
+            readonly attribute AudioParam offset
+          </dt>
+          <dd>
+            <p>
+              The constant value of the source. Its default value is 1. This
+              parameter is <a>a-rate</a>. Its nominal range is \([-\infty,
+              \infty]\).
+            </p>
+          </dd>
+          <dt>
+            attribute EventHandler onended
+          </dt>
+          <dd>
+            <p>
+              A property used to set the <code>EventHandler</code> (described
+              in <cite><a href=
+              "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
+              HTML</a></cite>[[!HTML]]) for the ended event that is dispatched
+              to <a><code>AudioBufferSourceNode</code></a> node types. When the
+              playback of the constant value is finished, an event of type
+              <code>Event</code> (described in <cite><a href=
+              "https://html.spec.whatwg.org/multipage/infrastructure.html#event">
+              HTML</a></cite> [[!HTML]]) will be dispatched to the event
+              handler.
+            </p>
+          </dd>
+          <dt>
+            void start(optional double when = 0)
+          </dt>
+          <dd>
+            <p>
+              Schedules the constant source to playback at an exact time. This
+              is defined exactly the same as for the <a href=
+              "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+              <code>start()</code></a> method for an
+              <a>AudioBufferSourceNode</a>, except that the the optional
+              <code>offset</code> and <code>duration</code> parameters are not
+              allowed.
+            </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                Defined the same as the <code>when</code> parameter of the
+                <code>start()</code> method for an
+                <a><code>AudioBufferSourceNode</code></a>.
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            void stop(optional double when = 0)
+          </dt>
+          <dd>
+            <p>
+              Schedules the source to stop playback at an exact time. This is
+              defined exactly the same as for the <a href=
+              "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
+              method for an <a>AudioBufferSourceNode</a>
+            </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                Defined the same as the <code>when</code> parameter of the
+                <code>stop()</code> method for an
+                <a><code>AudioBufferSourceNode</code></a>
+              </dd>
+            </dl>
+          </dd>
+        </dl>
+        <section>
+          <h2>
+            ConstantSourceOptions
+          </h2>
+          <p>
+            This specifies options for constructing a
+            <a><code>ConstantSourceNode</code></a>. All members are optional;
+            if not specified, the normal defaults are used for constructing the
+            node.
+          </p>
+          <dl title="dictionary ConstantSourceOptions" class="idl">
+            <dt>
+              float offset = 1
+            </dt>
+            <dd>
+              The initial value for the <a href=
+              "#widl-ConstantSourceNode-offset"><code>offset</code></a>
+              AudioParam of this node.
+            </dd>
+          </dl>
         </section>
       </section>
       <section>
@@ -4593,20 +4736,19 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             Concepts
           </h2>
           <p>
-            The <a><code>AudioWorklet</code></a> object allows developers to
-            supply JavaScript to process audio on the <a>rendering thread</a>,
-            supporting custom AudioNodes. This processing mechanism ensures the
-            synchronous execution of the script code with other built-in
-            <a><code>AudioNode</code></a>s in the audio graph.
+            The <a>AudioWorklet</a> object allows developers to supply
+            JavaScript to process audio on the <a>rendering thread</a>,
+            supporting custom <a>AudioNode</a>s. This processing mechanism
+            ensures the synchronous execution of the script code with other
+            built-in <a>AudioNode</a>s in the audio graph.
           </p>
           <p>
             An associated pair of objects must be defined in order to realize
-            this mechanism: <a><code>AudioWorkletNode</code></a> and
-            <a><code>AudioWorkletProcessor</code></a>. The former represents
-            the interface for the main global scope similar to other AudioNode
-            objects and the latter implements the internal audio processing
-            within a special scope named
-            <a><code>AudioWorkletGlobalScope</code></a>.
+            this mechanism: <a>AudioWorkletNode</a> and
+            <a>AudioWorkletProcessor</a>. The former represents the interface
+            for the main global scope similar to other <a>AudioNode</a>
+            objects, and the latter implements the internal audio processing
+            within a special scope named <a>AudioWorkletGlobalScope</a>.
           </p>
           <figure>
             <img alt="AudioWorklet concept" src=
@@ -4616,28 +4758,42 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               <a><code>AudioWorkletProcessor</code></a>
             </figcaption>
           </figure>
-          <blockquote>
-            <pre>
-// In the main global scope
-window.audioWorklet.import("bypass.js").then(function () {
-  var context = new AudioContext();
-  var bypass = new AudioWorkletNode(context, "Bypass");
-});
-</pre>
-          </blockquote>
           <p>
-            Importing a JavaScript file via <code>import(url)</code> method
-            registers class definitions of
-            <a><code>AudioWorkletProcessor</code></a> under the
-            <a><code>AudioWorkletGlobalScope</code></a>. Imported definitions
-            are stored in the <a><em>node name to processor definition
-            map</em></a> and any <a><code>AudioContext</code></a> instance from
-            the associated main global scope can access this map to create a
-            custom node.
+            Importing a JavaScript file via the <a href=
+            "https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
+            method registers class definitions of <a>AudioWorkletProcessor</a>
+            under the <a>AudioWorkletGlobalScope</a>. There are two internal
+            storage areas for the imported class definitions and the active
+            instances created from the definition.
           </p>
-          <blockquote>
-            <pre>
-// 'bypass.js' in AudioWorkletGlobalScope
+          <dl>
+            <dt>
+              <dfn>node name to processor definition map</dfn>
+            </dt>
+            <dd>
+              Belongs to <a>AudioWorkletGlobalScope</a>. This map associates a
+              <a href=
+              "#widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorCtor">
+              string key</a> to the corresponding <a>AudioWorkletProcessor</a>
+              definition. Initially this map is empty and becomes populated
+              when <a href=
+              "widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorConstructor">
+              registerProcessor</a> method is called.
+            </dd>
+            <dt>
+              <dfn>node instance set</dfn>
+            </dt>
+            <dd>
+              Belongs to an instance of <a>BaseAudioContext</a>. This set
+              stores the reference to all the active instances of
+              <a>AudioWorkletNode</a> that are created by the associated
+              <a>BaseAudioContext</a>. The context keeps the track of instances
+              until they are destroyed by the user agent.
+            </dd>
+          </dl>
+          <pre class="example" title=
+          "Registering an AudioWorkletProcessor class definition">
+// bypass.js script file, AudioWorkletGlobalScope
 registerProcessor("Bypass", class extends AudioWorkletProcessor {
   process (inputs, outputs) {
     // Single input, single channel.
@@ -4645,15 +4801,21 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
     output[0].set(input[0]);
   }
 });
-</pre>
-          </blockquote>
+          </pre>
+          <pre class="example" title=
+          "Importing a script and creating AudioWorkletNode">
+// The main global scope
+window.audioWorklet.import("bypass.js").then(function () {
+  var context = new AudioContext();
+  var bypass = new AudioWorkletNode(context, "Bypass");
+});
+          </pre>
           <p>
-            At the instantiation of <code>AudioWorkletNode</code> in the main
-            global scope, the counterpart <code>AudioWorkletProcessor</code>
-            will also be created in <code>AudioWorkletGlobalScope</code>. These
-            two objects communicate via the asynchronous message passing
-            described in the <a href="#processing-model">processing model</a>
-            section.
+            At the instantiation of <a>AudioWorkletNode</a> in the main global
+            scope, the counterpart <a>AudioWorkletProcessor</a> will also be
+            created in <a>AudioWorkletGlobalScope</a>. These two objects
+            communicate via the asynchronous message passing described in the
+            <a href="#processing-model">processing model</a> section.
           </p>
         </section>
         <dl title="partial interface Window" class="idl">
@@ -4665,32 +4827,137 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
               The <code>audioWorklet</code> attributes allows access to the
               <code>Worklet</code> object that can import a JavaScript file
               containing <a><code>AudioWorkletProcessor</code></a> class
-              definitions.
+              definitions via the algorithm defined by [[!worklets-1]].
             </p>
           </dd>
         </dl>
-        <dl title="interface AudioWorklet : Worklet" class="idl">
-          <dt>
-            Promise&lt;void&gt; import(DOMString moduleUrl)
-          </dt>
-          <dd>
-            <p>
-              Imports a module script at <code>moduleURL</code> via the
-              algorithm defined by [[!worklets-1]].
-            </p>
-          </dd>
-        </dl>
+        <section>
+          <h2 id="AudioWorkletGlobalScope">
+            The <dfn>AudioWorkletGlobalScope</dfn> interface
+          </h2>
+          <p>
+            This special execution context is designed to enable the
+            generation, processing, and analysis of audio data directly using
+            JavaScript in the audio <a>rendering thread</a>. The user-supplied
+            script code is evaluated in this scope to define an
+            <a>AudioWorkletProcessor</a>.
+          </p>
+          <p>
+            <a>AudioWorkletGlobalScope</a> has a <a>node name to processor
+            definition map</a>. This map stores definitions of
+            <a>AudioWorkletProcessor</a> with the associated string key.
+            Initially it is empty and populated when
+            <code>registerProcessor</code> method is called, but this storage
+            is internal and is not directly exposed to the user.
+          </p>
+          <dl title="callback VoidFunction = void" class="idl"></dl>
+          <dl title=
+          "[Global=(Worklet, AudioWorklet), Exposed=AudioWorklet] interface AudioWorkletGlobalScope : WorkletGlobalScope"
+          class="idl">
+            <dt>
+              void registerProcessor ()
+            </dt>
+            <dd>
+              <p>
+                Registers a class definition derived from
+                <a>AudioWorkletProcessor</a>.
+              </p>
+              <p>
+                When the <a><code>registerProcessor(<em>name</em>,
+                <em>processorConstructor</em>)</code></a> method is called, the
+                user agent must run the following steps:
+              </p>
+              <ol>
+                <li>If the <code><em>name</em></code> exists as a key in the
+                <a>node name to processor definition map</a>, throw a
+                <code>NotSupportedError</code> exception and abort these steps
+                because registering a definition with a duplicated key is not
+                allowed.
+                </li>
+                <li>If the result of <code><a href=
+                "http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
+                  IsConstructor</a>(argument=<em>processorConstructor</em>)</code>
+                  is false, throw a <code>TypeError</code> and abort these
+                  steps.
+                </li>
+                <li>Let <code><em>prototype</em></code> be the result of <code>
+                  <a href=
+                  "http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+                  Get</a>(O=<em>processorConstructor</em>,
+                  P="prototype")</code>.
+                </li>
+                <li>If the result of <code><a href=
+                "http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
+                  Type</a>(argument=<em>prototype</em>)</code> is not
+                  <code>Object</code>, throw a <code>TypeError</code> and abort
+                  all these steps.
+                </li>
+                <li>If the result of <code><a href=
+                "http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+                  IsCallable</a>(argument=Get(O=<em>prototype</em>,
+                  P="process"))</code> is false, throw a <code>TypeError</code>
+                  and abort these steps.
+                </li>
+                <li>If the result of <code><a href=
+                "http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+                  Get</a>(O=<em>processorConstructor</em>,
+                  P="parameterDescriptors")</code> is not an array or
+                  <code>undefined</code>, throw a <code>TypeError</code> and
+                  abort these steps.
+                </li>
+                <li>Let <em>definition</em> be a new
+                <a>AudioWorkletProcessor</a> definition with:
+                  <ul>
+                    <li>node name being <em>name</em>
+                    </li>
+                    <li>processor class constructor being
+                    <em>processorConstructor</em>
+                    </li>
+                  </ul>
+                </li>
+                <li>Add the key-value pair (<em>name</em> -
+                <em>definition</em>) to the <a>node name to processor
+                definition map</a> of the associated
+                <a>AudioWorkletGlobalScope</a>.
+                </li>
+              </ol>
+              <p class="note">
+                The class constructor should only be looked up once, thus it
+                does not have the opportunity to dynamically change its
+                definition.
+              </p>
+              <dl class="parameters">
+                <dt>
+                  DOMString name
+                </dt>
+                <dd>
+                  A string key that represents a class definition to be
+                  registered. This key is used to look up the constructor of
+                  <a>AudioWorkletProcessor</a> during construction of an
+                  <a>AudioWorkletNode</a>.
+                </dd>
+                <dt>
+                  VoidFunction processorCtor
+                </dt>
+                <dd>
+                  A class definition extended from
+                  <a>AudioWorkletProcessor</a>.
+                </dd>
+              </dl>
+            </dd>
+          </dl>
+        </section>
         <section>
           <h2 id="AudioWorkletNode">
             The <dfn>AudioWorkletNode</dfn> interface
           </h2>
           <p>
-            This interface represents a user-defined
-            <a><code>AudioNode</code></a> which lives on the <a>control
-            thread</a>. The user can create an <code>AudioWorkletNode</code>
-            from an <a><code>AudioContext</code></a> and such a node can be
-            connected with other built-in <a><code>AudioNode</code></a>s to
-            form an audio graph.
+            This interface represents a user-defined <a>AudioNode</a> which
+            lives on the <a>control thread</a>. The user can create an
+            <a>AudioWorkletNode</a> from an <a>BaseAudioContext</a>, and such a
+            node can be connected with other built-in <a>AudioNode</a>s to form
+            an audio graph. Every <a>AudioWorkletNode</a> has an associated
+            <dfn>processor reference</dfn>, initially null.
           </p>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
@@ -4699,54 +4966,12 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             </dt>
             <dd>
               <p>
-                The construction procedure of an
-                <a><code>AudioWorkletNode</code></a> and the corresponding
-                <a><code>AudioWorkletProcessor</code></a> object consists of
-                several coordinated interactions. The following algorithm
-                specifies the steps for constructing an
-                <a><code>AudioWorkletNode</code></a> with the given parameters.
-                This sequence must be performed by the user agent <a data-lt=
-                "atomic">atomically</a>.
+                Performs the <a href=
+                "#instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">construction
+                procedure</a> of an <a><code>AudioWorkletNode</code></a> and
+                the corresponding <a><code>AudioWorkletProcessor</code></a>
+                object.
               </p>
-              <ol>
-                <li>
-                  <em>In the <code>AudioWorkletGlobalScope</code></em>: Locate
-                  a definition of <a><code>AudioWorkletProcessor</code></a>
-                  subclass that is registered under the <code>name</code>
-                  argument. If none is found, an
-                  <code>InvalidAccessError</code> exception MUST be thrown by
-                  the <a><code>AudioWorkletNode</code></a> constructor.
-                </li>
-                <li>Run the <a><code>AudioWorkletProcessor</code></a>
-                constructor, passing a structured clone of the
-                <code>options</code> parameter that was provided to
-                <a><code>AudioWorkletNode</code></a>.
-                  <ol>
-                    <li>Run the constructor of the
-                    <a><code>AudioWorkletProcessor</code> subclass</a>. The
-                    constructor uses the <code>options</code> parameter to
-                    initialize this <a><code>AudioWorkletProcessor</code></a>
-                    instance.
-                    </li>
-                  </ol>
-                </li>
-                <li>
-                  <em>In the global scope</em>: Construct
-                  <a><code>AudioParam</code></a> objects based on the
-                  information from the processor's
-                  <a><code>parameterDescriptors</code></a>.
-                  <ol>
-                    <li>Initialize the value of <a><code>AudioParam</code></a>
-                    objects with key-value pairs in the <code>option</code>
-                    parameter. Find the key that matches the name of AudioParam
-                    object and assign the value to it. Any key does not match
-                    the name of <a><code>AudioParam</code></a> object and
-                    anything other than <code>Number</code> for the value are
-                    ignored.
-                    </li>
-                  </ol>
-                </li>
-              </ol>
             </dd>
             <dt>
               attribute EventHandler onmessage
@@ -4820,56 +5045,6 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
           </section>
         </section>
         <section>
-          <h2 id="AudioWorkletGlobalScope">
-            The <dfn>AudioWorkletGlobalScope</dfn> interface
-          </h2>
-          <p>
-            This interface is derived from <code>WorkletGlobalScope</code> and
-            represents a special execution context in which an audio processing
-            script runs. It is designed to enable the generation, processing,
-            and analysis of audio data directly using JavaScript in the audio
-            <a>rendering thread</a>. The user-supplied script code is evaluated
-            in this scope to define an
-            <a><code>AudioWorkletProcessor</code></a>.
-          </p>
-          <dl title="interface AudioWorkletGlobalScope : WorkletGlobalScope"
-          class="idl">
-            <dt>
-              void registerProcessor (DOMString name, Function
-              classConstructor)
-            </dt>
-            <dd>
-              <p>
-                Registers a definition of a class that is derived from
-                <a>AudioWorkletProcessor</a>.
-              </p>
-              <dl class="parameters">
-                <dt>
-                  DOMString name
-                </dt>
-                <dd>
-                  A string key that represents a class definition to be
-                  registered. This key is used to resolve an
-                  <a><code>AudioWorkletProcessor</code></a> during construction
-                  of an <a><code>AudioWorkletNode</code></a>. Throws an
-                  exception if another
-                  <a><code>AudioWorkletProcessor</code></a> has already
-                  registered this key.
-                </dd>
-                <dt>
-                  Function classConstructor
-                </dt>
-                <dd>
-                  A class definition extended from
-                  <a>AudioWorkletProcessor</a>. Throws if this is not a class
-                  definition or it does not extend
-                  <a><code>AudioWorkletProcessor</code></a>.
-                </dd>
-              </dl>
-            </dd>
-          </dl>
-        </section>
-        <section>
           <h2 id="AudioWorkletProcessor">
             The <dfn>AudioWorkletProcessor</dfn> interface
           </h2>
@@ -4880,30 +5055,20 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
             the class manifests the actual audio processing mechanism of a
             custom audio node. <a><code>AudioWorkletProcessor</code></a> can
             only be instantiated by the construction of an
-            <a><code>AudioWorkletNode</code></a> instance.
+            <a><code>AudioWorkletNode</code></a> instance. Every
+            <a>AudioWorkletProcessor</a> has an associated <dfn>node
+            reference</dfn>, initially null.
           </p>
-          <dl title="interface AudioWorkletProcessor" class="idl">
-            <dt>
-              [SameObject] readonly attribute
-              FrozenArray&lt;AudioParamDescriptor&gt; parameterDescriptors
-            </dt>
-            <dd>
-              <p>
-                This getter returns an array containing
-                <a>AudioParamDescriptor</a>s, which are descriptors for each
-                <a><code>AudioParam</code></a> on an <a>AudioNode</a>. This
-                static property is referenced in the construction on an
-                <a>AudioWorkletNode</a> to create instances of an
-                <a>AudioParam</a> in the node.
-              </p>
-            </dd>
+          <dl title="interface AudioWorkletProcessor : EventTarget" class=
+          "idl">
             <dt>
               readonly attribute AudioContextInfo contextInfo
             </dt>
             <dd>
               <p>
                 This getter returns an <a><code>AudioContextInfo</code></a>
-                object that describes the associated <a>AudioContext</a>.
+                object that describes various states of the associated
+                <a>BaseAudioContext</a>.
               </p>
             </dd>
             <dt>
@@ -4917,56 +5082,11 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
               </p>
             </dd>
             <dt>
-              void process()
-            </dt>
-            <dd>
-              <p>
-                Processes the audio data from the input and produce the content
-                of output buffer by executing the user-supplied script code.
-                This method is called synchronously by the audio <a>rendering
-                thread</a> that executes in an isochronous fashion.
-              </p>
-              <dl class="parameters">
-                <dt>
-                  sequence&lt;sequence&lt;Float32Array&gt;&gt; inputs
-                </dt>
-                <dd>
-                  <code>inputs[n][m]</code> is a <code>Float32Array</code> of
-                  audio samples for the <code>m</code>th channel of
-                  <code>n</code>th input. While the number of inputs is fixed
-                  at the construction, the number of channels can be changed
-                  dynamically.
-                </dd>
-                <dt>
-                  sequence&lt;sequence&lt;Float32Array&gt;&gt; outputs
-                </dt>
-                <dd>
-                  <code>outputs[n][m]</code> is a Float32Array object
-                  containing the audio samples for <code>m</code>th channel of
-                  <code>n</code>th output.
-                </dd>
-                <dt>
-                  Object parameters
-                </dt>
-                <dd>
-                  Provides an association between the names of the
-                  <a><code>AudioParam</code></a>s specified by the
-                  <a><code>AudioParamDescriptor</code></a>s during construction
-                  and the automation values for the
-                  <a><code>AudioParam</code></a>. Thus,
-                  <code>parameters["name"]</code> returns a
-                  <code>Float32Array</code> of the automation values
-                  corresponding to the <a><code>AudioParam</code></a> named
-                  <code>"name"</code>.
-                </dd>
-              </dl>
-            </dd>
-            <dt>
               void postMessage()
             </dt>
             <dd>
               <p>
-                It may be called to send a message to the
+                It may be called to send a message to the associated
                 <a><code>AudioWorkletNode</code></a>.
               </p>
               <dl class="parameters">
@@ -4974,13 +5094,90 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
                   any message
                 </dt>
                 <dd></dd>
-                <dt>
-                  optional sequence&lt;Object&gt; transfer
-                </dt>
-                <dd></dd>
               </dl>
             </dd>
           </dl>
+          <section>
+            <h2 id="defining-a-valid-audioworkletprcoessor">
+              Defining A Valid AudioWorkletProcessor
+            </h2>
+            <p>
+              User can define a custom audio processor by extending
+              <a>AudioWorkletProcessor</a>. The subclass must define a method
+              named <code>process()</code> that implements the audio processing
+              algorithm and have a valid static property named
+              <code>parameterDescriptors</code> which is an iterable of
+              <a>AudioParamDescriptor</a> that is looked up by the
+              <a>AudioWorkletProcessor</a> constructor to create instances of
+              <a>AudioParam</a> in the node. The step 5 and 6 of <a href=
+              "#widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorCtor">
+              registerProcessor()</a> ensure the validity of a given
+              <a>AudioWorkletProcessor</a> subclass.
+            </p>
+            <p>
+              An example of subclass is as follows:
+            </p>
+            <pre class="example" title="Subclassing AudioWorkletProcessor">
+class MyProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() { 
+    return [{
+      name: 'myParam',
+      defaultValue: 0.5,
+      minValue: 0
+      maxValue: 1 
+    }];
+  }
+
+  process(inputs, outputs, parameters) {
+    // Get the first input and output.
+    var input = inputs[0];
+    var output = outputs[0];
+    var myParam = parameters.myParam;
+
+    // A simple amplifier for single input and output.
+    for (var channel = 0; channel &lt; output.length; ++channel) {
+      for (var i = 0; i &lt; output[channel].length; ++i) {
+        output[channel][i] = input[channel][i] * myParam[i];
+      }
+    }
+  }
+}
+            </pre>
+            <p>
+              <code>process()</code> method is called synchronously by the
+              audio <a>rendering thread</a> at every <a>render quantum</a>. It
+              is invoked with the following arguments:
+            </p>
+            <ol>
+              <li>
+                <code>input</code> of type
+                <code>sequence&lt;sequence&lt;Float32Array&gt;&gt;</code><br>
+                The input audio buffer from the incoming connections provided
+                by the user agent. <code>inputs[n][m]</code> is a
+                <code>Float32Array</code> of audio samples for the
+                <code>m</code>th channel of <code>n</code>th input. While the
+                number of inputs is fixed at the construction, the number of
+                channels can be changed dynamically.
+              </li>
+              <li>
+                <code>output</code> of type
+                <code>sequence&lt;sequence&lt;Float32Array&gt;&gt;</code><br>
+                The output audio buffer that is to be consumed by the user
+                agent. <code>outputs[n][m]</code> is a
+                <code>Float32Array</code> object containing the audio samples
+                for <code>m</code>th channel of <code>n</code>th output. While
+                the number of outputs is fixed at the construction, the number
+                of channels can be changed dynamically.
+              </li>
+              <li>
+                <code>parameters</code> of type <code>Object</code><br>
+                A map of string keys and associated <code>Float32Array</code>s.
+                <code>parameter["name"]</code> corresponds to the automation
+                values of the <a><code>AudioParam</code></a> named
+                <code>"name"</code>.
+              </li>
+            </ol>
+          </section>
           <section>
             <h2 id="AudioParamDescriptor">
               <dfn>AudioParamDescriptor</dfn>
@@ -5055,6 +5252,104 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
               </dd>
             </dl>
           </section>
+        </section>
+        <section>
+          <h2 id="instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
+            The instantiation of <a>AudioWorkletNode</a> and
+            <a>AudioWorkletProcessor</a>
+          </h2>
+          <p>
+            When the constructor of <a>AudioWorkletNode</a> is invoked in the
+            main global scope, the corresponding <a>AudioWorkletProcessor</a>
+            instance is automatically created in
+            <a>AudioWorkletGlobalScope</a>. After the construction, they
+            maintain the internal reference to each other until the
+            <a>AudioWorkletNode</a> instance is destroyed.
+          </p>
+          <p>
+            When <a>AudioWorkletNode</a>(<var>context</var>, <var>name</var>,
+            <var>options</var>) constructor is called, the user agent must run
+            the following steps <a data-lt="atomic">atomically</a>.
+          </p>
+          <ol>
+            <li>Let <var>this</var> be the instance being created by
+            constructor of <a>AudioWorkletNode</a> or its subclass.
+            </li>
+            <li>If <var>name</var> does not exists as a key in the
+            <a>AudioWorkletGlobalScope</a>’s <a>node name to processor
+            definition map</a>, throw a <code>NotSupportedError</code>
+            exception and abort these steps.
+            </li>
+            <li>Let <var>processorConstructor</var> be the result of looking up
+            <var>name</var> on the <a>AudioWorkletGlobalScope</a>’s <a>node
+            name to processor definition map</a>.
+            </li>
+            <li>Let <var>processorInstance</var> be the result of <a href=
+            "http://www.ecma-international.org/ecma-262/6.0/#sec-construct">Construct</a>(<var>processorConstructor</var>,
+            <var>« options »</var>). The argument list <var>options</var> is
+            serialized using the <a href=
+            "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
+              structured clone</a> algorithm.
+            </li>
+            <li>Let <var>parameterDescriptors</var> be the result of <a href=
+            "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>processorConstructor</var>,
+            P="parameterDescriptors"). If <var>parameterDescriptors</var> is
+            <code>undefined</code>, skip to the step 8.
+            </li>
+            <li>For each <var>descriptor</var> in
+            <var>parameterDescriptors</var> perform the following substeps:
+              <ol>
+                <li>Let <var>audioParam</var> be a new <a>AudioParam</a>
+                instance with:
+                  <ul>
+                    <li>
+                      <var>paramName</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="name").
+                    </li>
+                    <li>
+                      <var>defaultValue</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="defaultValue").
+                    </li>
+                    <li>
+                      <var>minValue</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="minValue").
+                    </li>
+                    <li>
+                      <var>maxValue</var> being the result <a href=
+                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
+                      P="maxValue").
+                    </li>
+                  </ul>
+                </li>
+                <li>If <var>options</var> contains a dictionary member with
+                name <var>paramName</var> whose value is of type
+                <code>Number</code>, perform <a href=
+                "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(<var>audioParam</var>,
+                "value", <a href="https://tc39.github.io/ecma262/#sec-get-o-p">
+                  Get</a>(O=<var>options</var>, P=<var>paramName</var>),
+                  false).
+                </li>
+                <li>Perform <a href=
+                "https://tc39.github.io/ecma262/#sec-createdataproperty">CreateDataProperty</a>(O=<var>this</var>,
+                P=<var>paramName</var>, V=<var>audioParam</var>).
+                </li>
+              </ol>
+            </li>
+            <li>Set <a>node reference</a> in <var>processorInstance</var> to
+            <var>this</var>.
+            </li>
+            <li>Set <a>processor reference</a> in <var>this</var> to
+            <var>processorInstance</var>.
+            </li>
+            <li>Add <var>nodeInstance</var> to the <a>node instance set</a> in
+            the <a>BaseAudioContext</a>.
+            </li>
+            <li>Return <var>this</var> as a result of the construction.
+            </li>
+          </ol>
         </section>
         <section class="informative">
           <h2 id="AudioWorklet-Examples">
@@ -5475,6 +5770,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           <dd>
             A simple and efficient spatialization algorithm using equal-power
             panning.
+            <div class="note">
+              When this panning model is used, all the <a>AudioParam</a>s used
+              to compute the output of this node are <a>a-rate</a>.
+            </div>
           </dd>
           <dt>
             HRTF
@@ -5483,6 +5782,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             A higher quality spatialization algorithm using a convolution with
             measured impulse responses from human subjects. This panning method
             renders stereo output.
+            <div class="note">
+              When this panning model is used, all the <a>AudioParam</a>s used
+              to compute the output of this node are <a>k-rate</a>.
+            </div>
           </dd>
         </dl>
         <p>
@@ -5576,7 +5879,9 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the x coordinate position of the audio source in a 3D
               Cartesian system. The default value is 0. This parameter is
-              a-rate.
+              <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5586,7 +5891,9 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the y coordinate position of the audio source in a 3D
               Cartesian system. The default value is 0. This parameter is
-              a-rate.
+              <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5595,8 +5902,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           <dd>
             <p>
               Sets the z coordinate position of the audio source in a 3D
-              Cartesian system. The default value is 0. This parameter is
-              a-rate.
+              Cartesian system. The default value is 0. The default value is 0.
+              This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5609,7 +5918,9 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
               Depending on how directional the sound is (controlled by the
               <b>cone</b> attributes), a sound pointing away from the listener
               can be very quiet or completely silent. The default value is 1.
-              This parameter is a-rate.
+              This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5619,7 +5930,9 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Describes the y component of the vector of the direction the
               audio source is pointing in 3D cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5629,7 +5942,9 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Describes the Z component of the vector of the direction the
               audio source is pointing in 3D cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd><!--<dt> // Distance model and attributes </dt>-->
           <dt>
@@ -5922,7 +6237,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the x coordinate position of the audio listener in a 3D
               Cartesian coordinate space. The default value is 0. This
-              parameter is a-rate.
+              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
+              that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5932,7 +6250,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the y coordinate position of the audio listener in a 3D
               Cartesian coordinate space. The default value is 0. This
-              parameter is a-rate.
+              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
+              that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5942,7 +6263,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the z coordinate position of the audio listener in a 3D
               Cartesian coordinate space. The default value is 0. This
-              parameter is a-rate.
+              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
+              that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5952,7 +6276,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the x coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when used
+              with a <a>PannerNode</a> that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5962,7 +6289,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the y coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when used
+              with a <a>PannerNode</a> that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -5972,7 +6302,10 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <p>
               Sets the z coordinate component of the forward direction the
               listener is pointing in 3D Cartesian coordinate space. The
-              default value is -1. This parameter is a-rate.
+              default value is 0. This parameter is <a>a-rate</a> when used
+              with a <a>PannerNode</a> that has a <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> set to
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise.
             </p>
           </dd>
           <dt>
@@ -6311,7 +6644,7 @@ function calculateNormalizationScale(buffer)
           <dl title="dictionary ConvolverOptions : AudioNodeOptions" class=
           "idl">
             <dt>
-              AudioBuffer buffer
+              AudioBuffer? buffer
             </dt>
             <dd>
               The desired buffer for the <a><code>ConvolverNode</code></a>.
@@ -6523,6 +6856,18 @@ function calculateNormalizationScale(buffer)
               range 32 to 32768, otherwise an IndexSizeError exception MUST be
               thrown</span>. The default value is 2048. Note that large FFT
               sizes can be costly to compute.
+            </p>
+            <p>
+              If the <code>fftSize</code> is changed to a different value, then
+              all state associated with smoothing of the frequency data (for
+              <a href=
+              "#widl-AnalyserNode-getByteFrequencyData-void-Uint8Array-array"><code>
+              getByteFrequencyData</code></a> and <a href=
+              "#widl-AnalyserNode-getFloatFrequencyData-void-Float32Array-array">
+              <code>getFloatFrequencyData</code></a>) is reset. That is the
+              <a>previous block</a>, \(\hat{X}_{-1}[k]\), used for <a href=
+              "http://localhost:7100/#smoothing-over-time">smoothing over
+              time</a> is set to 0 for all \(k\).
             </p>
           </dd>
           <dt>
@@ -8961,6 +9306,10 @@ odd function with period \(2\pi\).
           available for reading</a> a block of audio from the <a>DelayNode</a>
           buffer, available for reading.
           </li>
+          <li>
+            <a href="#computation-of-value">Compute the value(s)</a> of the
+            <a>AudioListener</a>'s <a>AudioParam</a>s for this block.
+          </li>
           <li>For each <a>AudioNode</a>, in the order determined previously:
             <ol>
               <li>For each <a>AudioParam</a> of this <a>AudioNode</a>, execute
@@ -9716,8 +10065,8 @@ Quad up-mix:
         </h3>
         <p>
           The following algorithm must be used to calculate the
-          <em>azimuth</em> and <em>elevation</em>: for the
-          <a><code>PannerNode</code></a>
+          <em>azimuth</em> and <em>elevation</em> for the
+          <a><code>PannerNode</code></a>:
         </p>
         <pre>
   // Calculate the source-listener vector.
@@ -9791,25 +10140,24 @@ Quad up-mix:
             <a><code>PannerNode</code></a> when the <a href=
             "#widl-PannerNode-panningModel"><code>panningModel</code></a>
             attribute is set to <code>"equalpower"</code>, in which case the
-            the <em>elevation</em> value is ignored.
-          </p>
-          <p>
-            For a <a><code>PannerNode</code></a>, the following algorithm MUST
-            be implemented.
+            <em>elevation</em> value is ignored. This algorithm MUST be
+            implemented using <a>a-rate</a> parameters.
           </p>
           <ol>
-            <li>
-              <p>
-                Let <em>azimuth</em> be the value computed in the <a href=
-                "#azimuth-elevation">azimuth and elevation</a> section.
-              </p>
-            </li>
-            <li>
-              <p>
-                The <em>azimuth</em> value is first contained to be within the
-                range [-90, 90] according to:
-              </p>
-              <pre>
+            <li>For each sample to be computed by this <a>AudioNode</a>:
+              <ol>
+                <li>
+                  <p>
+                    Let <em>azimuth</em> be the value computed in the <a href=
+                    "#azimuth-elevation">azimuth and elevation</a> section.
+                  </p>
+                </li>
+                <li>
+                  <p>
+                    The <em>azimuth</em> value is first contained to be within
+                    the range [-90, 90] according to:
+                  </p>
+                  <pre>
   // First, clamp azimuth to allowed range of [-180, 180].
   azimuth = max(-180, azimuth);
   azimuth = min(180, azimuth);
@@ -9819,22 +10167,22 @@ Quad up-mix:
     azimuth = -180 - azimuth;
   else if (azimuth &gt; 90)
     azimuth = 180 - azimuth;
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                A normalized value <em>x</em> is calculated from
-                <em>azimuth</em> for a mono input as:
-              </p>
-              <pre>
+
+              </pre>
+                </li>
+                <li>
+                  <p>
+                    A normalized value <em>x</em> is calculated from
+                    <em>azimuth</em> for a mono input as:
+                  </p>
+                  <pre>
   x = (azimuth + 90) / 180;
-        
-</pre>
-              <p>
-                Or for a stereo input as:
-              </p>
-              <pre>
+
+              </pre>
+                  <p>
+                    Or for a stereo input as:
+                  </p>
+                  <pre>
   if (azimuth &lt;= 0) { // -90 ~ 0
     // Transform the azimuth value from [-90, 0] degrees into the range [-90, 90].
     x = (azimuth + 90) / 90;
@@ -9842,8 +10190,10 @@ Quad up-mix:
     // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
     x = azimuth / 90;
   }
-        
-</pre>
+
+                  </pre>
+                </li>
+              </ol>
             </li>
           </ol>
           <p>
@@ -9851,82 +10201,86 @@ Quad up-mix:
             MUST be implemented.
           </p>
           <ol>
-            <li>
+            <li>For each sample to be computed by this <a>AudioNode</a>
+              <ol>
+                <li>
+                  <p>
+                    Let <em>pan</em> be the <a>computedValue</a> of the
+                    <code>pan</code> <a>AudioParam</a> of this
+                    <a><code>StereoPannerNode</code></a>.
+                  </p>
+                </li>
+                <li>
+                  <p>
+                    Clamp <em>pan</em> to [-1, 1].
+                  </p>
+                  <pre>
+    pan = max(-1, pan);
+    pan = min(1, pan);
+
+              </pre>
+                </li>
+                <li>
+                  <p>
+                    Calculate <em>x</em> by normalizing <em>pan</em> value to
+                    [0, 1]. For mono input:
+                  </p>
+                  <pre>
+    x = (pan + 1) / 2;
+
+              </pre>
+                  <p>
+                    For stereo input:
+                  </p>
+                  <pre>
+    if (pan &lt;= 0)
+      x = pan + 1;
+    else
+      x = pan;
+
+              </pre>
+                </li>
+              </ol>
               <p>
-                Let <em>pan</em> be the <a>computedValue</a> of the
-                <code>pan</code> <a>AudioParam</a> of this
-                <a><code>StereoPannerNode</code></a>.
+                Then following steps are used to achieve equal-power panning:
               </p>
-            </li>
-            <li>
-              <p>
-                Clamp <em>pan</em> to [-1, 1].
-              </p>
-              <pre>
-pan = max(-1, pan);
-pan = min(1, pan);
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                Calculate <em>x</em> by normalizing <em>pan</em> value to [0,
-                1]. For mono input:
-              </p>
-              <pre>
-x = (pan + 1) / 2;
-        
-</pre>
-              <p>
-                For stereo input:
-              </p>
-              <pre>
-if (pan &lt;= 0)
-  x = pan + 1;
-else
-  x = pan;
-        
-</pre>
-            </li>
-          </ol>
-          <p>
-            Then following steps are used to achieve equal-power panning:
-          </p>
-          <ol>
-            <li>
-              <p>
-                Left and right gain values are calculated as:
-              </p>
-              <pre>
-gainL = cos(x * Math.PI / 2);
-gainR = sin(x * Math.PI / 2);
-        
-</pre>
-            </li>
-            <li>
-              <p>
-                For mono input, the stereo output is calculated as:
-              </p>
-              <pre>
-outputL = input * gainL;
-outputR = input * gainR;
-        
-</pre>
-              <p>
-                Else for stereo input, the output is calculated as:
-              </p>
-              <pre>
-if (pan &lt;= 0) {
-  // Pass through inputL to outputL and equal-power pan inputR as in mono case.
-  outputL = inputL + inputR * gainL;
-  outputR = inputR * gainR;
-} else {
-  // Pass through inputR to outputR and equal-power pan inputL as in mono case.
-  outputL = inputL * gainL;
-  outputR = inputR + inputL * gainR;
-}
-        
-</pre>
+              <ol>
+                <li>
+                  <p>
+                    Left and right gain values are calculated as:
+                  </p>
+                  <pre>
+    gainL = cos(x * Math.PI / 2);
+    gainR = sin(x * Math.PI / 2);
+
+              </pre>
+                </li>
+                <li>
+                  <p>
+                    For mono input, the stereo output is calculated as:
+                  </p>
+                  <pre>
+    outputL = input * gainL;
+    outputR = input * gainR;
+
+              </pre>
+                  <p>
+                    Else for stereo input, the output is calculated as:
+                  </p>
+                  <pre>
+    if (pan &lt;= 0) {
+      // Pass through inputL to outputL and equal-power pan inputR as in mono case.
+      outputL = inputL + inputR * gainL;
+      outputR = inputR * gainR;
+    } else {
+      // Pass through inputR to outputR and equal-power pan inputL as in mono case.
+      outputL = inputL * gainL;
+      outputR = inputR + inputL * gainR;
+    }
+
+              </pre>
+                </li>
+              </ol>
             </li>
           </ol>
         </section>

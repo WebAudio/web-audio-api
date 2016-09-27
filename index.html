@@ -954,6 +954,9 @@ function setupRoutingGraph() {
             <ol>
               <li>Attempt to <a>release system resources</a>.
               </li>
+              <li>Set the <a>rendering thread state</a> on the
+              <a>AudioContext</a> to <code>suspended</code>.
+              </li>
               <li>Queue a task on the <a>control thread</a>'s event loop, to
               execute these steps:
                 <ol>
@@ -1038,6 +1041,12 @@ function setupRoutingGraph() {
             </p>
             <ol>
               <li>Attempt to <a href="#acquiring">acquire system resources</a>.
+              </li>
+              <li>Set the <a>rendering thread state</a> flag on the
+              <a>AudioContext</a> to <code>running</code>.
+              </li>
+              <li>Start <a href="#rendering-loop">rendering the audio
+              graph</a>.
               </li>
               <li>In case of failure, queue a task on the <a>control thread</a>
               to execute the following, and abort these steps
@@ -1713,6 +1722,9 @@ function setupRoutingGraph() {
               <li>Set a <code>control thread state</code> to
               <code>suspended</code> on the <a>AudioContext</a>.
               </li>
+              <li>Set a <dfn>rendering thread state</dfn> to
+              <code>suspended</code> on the <a>AudioContext</a>.
+              </li>
               <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered list
               of promises.
               </li>
@@ -1730,6 +1742,9 @@ function setupRoutingGraph() {
               <li>Attempt to <a href="#acquiring">acquire system resources</a>.
               </li>
               <li>In case of failure, abort these steps.
+              </li>
+              <li>Set the <a>rendering thread state</a> to <code>running</code>
+              on the <a>AudioContext</a>.
               </li>
               <li>Queue a task on the <a>control thread</a> event loop, to
               execute these steps:
@@ -1889,6 +1904,9 @@ function setupRoutingGraph() {
             </p>
             <ol>
               <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Set the <a>rendering thread state</a> to
+              <code>suspended</code>.
               </li>
               <li>Queue a task on the <a>control thread</a>'s event loop, to
               execute these steps:
@@ -9381,6 +9399,30 @@ odd function with period \(2\pi\).
           "#control-message-queue">control message queue</a> <em>Q</em> is as
           follows.
         </p>
+        <p>
+          If the algorithm terminates normally (i.e. reaches its last step),
+          then it MUST be executed again in the future, to render the next
+          block of audio. Else, the <a>control thread</a> can make it run again
+          as needed.
+        </p>
+        <div class="note">
+          <p>
+            In practice, the <a>AudioContext</a> <a>rendering thread</a> is
+            often running off a system level audio callback, that executes in
+            an isochronous fashion. This callback passes in a buffer that has
+            to be filled with the audio that will be output. The size of the
+            buffer is often larger than a rendering quantum. In this case,
+            multiple invocations of the rendering algorithm will be called in a
+            rapid succession, in the same callback, before returning. After
+            some time, the underlying audio system will call the callback
+            again, and the algorithm will be executed again. This is an
+            implementation detail that should not be observable, apart from the
+            latency implications.
+          </p>
+          <p>
+            <a>OfflineAudioContext</a> will execute the algorithm continuously.
+          </p>
+        </div>
         <ol>
           <li>Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
           queue</a>. <a>Atomically</a> <a>swap</a>
@@ -9396,6 +9438,10 @@ odd function with period \(2\pi\).
               <em>Q<sub>rendering</sub></em>.
               </li>
             </ol>
+          </li>
+          <li>If the <a>rendering thread state</a> of the <a>AudioContext</a>
+          is not <code>running</code>, return early from this algorithm, and
+          don't automatically execute it again.
           </li>
           <li>Order the <a>AudioNode</a>s of the <a>AudioContext</a> to be
           processed.
@@ -9507,6 +9553,8 @@ odd function with period \(2\pi\).
             <a>Atomically</a> increment <a href=
             "#widl-BaseAudioContext-currentTime">currentTime</a> by 128 /
             <a href="#widl-BaseAudioContext-currentTime">sampleRate</a>.
+          </li>
+          <li>Return normally from this algorithm.
           </li>
         </ol>
         <ul>

@@ -2329,7 +2329,64 @@ function setupRoutingGraph() {
           value explicitly. <em>block-size</em> is defined to be 128
           sample-frames which corresponds to roughly 3ms at a sample-rate of
           44.1KHz.
-        </p>
+        </p><a>AudioNode</a>s can be created in two ways:
+        <ul>
+          <li>First, an <a>AudioNode</a> can be created by calling the
+          corresponding <dfn>factory method</dfn> on the <a>AudioContext</a>,
+          passing in arguments. The <a>AudioNode</a> is associated with the <a>
+            AudioContext</a> it was created from.
+          </li>
+          <li>Second, an <a>AudioNode</a> can be create by calling its
+          constructor, passing in the <a>AudioContext</a> with which the
+          <a>AudioNode</a> being constructed will be associated with. A second
+          argument is a dictionnary that can contain attributes specific to the
+          type of <a>AudioNode</a> that is being created. When creating an <a>
+            AudioNode</a> using the constructor, the following algorithm MUST
+            be executed atomically:
+            <ol>
+              <li>Let <var>parameters</var> be an array that has a size equal
+              to the number of parameters of the associated <a>factory
+              method</a> function for this <a>AudioNode</a> type. Initialize
+              all elements of this array to <code>null</code>.
+              </li>
+              <li>If the <a>AudioNode</a> being constructed is a
+              <a>ConvolverNode</a>, set the <a href=
+              "#widl-ConvolverNode-normalize">normalize</a> attribute, and then
+              the <a href="#widl-ConvolverNode-buffer">buffer</a> attribute of
+              the <a>ConvolverNode</a> being constructed, in this order, and
+              jump to the last step of this algorithm.
+                <div class="note">
+                  This means that the buffer will be normalized according to
+                  the value of the <a href=
+                  "#widl-ConvolverNode-normalize">normalize</a> attribute.
+                </div>
+              </li>
+              <li>For each dictionary member of the option dictionary passed
+              in, execute these steps, let <var>k</var> be its key, and
+              <var>v</var> be its value:
+                <ol>
+                  <li>If <var>k</var> is the name of an <a>AudioParam</a> on
+                  this <a>AudioNode</a> type, set the <a href=
+                  "#widl-AudioParam-value">value</a> attribute of this
+                  <a>AudioParam</a> to <var>v</var>.
+                  </li>
+                  <li>Else if <var>k</var> is the name of an attribute for this
+                  <a>AudioNode</a> type, set this attribute to <var>v</var>.
+                  </li>
+                  <li>Else if <var>k</var> is the name of a parameter to the
+                  associated <a>factory method</a>, set
+                  <var>parameters[i]</var> to <var>v</var>, where <var>i</var>
+                  is the index of the parameter in the signature for this
+                  <a>AudioNode</a> type.
+                  </li>
+                </ol>
+              </li>
+              <li>Call the corresponding <a>factory method</a> with the
+              parameters in <var>parameters</var>.
+              </li>
+            </ol>
+          </li>
+        </ul>
         <p>
           <a>AudioNode</a>s are <em>EventTarget</em>s, as described in
           <cite><a href="https://dom.spec.whatwg.org/">DOM</a></cite> [[!DOM]].

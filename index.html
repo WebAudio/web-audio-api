@@ -954,6 +954,9 @@ function setupRoutingGraph() {
             <ol>
               <li>Attempt to <a>release system resources</a>.
               </li>
+              <li>Set the <a>rendering thread state</a> on the
+              <a>AudioContext</a> to <code>suspended</code>.
+              </li>
               <li>Queue a task on the <a>control thread</a>'s event loop, to
               execute these steps:
                 <ol>
@@ -1018,6 +1021,10 @@ function setupRoutingGraph() {
               of the <a>AudioContext</a> is already <code>running</code>,
               resolve <em>promise</em>, return it, and abort these steps.
               </li>
+              <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
+              append <em>promise</em> to <a>pendingResumePromises</a> and abort
+              these steps, returning <em>promise</em>.
+              </li>
               <li>Set the <em>control thread state</em> flag on the
               <a>AudioContext</a> to <code>running</code>.
               </li>
@@ -1035,9 +1042,18 @@ function setupRoutingGraph() {
             <ol>
               <li>Attempt to <a href="#acquiring">acquire system resources</a>.
               </li>
+              <li>Set the <a>rendering thread state</a> flag on the
+              <a>AudioContext</a> to <code>running</code>.
+              </li>
+              <li>Start <a href="#rendering-loop">rendering the audio
+              graph</a>.
+              </li>
               <li>In case of failure, queue a task on the <a>control thread</a>
               to execute the following, and abort these steps
                 <ol>
+                  <li>Reject all promises from <a>pendingResumePromises</a> in
+                  order, then clear <a>pendingResumePromises</a>.
+                  </li>
                   <li>Reject <em>promise</em>
                   </li>
                 </ol>
@@ -1045,6 +1061,9 @@ function setupRoutingGraph() {
               <li>Queue a task on the <a>control thread</a>'s event loop, to
               execute these steps:
                 <ol>
+                  <li>Resolve all promises from <a>pendingResumePromises</a> in
+                  order, then clear <a>pendingResumePromises</a>.
+                  </li>
                   <li>Resolve <em>promise</em>.
                   </li>
                   <li>If the <a href="#widl-audiocontext-state">state</a>
@@ -1673,6 +1692,21 @@ function setupRoutingGraph() {
           use cases, only a single <a><code>AudioContext</code></a> is used per
           document.
         </p>
+        <p>
+          An <a><code>AudioContext</code></a> is said to be <dfn>allowed to
+          start</dfn> if the user agent and the system allow audio output in
+          the current context. In other words, if the
+          <a><code>AudioContext</code></a> <em>control thread state</em> is
+          allowed to transition from <code>suspended</code> to
+          <code>running</code>.
+        </p>
+        <p class='note'>
+          For example, a user agent could require that an
+          <a><code>AudioContext</code></a> control thread state change to
+          running is <a href=
+          "https://html.spec.whatwg.org/multipage/interaction.html#triggered-by-user-activation">
+          triggered by a user activation</a> (as described in [[HTML]]).
+        </p>
         <dl title=
         '[Constructor(optional AudioContextOptions contextOptions)] interface AudioContext : BaseAudioContext'
         class='idl'>
@@ -1688,6 +1722,15 @@ function setupRoutingGraph() {
               <li>Set a <code>control thread state</code> to
               <code>suspended</code> on the <a>AudioContext</a>.
               </li>
+              <li>Set a <dfn>rendering thread state</dfn> to
+              <code>suspended</code> on the <a>AudioContext</a>.
+              </li>
+              <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered list
+              of promises.
+              </li>
+              <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
+              abort these steps.
+              </li>
               <li>Send a <a>control message</a> to start processing.
               </li>
             </ol>
@@ -1696,9 +1739,12 @@ function setupRoutingGraph() {
               executing the following steps:
             </p>
             <ol>
-              <li>Attempt to <a href="#acquiring">Acquire system resources</a>.
+              <li>Attempt to <a href="#acquiring">acquire system resources</a>.
               </li>
               <li>In case of failure, abort these steps.
+              </li>
+              <li>Set the <a>rendering thread state</a> to <code>running</code>
+              on the <a>AudioContext</a>.
               </li>
               <li>Queue a task on the <a>control thread</a> event loop, to
               execute these steps:
@@ -1858,6 +1904,9 @@ function setupRoutingGraph() {
             </p>
             <ol>
               <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Set the <a>rendering thread state</a> to
+              <code>suspended</code>.
               </li>
               <li>Queue a task on the <a>control thread</a>'s event loop, to
               execute these steps:
@@ -2707,6 +2756,83 @@ function setupRoutingGraph() {
               NotSupportedError exception.</span>
             </p>
             <p>
+              In addition, some nodes have additional <dfn>channelCount
+              constraints</dfn> on the possible values for the channel count:
+            </p>
+            <dl>
+              <dt>
+                <a>AudioDestinationNode</a>
+              </dt>
+              <dd>
+                <p>
+                  The behavior depends on whether the destination node is the
+                  destination of an <a>AudioContext</a> or
+                  <a>OfflineAudioContext</a>
+                </p>
+                <dl>
+                  <dt>
+                    <a>AudioContext</a>
+                  </dt>
+                  <dd>
+                    The channel count must be between 1 and
+                    <a>maxChannelCount</a>. An <span class=
+                    "synchronous">IndexSizeError exception must be thrown for
+                    any attempt to set the count outside this range</span>.
+                  </dd>
+                  <dt>
+                    <a>OfflineAudioContext</a>
+                  </dt>
+                  <dd>
+                    The channel count cannot be changed. An <span class=
+                    "synchronous">InvalidStateError exception MUST be thrown
+                    for any attempt to change the value.</span>
+                  </dd>
+                </dl>
+              </dd>
+              <dt>
+                <a>ChannelMergerNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be changed, and an <span class=
+                "synchronous">InvalidStateError exception MUST be thrown for
+                any attempt to change the value.</span>
+              </dd>
+              <dt>
+                <a>ConvolverNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be greater than two, and a
+                <span class="syncrhonous">NotSupportedError exception MUST be
+                thrown if count is set to a value greater than two.</span>
+              </dd>
+              <dt>
+                <a>PannerNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be greater than two, and a
+                <span class="syncrhonous">NotSupportedError exception MUST be
+                thrown for any attempt to change the to a value greater than
+                two.</span>
+              </dd>
+              <dt>
+                <a>ScriptProcessorNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be changed, and an <span class=
+                "synchronous">InvalidStateError exception MUST be thrown for
+                any attempt to change the value.</span>
+              </dd>
+              <dt>
+                <a>StereoPannerNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be greater than two, and a
+                <span class="syncrhonous">NotSupportedError exception MUST be
+                thrown for any attempt to change the to a value greater than
+                two.</span>
+              </dd>
+            </dl>
+            <p>
               See the <a href="#channel-up-mixing-and-down-mixing"></a> section
               for more information on this attribute.
             </p>
@@ -2721,6 +2847,64 @@ function setupRoutingGraph() {
               to the node. This attribute has no effect for nodes with no
               inputs.
             </p>
+            <p>
+              In addition, some nodes have additional <dfn>channelCountMode
+              constraints</dfn> on the possible values for the channel count
+              mode:
+            </p>
+            <dl>
+              <dt>
+                <a>AudioDestinationNode</a>
+              </dt>
+              <dd>
+                If the <a>AudioDestinationNode</a> is the <a href=
+                "#widl-BaseAudioContext-destination">destination</a> node of an
+                <a>OfflineAudioContext</a>, then the channel count mode cannot
+                be changed. An <span class="synchronous">InvalidStateError
+                exception MUST be thrown for any attempt to change the
+                value.</span>
+              </dd>
+              <dt>
+                <a>ChannelMergerNode</a>
+              </dt>
+              <dd>
+                The channel count mode cannot be changed from "explicit" and an
+                <span class="synchronous">InvalidStateError exception must be
+                thrown for any attempt to change the value.</span>
+              </dd>
+              <dt>
+                <a>ConvolverNode</a>
+              </dt>
+              <dd>
+                The channel count mode cannot be set to "max", and a
+                <span class="syncrhonous">NotSupportedError exception MUST be
+                thrown for any attempt to set it to "max".</span>
+              </dd>
+              <dt>
+                <a>PannerNode</a>
+              </dt>
+              <dd>
+                The channel count mode cannot be set to "max", and a
+                <span class="syncrhonous">NotSupportedError exception MUST be
+                thrown for any attempt to set it to "max".</span>
+              </dd>
+              <dt>
+                <a>ScriptProcessorNode</a>
+              </dt>
+              <dd>
+                The channel count mode cannot be changed from "explicit" and an
+                <span class="synchronous">InvalidStateError exception MUST be
+                thrown for any attempt to change the value.</span>
+              </dd>
+              <dt>
+                <a>StereoPannerNode</a>
+              </dt>
+              <dd>
+                The channel count mode cannot be set to "max", and a
+                <span class="syncrhonous">NotSupportedError exception MUST be
+                thrown for any attempt to set it to "max".</span>
+              </dd>
+            </dl>
             <p>
               See the <a href="#channel-up-mixing-and-down-mixing"></a> section
               for more information on this attribute.
@@ -2814,6 +2998,30 @@ function setupRoutingGraph() {
             <a><code>AudioNode</code></a>s have this property. Please see
             details for specific nodes.
             </li>
+            <li>
+              <code>MediaStream</code>s keep a
+              <a>MediaStreamAudioSourceNode</a> alive as long as the underlying
+              <code>MediaStreamTrack</code> that is playing through the
+              <a>MediaStreamAudioSourceNode</a> have not <a href=
+              "https://w3c.github.io/mediacapture-main/#track-ended">ended</a>
+              (as per [[!mediacapture-streams]]).
+            </li>
+            <li>
+              <code>HTMLMediaElement</code>s keep their associated
+              <a>MediaElementAudioSourceNode</a> alive as long as the
+              <code>HTMLMediaElement</code> is in a state where audio could
+              ever be played in the future.
+              <div class="note">
+                <p>
+                  An <code>HTMLMediaElement</code> that has its
+                  <code>src</code> attribute set to <code>""</code>, and all
+                  its references dropped allows the
+                  <a>MediaElementAudioSourceNode</a> to be released as well
+                  (granted nothing keeps the <a>MediaElementAudioSourceNode</a>
+                  alive).
+                </p>
+              </div>
+            </li>
           </ol>
           <p>
             Any <a><code>AudioNode</code></a>s which are connected in a cycle
@@ -2872,10 +3080,47 @@ function setupRoutingGraph() {
       numberOfInputs  : 1
       numberOfOutputs : 1
 
-      channelCount = 2;
-      channelCountMode = "explicit";
-      channelInterpretation = "speakers";
 </pre>
+        <p>
+          The <a>AudioDestinationNode</a> can be either the destination of an
+          <a>AudioContext</a> or <a>OfflineAudioContext</a>, and the channel
+          properties depend on what the context is.
+        </p>
+        <p>
+          For an <a>AudioContext</a>, the defaults are
+        </p>
+        <pre>
+      channelCount = 2
+      channelCountMode = "explicit"
+      channelInterpretation = "speakers"
+        </pre>
+        <p>
+          The <a>channelCount</a> can be set to any value less than or equal to
+          <a href=
+          "#widl-AudioDestinationNode-maxChannelCount">maxChannelCount</a>.
+          <span class="synchronous">An <code>IndexSizeError</code> exception
+          MUST be thrown if this value is not within the valid range.</span>
+          Giving a concrete example, if the audio hardware supports 8-channel
+          output, then we may set <a href=
+          "#widl-AudioNode-channelCount">channelCount</a> to 8, and render 8
+          channels of output.
+        </p>
+        <p>
+          For an <a>OfflineAudioContext</a>, the defaults are
+        </p>
+        <pre>
+      channelCount = numberOfChannels
+      channelCountMode = "explicit"
+      channelInterpretation = "speakers"
+        </pre>
+        <p>
+          where <code>numberOfChannels</code> is the number of channels
+          specified when constructing the <a>OfflineAudioContext</a>. This
+          value may not be changed; <span class="synchronous">a
+          NotSupportedError exception MUST be thrown if <a href=
+          "#widl-AudioNode-channelCount">channelCount</a> is changed to a
+          different value</span>.
+        </p>
         <dl title="interface AudioDestinationNode : AudioNode" class="idl">
           <dt>
             readonly attribute unsigned long maxChannelCount
@@ -2896,25 +3141,6 @@ function setupRoutingGraph() {
               <a><code>AudioDestinationNode</code></a> in an
               <a><code>OfflineAudioContext</code></a> and also for basic
               implementations with hardware support for stereo output only.
-            </p>
-            <p>
-              <a href="#widl-AudioNode-channelCount">channelCount</a> defaults
-              to 2 for a destination in a normal
-              <a><code>AudioContext</code></a>, and may be set to any non-zero
-              value less than or equal to <code>maxChannelCount</code>.
-              <span class="synchronous">An <a><code>IndexSizeError</code></a>
-              exception MUST be thrown if this value is not within the valid
-              range.</span> Giving a concrete example, if the audio hardware
-              supports 8-channel output, then we may set <a href=
-              "#widl-AudioNode-channelCount">channelCount</a> to 8, and render
-              8-channels of output.
-            </p>
-            <p>
-              For an<a><code>AudioDestinationNode</code></a> in an
-              <a><code>OfflineAudioContext</code></a>, the <a href=
-              "#widl-AudioNode-channelCount"><code>channelCount</code></a> is
-              determined when the offline context is created and this value may
-              not be changed.
             </p>
           </dd>
         </dl>
@@ -3335,8 +3561,9 @@ function setupRoutingGraph() {
                 The time-constant value of first-order filter (exponential)
                 approach to the target value. The larger this value is, the
                 slower the transition will be. <span class="synchronous">The
-                value must be strictly positive or a TypeError exception MUST
-                be thrown.</span>
+                value must be non-negative or a TypeError exception MUST be
+                thrown.</span> If <code>timeConstant</code> is zero, the output
+                value jumps immediately to the final value.
                 <p>
                   More precisely, <em>timeConstant</em> is the time it takes a
                   first-order linear continuous time-invariant system to reach
@@ -4028,7 +4255,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               The number of channels for the buffer.
             </dd>
             <dt>
-              unsigned long length
+              required unsigned long length
             </dt>
             <dd>
               The length in sample frames of the buffer.
@@ -4469,8 +4696,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           <dd>
             <p>
               The constant value of the source. Its default value is 1. This
-              parameter is <a>a-rate</a>. Its nominal range is \([-\infty,
-              \infty]\).
+              parameter is <a>a-rate</a>. Its nominal range is \((-\infty,
+              \infty)\).
             </p>
           </dd>
           <dt>
@@ -4574,9 +4801,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           The number of channels of the output corresponds to the number of
           channels of the media referenced by the
           <code>HTMLMediaElement</code>. Thus, changes to the media element's
-          .src attribute can change the number of channels output by this node.
-          If the .src attribute is not set, then the number of channels output
-          will be one silent channel.
+          <code>src</code> attribute can change the number of channels output
+          by this node.
         </p>
         <p>
           This node has no <a>tail-time</a> reference.
@@ -4617,11 +4843,11 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
           </h2>
           <p>
             This specifies the options to use in constructing a
-            <a><code>MediaElementAudioSourceNode</code></a>. This is required.
+            <a><code>MediaElementAudioSourceNode</code></a>.
           </p>
           <dl title="dictionary MediaElementAudioSourceOptions" class="idl">
             <dt>
-              HTMLMediaElement mediaElement
+              required HTMLMediaElement mediaElement
             </dt>
             <dd>
               The media element that will be re-routed. This MUST be specified.
@@ -5089,6 +5315,22 @@ class MyProcessor extends AudioWorkletProcessor {
                   number of inputs is fixed at the construction, the number of
                   channels can be changed dynamically.
                 </p>
+                <p>
+                  If no connections exist to the <code>n</code>th input of the
+                  node during the current render quantum, then the content of
+                  <code>inputs[n]</code> is an empty array, indicating that
+                  zero channels of input are available. This is the only
+                  circumstance under which the number of elements of
+                  <code>inputs[n]</code> can be zero.
+                </p>
+                <div class="note">
+                  By checking this condition, an <a>AudioWorkletProcessor</a>
+                  can determine its associated node's lifetime in a way that
+                  depends on its connection status. For example, many built-in
+                  node types exhibit a <a href="#dfn-tail-time">tail-time</a>,
+                  and this attribute permits <a>AudioWorkletNodes</a> to
+                  provide the same thing.
+                </div>
               </li>
               <li>
                 <code>outputs</code> of type
@@ -5562,10 +5804,8 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
     channelInterpretation = "speakers";
 </pre>
         <p>
-          The <code>channelCountMode</code> cannot be changed from "explicit"
-          and the <code>channelCount</code> cannot be changed. <span class=
-          "synchronous">An attempt to change either of these MUST throw an
-          InvalidStateError exception</span>.
+          There are <a>channelCount constraints</a> and <a>channelCountMode
+          constraints</a> for this node.
         </p>
         <p>
           The <a><code>ScriptProcessorNode</code></a> is constructed with a
@@ -5713,9 +5953,11 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           channels) and cannot be increased. Connections from nodes with fewer
           or more channels will be <a href=
           "#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-          appropriately</a>, but a NotSupportedError MUST be thrown if an
-          attempt is made to set channelCount to a value greater than 2 or if
-          channelCountMode is set to "max".
+          appropriately</a>.
+        </p>
+        <p>
+          There are <a>channelCount constraints</a> and <a>channelCountMode
+          constraints</a> for this node.
         </p>
         <p>
           The output of this node is hard-coded to stereo (2 channels) and
@@ -6392,10 +6634,11 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           The input of this node is stereo (2 channels) and cannot be
           increased. Connections from nodes with fewer or more channels will be
           <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-          appropriately</a> , but a NotSupportedError will be thrown if an
-          attempt is made to set <code>channelCount</code> to a value great
-          than 2 or if <code>channelCountMode</code> is set to
-          <code>"max"</code>.
+          appropriately</a>.
+        </p>
+        <p>
+          There are <a>channelCount constraints</a> and <a>channelCountMode
+          constraints</a> for this node.
         </p>
         <p>
           The output of this node is hard-coded to stereo (2 channels) and
@@ -6476,9 +6719,11 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           channels) and cannot be increased. Connections from nodes with fewer
           or more channels will be <a href=
           "#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-          appropriately</a>, but a NotSupportedError MUST be thrown if an
-          attempt is made to set channelCount to a value great than 2 or if
-          channelCountMode is set to "max".
+          appropriately</a>.
+        </p>
+        <p>
+          There are <a>channelCount constraints</a> and <a>channelCountMode
+          constraints</a> for this node.
         </p>
         <p>
           This node has a <a>tail-time</a> reference such that this node
@@ -6701,7 +6946,9 @@ function calculateNormalizationScale(buffer)
               <a><code>frequencyBinCount</code></a>, the excess elements will
               be dropped. If the array has more elements than the
               <a><code>frequencyBinCount</code></a>, the excess elements will
-              be ignored.
+              be ignored. The most recent <a href=
+              "#widl-AnalyserNode-fftSize"><code>fftSize</code></a> frames are
+              used in computing the frequency data.
             </p>
             <p>
               The frequency data are in dB units.
@@ -6726,7 +6973,9 @@ function calculateNormalizationScale(buffer)
               <a><code>frequencyBinCount</code></a>, the excess elements will
               be dropped. If the array has more elements than the
               <a><code>frequencyBinCount</code></a>, the excess elements will
-              be ignored.
+              be ignored. The most recent <a href=
+              "#widl-AnalyserNode-fftSize"><code>fftSize</code></a> frames are
+              used in computing the frequency data.
             </p>
             <p>
               The values stored in the unsigned byte array are computed in the
@@ -6766,9 +7015,13 @@ function calculateNormalizationScale(buffer)
             <p>
               Copies the current down-mixed time-domain (waveform) data into
               the passed floating-point array. If the array has fewer elements
-              than the value of <a><code>fftSize</code></a>, the excess
+              than the value of <a href=
+              "#widl-AnalyserNode-fftSize"><code>fftSize</code></a>, the excess
               elements will be dropped. If the array has more elements than
-              <a><code>fftSize</code></a>, the excess elements will be ignored.
+              <a href="#widl-AnalyserNode-fftSize"><code>fftSize</code></a>,
+              the excess elements will be ignored. The most recent <a href=
+              "#widl-AnalyserNode-fftSize"><code>fftSize</code></a> frames are
+              returned (after downmixing).
             </p>
             <dl class="parameters">
               <dt>
@@ -6787,9 +7040,13 @@ function calculateNormalizationScale(buffer)
             <p>
               Copies the current down-mixed time-domain (waveform) data into
               the passed unsigned byte array. If the array has fewer elements
-              than the value of <a><code>fftSize</code></a>, the excess
+              than the value of <a href=
+              "#widl-AnalyserNode-fftSize"><code>fftSize</code></a>, the excess
               elements will be dropped. If the array has more elements than
-              <a><code>fftSize</code></a>, the excess elements will be ignored.
+              <a href="#widl-AnalyserNode-fftSize"><code>fftSize</code></a>,
+              the excess elements will be ignored. The most recent <a href=
+              "#widl-AnalyserNode-fftSize"><code>ffftSize</code></a> frames are
+              used in computing the byte data.
             </p>
             <p>
               The values stored in the unsigned byte array are computed in the
@@ -6835,8 +7092,8 @@ function calculateNormalizationScale(buffer)
               "#widl-AnalyserNode-getFloatFrequencyData-void-Float32Array-array">
               <code>getFloatFrequencyData</code></a>) is reset. That is the
               <a>previous block</a>, \(\hat{X}_{-1}[k]\), used for <a href=
-              "http://localhost:7100/#smoothing-over-time">smoothing over
-              time</a> is set to 0 for all \(k\).
+              "#smoothing-over-time">smoothing over time</a> is set to 0 for
+              all \(k\).
             </p>
           </dd>
           <dt>
@@ -6937,7 +7194,10 @@ function calculateNormalizationScale(buffer)
               channels of the time domain input data to mono assuming a
               <a>channelCount</a> of 1, <a>channelCountMode</a> of "max" and
               <a>channelInterpetation</a> of "speakers". This is independent of
-              the settings for the <a>AnalyserNode</a> itself.
+              the settings for the <a>AnalyserNode</a> itself. The most recent
+              <a href=
+              "#widl-AnalyserNode-fftSize"><code>fftSize</code></a>frames are
+              used for the down-mixing operation.
             </li>
             <li>
               <a href="#blackman-window">Apply a Blackman window</a> to the
@@ -7166,9 +7426,8 @@ function calculateNormalizationScale(buffer)
           output channels.
         </p>
         <p>
-          For <a><code>ChannelMergerNode</code></a>, <code>channelCount</code>
-          and <code>channelCountMode</code> properties cannot be changed.
-          <code>InvalidState</code> error MUST be thrown when they changed.
+          There are <a>channelCount constraints</a> and <a>channelCountMode
+          constraints</a> for this node.
         </p>
         <p>
           This node has no <a>tail-time</a> reference.
@@ -8191,7 +8450,7 @@ $$
           <dl title="dictionary IIRFilterOptions : AudioNodeOptions" class=
           "idl">
             <dt>
-              sequence&lt;double&gt; feedforward
+              required sequence&lt;double&gt; feedforward
             </dt>
             <dd>
               The feedforward coefficients for the
@@ -8199,7 +8458,7 @@ $$
               not specifed, a NotFoundError MUST be thrown.
             </dd>
             <dt>
-              sequence&lt;double&gt; feedback
+              required sequence&lt;double&gt; feedback
             </dt>
             <dd>
               The feedback coefficients for the
@@ -8271,7 +8530,15 @@ $$
           channels of the input.
         </p>
         <p>
-          This node has no <a>tail-time</a> reference.
+          If the <a href="#widl-WaveShaperNode-oversample">oversample</a>
+          attribute is set to <a href="#idl-def-OverSampleType.none">none</a>,
+          the <a>WaveShaperNode</a> has no <a>tail-time</a>. If the <a href=
+          "#widl-WaveShaperNode-oversample">oversample</a> attribute is set to
+          <a href="#idl-def-OverSampleType.x2x">2x</a> or <a href=
+          "#idl-def-OverSampleType.x4x">4x</a>, the <a>WaveShaperNode</a> can
+          have <a>tail-time</a> caused by the resampling technique used. The
+          duration of this <a>tail-time</a> is therefore
+          implementation-dependent.
         </p>
         <dl title="enum OverSampleType" class="idl">
           <dt>
@@ -8967,11 +9234,11 @@ odd function with period \(2\pi\).
           </h2>
           <p>
             This specifies the options for constructing a
-            <a><code>MediaStreamAudioSourceNode</code></a>. This is required.
+            <a><code>MediaStreamAudioSourceNode</code></a>.
           </p>
           <dl title="dictionary MediaStreamAudioSourceOptions" class="idl">
             <dt>
-              MediaStream mediaStream
+              required MediaStream mediaStream
             </dt>
             <dd>
               The media stream that will act as a source. This MUST be
@@ -9004,9 +9271,7 @@ odd function with period \(2\pi\).
     channelInterpretation = "speakers";
 </pre>
         <p>
-          The number of channels of the input is by default 2 (stereo). Any
-          connections to the input are up-mixed/down-mixed to the number of
-          channels of the input.
+          The number of channels of the input is by default 2 (stereo).
         </p>
         <dl title=
         "[Constructor(AudioContext context, optional AudioNodeOptions options)]interface MediaStreamAudioDestinationNode : AudioNode"
@@ -9198,6 +9463,32 @@ odd function with period \(2\pi\).
           "#control-message-queue">control message queue</a> <em>Q</em> is as
           follows.
         </p>
+        <p>
+          If the algorithm returns true then it MUST be executed again in the
+          future, to render the next block of audio. Else, the <a>rendering
+          thread</a> yields and the processing stops. The <a>control thread</a>
+          can restart executing this algoritm if needed.
+        </p>
+        <div class="note">
+          <p>
+            In practice, the <a>AudioContext</a> <a>rendering thread</a> is
+            often running off a system level audio callback, that executes in
+            an isochronous fashion. This callback passes in a buffer that has
+            to be filled with the audio that will be output. The size of the
+            buffer is often larger than a rendering quantum. In this case,
+            multiple invocations of the rendering algorithm will be called in a
+            rapid succession, in the same callback, before returning. After
+            some time, the underlying audio system will call the callback
+            again, and the algorithm will be executed again. This is an
+            implementation detail that should not be observable, apart from the
+            latency implications.
+          </p>
+          <p>
+            <a>OfflineAudioContext</a> will execute the algorithm continuously,
+            until <var>length</var> (as passed in the
+            <a>OfflineAudioContext</a> contructor) frames have been rendered.
+          </p>
+        </div>
         <ol>
           <li>Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
           queue</a>. <a>Atomically</a> <a>swap</a>
@@ -9213,6 +9504,9 @@ odd function with period \(2\pi\).
               <em>Q<sub>rendering</sub></em>.
               </li>
             </ol>
+          </li>
+          <li>If the <a>rendering thread state</a> of the <a>AudioContext</a>
+          is not <code>running</code>, return false.
           </li>
           <li>Order the <a>AudioNode</a>s of the <a>AudioContext</a> to be
           processed.
@@ -9324,6 +9618,8 @@ odd function with period \(2\pi\).
             <a>Atomically</a> increment <a href=
             "#widl-BaseAudioContext-currentTime">currentTime</a> by 128 /
             <a href="#widl-BaseAudioContext-currentTime">sampleRate</a>.
+          </li>
+          <li>Return true.
           </li>
         </ol>
         <ul>
@@ -10527,46 +10823,6 @@ function coneGain() {
           time-constraints. It can also be caused by the audio DSP trying to do
           more work than is possible in real-time given the CPU's speed.
         </p>
-      </section>
-      <section>
-        <h3 id="JavaScriptPerformance">
-          JavaScript Issues with Real-Time Processing and Synthesis:
-        </h3>While processing audio in JavaScript, it is extremely challenging
-        to get reliable, glitch-free audio while achieving a reasonably
-        low-latency, especially under heavy processor load.
-        <ul>
-          <li>JavaScript is very much slower than heavily optimized C++ code
-          and is not able to take advantage of SSE optimizations and
-          multi-threading which is critical for getting good performance on
-          today's processors. Optimized native code can be on the order of
-          twenty times faster for processing FFTs as compared with JavaScript.
-          It is not efficient enough for heavy-duty processing of audio such as
-          convolution and 3D spatialization of large numbers of audio sources.
-          </li>
-          <li>setInterval() and XHR handling will steal time from the audio
-          processing. In a reasonably complex game, some JavaScript resources
-          will be needed for game physics and graphics. This creates challenges
-          because audio rendering is deadline driven (to avoid glitches and get
-          low enough latency).
-          </li>
-          <li>JavaScript does not run in a real-time processing thread and thus
-          can be pre-empted by many other threads running on the system.
-          </li>
-          <li>Garbage Collection (and autorelease pools on Mac OS X) can cause
-          unpredictable delay on a JavaScript thread.
-          </li>
-          <li>Multiple JavaScript contexts can be running on the main thread,
-          stealing time from the context doing the processing.
-          </li>
-          <li>Other code (other than JavaScript) such as page rendering runs on
-          the main thread.
-          </li>
-          <li>Locks can be taken and memory is allocated on the JavaScript
-          thread. This can cause additional thread preemption.
-          </li>
-        </ul>The problems are even more difficult with today's generation of
-        mobile devices which have processors with relatively poor performance
-        and power consumption / battery-life issues.
       </section>
     </section>
     <section class="informative">

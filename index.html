@@ -4928,16 +4928,6 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               "widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorConstructor">
               registerProcessor</a> method is called.
             </dd>
-            <dt>
-              <dfn>node instance set</dfn>
-            </dt>
-            <dd>
-              Belongs to an instance of <a>BaseAudioContext</a>. This set
-              stores the reference to all the active instances of
-              <a>AudioWorkletNode</a> that are created by the associated
-              <a>BaseAudioContext</a>. The context keeps the track of instances
-              until they are destroyed by the user agent.
-            </dd>
           </dl>
           <pre class="example" title=
           "Registering an AudioWorkletProcessor class definition">
@@ -4987,8 +4977,20 @@ window.audioWorklet.import("bypass.js").then(function () {
             This special execution context is designed to enable the
             generation, processing, and analysis of audio data directly using
             JavaScript in the audio <a>rendering thread</a>. The user-supplied
-            script code is evaluated in this scope to define an
-            <a>AudioWorkletProcessor</a>.
+            script code is evaluated in this scope to define one or more
+            <a>AudioWorkletProcessor</a> subclasses, which in turn are used to
+            instantiate <a>AudioWorkletProcessor</a>s, in 1:1 association with
+            <a>AudioWorkletNode</a>s in the main scope.
+          </p>
+          <p>
+            At least one <a>AudioWorkletGlobalScope</a> exists for each
+            <a>AudioContext</a> that contains one or more <a>AudioWorkletNode</a>s.
+            The running of imported module scripts is performed
+            by the UA as defined in [[!worklets-1]], in such a way that
+            all scripts are applied consistently to every global scope,
+            and all scopes thus exhibit identical behavior.
+            Beyond these guarantees, the creation of global scopes is transparent
+            to the author and cannot be observed from the main window scope.
           </p>
           <p>
             <a>AudioWorkletGlobalScope</a> has a <a>node name to processor
@@ -4998,6 +5000,16 @@ window.audioWorklet.import("bypass.js").then(function () {
             <code>registerProcessor</code> method is called, but this storage
             is internal and is not directly exposed to the user.
           </p>
+          <div class="note">
+            The <a>AudioWorkletGlobalScope</a> may also contain any other data and code to be shared by
+            these instances. As an example, multiple processors might share an ArrayBuffer defining
+            a wavetable or an impulse response.
+          </div>
+          <div class="note">
+            Every <a>AudioWorkletGlobalScope</a> is associated with at most one audio
+            rendering thread within an <a>AudioContext</a>, preventing data races
+            from occurring in global scope code running within concurrent threads.
+          </div>
           <dl title="callback VoidFunction = void" class="idl"></dl>
           <dl title=
           "[Global=(Worklet, AudioWorklet), Exposed=AudioWorklet] interface AudioWorkletGlobalScope : WorkletGlobalScope"
@@ -5510,11 +5522,47 @@ class MyProcessor extends AudioWorkletProcessor {
             <li>Set <a>processor reference</a> in <var>this</var> to
             <var>processorInstance</var>.
             </li>
-            <li>Add <var>nodeInstance</var> to the <a>node instance set</a> in
-            the <a>BaseAudioContext</a>.
             </li>
             <li>Return <var>this</var> as a result of the construction.
             </li>
+          </ol>
+        </section>
+        <section class="informative">
+          <h2 id="AudioWorklet-Sequence">
+            AudioWorklet Sequence of Events
+          </h2>
+          <p>
+            The following figure illustrates an idealized sequence of events
+            occurring relative to an <a>AudioWorklet</a>:
+          </p>
+          <figure>
+            <img alt="AudioWorklet sequence" src=
+            "images/audioProcessorInstantiation.png" width="917" height="546">
+            <figcaption>
+              <a><code>AudioWorklet</code></a> sequence
+            </figcaption>
+          </figure>
+          <p>
+            The steps depicted in the diagram are one possible sequence of events
+            involving the creation of an <a>AudioContext</a> and an
+            associated <a>AudioWorkletGlobalScope</a>, followed by the creation of an
+            <a>AudioWorkletNode</a> and its associated <a>AudioWorkletProcessor</a>.
+          </p>
+          <ol>
+            <li>In the main scope, <code>window.audioWorklet</code> is requested
+            to import a script. No <a>AudioWorkletGlobalScope</a>s exist yet, so the
+            script is fetched and added to the Worklet module responses map.</li>
+            <li>An <a>AudioContext</a> is created.</li>
+            <li>An <a>AudioWorkletGlobalScope</a> is created in association with the context's audio rendering thread.</li>
+            <li>As part of the global scope's initialization, the set of imported module scripts is run, including the one that was previously imported.</li>
+            <li>As part of running the imported script, an <a>AudioWorkletProcessor</a> is registered under the
+            key <code>"Custom1"</code> within the <a>AudioWorkletGlobalScope</a>.</li>
+            <li>In the main scope, an <a>AudioWorkletNode</a> is created using the key <code>"Custom1"</code> along
+            with an <code>opts</code> dictionary of options.</li>
+            <li>As part of the node's creation, this key is used to look up the correct <a>AudioWorkletProcessor</a>
+            subclass for instantiation.</li>
+            <li>An instance of the <a>AudioWorkletProcessor</a> subclass is instantiated with a structured clone of the same
+            <code>opts</code> dictionary.</li>
           </ol>
         </section>
         <section class="informative">

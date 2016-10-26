@@ -3091,9 +3091,9 @@ function setupRoutingGraph() {
             <li>An <dfn>active reference</dfn> for
             <a><code>AudioWorkletNode</code></a>s. This node maintains an <em>
               active</em> reference to itself upon creation. This reference is
-              subsequently maintained or removed based on the return values
-              from invocation of its associated <a>AudioWorkletProcessor</a>'s
-              <code>process()</code> method.
+              subsequently removed if its associated
+              <a>AudioWorkletProcessor</a>'s <code>process()</code> method
+              stops being called, because it returned a falsy value.
             </li>
             <li>A <em>connection</em> reference which occurs if another
             <a><code>AudioNode</code></a> is connected to it.
@@ -5605,29 +5605,15 @@ class MyProcessor extends AudioWorkletProcessor {
             </ol>
             <p>
               The return value of this method controls the lifetime of the
-              <a>AudioWorkletProcessor</a>'s associated <a>AudioWorkletNode</a>
-              by determining the existence of the node's <a href=
-              "#dfn-active-reference">active reference</a>. At the conclusion
-              of each call to the <code>process()</code> method, if the result
-              of applying <a href=
+              <a>AudioWorkletProcessor</a>'s associated
+              <a>AudioWorkletNode</a>. At the conclusion of each call to the
+              <code>process()</code> method, if the result of applying <a href=
               "https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a>
               (described in [[!ECMASCRIPT]]) to the return value is equal to
-              <code>true</code>, then a single <a>active reference</a> is
-              retained to the node, affecting the node's <a href=
-              "#lifetime-AudioNode">lifetime</a>. Otherwise, any active
-              reference is removed and the node's lifetime depends only on
-              other references as they may exist.
+              <code>false</code>, and the node does not possess any connected
+              inputs, then the node is removed from the graph and no subsequent
+              calls to <code>process()</code> will occur.
             </p>
-            <div class="note">
-              While returning <code>true</code> ensures that
-              <code>process()</code> will be called during subsequent rendering
-              quanta, returning <code>false</code> does not prevent future
-              calls to <code>process()</code>. Other references to the
-              corresponding <a>AudioWorkletNode</a> may exist and the node may
-              thus continue to function. Furthermore, these future calls may
-              return a value of <code>true</code>, reinstating the active
-              reference.
-            </div>
           </section>
           <section>
             <h2 id="AudioParamDescriptor">
@@ -5888,9 +5874,9 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
       }
     }
 
-    // No need to return a value to retain an active reference,
-    // since this node's lifetime is dependent only on its
-    // connection and other references.
+    // No need to return a value.
+    // This node's lifetime is dependent only on its
+    // input connections.
   }
 
 });
@@ -6004,7 +5990,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
       }
     }
 
-    // Retain an active reference if the volume is above a threshold,
+    // Keep on processing if the volume is above a threshold,
     // so that disconnecting inputs does not immediately cause the meter
     // to stop computing its smoothed value.
     return this.volume &gt;= VU_METER_MINIMUM;

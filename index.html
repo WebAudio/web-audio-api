@@ -3089,11 +3089,8 @@ function setupRoutingGraph() {
             playing.
             </li>
             <li>An <dfn>active reference</dfn> for
-            <a><code>AudioWorkletNode</code></a>s. This node maintains an <em>
-              active</em> reference to itself upon creation. This reference is
-              subsequently removed if its associated
-              <a>AudioWorkletProcessor</a>'s <code>process()</code> method
-              stops being called, because it returned a falsy value.
+            <a><code>AudioWorkletNode</code></a>s whose <a>active source</a>
+            flag is set to <code>true</code>.
             </li>
             <li>A <em>connection</em> reference which occurs if another
             <a><code>AudioNode</code></a> is connected to it.
@@ -5364,8 +5361,18 @@ window.audioWorklet.import("bypass.js").then(function () {
             lives on the <a>control thread</a>. The user can create an
             <a>AudioWorkletNode</a> from an <a>BaseAudioContext</a>, and such a
             node can be connected with other built-in <a>AudioNode</a>s to form
-            an audio graph. Every <a>AudioWorkletNode</a> has an associated
-            <dfn>processor reference</dfn>, initially null.
+            an audio graph.
+          </p>
+          <p>
+            Every <a>AudioWorkletNode</a> has an associated <dfn>processor
+            reference</dfn>, initially null, which refers to the
+            <a>AudioWorkletProcessor</a> handling the processing for this node.
+          </p>
+          <p>
+            Every <a>AudioWorkletNode</a> has an associated <dfn>active
+            source</dfn> flag, initially <code>true</code>. This flag causes
+            the node to be retained in memory and perform audio processing in
+            the absence of any connected inputs.
           </p>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
@@ -5553,8 +5560,19 @@ class MyProcessor extends AudioWorkletProcessor {
 </pre>
             <p>
               The <code>process()</code> method is called synchronously by the
-              audio <a>rendering thread</a> at every <a>render quantum</a>. It
-              is invoked with the following arguments:
+              audio <a>rendering thread</a> at every <a>render quantum</a>,
+              whenever one or more of the following conditions are true:
+            </p>
+            <ol>
+              <li>The associated <a>AudioWorkletNode</a>'s <a>active source</a>
+              flag is equal to <code>true</code>.
+              </li>
+              <li>There are one or more connected inputs to the
+              <a>AudioWorkletNode</a>.
+              </li>
+            </ol>
+            <p>
+              The method is invoked with the following arguments:
             </p>
             <ol>
               <li>
@@ -5609,10 +5627,11 @@ class MyProcessor extends AudioWorkletProcessor {
               <a>AudioWorkletNode</a>. At the conclusion of each call to the
               <code>process()</code> method, if the result of applying <a href=
               "https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a>
-              (described in [[!ECMASCRIPT]]) to the return value is equal to
-              <code>false</code>, and the node does not possess any connected
-              inputs, then the node is removed from the graph and no subsequent
-              calls to <code>process()</code> will occur.
+              (described in [[!ECMASCRIPT]]) to the return value is assigned to
+              the associated <a>AudioWorkletNode</a>'s <a>active source</a>
+              flag, which causes the node to be retained in memory when set.
+              This in turn can affects whether subsequent invocations of
+              <code>process()</code> occur, via the condition cited above.
             </p>
           </section>
           <section>

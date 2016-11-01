@@ -4084,6 +4084,113 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </section>
       </section>
       <section>
+        <h2 id="AudioScheduledSourceNode">
+          The AudioScheduledSourceNode Interface
+        </h2>
+        <p>
+          The interface represents the common features of the source nodes such
+          as <a>AudioBufferSourceNode</a>, <a>ConstantSourceNode</a>, and
+          <a>OscillatorNode</a>.
+        </p>
+        <p>
+          <a>AudioScheduledSourceNode</a> cannot be instantiated directly, but
+          is instead extended by the concrete interfaces for the source nodes.
+        </p>
+        <dl title="interface AudioScheduledSourceNode : AudioNode" class="idl">
+          <dt>
+            attribute EventHandler onended
+          </dt>
+          <dd>
+            <p>
+              A property used to set the <code>EventHandler</code> (described
+              in <cite><a href=
+              "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
+              HTML</a></cite>[[!HTML]]) for the ended event that is dispatched
+              to <a><code>AudioScheduledSourceNode</code></a> node types. When
+              the source node has stopped playing (as determined by the
+              concrete node), an event of type <code>Event</code> (described in
+              <cite><a href=
+              "https://html.spec.whatwg.org/multipage/infrastructure.html#event">
+              HTML</a></cite> [[!HTML]]) will be dispatched to the event
+              handler.
+            </p>
+            <p>
+              For all <a><code>AudioScheduledSourceNode</code></a>s, the
+              <code>onended</code> event is dispatched when the stop time
+              determined by <a href=
+              "#widl-AudioScheduledSourceNode-stop-void-double-when"><code>stop()</code></a>
+              is reached. For an <a><code>AudioBufferSourceNode</code></a>, the
+              event is also dispatched because the <a href=
+              "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+              <code>duration</code></a> has been reached or if the entire
+              <a href=
+              "#widl-AudioBufferSourceNode-buffer"><code>buffer</code></a> has
+              been played.
+            </p>
+          </dd>
+          <dt>
+            void start()
+          </dt>
+          <dd>
+            <p>
+              Schedules a sound to playback at an exact time.
+              <code>start</code> may only be called one time and <span class=
+              "synchronous">must be called before <code>stop</code> is called
+              or an InvalidStateError exception MUST be thrown.</span>
+            </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                The <a><code>when</code></a> parameter describes at what time
+                (in seconds) the sound should start playing. It is in the same
+                time coordinate system as the
+                <a><code>AudioContext</code></a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                If 0 is passed in for this value or if the value is less than
+                <b>currentTime</b>, then the sound will start playing
+                immediately. <span class="synchronous">A TypeError exception
+                MUST be thrown if <code>when</code> is negative.</span>
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            void stop()
+          </dt>
+          <dd>
+            <p>
+              Schedules a sound to stop playback at an exact time. If
+              <code>stop</code> is called again after already having been
+              called, the last invocation will be the only one applied; stop
+              times set by previous calls will not be applied, unless the
+              buffer has already stopped prior to any subsequent calls. If the
+              buffer has already stopped, further calls to <code>stop</code>
+              will have no effect. If a stop time is reached prior to the
+              scheduled start time, the sound will not play.
+            </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                The <a><code>when</code></a> parameter describes at what time
+                (in seconds) the source should stop playing. It is in the same
+                time coordinate system as the
+                <a><code>AudioContext</code></a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                If 0 is passed in for this value or if the value is less than
+                <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
+                then the sound will stop playing immediately. <span class=
+                "synchronous">A TypeError exception MUST be thrown if
+                <code>when</code> is negative</span>.
+              </dd>
+            </dl>
+          </dd>
+        </dl>
+      </section>
+      <section>
         <h2 id="GainNode">
           The GainNode Interface
         </h2>
@@ -4551,7 +4658,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           This node has no <a>tail-time</a> reference.
         </p>
         <dl title=
-        "[Constructor(BaseAudioContext context, optional AudioBufferSourceOptions)]interface AudioBufferSourceNode : AudioNode"
+        "[Constructor(BaseAudioContext context, optional AudioBufferSourceOptions)]interface AudioBufferSourceNode : AudioScheduledSourceNode"
         class="idl">
           <dt>
             attribute AudioBuffer? buffer
@@ -4666,7 +4773,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             </p>
             <dl class="parameters">
               <dt>
-                optional double when = 0
+                double when
               </dt>
               <dd>
                 The <a><code>when</code></a> parameter describes at what time
@@ -4680,7 +4787,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 MUST be thrown if <code>when</code> is negative.</span>
               </dd>
               <dt>
-                optional double offset = 0
+                double offset
               </dt>
               <dd>
                 The <dfn id="dfn-offset">offset</dfn> parameter describes the
@@ -4717,69 +4824,6 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 <code>duration</code> is negative.</span>
               </dd>
             </dl>
-          </dd>
-          <dt>
-            void stop()
-          </dt>
-          <dd>
-            <p>
-              Schedules a sound to stop playback at an exact time. If
-              <code>stop</code> is called again after already having been
-              called, the last invocation will be the only one applied; stop
-              times set by previous calls will not be applied, unless the
-              buffer has already stopped prior to any subsequent calls. If the
-              buffer has already stopped, further calls to <code>stop</code>
-              will have no effect. If a stop time is reached prior to the
-              scheduled start time, the sound will not play.
-            </p>
-            <p>
-              If sound is never scheduled to stop, then one of the following
-              cases apply:
-            </p>
-            <ul>
-              <li>If <code>loop</code> is <code>false</code>, sound will play
-              until the contents of the <a>AudioBuffer</a> are exhausted.
-              </li>
-              <li>If <code>loop</code> is <code>true</code>, sound will play
-              indefinitely.
-              </li>
-            </ul>
-            <dl class="parameters">
-              <dt>
-                optional double when = 0
-              </dt>
-              <dd>
-                The <a><code>when</code></a> parameter describes at what time
-                (in seconds) the source should stop playing. It is in the same
-                time coordinate system as the
-                <a><code>AudioContext</code></a>'s <a href=
-                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
-                If 0 is passed in for this value or if the value is less than
-                <a href=
-                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
-                then the sound will stop playing immediately. <span class=
-                "synchronous">A TypeError exception MUST be thrown if
-                <code>when</code> is negative</span>.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            attribute EventHandler onended
-          </dt>
-          <dd>
-            <p>
-              A property used to set the <code>EventHandler</code> (described
-              in <cite><a href=
-              "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
-              HTML</a></cite>[[!HTML]]) for the ended event that is dispatched
-              to <a><code>AudioBufferSourceNode</code></a> node types. When the
-              playback of the buffer for an
-              <a><code>AudioBufferSourceNode</code></a> is finished, an event
-              of type <code>Event</code> (described in <cite><a href=
-              "https://html.spec.whatwg.org/multipage/infrastructure.html#event">
-              HTML</a></cite> [[!HTML]]) will be dispatched to the event
-              handler.
-            </p>
           </dd>
         </dl>
         <p>
@@ -4936,7 +4980,7 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
   numberOfOutputs : 1
 </pre>
         <dl title=
-        "[Constructor(BaseAudioContext context, optional ConstantSourceOptions options)]interface ConstantSourceNode : AudioNode"
+        "[Constructor(BaseAudioContext context, optional ConstantSourceOptions options)]interface ConstantSourceNode : AudioScheduledSourceNode"
         class="idl">
           <dt>
             readonly attribute AudioParam offset
@@ -4947,68 +4991,6 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               parameter is <a>a-rate</a>. Its nominal range is \((-\infty,
               \infty)\).
             </p>
-          </dd>
-          <dt>
-            attribute EventHandler onended
-          </dt>
-          <dd>
-            <p>
-              A property used to set the <code>EventHandler</code> (described
-              in <cite><a href=
-              "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
-              HTML</a></cite>[[!HTML]]) for the ended event that is dispatched
-              to <a><code>AudioBufferSourceNode</code></a> node types. When the
-              playback of the constant value is finished, an event of type
-              <code>Event</code> (described in <cite><a href=
-              "https://html.spec.whatwg.org/multipage/infrastructure.html#event">
-              HTML</a></cite> [[!HTML]]) will be dispatched to the event
-              handler.
-            </p>
-          </dd>
-          <dt>
-            void start(optional double when = 0)
-          </dt>
-          <dd>
-            <p>
-              Schedules the constant source to playback at an exact time. This
-              is defined exactly the same as for the <a href=
-              "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-              <code>start()</code></a> method for an
-              <a>AudioBufferSourceNode</a>, except that the the optional
-              <code>offset</code> and <code>duration</code> parameters are not
-              allowed.
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional double when = 0
-              </dt>
-              <dd>
-                Defined the same as the <code>when</code> parameter of the
-                <code>start()</code> method for an
-                <a><code>AudioBufferSourceNode</code></a>.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void stop(optional double when = 0)
-          </dt>
-          <dd>
-            <p>
-              Schedules the source to stop playback at an exact time. This is
-              defined exactly the same as for the <a href=
-              "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
-              method for an <a>AudioBufferSourceNode</a>.
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional double when = 0
-              </dt>
-              <dd>
-                Defined the same as the <code>when</code> parameter of the
-                <code>stop()</code> method for an
-                <a><code>AudioBufferSourceNode</code></a>.
-              </dd>
-            </dl>
           </dd>
         </dl>
         <section>
@@ -9033,7 +9015,7 @@ $$
           </dd>
         </dl>
         <dl title=
-        "[Constructor(BaseAudioContext context, optional OscillatorOptions options)] interface OscillatorNode : AudioNode"
+        "[Constructor(BaseAudioContext context, optional OscillatorOptions options)] interface OscillatorNode : AudioScheduledSourceNode"
         class="idl">
           <dt>
             attribute OscillatorType type
@@ -9076,77 +9058,12 @@ $$
             </p>
           </dd>
           <dt>
-            void start()
-          </dt>
-          <dd>
-            <p>
-              Schedules a sound to playback at an exact time. This behaves
-              exactly the same as the <a href=
-              "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-              <code>start()</code></a> method for an
-              <a>AudioBufferSourceNode</a> except the optional
-              <code>offset</code> and <code>duration</code> parameters are not
-              allowed.
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional double when = 0
-              </dt>
-              <dd>
-                Defined the same as the <code>when</code> parameter of the
-                <a href=
-                "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-                <code>start()</code></a> method of the
-                <a>AudioBufferSourceNode</a>.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void stop()
-          </dt>
-          <dd>
-            <p>
-              Schedules a sound to stop playback at an exact time. This behaves
-              exactly the same as the <a href=
-              "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
-              method for an <a>AudioBufferSourceNode</a>
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional double when = 0
-              </dt>
-              <dd>
-                Defined the same as the <code>when</code> parameter of the
-                <a href=
-                "#widl-AudioBufferSourceNode-stop-void-double-when"><code>stop()</code></a>
-                method of the <a>AudioBufferSourceNode</a>.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
             void setPeriodicWave(PeriodicWave periodicWave)
           </dt>
           <dd>
             <p>
               Sets an arbitrary custom periodic waveform given a
               <a><code>PeriodicWave</code></a>.
-            </p>
-          </dd>
-          <dt>
-            attribute EventHandler onended
-          </dt>
-          <dd>
-            <p>
-              A property used to set the <code>EventHandler</code> (described
-              in <cite><a href=
-              "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
-              HTML</a></cite>[[HTML]]) for the ended event that is dispatched
-              to <a>OscillatorNode</a> node types. When the
-              <a><code>OscillatorNode</code></a> has finished playing (i.e. its
-              stop time has been reached), an event of type <code>Event</code>
-              (described in <cite><a href=
-              "https://html.spec.whatwg.org/multipage/infrastructure.html#event">
-              HTML</a></cite>[[HTML]]) will be dispatched to the event handler.
             </p>
           </dd>
         </dl>

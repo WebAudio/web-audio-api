@@ -5577,8 +5577,8 @@ class MyProcessor extends AudioWorkletProcessor {
 </pre>
             <p>
               The <code>process()</code> method is called synchronously by the
-              audio <a>rendering thread</a> at every <a>render quantum</a>,
-              whenever one or more of the following conditions are true:
+              audio <a>rendering thread</a> at every <a>render quantum</a>, if
+              ANY of the following conditions are true:
             </p>
             <ol>
               <li>The associated <a>AudioWorkletNode</a>'s <a>active source</a>
@@ -5611,14 +5611,6 @@ class MyProcessor extends AudioWorkletProcessor {
                   circumstance under which the number of elements of
                   <code>inputs[n]</code> can be zero.
                 </p>
-                <div class="note">
-                  By checking this condition, an <a>AudioWorkletProcessor</a>
-                  can determine its associated node's lifetime in a way that
-                  depends on its connection status. For example, many built-in
-                  node types exhibit a <a href="#dfn-tail-time">tail-time</a>,
-                  and this attribute permits <a>AudioWorkletNodes</a> to
-                  provide the same thing.
-                </div>
               </li>
               <li>
                 <code>outputs</code> of type
@@ -5650,6 +5642,38 @@ class MyProcessor extends AudioWorkletProcessor {
               This in turn can affects whether subsequent invocations of
               <code>process()</code> occur, via the condition cited above.
             </p>
+            <div class="note">
+              This lifetime policy can support a variety of approaches found in
+              built-in nodes, including the following:
+              <ul>
+                <li>Nodes that transform their inputs, and are active only
+                while connected inputs and/or JavaScript references exist.
+                Returning a falsy value from <code>process()</code> will have
+                this effect.
+                </li>
+                <li>Nodes that transform their inputs, but which remain active
+                for a <a>tail-time</a> after their inputs are disconnected. In
+                this case, <code>process()</code> may return a truthy value for
+                some period of time after <code>inputs</code> is found to
+                contain zero channels, indicating a lack of connected inputs.
+                The current time may be obtained from the processor's
+                <code>contextInfo</code> to measure the start and end of this
+                tail-time interval, or the interval could be calculated
+                dynamically depending on the processor's internal state.
+                </li>
+                <li>Nodes that act as sources of output, typically with a
+                lifetime. Such nodes should return a truthy value from
+                <code>process()</code> until the point at which they are no
+                longer producing an output.
+                </li>
+              </ul>Note that the preceding definition implies that when no
+              return value is provided from an implementation of
+              <code>process()</code>, the effect is identical to returning
+              <code>false</code> (since the effective return value is the falsy
+              value <code>undefined</code>). This is a reasonable behavior for
+              any <a>AudioWorkletProcessor</a> that is active only when it has
+              active inputs.
+            </div>
           </section>
           <section>
             <h2 id="AudioParamDescriptor">

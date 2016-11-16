@@ -6009,27 +6009,30 @@ registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
   }
 
   process (inputs, outputs, parameters) {
-    // Note that the input will be downmixed to mono; however, if no inputs are
+    // Note that the input will be down-mixed to mono; however, if no inputs are
     // connected then zero channels will be passed in.
-    let buffer = inputs[0][0];
-    let bufferLength = buffer.length;
-    let sum = 0, x = 0, rms = 0;
+    if (inputs.length &gt; 0) {
+      let buffer = inputs[0][0];
+      let bufferLength = buffer.length;
+      let sum = 0, x = 0, rms = 0;
 
-    // Calculated the squared-sum.
-    for (let i = 0; i &lt; bufferLength; ++i) {
-      x = buffer[i];
-      sum += x * x;
+      // Calculated the squared-sum.
+      for (let i = 0; i &lt; bufferLength; ++i) {
+        x = buffer[i];
+        sum += x * x;
+      }
+
+      // Calculate the RMS level and update the volume.
+      rms =  Math.sqrt(sum / bufferLength);
+      this.volume = Math.max(rms, this._volume * meterSmoothingFactor);
+
+      // Update and sync the volume property with the main thread.
+      this._nextUpdateFrame -= bufferLength;
+      if (this._nextUpdateFrame &lt; 0) {
+        this._nextUpdateFrame += this.interval;
+        this.postMessage({ volume: this._volume });
+      }
     }
-
-    // Calculate the RMS level and update the volume.
-    rms =  Math.sqrt(sum / bufferLength);
-    this.volume = Math.max(rms, this._volume * meterSmoothingFactor);
-
-    // Update and sync the volume property with the main thread.
-    this._nextUpdateFrame -= bufferLength;
-    if (this._nextUpdateFrame &lt; 0) {
-      this._nextUpdateFrame += this.interval;
-      this.postMessage({ volume: this._volume });
 
     // Keep on processing if the volume is above a threshold, so that
     // disconnecting inputs does not immediately cause the meter to stop 
@@ -6039,7 +6042,8 @@ registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
 
 });
 </pre>
-            <pre class="example" title="VUMeterNode - Main HTML file">
+            <pre class="example" title=
+            "VUMeterNode - Global Scope (main HTML file)">
 &lt;script src="vumeternode.js"&gt;&lt;/script&gt;
 &lt;script&gt;
   importAudioWorkletNode.then(function () {

@@ -5578,7 +5578,8 @@ class MyProcessor extends AudioWorkletProcessor {
             <p>
               The <code>process()</code> method is called synchronously by the
               audio <a>rendering thread</a> at every <a>render quantum</a>, if
-              ANY of the following conditions are true:
+              ANY of the following <dfn>active processing conditions</dfn> are
+              true:
             </p>
             <ol>
               <li>The associated <a>AudioWorkletNode</a>'s <a>active source</a>
@@ -5640,29 +5641,31 @@ class MyProcessor extends AudioWorkletProcessor {
               the associated <a>AudioWorkletNode</a>'s <a>active source</a>
               flag, which causes the node to be retained in memory when set.
               This in turn can affects whether subsequent invocations of
-              <code>process()</code> occur, via the condition cited above.
+              <code>process()</code> occur, via the <a>active processing
+              conditions</a> above.
             </p>
             <div class="note">
               This lifetime policy can support a variety of approaches found in
               built-in nodes, including the following:
               <ul>
                 <li>Nodes that transform their inputs, and are active only
-                while connected inputs and/or JavaScript references exist.
-                Returning a falsy value from <code>process()</code> will have
-                this effect.
+                while connected inputs and/or JavaScript references exist. Such
+                nodes should return <code>false</code> from
+                <code>process()</code> which allows the presence or absence of
+                connected inputs to determine whether active processing occurs.
                 </li>
                 <li>Nodes that transform their inputs, but which remain active
                 for a <a>tail-time</a> after their inputs are disconnected. In
-                this case, <code>process()</code> may return a truthy value for
-                some period of time after <code>inputs</code> is found to
-                contain zero channels, indicating a lack of connected inputs.
-                The current time may be obtained from the processor's
+                this case, <code>process()</code> should return
+                <code>true</code> for some period of time after
+                <code>inputs</code> is found to contain zero channels. The
+                current time may be obtained from the processor's
                 <code>contextInfo</code> to measure the start and end of this
                 tail-time interval, or the interval could be calculated
                 dynamically depending on the processor's internal state.
                 </li>
                 <li>Nodes that act as sources of output, typically with a
-                lifetime. Such nodes should return a truthy value from
+                lifetime. Such nodes should return <code>true</code> from
                 <code>process()</code> until the point at which they are no
                 longer producing an output.
                 </li>

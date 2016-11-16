@@ -5802,20 +5802,17 @@ class MyProcessor extends AudioWorkletProcessor {
               <a>a-rate</a>) inside an
               <a><code>AudioWorkletProcessor</code></a>.
             </p>
-            <h4>
-              Global Scope
-            </h4>
-            <pre>
+            <pre class="example" title="BitCrusher - Global Scope">
 window.audioWorklet.import('bitcrusher.js').then(function () {
-  var context = new AudioContext();
-  var osc = new OscillatorNode(context);
-  var amp = new GainNode(context);
+  let context = new AudioContext();
+  let osc = new OscillatorNode(context);
+  let amp = new GainNode(context);
 
   // Create a worklet node. 'BitCrusher' identifies the 
   // AudioWorkletProcessor previously registered when
   // bitcrusher.js was imported. The options automatically
   // initialize the correspondingly named AudioParams.
-  var bitcrusher = new AudioWorkletNode(context, 'BitCrusher', { 
+  let bitcrusher = new AudioWorkletNode(context, 'BitCrusher', { 
     bitDepth: 8, 
     frequencyReduction: 0.5
   });
@@ -5824,10 +5821,7 @@ window.audioWorklet.import('bitcrusher.js').then(function () {
   osc.start();
 });
 </pre>
-            <h4>
-              AudioWorkletGlobalScope: bitcrusher.js
-            </h4>
-            <pre>
+            <pre class="example" title="BitCrusher - AudioWorkletGlobaScope (bitcrusher.js)">
 registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
   static get parameterDescriptors () {
@@ -5848,26 +5842,26 @@ registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor 
     // We don't need to look at options: only AudioParams are initialized,
     // which were taken care of by the node.
     super(options);
-    this.phase = 0;
-    this.lastSampleValue = 0;
+    this._phase = 0;
+    this._lastSampleValue = 0;
   }
 
   process (inputs, outputs, parameters) {
-    var input = inputs[0];
-    var output = outputs[0];
-    var bitDepth = parameters.bitDepth;
-    var frequencyReduction = parameters.frequencyReduction;
+    let input = inputs[0];
+    let output = outputs[0];
+    let bitDepth = parameters.bitDepth;
+    let frequencyReduction = parameters.frequencyReduction;
 
-    for (var channel = 0; channel &lt; output.length; ++channel) { 
-      for (var i = 0; i &lt; output[channel].length; ++i) {
-        var step = Math.pow(0.5, bitDepth[i]);
-        this.phase += frequencyReduction[i];
-        if (this.phase &gt;= 1.0) {
-          this.phase -= 1.0;
-          this.lastSampleValue = 
+    for (let channel = 0; channel &lt; output.length; ++channel) { 
+      for (let i = 0; i &lt; output[channel].length; ++i) {
+        let step = Math.pow(0.5, bitDepth[i]);
+        this._phase += frequencyReduction[i];
+        if (this._phase &gt;= 1.0) {
+          this._phase -= 1.0;
+          this._lastSampleValue = 
             step * Math.floor(input[channel][i] / step + 0.5);
         }
-        output[channel][i] = this.lastSampleValue;
+        output[channel][i] = this._lastSampleValue;
       }
     }
   }
@@ -5889,10 +5883,7 @@ registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor 
               <a><code>AudioWorkletProcessor</code></a> in clean method calls
               and attribute accesses. This node does not use any output.
             </p>
-            <h4>
-              Global Scope: vumeternode.js
-            </h4>
-            <pre>
+            <pre class="example" title="VUMeterNode - Global Scope (vumeternode.js)">
 class VUMeterNode extends AudioWorkletNode {
 
   constructor (context, options) {
@@ -5900,16 +5891,21 @@ class VUMeterNode extends AudioWorkletNode {
     options.numberOfInputs = 1;
     options.numberOfOutputs = 0;
     options.channelCount = 1;
-
     options.updatingInterval = options.hasOwnProperty('updatingInterval') 
       ? options.updatingInterval 
       : 100;
 
     super(context, 'VUMeter', options);
 
-    // Mirrored states of AudioWorkletProcessor.
+    // States in AudioWorkletNode
     this._updatingInterval = options.updatingInterval;
     this._volume = 0;
+
+    // Handles updated values from AudioWorkletProcessor
+    this.onmessage = event => {
+      if (event.data.hasOwnProperty('volume'))
+        this._volume = event.data.volume;
+    }
   }
 
   get updatingInterval() {
@@ -5922,85 +5918,77 @@ class VUMeterNode extends AudioWorkletNode {
   }
 
   draw () {
-    // Draw the meter based on the volume value.
+    /* Draw the meter based on the volume value. */
   }
 
-  // handle updated values from audio side
-  onmessage (event) {
-    if (event.data.hasOwnProperty('volume'))
-      this._volume = event.data.volume;
-  }
 }
 
-var importAudioWorkletNode = window.audioWorklet.import('vumeterprocessor.js');
+// The application can use the node when this promise resolves.
+let importAudioWorkletNode = window.audioWorklet.import('vumeterprocessor.js');
 </pre>
-            <h4>
-              AudioWorkletGlobalScope: vumeterprocessor.js
-            </h4>
-            <pre>
-var VU_METER_SMOOTHING = 0.9;
-
+            <pre class="example" title="VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
 registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
 
-  // Note: AudioParam definition can be omitted.
+  static meterSmoothingFactor = 0.9;
 
   constructor (options) {
     super(options);
+    this._volume = 0;
+    this._updatingInterval = options.updatingInterval;
+    this._nextUpdateFrames = this.interval;
 
-    this.volume = 0;
-    this.updatingInterval = options.updatingInterval;
-    this.nextUpdateFrames = this.interval;
+    this.onmessage = event => {
+      if (event.data.hasOwnProperty('updatingInterval'))
+        this._updatingInterval = event.data.updatingInterval;
+    }
   }
 
   get interval () {
-    return this.updatingInterval / 1000 * this.contextInfo.sampleRate;
+    return this._updatingInterval / 1000 * this.contextInfo.sampleRate;
   }
 
   process (inputs, outputs, parameters) {
     // Note that the input will be downmixed to mono.
-    var buffer = inputs[0][0];
-    var bufferLength = buffer.length;
-    var sum = 0, x = 0, rms = 0;
+    let buffer = inputs[0][0];
+    let bufferLength = buffer.length;
+    let sum = 0, x = 0, rms = 0;
 
     // Calculated the squared-sum.
-    for (var i = 0; i &lt; bufferLength; ++i) {
+    for (let i = 0; i &lt; bufferLength; ++i) {
       x = buffer[i];
       sum += x * x;
     }
 
-    // Caluclate the RMS level and update the volume.
+    // Calculate the RMS level and update the volume.
     rms =  Math.sqrt(sum / bufferLength);
-    this.volume = Math.max(rms, this.volume * VU_METER_SMOOTHING);
+    this.volume = Math.max(rms, this._volume * meterSmoothingFactor);
 
     // Update and sync the volume property with the main thread.
-    this.nextUpdateFrame -= bufferLength;
-    if (this.nextUpdateFrame &lt; 0) {
-      this.nextUpdateFrame += this.interval;
-      this.postMessage({ volume: this.volume });
+    this._nextUpdateFrame -= bufferLength;
+    if (this._nextUpdateFrame &lt; 0) {
+      this._nextUpdateFrame += this.interval;
+      this.postMessage({ volume: this._volume });
     }
   }
 
-  onmessage (event) {
-    if (event.data.hasOwnProperty('updatingInterval'))
-      this.updatingInterval = event.data.updatingInterval;
-  }
 });
 </pre>
-            <h4>
-              Main HTML file
-            </h4>
-            <pre>
+            <pre class="example" title="VUMeterNode - Main HTML file">
 &lt;script src="vumeternode.js"&gt;&lt;/script&gt;
 &lt;script&gt;
   importAudioWorkletNode.then(function () {
-    var context = new AudioContext();
-    var microphone = GET_MICROPHONE(); // e.g) a live input from getUserMedia().
-    var vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
+    let context = new AudioContext();
+    let oscillator = new Oscillator(context);
+    let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
 
-    microphone.connnect(vuMeterNode);
-    requestAnimationFrame(function () {
-       vuMeterNode.draw();
-    });
+    oscillator.connect(vuMeterNode);
+
+    function drawMeter () {
+      vuMeterNode.draw();
+      requestAnimationFrame(drawMeter);
+    }
+
+    drawMeter();
   });
 &lt;/script&gt;
 </pre>

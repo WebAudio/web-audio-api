@@ -3052,8 +3052,13 @@ function setupRoutingGraph() {
         </dl>
         <section>
           <h2>
-            Dictionaries
+            AudioNodeOptions
           </h2>
+          <p>
+            This specifies the options that can be used in constructing all
+            <a>AudioNode</a>s. All members are optional. However, the specific
+            values used for each node depends on the actual node.
+          </p>
           <dl title="dictionary AudioNodeOptions" class="idl">
             <dt>
               unsigned long channelCount
@@ -3101,6 +3106,10 @@ function setupRoutingGraph() {
             <a><code>OscillatorNode</code></a>s. These nodes maintain a
             <em>playing</em> reference to themselves while they are currently
             playing.
+            </li>
+            <li>An <dfn>active reference</dfn> for
+            <a><code>AudioWorkletNode</code></a>s whose <a>active source</a>
+            flag is set to <code>true</code>.
             </li>
             <li>A <em>connection</em> reference which occurs if another
             <a>AudioNode</a> is connected to one or more of its inputs.
@@ -4118,6 +4127,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a>OscillatorNode</a>.
         </p>
         <p>
+          Before a source is started (by calling <a href=
+          "#widl-AudioScheduledSourceNode-start-void-double-when"><code>start</code></a>,
+          the source node must output silence (0). After a source has been
+          stopped (by calling <a href=
+          "#widl-AudioScheduledSourceNode-stop-void-double-when"><code>stop</code></a>),
+          the source must then output silence (0).
+        </p>
+        <p>
           <a>AudioScheduledSourceNode</a> cannot be instantiated directly, but
           is instead extended by the concrete interfaces for the source nodes.
         </p>
@@ -4806,7 +4823,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             </p>
             <dl class="parameters">
               <dt>
-                double when
+                optional double when = 0
               </dt>
               <dd>
                 The <a><code>when</code></a> parameter describes at what time
@@ -4820,7 +4837,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 MUST be thrown if <code>when</code> is negative.</span>
               </dd>
               <dt>
-                double offset
+                optional double offset
               </dt>
               <dd>
                 The <dfn id="dfn-offset">offset</dfn> parameter describes the
@@ -5374,8 +5391,18 @@ window.audioWorklet.import("bypass.js").then(function () {
             lives on the <a>control thread</a>. The user can create an
             <a>AudioWorkletNode</a> from an <a>BaseAudioContext</a>, and such a
             node can be connected with other built-in <a>AudioNode</a>s to form
-            an audio graph. Every <a>AudioWorkletNode</a> has an associated
-            <dfn>processor reference</dfn>, initially null.
+            an audio graph.
+          </p>
+          <p>
+            Every <a>AudioWorkletNode</a> has an associated <dfn>processor
+            reference</dfn>, initially null, which refers to the
+            <a>AudioWorkletProcessor</a> handling the processing for this node.
+          </p>
+          <p>
+            Every <a>AudioWorkletNode</a> has an associated <dfn>active
+            source</dfn> flag, initially <code>true</code>. This flag causes
+            the node to be retained in memory and perform audio processing in
+            the absence of any connected inputs.
           </p>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
@@ -5425,39 +5452,23 @@ window.audioWorklet.import("bypass.js").then(function () {
               <a><code>AudioWorkletProcessor</code></a> are used to initialize
               the parameter values upon the creation of a node.
             </p>
-            <dl title="dictionary AudioWorkletNodeOptions" class="idl">
+            <dl title="dictionary AudioWorkletNodeOptions : AudioNodeOptions"
+            class="idl">
               <dt>
                 unsigned long numberOfInputs
               </dt>
               <dd>
-                Same to <a>numberOfInputs</a> in <a><code>AudioNode</code></a>.
+                This is used to initialize the value of <a>AudioNode</a>
+                <a href="#widl-AudioNode-numberOfInputs">numberOfInputs</a>
+                attribute.
               </dd>
               <dt>
                 unsigned long numberOfOutputs
               </dt>
               <dd>
-                Same to <a>numberOfOutputs</a> in
-                <a><code>AudioNode</code></a>.
-              </dd>
-              <dt>
-                unsigned long channelCount
-              </dt>
-              <dd>
-                Same to <a>channelCount</a> in <a><code>AudioNode</code></a>.
-              </dd>
-              <dt>
-                ChannelCountMode channelCountMode
-              </dt>
-              <dd>
-                Value used to initialize the
-                <a><code>channelCountMode</code></a> attribute of an
-                <a><code>AudioWorkletNode</code></a>
-              </dd>
-              <dt>
-                ChannelInterpretation channelInterpretation
-              </dt>
-              <dd>
-                Same to <a>channelInterpretation</a> in <a>AudioNode</a>.
+                This is used to initialize the value of <a>AudioNode</a>
+                <a href="#widl-AudioNode-numberOfOutputs">numberOfOutputs</a>
+                attribute.
               </dd>
             </dl>
           </section>
@@ -5516,7 +5527,7 @@ window.audioWorklet.import("bypass.js").then(function () {
             </dd>
           </dl>
           <section>
-            <h2 id="defining-a-valid-audioworkletprcoessor">
+            <h2 id="defining-a-valid-audioworkletprocessor">
               Defining A Valid AudioWorkletProcessor
             </h2>
             <p>
@@ -5533,7 +5544,7 @@ window.audioWorklet.import("bypass.js").then(function () {
               <a>AudioWorkletProcessor</a> subclass.
             </p>
             <p>
-              An example of subclass is as follows:
+              An example of a valid subclass is as follows:
             </p>
             <pre class="example" title="Subclassing AudioWorkletProcessor">
 class MyProcessor extends AudioWorkletProcessor {
@@ -5562,9 +5573,21 @@ class MyProcessor extends AudioWorkletProcessor {
 }
 </pre>
             <p>
-              <code>process()</code> method is called synchronously by the
-              audio <a>rendering thread</a> at every <a>render quantum</a>. It
-              is invoked with the following arguments:
+              The <code>process()</code> method is called synchronously by the
+              audio <a>rendering thread</a> at every <a>render quantum</a>, if
+              ANY of the following <dfn>active processing conditions</dfn> are
+              true:
+            </p>
+            <ol>
+              <li>The associated <a>AudioWorkletNode</a>'s <a>active source</a>
+              flag is equal to <code>true</code>.
+              </li>
+              <li>There are one or more connected inputs to the
+              <a>AudioWorkletNode</a>.
+              </li>
+            </ol>
+            <p>
+              The method is invoked with the following arguments:
             </p>
             <ol>
               <li>
@@ -5586,14 +5609,6 @@ class MyProcessor extends AudioWorkletProcessor {
                   circumstance under which the number of elements of
                   <code>inputs[n]</code> can be zero.
                 </p>
-                <div class="note">
-                  By checking this condition, an <a>AudioWorkletProcessor</a>
-                  can determine its associated node's lifetime in a way that
-                  depends on its connection status. For example, many built-in
-                  node types exhibit a <a href="#dfn-tail-time">tail-time</a>,
-                  and this attribute permits <a>AudioWorkletNodes</a> to
-                  provide the same thing.
-                </div>
               </li>
               <li>
                 <code>outputs</code> of type
@@ -5613,6 +5628,58 @@ class MyProcessor extends AudioWorkletProcessor {
                 <code>"name"</code>.
               </li>
             </ol>
+            <p>
+              The return value of this method controls the lifetime of the
+              <a>AudioWorkletProcessor</a>'s associated
+              <a>AudioWorkletNode</a>. At the conclusion of each call to the
+              <code>process()</code> method, if the result of applying <a href=
+              "https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a>
+              (described in [[!ECMASCRIPT]]) to the return value is assigned to
+              the associated <a>AudioWorkletNode</a>'s <a>active source</a>
+              flag, which causes the node to be retained in memory when set.
+              This in turn can affects whether subsequent invocations of
+              <code>process()</code> occur, via the <a>active processing
+              conditions</a> above.
+            </p>
+            <div class="note">
+              This lifetime policy can support a variety of approaches found in
+              built-in nodes, including the following:
+              <ul>
+                <li>Nodes that transform their inputs, and are active only
+                while connected inputs and/or JavaScript references exist. Such
+                nodes should return <code>false</code> from
+                <code>process()</code> which allows the presence or absence of
+                connected inputs to determine whether active processing occurs.
+                </li>
+                <li>Nodes that transform their inputs, but which remain active
+                for a <a>tail-time</a> after their inputs are disconnected. In
+                this case, <code>process()</code> should return
+                <code>true</code> for some period of time after
+                <code>inputs</code> is found to contain zero channels. The
+                current time may be obtained from the processor's
+                <code>contextInfo</code> to measure the start and end of this
+                tail-time interval, or the interval could be calculated
+                dynamically depending on the processor's internal state.
+                </li>
+                <li>Nodes that act as sources of output, typically with a
+                lifetime. Such nodes should return <code>true</code> from
+                <code>process()</code> until the point at which they are no
+                longer producing an output.
+                </li>
+              </ul>Note that the preceding definition implies that when no
+              return value is provided from an implementation of
+              <code>process()</code>, the effect is identical to returning
+              <code>false</code> (since the effective return value is the falsy
+              value <code>undefined</code>). This is a reasonable behavior for
+              any <a>AudioWorkletProcessor</a> that is active only when it has
+              active inputs.
+            </div>
+            <p>
+              If <code>process()</code> is not called during some rendering
+              quantum due to the lack of any applicable <a>active processing
+              conditions</a>, the result is is as if the processor emitted
+              silence for this period.
+            </p>
           </section>
           <section>
             <h2 id="AudioParamDescriptor">
@@ -5828,7 +5895,7 @@ window.audioWorklet.import('bitcrusher.js').then(function () {
               AudioWorkletGlobalScope: bitcrusher.js
             </h4>
             <pre>
-registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor {
+registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
   static get parameterDescriptors () {
     return [{
@@ -5870,6 +5937,10 @@ registerAudioWorkletProcessor('BitCrusher', class extends AudioWorkletProcessor 
         output[channel][i] = this.lastSampleValue;
       }
     }
+
+    // No need to return a value.
+    // This node's lifetime is dependent only on its
+    // input connections.
   }
 
 });
@@ -5939,8 +6010,9 @@ var importAudioWorkletNode = window.audioWorklet.import('vumeterprocessor.js');
             </h4>
             <pre>
 var VU_METER_SMOOTHING = 0.9;
+var VU_METER_MINIMUM = 0.00001;
 
-registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
+registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 
   // Note: AudioParam definition can be omitted.
 
@@ -5957,27 +6029,35 @@ registerAudioWorkletProcessor('VUMeter', class extends AudioWorkletProcessor {
   }
 
   process (inputs, outputs, parameters) {
-    // Note that the input will be downmixed to mono.
-    var buffer = inputs[0][0];
-    var bufferLength = buffer.length;
-    var sum = 0, x = 0, rms = 0;
+    // Note that the input will be downmixed to mono; however,
+    // if no inputs are connected then zero channels will be passed in.
+    if (inputs[0].length &gt; 0) {
+      var buffer = inputs[0][0];
+      var bufferLength = buffer.length;
+      var sum = 0, x = 0, rms = 0;
 
-    // Calculated the squared-sum.
-    for (var i = 0; i &lt; bufferLength; ++i) {
-      x = buffer[i];
-      sum += x * x;
+      // Calculated the squared-sum.
+      for (var i = 0; i &lt; bufferLength; ++i) {
+        x = buffer[i];
+        sum += x * x;
+      }
+
+      // Caluclate the RMS level and update the volume.
+      rms =  Math.sqrt(sum / bufferLength);
+      this.volume = Math.max(rms, this.volume * VU_METER_SMOOTHING);
+
+      // Update and sync the volume property with the main thread.
+      this.nextUpdateFrame -= bufferLength;
+      if (this.nextUpdateFrame &lt; 0) {
+        this.nextUpdateFrame += this.interval;
+        this.postMessage({ volume: this.volume });
+      }
     }
 
-    // Caluclate the RMS level and update the volume.
-    rms =  Math.sqrt(sum / bufferLength);
-    this.volume = Math.max(rms, this.volume * VU_METER_SMOOTHING);
-
-    // Update and sync the volume property with the main thread.
-    this.nextUpdateFrame -= bufferLength;
-    if (this.nextUpdateFrame &lt; 0) {
-      this.nextUpdateFrame += this.interval;
-      this.postMessage({ volume: this.volume });
-    }
+    // Keep on processing if the volume is above a threshold,
+    // so that disconnecting inputs does not immediately cause the meter
+    // to stop computing its smoothed value.
+    return this.volume &gt;= VU_METER_MINIMUM;
   }
 
   onmessage (event) {

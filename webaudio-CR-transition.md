@@ -118,7 +118,7 @@ reviewer. Changes were made in response to this review, and the TAG appears sati
 
 ## Issues addressed
 
-Thi issues list is on GitHub:
+The issues list is on GitHub:
 
 https://github.com/WebAudio/web-audio-api/issues
 

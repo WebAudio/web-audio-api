@@ -27,8 +27,8 @@ This document was published by the Web Audio Working Group as a
 Candidate Recommendation. This document is intended to become a W3C
 Recommendation. If you wish to make comments regarding this document,
 please send them to the GitHub repository. You may also use the mailing
-list public-audiof@w3.org (subscribe, archives) with [Performance
-Timeline] at the start of your email's subject. W3C publishes a
+list public-audiof@w3.org (subscribe, archives) with [WebAudio] 
+at the start of your email's subject. W3C publishes a
 Candidate Recommendation to indicate that the document is believed 
 to be  stable and to encourage implementation by the developer community. 
 This Candidate Recommendation is expected to advance to Proposed

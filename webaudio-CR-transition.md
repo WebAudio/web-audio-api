@@ -111,7 +111,7 @@ Web Audio API was discussed at TPAC 2016 with the I18n Core chair, who confirmed
 which do not expose human-readable text strings or take natural-language input do not constitute 
 a problem for Internationalization.
 
-### TAG
+### TAG:
 
 This specification has benefitted from extensive review by the TAG. Domenic Denicola was the lead 
 reviewer. Changes were made in response to this review, and the TAG appears satisfied.

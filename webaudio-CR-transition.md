@@ -71,11 +71,11 @@ This was done in coordination with the Houdini taskforce, which specified Workle
 The remainder of Web Audio API is stable, has multiple implementations, and is widely used.
 
 ## Requirements satisfied
-Thedre is a requirements document
+There is a requirements document
 
 https://www.w3.org/TR/webaudio-usecases/
 
-all of the use cases listed there are met by Web Audio API.
+the majority of the use cases listed there are met by Web Audio API. Speed change algorithms are complex and were not added in v.1 but could be implemented via AudioWorklet. We eliminated built-in Doppler shifting from the API because of complexity and CPU-consumption concerns. However, the effect would still be achievable within a game using continuous playbackRate control of an AudioBufferSourceNode generating the sound to be shifted. Some use cases would require substantial CPU power for professional results, but this is not an inherent limitation of the specification just of physics.
 
 ## Dependencies met (or not)
 

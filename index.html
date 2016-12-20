@@ -1249,7 +1249,7 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              Creates a <a><code>GainNode</code></a>.
+              <a>Factory method</a> for <a>GainNode</a>.
             </p>
           </dd>
           <dt>
@@ -2363,68 +2363,113 @@ function setupRoutingGraph() {
           value explicitly. <em>block-size</em> is defined to be 128
           sample-frames which corresponds to roughly 3ms at a sample-rate of
           44.1 kHz.
-        </p><a>AudioNode</a>s can be created in two ways:
+        </p>
+        <p>
+          <a>AudioNode</a>s can be created in two ways: using the constructor
+          for this particular interface, or by using the <dfn>factory
+          method</dfn> on the <a>BaseAudioContext</a>.
+        </p>
+        <p>
+          The <a>BaseAudioContext</a> passed as first argument of the
+          constructor of an <a>AudioNode</a>s is called the <dfn
+          id="associated">associated <a>BaseAudioContext</a></dfn> of the
+          <a>AudioNode</a> to be created.  Similarly, when using the factory
+          method, the <a>associated <code>BaseAudioContext</code></a> of the
+          <a>AudioNode</a> is the first argument of the factory
+          method.</a>
+        </p>
+        <p>
+          To create a new <a>AudioNode</a> of a particular type <var>i</var>
+          using its constructor, with a <a>BaseAudioContext</a> <var>c</var>
+          as first argument, and a <a>associated option object</a>
+          <var>option</var> as second argument, from the <a
+            href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-relevant-global">
+          relevant global</a> of <var>c</var>, execute these steps:
+        </p>
         <ol>
-          <li>An <a>AudioNode</a> can be created by calling the corresponding
-          <dfn>factory method</dfn> on the <a>AudioContext</a>, passing in
-          arguments. The <a>AudioNode</a> is associated with the
-          <a>AudioContext</a> it was created from.
-          </li>
-          <li>An <a>AudioNode</a> can be created by calling its constructor,
-          passing in the <a>AudioContext</a> with which the <a>AudioNode</a>
-          being constructed will be associated with. An optional second
-          argument is a dictionary that can contain attributes specific to the
-          type of <a>AudioNode</a> that is being created. When creating an <a>
-            AudioNode</a> using the constructor, the following algorithm MUST
-            be executed atomically:
-            <ol>
-              <li>Let <var>parameters</var> be an array that has a size equal
-              to the number of parameters of the associated <a>factory
-              method</a> function for this <a>AudioNode</a> type. Initialize
-              all elements of this array to <code>null</code>.
-              </li>
+          <li>Let <var>o</var> be a new object of type <var>i</var>.</li>
+          <li><a href=#audionode-constructor-common>Initialize the common
+            part</a> of <var>o</var>, with <var>c</var> and <var>option</var> as
+          arguments.</li>
+          <li>Return <var>o</var></li>
+        </ol>
+        <p>
+          To create a new <a>AudioNode</a> of a particular type <var>i</var>
+          using its <a>factory method</a>, with a <var>BaseAudioContext</var>
+          <var>c</var> as first argument, execute these steps:
+        </p>
+        <ol>
+          <li>Let <var>o</var> be a new object of type <var>i</var>.</li>
+          <li>Let <var>option</var> be a dictionnary of the type associated to
+          the interface associated to this factory method.</li>
+          <li> For each parameter passed to the factory method,
+          set the dictionary member of the same name on <var>option</var>
+          to the value of this parameter.</li>
+          <li><a href=#audionode-constructor-common>Initialize the common
+            part</a> of <var>o</var> with
+          <var>c</var> and <var>option</var> as arguments.</li>
+          <li>Return <var>o</var></li>
+        </ol>
+        <p>
+          <dfn id=audionode-constructor-common>Initializing the common
+            part</dfn> of an object <var>o</var> of interface <var>i</var> that
+          inherits from <a>AudioNode</a> means executing the following steps,
+          given the arguments <var>context</var> and <var>dict</var> passed to
+          the constructor of this interface.
+        </p>
+
+        <ol>
+          <li>Set <var>o</var>'s associated <a>BaseAudioContext</a> to
+          <var>context</var>.
+          <li>Set its value for <a
+              href="#widl-AudioNode-numberOfInputs">numberOfInputs</a>, <a
+              href="#widl-AudioNode-numberOfOutputs">numberOfOutputs</a>, <a
+              href="#widl-AudioNode-channelCount">channelCount</a>, <a
+              href="#widl-AudioNode-channelCountMode">channelCountMode</a>, <a
+              href="#widl-AudioNode-channelInterpretation">channelInterpretation</a> to
+            the default value for this specific interface outlined in
+            the section for each <a>AudioNode</a>.
               <li>If the <a>AudioNode</a> being constructed is a
               <a>ConvolverNode</a>, set its <a href=
               "#widl-ConvolverNode-normalize">normalize</a> attribute with the
               inverse of the value of the <a href=
               "#widl-ConvolverOptions-disableNormalization">disableNormalization</a>
-              dictionary member, and then set its the <a href=
+              in <var>dict</var>, and then set its the <a href=
               "#widl-ConvolverNode-buffer">buffer</a> attribute to the value of
-              the <a href="#widl-ConvolverOptions-buffer">buffer</a> dictionary
-              member, in this order, and jump to the last step of this
-              algorithm.
+              the <a href="#widl-ConvolverOptions-buffer">buffer</a> in
+              <var>dict</var> member, in this order, and jump to the last step
+              of this algorithm.
                 <div class="note">
                   This means that the buffer will be normalized according to
                   the value of the <a href=
                   "#widl-ConvolverNode-normalize">normalize</a> attribute.
                 </div>
               </li>
-              <li>For each dictionary member of the option dictionary passed
-              in, execute these steps, let <var>k</var> be its key, and
-              <var>v</var> be its value:
-                <ol>
-                  <li>If <var>k</var> is the name of an <a>AudioParam</a> on
-                  this <a>AudioNode</a> type, set the <a href=
-                  "#widl-AudioParam-value">value</a> attribute of this
-                  <a>AudioParam</a> to <var>v</var>.
-                  </li>
-                  <li>Else if <var>k</var> is the name of an attribute for this
-                  <a>AudioNode</a> type, set this attribute to <var>v</var>.
-                  </li>
-                  <li>Else if <var>k</var> is the name of a parameter to the
-                  associated <a>factory method</a>, set
-                  <var>parameters[i]</var> to <var>v</var>, where <var>i</var>
-                  is the index of the parameter in the signature for this
-                  <a>AudioNode</a> type.
-                  </li>
-                </ol>
-              </li>
-              <li>Call the corresponding <a>factory method</a> with the
-              parameters in <var>parameters</var>.
-              </li>
-            </ol>
+          <li>For each member of <var>dict</var> passed
+          in, execute these steps, with <var>k</var> the key of the member, and
+          <var>v</var> its value:
+          <ol>
+            <li>If<var>k</var> is <code>disableNormalization</code> or
+            <code>buffer</code>, jump to the beginning of this loop.</li>
+            <li>If <var>k</var> is the name of an <a>AudioParam</a> on
+            on this interface, set the <a href=
+              "#widl-AudioParam-value">value</a> attribute of this
+            <a>AudioParam</a> to <var>v</var>.
+            </li>
+            <li>Else if <var>k</var> is the name of an attribute on this
+            interface, set the object associated with this attribute to <var>v</var>.
+            </li>
+          </ol>
           </li>
         </ol>
+
+        <p>
+          The <dfn>associated interface</dfn> for a factory method is the
+          interface of the objects that are returned from this method. The
+          <dfn>associated option object</dfn> for an interface is the option
+          object that can be passed to the constructor for this interface.
+        </p>
+
         <p>
           <a>AudioNode</a>s are <em>EventTarget</em>s, as described in
           <cite><a href="https://dom.spec.whatwg.org/">DOM</a></cite> [[!DOM]].
@@ -4268,9 +4313,32 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         <p>
           This node has no <a>tail-time</a> reference.
         </p>
-        <dl title=
-        "[Constructor(&lt;a&gt;BaseAudioContext&lt;/a&gt; context, optional &lt;a&gt;GainOptions&lt;/a&gt; options)]interface GainNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        <dl title="[Constructor(&lt;a&gt;BaseAudioContext&lt;/a&gt; context, optional &lt;a&gt;GainOptions&lt;/a&gt; options)]interface GainNode : &lt;a&gt;AudioNode&lt;/a&gt;" class="idl">
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+          <p>
+          Let <var>gain</var> be a new <a>GainNode</a> object.
+          <a href=#audionode-constructor-common>Initialize the common part</a>
+          of <var>gain</var>, and return <var>gain</var>.
+          </p>
+          <dl class=parameters>
+            <dt>
+              BaseAudioContext context
+            </dt>
+            <dd>
+              The <a>BaseAudioContext</a> this new <a>GainNode</a> will be
+              <a href="#associated">associated</a> with.
+            </dd>
+            <dt>
+              optional GainOptions options
+            </dt>
+            <dd>
+              An optional initial gain value for this <a>GainNode</a>.
+            </dd>
+          </dl>
+          </dd>
           <dt>
             readonly attribute AudioParam gain
           </dt>

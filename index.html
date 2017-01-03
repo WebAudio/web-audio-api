@@ -918,107 +918,11 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
-            Promise&lt;void&gt; suspend()
-          </dt>
-          <dd>
-            <p>
-              Suspends the progression of
-              <a><code>BaseAudioContext</code></a>'s <a href=
-              "#widl-BaseAudioContext-currentTime">currentTime</a>, allows any
-              current context processing blocks that are already processed to
-              be played to the destination, and then allows the system to
-              release its claim on audio hardware. This is generally useful
-              when the application knows it will not need the
-              <a>BaseAudioContext</a> for some time, and wishes to temporarily
-              <a>release system resource</a> associated with the
-              <a>BaseAudioContext</a>. The promise resolves when the frame
-              buffer is empty (has been handed off to the hardware), or
-              immediately (with no other effect) if the context is already
-              <code>suspended</code>. The promise is rejected if the context
-              has been closed.
-            </p>
-            <p>
-              <span class="synchronous">When suspend is called, execute these
-              steps:</span>
-            </p>
-            <ol>
-              <li>Let <em>promise</em> be a new Promise.
-              </li>
-              <li>If the <em>control thread state</em> flag on the
-              <a>AudioContext</a> is <code>closed</code> reject the promise
-              with <code>InvalidStateError</code>, abort these steps, returning
-              <em>promise</em>.
-              </li>
-              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
-              of the <a>AudioContext</a> is already <code>suspended</code>,
-              resolve <em>promise</em>, return it, and abort these steps.
-              </li>
-              <li>Set the <em>control thread state</em> flag on the
-              <a>AudioContext</a> to <code>suspended</code>.
-              </li>
-              <li>
-                <a href="#queue">Queue a control message</a> to suspend the
-                <a>AudioContext</a>.
-              </li>
-              <li>Return <em>promise</em>.
-              </li>
-            </ol>
-            <p>
-              Running a <a>control message</a> to suspend an
-              <a>AudioContext</a> means running these steps on the <a>rendering
-              thread</a>:
-            </p>
-            <ol>
-              <li>Attempt to <a>release system resources</a>.
-              </li>
-              <li>Set the <a>rendering thread state</a> on the
-              <a>AudioContext</a> to <code>suspended</code>.
-              </li>
-              <li>Queue a task on the <a>control thread</a>'s event loop, to
-              execute these steps:
-                <ol>
-                  <li>Resolve <em>promise</em>.
-                  </li>
-                  <li>If the <a href="#widl-audiocontext-state">state</a>
-                  attribute of the <a>AudioContext</a> is not already
-                  <code>suspended</code>:
-                    <ol>
-                      <li>Set the <a href="#widl-audiocontext-state">state</a>
-                      attribute of the <a>AudioContext</a> to
-                      <code>suspended</code>.
-                      </li>
-                      <li>Queue a task to fire a simple event named
-                      <code>statechange</code> at the <a>AudioContext</a>.
-                      </li>
-                    </ol>
-                  </li>
-                </ol>
-              </li>
-            </ol>
-            <p>
-              While a <a>BaseAudioContext</a> is suspended,
-              <code>MediaStream</code>s will have their output ignored; that
-              is, data will be lost by the real time nature of media streams.
-              <code>HTMLMediaElement</code>s will similarly have their output
-              ignored until the system is resumed.
-              <a>AudioWorkletProcessor</a>s and <a>ScriptProcessorNode</a>s
-              will cease to have their processing handlers invoked while
-              suspended, but will resume when resumed. For the purpose of
-              <a>AnalyserNode</a> window functions, the data is considered as a
-              continuous stream - i.e. the
-              <code>resume()</code>/<code>suspend()</code> does not cause
-              silence to appear in the <a>AnalyserNode</a>'s stream of data. In
-              particular, calling <a>AnalyserNode</a> functions repeatedly when
-              a <a>BaseAudioContext</a> is suspended MUST return the same data.
-            </p>
-          </dd>
-          <dt>
             Promise&lt;void&gt; resume()
           </dt>
           <dd>
             <p>
-              Resumes the progression of the
-              <a><code>AudioContext</code></a>'s' <a href=
+              Resumes the progression of the <a>BaseAudioContext</a>'s <a href=
               "#widl-AudioContext-currentTime">currentTime</a> when it has been
               suspended.
             </p>
@@ -1030,37 +934,40 @@ function setupRoutingGraph() {
               <li>Let <em>promise</em> be a new Promise.
               </li>
               <li>If the <em>control thread state</em> flag on the
-              <a>AudioContext</a> is <code>closed</code> reject the promise
+              <a>BaseAudioContext</a> is <code>closed</code> reject the promise
               with <code>InvalidStateError</code>, abort these steps, returning
               <em>promise</em>.
               </li>
-              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
-              of the <a>AudioContext</a> is already <code>running</code>,
-              resolve <em>promise</em>, return it, and abort these steps.
+              <li>If the <a href="#widl-BaseAudioContext-state">state</a>
+              attribute of the <a>BaseAudioContext</a> is already
+              <code>running</code>, resolve <em>promise</em>, return it, and
+              abort these steps.
               </li>
-              <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
-              append <em>promise</em> to <a>pendingResumePromises</a> and abort
-              these steps, returning <em>promise</em>.
+              <li>If the <a>BaseAudioContext</a> is not <a>allowed to
+              start</a>, append <em>promise</em> to
+              <a>pendingResumePromises</a> and abort these steps, returning
+              <em>promise</em>.
               </li>
               <li>Set the <em>control thread state</em> flag on the
-              <a>AudioContext</a> to <code>running</code>.
+              <a>BaseAudioContext</a> to <code>running</code>.
               </li>
               <li>
                 <a href="#queue">Queue a control message</a> to resume the
-                <a>AudioContext</a>.
+                <a>BaseAudioContext</a>.
               </li>
               <li>Return <em>promise</em>.
               </li>
             </ol>
             <p>
-              Running a <a>control message</a> to resume an <a>AudioContext</a>
-              means running these steps on the <a>rendering thread</a>:
+              Running a <a>control message</a> to resume an
+              <a>BaseAudioContext</a> means running these steps on the
+              <a>rendering thread</a>:
             </p>
             <ol>
               <li>Attempt to <a href="#acquiring">acquire system resources</a>.
               </li>
               <li>Set the <a>rendering thread state</a> flag on the
-              <a>AudioContext</a> to <code>running</code>.
+              <a>BaseAudioContext</a> to <code>running</code>.
               </li>
               <li>Start <a href="#rendering-loop">rendering the audio
               graph</a>.
@@ -1083,16 +990,16 @@ function setupRoutingGraph() {
                   </li>
                   <li>Resolve <em>promise</em>.
                   </li>
-                  <li>If the <a href="#widl-audiocontext-state">state</a>
-                  attribute of the <a>AudioContext</a> is not already
+                  <li>If the <a href="#widl-BaseAudioContext-state">state</a>
+                  attribute of the <a>BaseAudioContext</a> is not already
                   <code>running</code>:
                     <ol>
-                      <li>Set the <a href="#widl-audiocontext-state">state</a>
-                      attribute of the <a>AudioContext</a> to
-                      <code>running</code>.
+                      <li>Set the <a href=
+                      "#widl-BaseAudioContext-state">state</a> attribute of the
+                      <a>BaseAudioContext</a> to <code>running</code>.
                       </li>
                       <li>Queue a task to fire a simple event named
-                      <code>statechange</code> at the <a>AudioContext</a>.
+                      <code>statechange</code> at the <a>BaseAudioContext</a>.
                       </li>
                     </ol>
                   </li>
@@ -1398,7 +1305,7 @@ function setupRoutingGraph() {
             </p>
             <dl class="parameters">
               <dt>
-                optional double maxDelayTime
+                optional double maxDelayTime = 1.0
               </dt>
               <dd>
                 The <dfn>maxDelayTime</dfn> parameter is optional and specifies
@@ -1879,6 +1786,99 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
+            Promise&lt;void&gt; suspend()
+          </dt>
+          <dd>
+            <p>
+              Suspends the progression of <a>AudioContext</a>'s <a href=
+              "#widl-BaseAudioContext-currentTime">currentTime</a>, allows any
+              current context processing blocks that are already processed to
+              be played to the destination, and then allows the system to
+              release its claim on audio hardware. This is generally useful
+              when the application knows it will not need the
+              <a>AudioContext</a> for some time, and wishes to temporarily
+              <a>release system resource</a> associated with the
+              <a>AudioContext</a>. The promise resolves when the frame buffer
+              is empty (has been handed off to the hardware), or immediately
+              (with no other effect) if the context is already
+              <code>suspended</code>. The promise is rejected if the context
+              has been closed.
+            </p>
+            <p>
+              <span class="synchronous">When suspend is called, execute these
+              steps:</span>
+            </p>
+            <ol>
+              <li>Let <em>promise</em> be a new Promise.
+              </li>
+              <li>If the <em>control thread state</em> flag on the
+              <a>AudioContext</a> is <code>closed</code> reject the promise
+              with <code>InvalidStateError</code>, abort these steps, returning
+              <em>promise</em>.
+              </li>
+              <li>If the <a href="#widl-AudioContext-state">state</a> attribute
+              of the <a>AudioContext</a> is already <code>suspended</code>,
+              resolve <em>promise</em>, return it, and abort these steps.
+              </li>
+              <li>Set the <em>control thread state</em> flag on the
+              <a>AudioContext</a> to <code>suspended</code>.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to suspend the
+                <a>AudioContext</a>.
+              </li>
+              <li>Return <em>promise</em>.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to suspend an
+              <a>AudioContext</a> means running these steps on the <a>rendering
+              thread</a>:
+            </p>
+            <ol>
+              <li>Attempt to <a>release system resources</a>.
+              </li>
+              <li>Set the <a>rendering thread state</a> on the
+              <a>AudioContext</a> to <code>suspended</code>.
+              </li>
+              <li>Queue a task on the <a>control thread</a>'s event loop, to
+              execute these steps:
+                <ol>
+                  <li>Resolve <em>promise</em>.
+                  </li>
+                  <li>If the <a href="#widl-audiocontext-state">state</a>
+                  attribute of the <a>AudioContext</a> is not already
+                  <code>suspended</code>:
+                    <ol>
+                      <li>Set the <a href="#widl-audiocontext-state">state</a>
+                      attribute of the <a>AudioContext</a> to
+                      <code>suspended</code>.
+                      </li>
+                      <li>Queue a task to fire a simple event named
+                      <code>statechange</code> at the <a>AudioContext</a>.
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p>
+              While an <a>AudioContext</a> is suspended,
+              <code>MediaStream</code>s will have their output ignored; that
+              is, data will be lost by the real time nature of media streams.
+              <code>HTMLMediaElement</code>s will similarly have their output
+              ignored until the system is resumed. <a>AudioWorkletNode</a>s and
+              <a>ScriptProcessorNode</a>s will cease to have their processing
+              handlers invoked while suspended, but will resume when the
+              context is resumed. For the purpose of <a>AnalyserNode</a> window
+              functions, the data is considered as a continuous stream - i.e.
+              the <code>resume()</code>/<code>suspend()</code> does not cause
+              silence to appear in the <a>AnalyserNode</a>'s stream of data. In
+              particular, calling <a>AnalyserNode</a> functions repeatedly when
+              a <a>AudioContext</a> is suspended MUST return the same data.
+            </p>
+          </dd>
+          <dt>
             Promise&lt;void&gt; close()
           </dt>
           <dd>
@@ -1995,7 +1995,7 @@ function setupRoutingGraph() {
           </dt>
           <dd>
             <p>
-              Creates a <a><code>MediaStreamAudioSourceNode</code></a>.
+              Creates a <a><code>MediaStreamTrackAudioSourceNode</code></a>.
             </p>
             <dl class="parameters">
               <dt>
@@ -2076,7 +2076,7 @@ function setupRoutingGraph() {
         </h2>
         <p>
           <a><code>OfflineAudioContext</code></a> is a particular type of
-          <a><code>AudioContext</code></a> for rendering/mixing-down
+          <a><code>BaseAudioContext</code></a> for rendering/mixing-down
           (potentially) faster than real-time. It does not render to the audio
           hardware, but instead renders as quickly as possible, fulfilling the
           returned promise with the rendered result as an
@@ -2200,26 +2200,6 @@ function setupRoutingGraph() {
                 </ol>
               </li>
             </ol>
-          </dd>
-          <dt>
-            Promise&lt;void&gt; resume()
-          </dt>
-          <dd>
-            <p>
-              Resumes the progression of time in an audio context that has been
-              suspended. The promise resolves immediately because the
-              <a><code>OfflineAudioContext</code></a> does not require the
-              audio hardware. If the context is not currently suspended or the
-              rendering has not started, the promise is rejected with
-              <code>InvalidStateError</code>.
-            </p>
-            <p>
-              In contrast to a live <a><code>AudioContext</code></a>, the value
-              of <a href="#widl-BaseAudioContext-currentTime">currentTime</a>
-              always reflects the start time of the next block to be rendered
-              by the audio graph, since the context's audio stream does not
-              advance in time during suspension.
-            </p>
           </dd>
           <dt>
             Promise&lt;void&gt; suspend()
@@ -2401,7 +2381,7 @@ function setupRoutingGraph() {
               all elements of this array to <code>null</code>.
               </li>
               <li>If the <a>AudioNode</a> being constructed is a
-              <a>ConvolverNode</a>, set its<a href=
+              <a>ConvolverNode</a>, set its <a href=
               "#widl-ConvolverNode-normalize">normalize</a> attribute with the
               inverse of the value of the <a href=
               "#widl-ConvolverOptions-disableNormalization">disableNormalization</a>
@@ -2824,11 +2804,11 @@ function setupRoutingGraph() {
             </dl>
           </dd>
           <dt>
-            readonly attribute AudioContext context
+            readonly attribute BaseAudioContext context
           </dt>
           <dd>
             <p>
-              The <a><code>AudioContext</code></a> which owns this
+              The <a><code>BaseAudioContext</code></a> which owns this
               <a><code>AudioNode</code></a>.
             </p>
           </dd>
@@ -3123,8 +3103,10 @@ function setupRoutingGraph() {
             <li>A <em>normal</em> JavaScript reference obeying normal garbage
             collection rules.
             </li>
-            <li>A <em>playing</em> reference for both
-            <a><code>AudioBufferSourceNode</code></a>s and
+            <li>A <em>playing</em> reference for
+            <a><code>AudioBufferSourceNode</code></a>s,
+            <a><code>MediaElementAudioSourceNode</code></a>s,
+            <a><code>MediaStreamAudioSourceNode</code></a>s and
             <a><code>OscillatorNode</code></a>s. These nodes maintain a
             <em>playing</em> reference to themselves while they are currently
             playing.
@@ -3851,13 +3833,15 @@ function setupRoutingGraph() {
           <dd>
             <p>
               Cancels all scheduled parameter changes with times greater than
-              or equal to <code>cancelTime</code>. Active
-              <code><a>setTargetAtTime</a></code> automations (those with
-              <code>cancelTime</code> less than the supplied time value) will
-              also be cancelled. Any hold values scheduled by <a href=
-              "#widl-AudioParam-cancelAndHoldAtTime-AudioParam-double-cancelTime">
-              <code>cancelAndHoldAtTime</code></a> are also removed if the hold
-              time occurs after <code>cancelTime</code>.
+              or equal to <code>cancelTime</code>. Cancelling a scheduled
+              parameter change means removing the scheduled event from the
+              event list. Any active automations whose event time is less than
+              <code>cancelTime</code> are also cancelled, and such
+              cancellations may cause discontinuities because the original
+              value (from before such automation) is restored immediately. Any
+              hold values scheduled by <code><a>cancelAndHoldAtTime</a></code>
+              are also removed if the hold time occurs after
+              <code>cancelTime</code>.
             </p>
             <dl class="parameters">
               <dt>
@@ -4724,7 +4708,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <code>buffer set</code>, initially set to false.
         </p>
         <dl title=
-        "[Constructor(BaseAudioContext context, optional AudioBufferSourceOptions)]interface AudioBufferSourceNode : AudioScheduledSourceNode"
+        "[Constructor(BaseAudioContext context, optional AudioBufferSourceOptions options)]interface AudioBufferSourceNode : AudioScheduledSourceNode"
         class="idl">
           <dt>
             attribute AudioBuffer? buffer
@@ -6105,7 +6089,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
   process (inputs, outputs, parameters) {
     // Note that the input will be down-mixed to mono; however, if no inputs are
     // connected then zero channels will be passed in.
-    if (inputs[0][0].length &gt; 0) {
+    if (inputs[0].length &gt; 0) {
       let buffer = inputs[0][0];
       let bufferLength = buffer.length;
       let sum = 0, x = 0, rms = 0;
@@ -7970,7 +7954,7 @@ function calculateNormalizationScale(buffer)
           </figcaption>
         </figure>
         <dl title=
-        "[Constructor(BaseAudioContext context, optional ChannelSplitterOptions options)] interface ChannelMergerNode : AudioNode"
+        "[Constructor(BaseAudioContext context, optional ChannelMergerOptions options)] interface ChannelMergerNode : AudioNode"
         class="idl"></dl>
         <section>
           <h2>

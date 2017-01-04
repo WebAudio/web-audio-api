@@ -5418,6 +5418,11 @@ window.audioWorklet.import("bypass.js").then(function () {
             the node to be retained in memory and perform audio processing in
             the absence of any connected inputs.
           </p>
+          <dl title="interface AudioParamMap" class="idl">
+            <dt>
+              readonly maplike&lt;DOMString, AudioParam&gt;
+            </dt>
+          </dl>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
               Constructor(BaseAudioContext context, DOMString name, optional
@@ -5433,24 +5438,46 @@ window.audioWorklet.import("bypass.js").then(function () {
               </p>
             </dd>
             <dt>
-              attribute EventHandler onmessage
+              readonly attribute AudioParamMap parameters
             </dt>
             <dd>
               <p>
-                The <code>onmessage</code> handler is called whenever the
-                associated <a><code>AudioWorkletProcessor</code></a> posts a
-                message back to the main thread.
+                The <code>parameters</code> attribute is a collection of
+                <a>AudioParam</a> objects with associated names. This maplike
+                object is populated from a list of <a>AudioParamDescriptor</a>s
+                in the <a>AudioWorkletProcessor</a> class definition at the
+                instantiation.
               </p>
             </dd>
             <dt>
-              void postMessage(any message, optional sequence&lt;object&gt;
-              transfer)
+              attribute EventHandler ondata
             </dt>
             <dd>
               <p>
-                <code>postMessage</code> may be called to send a message to the
+                The <code>ondata</code> handler is called whenever the
+                associated <a>AudioWorkletProcessor</a> sends data back to the
+                <a>AudioWorkletNode</a> instance.
+              </p>
+            </dd>
+            <dt>
+              void sendData()
+            </dt>
+            <dd>
+              <p>
+                <code>sendData</code> may be called to send data to the
                 corresponding <a>AudioWorkletProcessor</a>.
               </p>
+              <dl class="parameters">
+                <dt>
+                  any data
+                </dt>
+                <dd>
+                  The object to deliver to the associated processor. This may
+                  be any value or JavaScript object handled by the <a href=
+                  "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
+                  structured clone</a> algorithm.
+                </dd>
+              </dl>
             </dd>
           </dl>
           <section>
@@ -5515,28 +5542,33 @@ window.audioWorklet.import("bypass.js").then(function () {
               </p>
             </dd>
             <dt>
-              attribute EventHandler onmessage
+              attribute EventHandler ondata
             </dt>
             <dd>
               <p>
-                The <code>onmessage</code> handler is called whenever the
-                <a><code>AudioWorkletNode</code></a> posts a message back to
-                the corresponding processor object.
+                The <code>ondata</code> handler is called whenever the
+                <a><code>AudioWorkletNode</code></a> posts data to the
+                corresponding processor object.
               </p>
             </dd>
             <dt>
-              void postMessage()
+              void sendData()
             </dt>
             <dd>
               <p>
-                It may be called to send a message to the associated
+                It may be called to send data to the associated
                 <a><code>AudioWorkletNode</code></a>.
               </p>
               <dl class="parameters">
                 <dt>
-                  any message
+                  any data
                 </dt>
-                <dd></dd>
+                <dd>
+                  The object to deliver to the associated node. This may be any
+                  value or JavaScript object handled by the <a href=
+                  "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
+                  structured clone</a> algorithm.
+                </dd>
               </dl>
             </dd>
           </dl>
@@ -5552,7 +5584,8 @@ window.audioWorklet.import("bypass.js").then(function () {
               <code>parameterDescriptors</code> which is an iterable of
               <a>AudioParamDescriptor</a> that is looked up by the
               <a>AudioWorkletProcessor</a> constructor to create instances of
-              <a>AudioParam</a> in the node. The step 5 and 6 of <a href=
+              <a>AudioParam</a> in the <code>parameters</code> maplike storage
+              in the node. The step 5 and 6 of <a href=
               "#widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorCtor">
               registerProcessor()</a> ensure the validity of a given
               <a>AudioWorkletProcessor</a> subclass.
@@ -5637,7 +5670,7 @@ class MyProcessor extends AudioWorkletProcessor {
               <li>
                 <code>parameters</code> of type <code>Object</code><br>
                 A map of string keys and associated <code>Float32Array</code>s.
-                <code>parameter["name"]</code> corresponds to the automation
+                <code>parameters["name"]</code> corresponds to the automation
                 values of the <a><code>AudioParam</code></a> named
                 <code>"name"</code>.
               </li>
@@ -5811,6 +5844,9 @@ class MyProcessor extends AudioWorkletProcessor {
             P="parameterDescriptors"). If <var>parameterDescriptors</var> is
             <code>undefined</code>, skip to the step 8.
             </li>
+            <li>Let <var>parameterMap</var> be the result of <a href=
+            "https://tc39.github.io/ecma262/#sec-map-iterable">Map</a>().
+            </li>
             <li>For each <var>descriptor</var> in
             <var>parameterDescriptors</var> perform the following substeps:
               <ol>
@@ -5848,10 +5884,15 @@ class MyProcessor extends AudioWorkletProcessor {
                   false).
                 </li>
                 <li>Perform <a href=
-                "https://tc39.github.io/ecma262/#sec-createdataproperty">CreateDataProperty</a>(O=<var>this</var>,
-                P=<var>paramName</var>, V=<var>audioParam</var>).
+                "https://tc39.github.io/ecma262/#https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">
+                  Set</a>(O=<var>parameterMap</var>, P=<var>paramName</var>,
+                  V=<var>audioParam</var>).
                 </li>
               </ol>
+            </li>
+            <li>Perform <a href=
+            "https://tc39.github.io/ecma262/#sec-createmethodproperty">CreateDataProperty</a>(O=<var>this</var>,
+            P="parameters", V=<var>parameterMap</var>).
             </li>
             <li>Set <a>node reference</a> in <var>processorInstance</var> to
             <var>this</var>.
@@ -6042,8 +6083,8 @@ class VUMeterNode extends AudioWorkletNode {
     this._volume = 0;
 
     // Handles updated values from AudioWorkletProcessor
-    this.onmessage = event =&gt; {
-      if (event.data.hasOwnProperty('volume'))
+    this.ondata = event =&gt; {
+      if (event.data.volume)
         this._volume = event.data.volume;
     }
   }
@@ -6054,7 +6095,7 @@ class VUMeterNode extends AudioWorkletNode {
 
   set updatingInterval (intervalValue) {
     this._updatingInterval = intervalValue;
-    this.postMessage({ updatingInterval: intervalValue });
+    this.sendData({ updatingInterval: intervalValue });
   }
 
   draw () {
@@ -6079,8 +6120,8 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
     this._updatingInterval = options.updatingInterval;
     this._nextUpdateFrames = this.interval;
 
-    this.onmessage = event =&gt; {
-      if (event.data.hasOwnProperty('updatingInterval'))
+    this.ondata = event =&gt; {
+      if (event.data.updatingInterval)
         this._updatingInterval = event.data.updatingInterval;
     }
   }
@@ -6111,7 +6152,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
       this._nextUpdateFrame -= bufferLength;
       if (this._nextUpdateFrame &lt; 0) {
         this._nextUpdateFrame += this.interval;
-        this.postMessage({ volume: this._volume });
+        this.sendData({ volume: this._volume });
       }
     }
 

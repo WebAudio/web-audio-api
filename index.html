@@ -1526,35 +1526,37 @@ function setupRoutingGraph() {
         </section>
         <section>
           <h3>
-            System resources associated with an AudioContext
+            System resources associated with BaseAudioContext subclasses
           </h3>
           <p>
-            <a>AudioContext</a>s should be considered expensive objects.
-            Creating an <a>AudioContext</a> often involves creating a
-            high-priority thread, and using a low-latency system audio stream,
-            both having an impact on energy consumption. Creating more than one
-            <a>AudioContext</a> in a document is most of the time unnecessary.
+            The subclasses <a>AudioContext</a> and <a>OfflineAudioContext</a>
+            should be considered expensive objects. Creating these objects may
+            involve creating a high-priority thread, and using a low-latency
+            system audio stream, both having an impact on energy consumption.
+          </p>
+          <p>
+            Constructing or resuming a <a>BaseAudioContext</a> subclass
+            involves <dfn id="acquiring">acquiring system resources</dfn>. This
+            means creating a high-priority thread and (for <a>AudioContext</a>
+            only) creating a system audio stream. This operation returns when
+            the audio stream is ready.
           </p>
           <p>
             Additionally, a user-agent can have an implementation-defined
-            maximum number of <a>AudioContext</a>, after which any attempt to
+            maximum number of <a>AudioContext</a>s, after which any attempt to
             create a new <a>AudioContext</a> will fail, <span class=
             "synchronous">throwing <code>NotSupportedError</code></span>.
           </p>
           <p>
             <a href="#widl-AudioContext-suspend-Promise-void">suspend</a> and
             <a href="#widl-AudioContext-close-Promise-void">close</a> allow
-            authors to <dfn id="releasing">release system resources</dfn>.
-            <a href="#releasing">Releasing system resources</a> means releasing
-            the system resources such as threads, processes, audio streams, but
-            conserving the state of the <a>AudioContext</a> such that it can
-            continue to operate later after resuming if needed.
-          </p>
-          <p>
-            Constructing or resuming an <a>AudioContext</a> involves <dfn id=
-            "acquiring">acquiring system resources</dfn>. This means opening a
-            system audio stream. This operation returns when the audio stream
-            is ready.
+            authors to <dfn id="releasing">release system resources</dfn>,
+            including threads, processes and audio streams. Suspending an
+            <a>BaseAudioContext</a> releases some of its resources, and allows
+            it to continue to operate later by invoking <a href=
+            "#widl-BaseAudioContext-resume-Promise-void">resume</a>. Closing an
+            <a>AudioContext</a> completely releases all of its resources, after
+            which it cannot be used or resumed again.
           </p>
           <p class="note">
             For example, this can involve waiting for the audio callbacks to

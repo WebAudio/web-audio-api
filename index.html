@@ -4669,8 +4669,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           This interface represents an audio source from an in-memory audio
           asset in an <code>AudioBuffer</code>. It is useful for playing audio
           assets which require a high degree of scheduling flexibility, for
-          instance, playing back in rhythmically-perfect ways. If
-          sample-accurate playback of network- or disk-backed assets is
+          instance, playing back musical events that are rhythmically perfect.
+          If sample-accurate playback of network- or disk-backed assets is
           required, an implementer should use
           <a><code>AudioWorkletNode</code></a> to implement playback.
         </p>
@@ -4784,13 +4784,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               between 0 and the duration of the buffer. If
               <code>loopStart</code> is less than 0, looping will begin at 0.
               If <code>loopStart</code> is greater than the duration of the
-              buffer, looping will begin at the end of the buffer. This
-              attribute is converted to an exact sample frame offset within the
-              buffer by multiplying by the buffer's sample rate and rounding to
-              the nearest integer value. Thus its behavior is independent of
-              the value of the <a href=
+              buffer, looping will begin at the end of the buffer. The loop
+              start point within the buffer is determined by multiplying by the
+              buffer's sample rate. Thus its behavior is independent of the
+              value of the <a href=
               "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
-              parameter.
+              parameter. Note that this attribute may assume a value with
+              sub-sample precision, i.e. a value that does not convert to an
+              exact sample frame offset within the buffer.
             </p>
           </dd>
           <dt>
@@ -4800,19 +4801,18 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             <p>
               An optional value in seconds where looping should end if the
               <code>loop</code> attribute is true. Its value is exclusive of
-              the content of the loop: the sample frames comprising the loop
-              run from the values <code>loopStart</code> to
-              <code>loopEnd-(1/sampleRate)</code>. Its default
-              <code>value</code> is 0, and it may usefully be set to any value
-              between 0 and the duration of the buffer. If <code>loopEnd</code>
-              is less than 0, looping will end at 0. If <code>loopEnd</code> is
-              greater than the duration of the buffer, looping will end at the
-              end of the buffer. This attribute is converted to an exact sample
-              frame offset within the buffer by multiplying by the buffer's
-              sample rate and rounding to the nearest integer value. Thus its
-              behavior is independent of the value of the <a href=
+              the content of the loop. Its default <code>value</code> is 0, and
+              it may usefully be set to any value between 0 and the duration of
+              the buffer. If <code>loopEnd</code> is less than or equal to 0,
+              or if <code>loopEnd</code> is greater than the duration of the
+              buffer, looping will end at the end of the buffer. The loop
+              endpoint within the buffer is determined by multiplying by the
+              buffer's sample rate. Thus its behavior is independent of the
+              value of the <a href=
               "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
-              parameter.
+              parameter. Note that this attribute may assume a value with
+              sub-sample precision, i.e. a value that does not convert to an
+              exact sample frame offset within the buffer.
             </p>
           </dd>
           <dt>
@@ -4859,12 +4859,13 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 is the value of the <code>duration</code> attribute of the
                 <code>AudioBuffer</code> set to the <code>buffer</code>
                 attribute of this <code>AudioBufferSourceNode</code>. This
-                parameter is converted to an exact sample frame offset within
-                the buffer by multiplying by the buffer's sample rate and
-                rounding to the nearest integer value. Thus its behavior is
-                independent of the value of the <a href=
+                parameter is converted to a sample frame offset within the
+                buffer by multiplying by the buffer's sample rate. Thus its
+                behavior is independent of the value of the <a href=
                 "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
-                parameter.
+                parameter. Note that this parameter may assume a value with
+                sub-sample precision, i.e. a value that does not convert to an
+                exact sample frame offset within the buffer.
               </dd>
               <dt>
                 optional double duration
@@ -4881,25 +4882,6 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             </dl>
           </dd>
         </dl>
-        <p>
-          Both <code>playbackRate</code> and <code>detune</code> are
-          <a>k-rate</a> parameters that form a <a>compound parameter</a> and
-          are used together to determine a <em>computedPlaybackRate</em> value:
-        </p>
-        <pre>
-  computedPlaybackRate(t) = playbackRate(t) * pow(2, detune(t) / 1200)
-</pre>
-        <p>
-          The <code>computedPlaybackRate</code> is the effective speed at which
-          the <a><code>AudioBuffer</code></a> of this
-          <a><code>AudioBufferSourceNode</code></a> MUST be played. Its
-          <a>nominal range</a> is [-100, 100].
-        </p>
-        <p>
-          This MUST be implemented by <em>resampling</em> the input data using
-          a resampling ratio of 1 / <code>computedPlaybackRate</code>, hence
-          changing both the pitch and speed of the audio.
-        </p>
         <section>
           <h2>
             AudioBufferSourceOptions
@@ -5014,6 +4996,172 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             the sample rate of the <a><code>AudioContext</code></a>. That is,
             no sub-sample scheduling is possible.
           </p>
+        </section>
+        <section>
+          <h3 id="playback-AudioBufferSourceNode">
+            Playback of AudioBuffer Contents
+          </h3>
+          <p>
+            This section specifies how the playback of the contents of the
+            buffer is to be handled, accounting for the fact that playback is
+            influenced by the following factors working in combination, which
+            can vary dynamically during playback:
+          </p>
+          <ul>
+            <li>A starting offset, which can be expressed in terms of fractions
+            of a sample.
+            </li>
+            <li>Loop points, which can be expressed in terms of fractions of a
+            sample.
+            </li>
+            <li>Playback rate and detuning parameters, which combine to yield a
+            single computed playback rate that can assume non-infinite values
+            which may be positive or negative.
+            </li>
+          </ul>
+          <p>
+            The algorithm to be followed internally to generate output from an
+            <a>AudioBufferSourceNode</a> conforms to the following principles:
+          </p>
+          <ul>
+            <li>Resampling of the buffer may be performed arbitrarily by the UA
+            at any desired point to increase the efficiency or quality of the
+            output.
+            </li>
+            <li>Sub-sample start offsets or loop points may require additional
+            interpolation between sample frames, even when the buffer is
+            resampled.
+            </li>
+            <li>The playback of a looped buffer should behave identically to an
+            unlooped buffer containing consecutive occurrences of the looped
+            audio content, excluding any effects from interpolation.
+            </li>
+          </ul>
+          <p>
+            The description of the algorithm is as follows:
+          </p>
+          <ol>
+            <li>Let <code>start</code> correspond to the <code>when</code>
+            parameter to <code>start()</code> if supplied, else 0.
+            </li>
+            <li>Let <code>offset</code> correspond to the <code>offset</code>
+            parameter to <code>start()</code> if supplied, else 0.
+            </li>
+            <li>Let <code>stop</code> correspond to the sum of the
+            <code>when</code> and <code>duration</code> parameters to
+            <code>start()</code> if supplied, or the <code>when</code>
+            parameter to <code>stop()</code>, otherwise <em>Infinity</em>.
+            </li>
+            <li>Let <code>buffer</code> be the <a>AudioBuffer</a> employed by
+            the node.
+            </li>
+            <li>Let <code>bufferRate</code> be the sample rate employed by
+            <code>buffer</code>.
+            </li>
+            <li>Let <code>loop</code>, <code>actualLoopStart</code> and <code>
+              actualLoopEnd</code> be the loop-related attributes of the node,
+              as discussed in the preceding section on looping.
+            </li>
+            <li>A <em>playhead position</em> for <code>buffer</code> is any
+            quantity representing an exact, unquantized time offset in seconds,
+            relative to the time coordinate of the first sample frame in the
+            buffer. Playback rate and <a>AudioContext</a> sample rate are not
+            relevant: this offset is expressed purely in terms of the buffer's
+            audio content and <code>bufferRate</code>.
+            </li>
+            <li>Let the function <code>playbackSignal(position)</code> be the
+            <em>playback signal function</em> for <code>buffer</code>, which is
+            a function that maps from a playhead position to a set of output
+            signal values, one for each output channel. If
+            <code>position</code> corresponds to the location of an exact
+            sample frame in the buffer, this function returns that frame.
+            Otherwise, its return value is determined by a UA-supplied
+            algorithm that interpolates between sample frames in the
+            neighborhood of <code>position</code>. If <code>position</code> is
+            greater than or equal to <code>actualLoopEnd</code> and there is no
+            subsequent sample frame in <code>buffer</code>, then the next
+            sample frame should be taken as the playback signal at
+            <code>actualLoopStart</code> for interpolation purposes.
+            </li>
+            <li>Let the operation <em>optimize the buffer</em> be any operation
+            that alters both the buffer contents and sample rate in a way that
+            increases the efficiency or quality of rendering, while minimizing
+            changes to the <code>playbackSignal()</code> function. The nature
+            of this operation is up to the UA. Examples of such operations
+            might include upsampling, downsampling, applying a subsample
+            offset, or loop unrolling.
+            </li>
+            <li>Let <code>bufferTime</code> equal -1. This is the <em>playhead
+            position</em> within <code>buffer</code> of the next output sample
+            frame. The initial value -1 indicates that this position has not
+            yet been determined.
+            </li>
+            <li>
+              <em>Optimize the buffer</em> prior to rendering, if desired.
+            </li>
+            <li>For each block of audio to be rendered:
+              <ol>
+                <li>Let <code>currentTime</code> be the current time of the <a>
+                  AudioContext</a>.
+                </li>
+                <li>Let <code>dt</code> be 1 / (_context sample rate_).
+                </li>
+                <li>Let <code>index</code> be 0.
+                </li>
+                <li>Let <code>computedPlaybackRate</code> be <code>playbackRate
+                * pow(2, detune / 1200)</code>.
+                </li>
+                <li>
+                  <em>Optimize the buffer</em> prior to rendering the block, if
+                  desired.
+                </li>
+                <li>While <code>index</code> is less than the length of the
+                audio block to be rendered:
+                  <ol>
+                    <li>If <code>currentTime &lt; start</code> or
+                    <code>currentTime &gt;= stop</code>, emit silence for the
+                    output frame at <code>index</code>.
+                    </li>
+                    <li>Else,
+                      <ol>
+                        <li>If <code>bufferTime</code> &lt; 0, set
+                        <code>bufferTime</code> to <code>offset + (currentTime
+                        - start) * computedPlaybackRate</code>.
+                        </li>
+                        <li>Let <code>effectiveBufferTime</code> equal
+                        <code>bufferTime</code>.
+                        </li>
+                        <li>While <code>loop</code> is true and
+                        <code>effectiveBufferTime</code> &gt;=
+                        <code>actualLoopEnd</code>,
+                          <ol>
+                            <li>Let <code>effectiveBufferTime</code> equal
+                            <code>effectiveBufferTime - (actualLoopEnd -
+                            actualLoopStart)</code>.
+                            </li>
+                          </ol>
+                        </li>
+                        <li>Emit the result of
+                        <code>playbackSignal(effectiveBufferTime)</code> as the
+                        output frame at <code>index</code>.
+                        </li>
+                      </ol>
+                    </li>
+                    <li>Increase <code>bufferTime</code> by <code>dt *
+                    computedPlaybackRate</code>.
+                    </li>
+                    <li>Increase <code>index</code> by 1.
+                    </li>
+                    <li>Increase <code>currentTime</code> by <code>dt</code>.
+                    </li>
+                  </ol>
+                </li>
+                <li>If <code>currentTime</code> &gt;= <code>stop</code>,
+                consider playback for the node to have ended.
+                </li>
+              </ol>
+            </li>
+          </ol>
         </section>
       </section>
       <section>

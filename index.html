@@ -4989,13 +4989,6 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             times (in seconds) must be converted to the appropriate
             sample-frame positions in the buffer according to this sample-rate.
           </p>
-          <p>
-            When scheduling the beginning and the end of playback using the
-            <code>start()</code> and <code>stop()</code> methods, the resulting
-            start or stop time MUST be rounded to the nearest sample-frame in
-            the sample rate of the <a><code>AudioContext</code></a>. That is,
-            no sub-sample scheduling is possible.
-          </p>
         </section>
         <section>
           <h3 id="playback-AudioBufferSourceNode">
@@ -5062,17 +5055,17 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               actualLoopEnd</code> be the loop-related attributes of the node,
               as discussed in the preceding section on looping.
             </li>
-            <li>A <em>playhead position</em> for <code>buffer</code> is any
-            quantity representing an exact, unquantized time offset in seconds,
-            relative to the time coordinate of the first sample frame in the
-            buffer. Playback rate and <a>AudioContext</a> sample rate are not
-            relevant: this offset is expressed purely in terms of the buffer's
-            audio content and <code>bufferRate</code>.
+            <li>Define a <em>playhead position</em> for <code>buffer</code> as
+            any quantity representing an exact, unquantized time offset in
+            seconds, relative to the time coordinate of the first sample frame
+            in the buffer. Playback rate and <a>AudioContext</a> sample rate
+            are not relevant: this offset is expressed purely in terms of the
+            buffer's audio content and <code>bufferRate</code>.
             </li>
             <li>Let the function <code>playbackSignal(position)</code> be the
             <em>playback signal function</em> for <code>buffer</code>, which is
-            a function that maps from a playhead position to a set of output
-            signal values, one for each output channel. If
+            a function that maps from a <em>playhead position</em> to a set of
+            output signal values, one for each output channel. If
             <code>position</code> corresponds to the location of an exact
             sample frame in the buffer, this function returns that frame.
             Otherwise, its return value is determined by a UA-supplied
@@ -5089,7 +5082,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             changes to the <code>playbackSignal()</code> function. The nature
             of this operation is up to the UA. Examples of such operations
             might include upsampling, downsampling, applying a subsample
-            offset, or loop unrolling.
+            offset, or loop unrolling. This operation may affect the values of
+            <code>sampleRate</code>, <code>playbackRate</code> and
+            <code>offset</code>.
             </li>
             <li>Let <code>bufferTime</code> equal -1. This is the <em>playhead
             position</em> within <code>buffer</code> of the next output sample
@@ -5097,7 +5092,10 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             yet been determined.
             </li>
             <li>
-              <em>Optimize the buffer</em> prior to rendering, if desired.
+              <em>Optimize the buffer</em> prior to rendering, if desired. For
+              example, if <code>playbackRate</code> is a constant value other
+              than 1, resampling up front for this rate may eliminate the need
+              for interpolation later.
             </li>
             <li>For each block of audio to be rendered:
               <ol>
@@ -5109,7 +5107,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                 <li>Let <code>index</code> be 0.
                 </li>
                 <li>Let <code>computedPlaybackRate</code> be <code>playbackRate
-                * pow(2, detune / 1200)</code>.
+                * pow(2, detune / 1200)</code>. This combines the two k-rate
+                parameters affecting playback rate into a single computed
+                quantity.
                 </li>
                 <li>
                   <em>Optimize the buffer</em> prior to rendering the block, if
@@ -5125,15 +5125,18 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                     <li>Else,
                       <ol>
                         <li>If <code>bufferTime</code> &lt; 0, set
-                        <code>bufferTime</code> to <code>offset + (currentTime
-                        - start) * computedPlaybackRate</code>.
+                        <code>bufferTime</code> to <code>offset + ((currentTime
+                        - start) * computedPlaybackRate)</code>. This is the
+                        playhead position for the first output sample frame.
                         </li>
                         <li>Let <code>effectiveBufferTime</code> equal
                         <code>bufferTime</code>.
                         </li>
                         <li>While <code>loop</code> is true and
                         <code>effectiveBufferTime</code> &gt;=
-                        <code>actualLoopEnd</code>,
+                        <code>actualLoopEnd</code>, map the playhead position
+                        to the correct point within the loop body accounting
+                        for loop iterations:
                           <ol>
                             <li>Let <code>effectiveBufferTime</code> equal
                             <code>effectiveBufferTime - (actualLoopEnd -
@@ -5162,6 +5165,46 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
               </ol>
             </li>
           </ol>
+          <p>
+            The following figures illustrate the behavior of the algorithm in
+            assorted key scenarios. Buffer optimization is not considered, but
+            by definition it does not materially affect the resulting playback.
+          </p>
+          <figure>
+            <img alt="AudioBufferSourceNode basic playback" src=
+            "images/absn-basic.png" width="556" height="485">
+            <figcaption>
+              <a>AudioBufferSourceNode</a> basic playback
+            </figcaption>
+          </figure>
+          <figure>
+            <img alt="AudioBufferSourceNode subsample offset playback" src=
+            "images/absn-offset.png" width="543" height="448">
+            <figcaption>
+              <a>AudioBufferSourceNode</a> subsample offset playback
+            </figcaption>
+          </figure>
+          <figure>
+            <img alt="AudioBufferSourceNode interpolated loop playback" src=
+            "images/absn-slow-loop.png" width="543" height="472">
+            <figcaption>
+              <a>AudioBufferSourceNode</a> interpolated loop playback
+            </figcaption>
+          </figure>
+          <figure>
+            <img alt="AudioBufferSourceNode reversed loop playback" src=
+            "images/absn-reversed-loop.png" width="550" height="451">
+            <figcaption>
+              <a>AudioBufferSourceNode</a> reversed loop playback
+            </figcaption>
+          </figure>
+          <figure>
+            <img alt="AudioBufferSourceNode subsample loop playback" src=
+            "images/absn-subsample-loop.png" width="543" height="480">
+            <figcaption>
+              <a>AudioBufferSourceNode</a> subsample loop playback
+            </figcaption>
+          </figure>
         </section>
       </section>
       <section>

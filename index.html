@@ -4790,8 +4790,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
               value of the <a href=
               "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
               parameter. Note that this attribute may assume a value with
-              sub-sample precision, i.e. a value that converts to a
-              fractional sample frame offset within the buffer.
+              sub-sample precision, i.e. a value that converts to a fractional
+              sample frame offset within the buffer.
             </p>
           </dd>
           <dt>
@@ -5057,11 +5057,12 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </li>
             <li>Let <code>offset</code> correspond to the <code>offset</code>
             parameter to <code>start()</code> if supplied, else 0. This is the
-            <em>playhead position</em> in the buffer at which playback will begin.
+            <em>playhead position</em> in the buffer at which playback will
+            begin.
             </li>
             <li>Let <code>loop</code>, <code>actualLoopStart</code> and <code>
               actualLoopEnd</code> be the loop-related attributes of the node,
-              as discussed in the preceding section on looping. Note that the 
+              as discussed in the preceding section on looping. Note that the
               loop start and loop end points are <em>playhead positions</em>,
               not playback times.
             </li>
@@ -5110,10 +5111,11 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                 <li>Let <code>index</code> be 0.
                 </li>
                 <li>Let <code>computedPlaybackRate</code> be <code>playbackRate
-                * pow(2, detune / 1200) * (bufferRate / contextRate) </code>. This combines the two k-rate
-                parameters affecting playback rate into a single computed
-                quantity, and also corrects for any difference in sample rate between
-                the buffer and the <a>AudioContext</a>.
+                * pow(2, detune / 1200) * (bufferRate / contextRate)</code> .
+                This combines the two k-rate parameters affecting playback rate
+                into a single computed quantity, and also corrects for any
+                difference in sample rate between the buffer and the
+                <a>AudioContext</a>.
                 </li>
                 <li>
                   <em>Optimize the buffer</em> prior to rendering the block, if
@@ -5174,52 +5176,92 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             assorted key scenarios. Buffer optimization is not considered, but
             by definition it does not materially affect the resulting playback.
             In all figures, the following conventions apply:
-            <ul>
-              <li>context sample rate is 1000 Hz</li>
-              <li>buffer samples are shown with the first sample frame at the <em>x</em> origin.</li>
-              <li>output samples are shown with the <code>start</code> context time sample rate interpolation.</li>
-            </ul>
+          </p>
+          <ul>
+            <li>context sample rate is 1000 Hz
+            </li>
+            <li>buffer samples are shown with the first sample frame at the
+            <em>x</em> origin.
+            </li>
+            <li>output samples are shown with the <code>start</code> context
+            time sample rate interpolation.
+            </li>
+          </ul>
+          <p>
+            Basic playback with a simple loop that ends after the last sample
+            frame in the buffer:
           </p>
           <figure>
             <img alt="AudioBufferSourceNode basic playback" src=
             "images/absn-basic.png" width="556" height="485">
             <figcaption>
-              <a>AudioBufferSourceNode</a> basic playback with a simple loop that ends after the last sample frame in the buffer.
+              <a>AudioBufferSourceNode</a> basic playback
             </figcaption>
           </figure>
+          <p>
+            <code>playbackRate</code> interpolation, illustrating half-speed
+            playback of buffer contents in which every other output sample
+            frame is interpolated. Of particular note is the last sample frame
+            in the looped output, which is interpolated using the loop start
+            point:
+          </p>
           <figure>
             <img alt="AudioBufferSourceNode playbackRate interpolation" src=
             "images/absn-slow-loop.png" width="543" height="472">
             <figcaption>
-              <a>AudioBufferSourceNode</a> playbackRate interpolation, illustrating half-speed playback of buffer contents in which every other output sample frame is interpolated. Of particular note is the last sample frame in the looped output, which is interpolated using the loop start point.
+              <a>AudioBufferSourceNode</a> playbackRate interpolation
             </figcaption>
           </figure>
+          <p>
+            Sample rate interpolation, illustrating playback of a buffer whose
+            sample rate is 50% of the context sample rate, resulting in a
+            computed playback rate of 0.5 that corrects for the difference in
+            sample rate between the buffer and the context:
+          </p>
           <figure>
             <img alt="AudioBufferSourceNode sample rate interpolation" src=
             "images/absn-half-sample-rate.png" width="543" height="459">
             <figcaption>
-              <a>AudioBufferSourceNode</a> sample rate interpolation, illustrating playback of a buffer whose sample rate is 50% of the context sample rate, resulting in a computed playback rate of 0.5 that corrects for the difference in sample rate between the buffer and the context.
+              <a>AudioBufferSourceNode</a> sample rate interpolation.
             </figcaption>
           </figure>
+          <p>
+            Subsample offset playback, in which the offset within the buffer
+            begins at exactly half a sample frame. Consequently, every output
+            frame is interpolated:
+          </p>
           <figure>
             <img alt="AudioBufferSourceNode subsample offset playback" src=
             "images/absn-offset.png" width="543" height="448">
             <figcaption>
-              <a>AudioBufferSourceNode</a> subsample offset playback, in which the offset within the buffer begins at exactly half a sample frame. Consequently, every output frame is interpolated.
+              <a>AudioBufferSourceNode</a> subsample offset playback
             </figcaption>
           </figure>
+          <p>
+            Reversed loop playback, showing how negative playback rates
+            interact with looped output, showing that reversed playback is an
+            exact reversal of what would occur with forward playback including
+            the pre-loop portion of the buffer followed by a specific number of
+            loop iterations:
+          </p>
           <figure>
             <img alt="AudioBufferSourceNode reversed loop playback" src=
             "images/absn-reversed-loop.png" width="550" height="451">
             <figcaption>
-              <a>AudioBufferSourceNode</a> reversed loop playback. This case illustrates how negative playback rates interact with looped output, showing that reversed playback is an exact reversal of what would occur with forward playback including the count of loop iterations.
+              <a>AudioBufferSourceNode</a> reversed loop playback
             </figcaption>
           </figure>
+          <p>
+            Subsample loop playback, showing how fractional frame offsets in
+            the loop endpoints map to interpolated data points in the buffer
+            that respect these offsets as if they were references to exact
+            sample frames:
+          </p>
           <figure>
             <img alt="AudioBufferSourceNode subsample loop playback" src=
             "images/absn-subsample-loop.png" width="543" height="480">
             <figcaption>
-              <a>AudioBufferSourceNode</a> subsample loop playback, showing how fractional frame offsets in the loop endpoints map to interpolated data points in the buffer that respect these offsets as if they were references to exact sample frames.
+              <a>AudioBufferSourceNode</a> subsample loop playback
             </figcaption>
           </figure>
         </section>

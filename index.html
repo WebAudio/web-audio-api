@@ -5036,9 +5036,6 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             <li>Let <code>buffer</code> be the <a>AudioBuffer</a> employed by
             the node.
             </li>
-            <li>Let <code>bufferRate</code> be the sample rate employed by
-            <code>buffer</code>.
-            </li>
             <li>Let <code>offset</code> correspond to the <code>offset</code>
             parameter to <code>start()</code> if supplied, else 0. This is the
             <a>playhead position</a> in the buffer at which playback will
@@ -5056,32 +5053,19 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             sample frame in the buffer, this function returns that frame.
             Otherwise, its return value is determined by a UA-supplied
             algorithm that interpolates between sample frames in the
-            neighborhood of <code>position</code>. If <code>position</code> is
-            greater than or equal to <code>actualLoopEnd</code> and there is no
-            subsequent sample frame in <code>buffer</code>, then the next
-            sample frame should be taken as the playback signal at
-            <code>actualLoopStart</code> for interpolation purposes.
-            </li>
-            <li>Let the operation <em>optimize the buffer</em> be any operation
-            that alters both the buffer contents and sample rate in a way that
-            increases the efficiency or quality of rendering, while minimizing
-            changes to the <code>playbackSignal()</code> function. The nature
-            of this operation is up to the UA. Examples of such operations
-            might include upsampling, downsampling, applying a subsample
-            offset, or loop unrolling. This operation may affect the values of
-            <code>sampleRate</code>, <code>playbackRate</code> and
-            <code>offset</code>.
+            neighborhood of <code>position</code>. The UA may also use
+            resampled copies of the original buffer as the basis for
+            interpolation, as per UA-specific optimization strategies. If
+            <code>position</code> is greater than or equal to
+            <code>actualLoopEnd</code> and there is no subsequent sample frame
+            in <code>buffer</code>, then the next sample frame should be taken
+            as the playback signal at <code>actualLoopStart</code> for
+            interpolation purposes.
             </li>
             <li>Let <code>bufferTime</code> equal -1. This is the <em>playhead
             position</em> within <code>buffer</code> of the next output sample
             frame. The initial value -1 indicates that this position has not
             yet been determined.
-            </li>
-            <li>
-              <em>Optimize the buffer</em> prior to rendering, if desired. For
-              example, if <code>playbackRate</code> is a constant value other
-              than 1, resampling up front for this rate may eliminate the need
-              for interpolation later.
             </li>
             <li>For each block of audio to be rendered:
               <ol>
@@ -5093,15 +5077,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                 <li>Let <code>index</code> be 0.
                 </li>
                 <li>Let <code>computedPlaybackRate</code> be <code>playbackRate
-                * pow(2, detune / 1200) * (bufferRate / contextRate)</code> .
-                This combines the two k-rate parameters affecting playback rate
-                into a single computed quantity, and also corrects for any
-                difference in sample rate between the buffer and the
-                <a>AudioContext</a>.
-                </li>
-                <li>
-                  <em>Optimize the buffer</em> prior to rendering the block, if
-                  desired.
+                * pow(2, detune / 1200)</code> . This combines the two k-rate
+                parameters affecting playback rate into a single computed
+                quantity.
                 </li>
                 <li>While <code>index</code> is less than the length of the
                 audio block to be rendered:
@@ -5121,15 +5099,18 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                         <li>Let <code>effectiveBufferTime</code> equal
                         <code>bufferTime</code>.
                         </li>
-                        <li>While <code>loop</code> is true and
-                        <code>effectiveBufferTime</code> &gt;=
-                        <code>actualLoopEnd</code>, map the playhead position
-                        to the correct point within the loop body accounting
-                        for loop iterations:
+                        <li>map the playhead position to the correct point
+                        within the loop body accounting for loop iterations:
                           <ol>
-                            <li>Let <code>effectiveBufferTime</code> equal
-                            <code>effectiveBufferTime - (actualLoopEnd -
-                            actualLoopStart)</code>.
+                            <li>While <code>loop</code> is true and
+                            <code>effectiveBufferTime</code> &gt;=
+                            <code>actualLoopEnd</code>,
+                              <ol>
+                                <li>Let <code>effectiveBufferTime</code> equal
+                                <code>effectiveBufferTime - (actualLoopEnd -
+                                actualLoopStart)</code>.
+                                </li>
+                              </ol>
                             </li>
                           </ol>
                         </li>
@@ -5137,10 +5118,10 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                         <code>playbackSignal(effectiveBufferTime)</code> as the
                         output frame at <code>index</code>.
                         </li>
+                        <li>Increase <code>bufferTime</code> by <code>dt *
+                        computedPlaybackRate</code>.
+                        </li>
                       </ol>
-                    </li>
-                    <li>Increase <code>bufferTime</code> by <code>dt *
-                    computedPlaybackRate</code>.
                     </li>
                     <li>Increase <code>index</code> by 1.
                     </li>

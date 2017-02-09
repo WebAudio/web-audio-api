@@ -4668,10 +4668,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         <p>
           This interface represents an audio source from an in-memory audio
           asset in an <code>AudioBuffer</code>. It is useful for playing audio
-          assets which require a high degree of scheduling flexibility, for
-          instance, playing back musical events that are rhythmically perfect.
-          If sample-accurate playback of network- or disk-backed assets is
-          required, an implementer should use
+          assets which require a high degree of scheduling flexibility and
+          accuracy. If sample-accurate playback of network- or disk-backed
+          assets is required, an implementer should use
           <a><code>AudioWorkletNode</code></a> to implement playback.
         </p>
         <p>
@@ -4707,6 +4706,18 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </p>
         <p>
           This node has no <a>tail-time</a> reference.
+        </p>
+        <p>
+          A <dfn>playhead position</dfn> for an <a>AudioBufferSourceNode</a> is
+          defined as any quantity representing a time offset in seconds,
+          relative to the time coordinate of the first sample frame in the
+          buffer. Such values convey an offset within the buffer's audio
+          content and are to be considered independently from the node's
+          <code>playbackRate</code> and <code>detune</code> parameters and also
+          from the <a>AudioContext</a> sample rate. In general playhead
+          positions may be subsample-accurate and need not refer to exact
+          sample frame positions. They may assume valid values between 0 and
+          the duration of the buffer.
         </p>
         <p>
           <a>AudioBufferSourceNode</a>s are created with an internal flag
@@ -4778,20 +4789,13 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             <p>
-              An optional value in seconds where looping should begin if the
-              <code>loop</code> attribute is true. Its default
+              An optional <a>playhead position</a> where looping should begin
+              if the <code>loop</code> attribute is true. Its default
               <code>value</code> is 0, and it may usefully be set to any value
               between 0 and the duration of the buffer. If
               <code>loopStart</code> is less than 0, looping will begin at 0.
               If <code>loopStart</code> is greater than the duration of the
-              buffer, looping will begin at the end of the buffer. The loop
-              start point within the buffer is determined by multiplying by the
-              buffer's sample rate. Thus its behavior is independent of the
-              value of the <a href=
-              "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
-              parameter. Note that this attribute may assume a value with
-              sub-sample precision, i.e. a value that converts to a fractional
-              sample frame offset within the buffer.
+              buffer, looping will begin at the end of the buffer.
             </p>
           </dd>
           <dt>
@@ -4799,20 +4803,14 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             <p>
-              An optional value in seconds where looping should end if the
-              <code>loop</code> attribute is true. Its value is exclusive of
-              the content of the loop. Its default <code>value</code> is 0, and
-              it may usefully be set to any value between 0 and the duration of
-              the buffer. If <code>loopEnd</code> is less than or equal to 0,
-              or if <code>loopEnd</code> is greater than the duration of the
-              buffer, looping will end at the end of the buffer. The loop
-              endpoint within the buffer is determined by multiplying by the
-              buffer's sample rate. Thus its behavior is independent of the
-              value of the <a href=
-              "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
-              parameter. Note that this attribute may assume a value with
-              sub-sample precision, i.e. a value that does not convert to an
-              exact sample frame offset within the buffer.
+              An optional <a>playhead position</a> where looping should end if
+              the <code>loop</code> attribute is true. Its value is exclusive
+              of the content of the loop. Its default <code>value</code> is 0,
+              and it may usefully be set to any value between 0 and the
+              duration of the buffer. If <code>loopEnd</code> is less than or
+              equal to 0, or if <code>loopEnd</code> is greater than the
+              duration of the buffer, looping will end at the end of the
+              buffer.
             </p>
           </dd>
           <dt>
@@ -4845,27 +4843,20 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 optional double offset
               </dt>
               <dd>
-                The <dfn id="dfn-offset">offset</dfn> parameter describes the
-                offset time in the buffer (in seconds) where playback will
-                begin. If 0 is passed in for this value, then playback will
-                start from the beginning of the buffer. <span class=
-                "synchronous">A TypeError exception MUST be thrown if
-                <code>offset</code> is negative.</span> If <code>offset</code>
-                is greater than <code>loopEnd</code>, playback will begin at
+                The <dfn id="dfn-offset">offset</dfn> parameter supplies a
+                <a>playhead position</a> where playback will begin. If 0 is
+                passed in for this value, then playback will start from the
+                beginning of the buffer. <span class="synchronous">A TypeError
+                exception MUST be thrown if <code>offset</code> is
+                negative.</span> If <code>offset</code> is greater than
+                <code>loopEnd</code>, playback will begin at
                 <code>loopEnd</code> (and immediately loop to
                 <code>loopStart</code>). <code>offset</code> is silently
                 clamped to [0, <code>duration</code>], when
                 <code>startTime</code> is reached, where <code>duration</code>
                 is the value of the <code>duration</code> attribute of the
                 <code>AudioBuffer</code> set to the <code>buffer</code>
-                attribute of this <code>AudioBufferSourceNode</code>. This
-                parameter is converted to a sample frame offset within the
-                buffer by multiplying by the buffer's sample rate. Thus its
-                behavior is independent of the value of the <a href=
-                "#widl-AudioBufferSourceNode-playbackRate"><code>playbackRate</code></a>
-                parameter. Note that this parameter may assume a value with
-                sub-sample precision, i.e. a value that does not convert to an
-                exact sample frame offset within the buffer.
+                attribute of this <code>AudioBufferSourceNode</code>.
               </dd>
               <dt>
                 optional double duration
@@ -5048,27 +5039,18 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             <li>Let <code>bufferRate</code> be the sample rate employed by
             <code>buffer</code>.
             </li>
-            <li>Define a <em>playhead position</em> for <code>buffer</code> as
-            any quantity representing an exact, unquantized time offset in
-            seconds, relative to the time coordinate of the first sample frame
-            in the buffer. Playback rate and <a>AudioContext</a> sample rate
-            are not relevant: this offset is expressed purely in terms of the
-            buffer's audio content and <code>bufferRate</code>.
-            </li>
             <li>Let <code>offset</code> correspond to the <code>offset</code>
             parameter to <code>start()</code> if supplied, else 0. This is the
-            <em>playhead position</em> in the buffer at which playback will
+            <a>playhead position</a> in the buffer at which playback will
             begin.
             </li>
             <li>Let <code>loop</code>, <code>actualLoopStart</code> and <code>
               actualLoopEnd</code> be the loop-related attributes of the node,
-              as discussed in the preceding section on looping. Note that the
-              loop start and loop end points are <em>playhead positions</em>,
-              not playback times.
+              as discussed in the preceding section on looping.
             </li>
             <li>Let the function <code>playbackSignal(position)</code> be the
             <em>playback signal function</em> for <code>buffer</code>, which is
-            a function that maps from a <em>playhead position</em> to a set of
+            a function that maps from a <a>playhead position</a> to a set of
             output signal values, one for each output channel. If
             <code>position</code> corresponds to the location of an exact
             sample frame in the buffer, this function returns that frame.
@@ -5133,7 +5115,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                         <li>If <code>bufferTime</code> &lt; 0, set
                         <code>bufferTime</code> to <code>offset + ((currentTime
                         - start) * computedPlaybackRate)</code>. This is the
-                        playhead position for the first output sample frame.
+                        <a>playhead position</a> for the first output sample
+                        frame.
                         </li>
                         <li>Let <code>effectiveBufferTime</code> equal
                         <code>bufferTime</code>.

@@ -4711,13 +4711,11 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           A <dfn>playhead position</dfn> for an <a>AudioBufferSourceNode</a> is
           defined as any quantity representing a time offset in seconds,
           relative to the time coordinate of the first sample frame in the
-          buffer. Such values convey an offset within the buffer's audio
-          content and are to be considered independently from the node's
-          <code>playbackRate</code> and <code>detune</code> parameters and also
-          from the <a>AudioContext</a> sample rate. In general playhead
-          positions may be subsample-accurate and need not refer to exact
-          sample frame positions. They may assume valid values between 0 and
-          the duration of the buffer.
+          buffer. Such values are to be considered independently from the
+          node's <code>playbackRate</code> and <code>detune</code> parameters.
+          In general, playhead positions may be subsample-accurate and need not
+          refer to exact sample frame positions. They may assume valid values
+          between 0 and the duration of the buffer.
         </p>
         <p>
           <a>AudioBufferSourceNode</a>s are created with an internal flag
@@ -5061,9 +5059,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             algorithm that interpolates between sample frames in the
             neighborhood of <code>position</code>. If <code>position</code> is
             greater than or equal to <code>actualLoopEnd</code> and there is no
-            subsequent sample frame in <code>buffer</code>, then the next
-            sample frame should be taken as the playback signal at
-            <code>actualLoopStart</code> for interpolation purposes.
+            subsequent sample frame in <code>buffer</code>, then interpolation
+            should be based on the sequence of subsequent frames beginning at
+            <code>actualLoopStart</code>.
             </li>
             <li>Let <code>bufferTime</code> equal -1. This is the <em>playhead
             position</em> within <code>buffer</code> of the next output sample
@@ -5076,11 +5074,11 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                 <code>currentTime</code> attribute of the node's
                 <a>AudioContext</a>.
                 </li>
-                <li>Let <code>contextRate</code> be the value of the
+                <li>Let <code>sampleRate</code> be the value of the
                 <code>sampleRate</code> attribute of the node's
                 <a>AudioContext</a>.
                 </li>
-                <li>Let <code>dt</code> be <code>1 / contextRate</code>.
+                <li>Let <code>dt</code> be <code>1 / sampleRate</code>.
                 </li>
                 <li>Let <code>index</code> be 0.
                 </li>
@@ -5126,8 +5124,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                         <code>playbackSignal(effectiveBufferTime)</code> as the
                         output frame at <code>index</code>.
                         </li>
-                        <li>Increase <code>bufferTime</code> by <code>dt *
-                        computedPlaybackRate</code>.
+                        <li>Set <code>bufferTime</code> to <code>bufferTime +
+                        (dt * computedPlaybackRate)</code>.
                         </li>
                       </ol>
                     </li>
@@ -5144,24 +5142,29 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </li>
           </ol>
           <p>
-            The following figures illustrate the behavior of the algorithm in
-            assorted key scenarios. Buffer optimization is not considered, but
-            by definition it does not materially affect the resulting playback.
-            In all figures, the following conventions apply:
+            The following non-normative figures illustrate the behavior of the
+            algorithm in assorted key scenarios. Buffer optimization is not
+            considered, but by definition it does not materially affect the
+            resulting playback. In all figures, the following conventions
+            apply:
           </p>
           <ul>
             <li>context sample rate is 1000 Hz
             </li>
-            <li>buffer samples are shown with the first sample frame at the
-            <em>x</em> origin.
+            <li>
+              <a>AudioBuffer</a> content is shown with the first sample frame
+              at the <em>x</em> origin.
             </li>
-            <li>output samples are shown with the <code>start</code> context
-            time sample rate interpolation.
+            <li>output signals are shown with the sample frame located at time
+            <code>start</code> at the <em>x</em> origin.
+            </li>
+            <li>linear interpolation is depicted throughout, although a UA
+            could employ other interpolation techniques.
             </li>
           </ul>
           <p>
-            Basic playback with a simple loop that ends after the last sample
-            frame in the buffer:
+            This figure illustrates basic playback of a buffer, with a simple
+            loop that ends after the last sample frame in the buffer:
           </p>
           <figure>
             <img alt="AudioBufferSourceNode basic playback" src=
@@ -5171,11 +5174,11 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </figcaption>
           </figure>
           <p>
-            <code>playbackRate</code> interpolation, illustrating half-speed
-            playback of buffer contents in which every other output sample
-            frame is interpolated. Of particular note is the last sample frame
-            in the looped output, which is interpolated using the loop start
-            point:
+            This figure illustrates <code>playbackRate</code> interpolation,
+            showing half-speed playback of buffer contents in which every other
+            output sample frame is interpolated. Of particular note is the last
+            sample frame in the looped output, which is interpolated using the
+            loop start point:
           </p>
           <figure>
             <img alt="AudioBufferSourceNode playbackRate interpolation" src=
@@ -5185,10 +5188,12 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </figcaption>
           </figure>
           <p>
-            Sample rate interpolation, illustrating playback of a buffer whose
-            sample rate is 50% of the context sample rate, resulting in a
-            computed playback rate of 0.5 that corrects for the difference in
-            sample rate between the buffer and the context:
+            This figure illustrates sample rate interpolation, showing playback
+            of a buffer whose sample rate is 50% of the context sample rate,
+            resulting in a computed playback rate of 0.5 that corrects for the
+            difference in sample rate between the buffer and the context. The
+            resulting output is the same as the preceding example, but for
+            different reasons.
           </p>
           <figure>
             <img alt="AudioBufferSourceNode sample rate interpolation" src=
@@ -5198,9 +5203,9 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </figcaption>
           </figure>
           <p>
-            Subsample offset playback, in which the offset within the buffer
-            begins at exactly half a sample frame. Consequently, every output
-            frame is interpolated:
+            This figure illustrates subsample offset playback, in which the
+            offset within the buffer begins at exactly half a sample frame.
+            Consequently, every output frame is interpolated:
           </p>
           <figure>
             <img alt="AudioBufferSourceNode subsample offset playback" src=
@@ -5210,11 +5215,11 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </figcaption>
           </figure>
           <p>
-            Reversed loop playback, showing how negative playback rates
-            interact with looped output, showing that reversed playback is an
-            exact reversal of what would occur with forward playback including
-            the pre-loop portion of the buffer followed by a specific number of
-            loop iterations:
+            This figure illustrates reversed loop playback, showing how
+            negative playback rates interact with looped output, showing that
+            reversed playback is an exact reversal of what would occur with
+            forward playback including the pre-loop portion of the buffer
+            followed by a specific number of loop iterations:
           </p>
           <figure>
             <img alt="AudioBufferSourceNode reversed loop playback" src=
@@ -5224,10 +5229,10 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             </figcaption>
           </figure>
           <p>
-            Subsample loop playback, showing how fractional frame offsets in
-            the loop endpoints map to interpolated data points in the buffer
-            that respect these offsets as if they were references to exact
-            sample frames:
+            This figure illustrates subsample loop playback, showing how
+            fractional frame offsets in the loop endpoints map to interpolated
+            data points in the buffer that respect these offsets as if they
+            were references to exact sample frames:
           </p>
           <figure>
             <img alt="AudioBufferSourceNode subsample loop playback" src=

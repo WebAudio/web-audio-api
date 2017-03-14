@@ -4947,27 +4947,24 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             argument of <a href=
             "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
             <code>start()</code></a>, and in <em>loop</em> mode will continue
-            playing until it reaches the <em>actualLoopEnd</em> position in the
+            playing until it reaches the <em>loopEnd</em> position in the
             buffer (or the end of the buffer), at which point it will wrap back
-            around to the <em>actualLoopStart</em> position in the buffer, and
+            around to the <em>loopStart</em> position in the buffer, and
             continue playing according to this pattern.
           </p>
           <p>
-            In <em>loop</em> mode then the <em>actual</em> loop points are
-            calculated as follows from the <code>loopStart</code> and
-            <code>loopEnd</code> attributes:
+            The effective loop start and end points are required to lie within
+            the range of zero and the buffer duration, as specified in the
+            algorithm below. <code>loopEnd</code> is further constrained to be
+            at or after <code>loopStart</code>. If any of these constraints are
+            violated, the loop is considered to include the entire buffer
+            contents.
           </p>
-          <blockquote>
-            <pre>
-if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;& loopStart &lt; loopEnd) {
-    actualLoopStart = loopStart;
-    actualLoopEnd = min(loopEnd, buffer.duration);
-} else {
-    actualLoopStart = 0;
-    actualLoopEnd = buffer.duration;
-}
-</pre>
-          </blockquote>
+          <p>
+            Loop-related properties may be varied during playback of the
+            buffer. The exact results are defined by the playback algorithm
+            which follows.
+          </p>
           <p>
             Note that the default <code>value</code>s for
             <code>loopStart</code> and <code>loopEnd</code> are both 0, which
@@ -5024,30 +5021,43 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             The description of the algorithm is as follows:
           </p>
           <ol>
-            <li>Let <code>start</code> correspond to the <code>when</code>
-            parameter to <a href=
-            "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-              <code>start()</code></a> if supplied, else 0.
-            </li>
-            <li>Let <code>stop</code> correspond to the sum of the
-            <code>when</code> and <code>duration</code> parameters to
-              <a href="#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-              <code>start()</code></a> if supplied, or the <code>when</code>
-              parameter to <code>stop()</code>, otherwise <em>Infinity</em>.
-            </li>
-            <li>Let <code>buffer</code> be the <a>AudioBuffer</a> employed by
-            the node.
-            </li>
-            <li>Let <code>offset</code> correspond to the <code>offset</code>
-            parameter to <a href=
-            "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-              <code>start()</code></a> if supplied, else 0. This is the
-              <a>playhead position</a> in the buffer at which playback will
-              begin.
-            </li>
-            <li>Let <code>loop</code>, <code>actualLoopStart</code> and <code>
-              actualLoopEnd</code> be the loop-related attributes of the node,
-              as discussed in the preceding section on looping.
+            <li>Initialize state for a new node:
+              <ol>
+                <li>Let <code>start</code> correspond to the <code>when</code>
+                parameter to <a href=
+                "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+                  <code>start()</code></a> if supplied, else 0.
+                </li>
+                <li>Let <code>stop</code> correspond to the sum of the
+                <code>when</code> and <code>duration</code> parameters to
+                <a href=
+                "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+                  <code>start()</code></a> if supplied, or the
+                  <code>when</code> parameter to <code>stop()</code>, otherwise
+                  <em>Infinity</em>.
+                </li>
+                <li>Let <code>buffer</code> be the <a>AudioBuffer</a> employed
+                by the node.
+                </li>
+                <li>Let <code>offset</code> correspond to the
+                <code>offset</code> parameter to <a href=
+                "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
+                  <code>start()</code></a> if supplied, else 0. This is the
+                  <a>playhead position</a> in the buffer at which playback will
+                  begin.
+                </li>
+                <li>Let <code>bufferTime</code> equal 0. This is the
+                <em>playhead position</em> within <code>buffer</code> of the
+                next output sample frame. The initial value -1 indicates that
+                this position has not yet been determined.
+                </li>
+                <li>Let <code>started</code> equal <code>false</code>,
+                indicating whether output of the buffer contents has begun or
+                not.
+                </li>
+                <li>Let <code>enteredLoop</code> be <code>false</code>.
+                </li>
+              </ol>
             </li>
             <li>Let the function <code>playbackSignal(position)</code> be the
             <em>playback signal function</em> for <code>buffer</code>, which is
@@ -5058,39 +5068,47 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             Otherwise, its return value is determined by a UA-supplied
             algorithm that interpolates between sample frames in the
             neighborhood of <code>position</code>. If <code>position</code> is
-            greater than or equal to <code>actualLoopEnd</code> and there is no
+            greater than or equal to <code>loopEnd</code> and there is no
             subsequent sample frame in <code>buffer</code>, then interpolation
             should be based on the sequence of subsequent frames beginning at
-            <code>actualLoopStart</code>.
+            <code>loopStart</code>.
             </li>
-            <li>Let <code>bufferTime</code> equal 0. This is the <em>playhead
-            position</em> within <code>buffer</code> of the next output sample
-            frame. The initial value -1 indicates that this position has not
-            yet been determined.
-            </li>
-            <li>Let <code>started</code> equal <code>false</code>, indicating
-            whether output of the buffer contents has begun or not.
-            </li>
-            <li>For each block of audio to be rendered:
+            <li>For each quantum of audio to be rendered:
               <ol>
-                <li>Let <code>currentTime</code> be the value of
-                <code>currentTime</code> attribute of the node's
-                <a>AudioContext</a>.
+                <li>Initialize state for this render quantum:
+                  <ol>
+                    <li>Let <code>currentTime</code> be the value of
+                    <code>currentTime</code> attribute of the node's
+                    <a>AudioContext</a>.
+                    </li>
+                    <li>Let <code>sampleRate</code> be the value of the <code>
+                      sampleRate</code> attribute of the node's
+                      <a>AudioContext</a>.
+                    </li>
+                    <li>Let <code>dt</code> be <code>1 / sampleRate</code>.
+                    </li>
+                    <li>Let <code>index</code> be 0.
+                    </li>
+                    <li>Let <code>computedPlaybackRate</code> be
+                    <code>playbackRate * pow(2, detune / 1200)</code> . This
+                    combines the two k-rate parameters affecting playback rate
+                    into a single computed quantity.
+                    </li>
+                  </ol>
                 </li>
-                <li>Let <code>sampleRate</code> be the value of the
-                <code>sampleRate</code> attribute of the node's
-                <a>AudioContext</a>.
-                </li>
-                <li>Let <code>dt</code> be <code>1 / sampleRate</code>.
-                </li>
-                <li>Let <code>index</code> be 0.
-                </li>
-                <li>Let <code>enteredLoop</code> be <code>false</code>.
-                </li>
-                <li>Let <code>computedPlaybackRate</code> be <code>playbackRate
-                * pow(2, detune / 1200)</code> . This combines the two k-rate
-                parameters affecting playback rate into a single computed
-                quantity.
+                <li>If <code>loop</code> is true,
+                  <ol>
+                    <li>If <code>loopStart</code> &gt; 0 and
+                    <code>loopEnd</code> &gt; 0 and <code>loopStart</code> &lt;
+                    <code>loopEnd</code>, let <code>actualLoopStart</code>
+                    equal <code>loopStart</code> and <code>actualLoopEnd</code>
+                    equal <code>min(loopEnd, buffer.duration)</code>.
+                    </li>
+                    <li>Else, let <code>actualLoopStart</code> equal
+                    <code>0</code> and <code>actualLoopEnd</code> equal <code>
+                      buffer.duration</code>.
+                    </li>
+                  </ol>
                 </li>
                 <li>While <code>index</code> is less than the length of the
                 audio block to be rendered:
@@ -5113,48 +5131,43 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                             </li>
                           </ol>
                         </li>
-                        <li>If <code>loop</code> is true and
-                        <code>bufferTime</code> &gt;=
-                        <code>actualLoopStart</code>,
+                        <li>If <code>loop</code> is true,
                           <ol>
-                            <li>Set <code>enteredLoop</code> to
-                            <code>true</code>.
+                            <li>If <code>offset</code> &lt;
+                            <code>actualLoopStart</code> and
+                            <code>bufferTime</code> &gt;=
+                            <code>actualLoopStart</code>, set
+                            <code>enteredLoop</code> to <code>true</code>.
                             </li>
-                          </ol>
-                        </li>
-                        <li>Let <code>effectiveBufferTime</code> equal
-                        <code>bufferTime</code>.
-                        </li>
-                        <li>If <code>loop</code> is true, map the playhead
-                        position to the correct point within the loop body
-                        accounting for loop iterations:
-                          <ol>
-                            <li>While <code>effectiveBufferTime</code> &gt;=
-                            <code>actualLoopEnd</code>,
+                            <li>If <code>offset</code> &gt;=
+                            <code>actualLoopEnd</code> and
+                            <code>bufferTime</code> &lt;
+                            <code>actualLoopEnd</code>, set
+                            <code>enteredLoop</code> to <code>true</code>.
+                            </li>
+                            <li>If <code>enteredLoop</code> is true, map the
+                            playhead position to the correct point within the
+                            loop body accounting for loop iterations:
                               <ol>
-                                <li>Let <code>effectiveBufferTime</code> equal
-                                <code>effectiveBufferTime - (actualLoopEnd -
-                                actualLoopStart)</code>.
+                                <li>While <code>bufferTime</code> &gt;= <code>
+                                  actualLoopEnd</code>, let
+                                  <code>bufferTime</code> equal
+                                  <code>bufferTime - (actualLoopEnd -
+                                  actualLoopStart)</code>.
                                 </li>
-                              </ol>
-                            </li>
-                            <li>While <code>enteredLoop</code> is true and
-                            <code>effectiveBufferTime</code> &lt;
-                            <code>actualLoopStart</code>,
-                              <ol>
-                                <li>Let <code>effectiveBufferTime</code> equal
-                                <code>effectiveBufferTime + (actualLoopEnd -
-                                actualLoopStart)</code>.
+                                <li>While <code>bufferTime</code> &lt;
+                                <code>actualLoopStart</code>, let
+                                <code>bufferTime</code> equal <code>bufferTime
+                                + (actualLoopEnd - actualLoopStart)</code>.
                                 </li>
                               </ol>
                             </li>
                           </ol>
                         </li>
-                        <li>If <code>effectiveBufferTime &gt;= 0</code> and
-                        <code>effectiveBufferTime &lt; buffer.duration</code>,
-                        emit the result of
-                        <code>playbackSignal(effectiveBufferTime)</code> as the
-                        output frame at <code>index</code>.
+                        <li>If <code>bufferTime &gt;= 0</code> and
+                        <code>bufferTime &lt; buffer.duration</code>, emit the
+                        result of <code>playbackSignal(bufferTime)</code> as
+                        the output frame at <code>index</code>.
                         </li>
                         <li>Else, emit silence as the output frame at
                         <code>index</code>.
@@ -5171,7 +5184,8 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
                   </ol>
                 </li>
                 <li>If <code>currentTime</code> &gt;= <code>stop</code>,
-                consider playback for the node to have ended.
+                consider playback for the node to have ended. No further render
+                quanta for the node will occur.
                 </li>
               </ol>
             </li>
@@ -5247,20 +5261,6 @@ if ((loopStart || loopEnd) &amp;& loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;&
             "images/absn-offset.png" width="543" height="448">
             <figcaption>
               <a>AudioBufferSourceNode</a> subsample offset playback
-            </figcaption>
-          </figure>
-          <p>
-            This figure illustrates reversed loop playback, showing how
-            negative playback rates interact with looped output, showing that
-            reversed playback is an exact reversal of what would occur with
-            forward playback including the pre-loop portion of the buffer
-            followed by a specific number of loop iterations:
-          </p>
-          <figure>
-            <img alt="AudioBufferSourceNode reversed loop playback" src=
-            "images/absn-reversed-loop.png" width="550" height="451">
-            <figcaption>
-              <a>AudioBufferSourceNode</a> reversed loop playback
             </figcaption>
           </figure>
           <p>

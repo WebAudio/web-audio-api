@@ -5021,55 +5021,28 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             The description of the algorithm is as follows:
           </p>
           <pre>
-// The AudioBuffer and context employed by this node
-var buffer;
-var context;
+let buffer;  /* AudioBuffer employed by this node */;
+let context; /* AudioContext employed by this node */;
 
 // The following variables capture attribute and AudioParam values for the node.
-// They are updated k-rate, except for buffer.
-var loop;
-var detune;
-var loopEnd;
-var loopStart;
-var playbackRate;
+// They are updated on a k-rate basis, prior to each invocation of process().
+let loop, detune, loopStart, loopEnd, playbackRate;
 
-// State variables for the node's playback
-var start = 0;
-var offset;
-var stop = Infinity;
+// Variables for the node's playback parameters
+let start = 0, offset = 0; // Set by start()
+let stop = Infinity;  // Set by stop(), or by start() with a supplied duration
 
-var bufferTime = 0;
-var started = false;
-var enteredLoop = false;
-var dt;
+// Variables for tracking node's playback state
+let bufferTime = 0, started = false, enteredLoop = false;
+let dt = 1 / context.sampleRate;
 
-// Handle invocation of start method call
-function handleStart(when, pos, duration) {
-  if (arguments.length &gt;= 1) {
-    start = when;
-  }
-  offset = pos;
-  if (arguments.length &gt;= 3) {
-    stop = when + duration;
-  }
-}
-
-// Handle invocation of stop method call
-function handleStop(when) {
-  if (arguments.length &gt;= 1) {
-    stop = when;
-  }
-  else {
-    stop = context.currentTime;
-  }
-}
-
-// Interpolate a multi-channel signal value for some sample frame
+// Interpolate a multi-channel signal value for some sample frame.
+// Returns an array of signal values.
 function playbackSignal(position) {
   /*
     This function provides the playback signal function for buffer, which is a
     function that maps from a playhead position to a set of output signal
-    values, one for each output channel. If position corresponds to the
+    values, one for each output channel. If |position| corresponds to the
     location of an exact sample frame in the buffer, this function returns
     that frame. Otherwise, its return value is determined by a UA-supplied
     algorithm that interpolates between sample frames in the neighborhood of
@@ -5082,24 +5055,18 @@ function playbackSignal(position) {
    ...
 }
 
-// Render a single frame of audio into the channel data arrays given by output
-// at the given element index. The frame value may be an array of channel signal
-// values, or a single value to be rendered to all channels.
-function renderFrame(output, index, frame) {
-  ...
-}
-
 // Generate a single render quantum of audio to be placed
-// in the channel arrays defined by output.
-function process(output) {
-  var dt = 1 / context.sampleRate;
-  var index = 0;
+// in the channel arrays defined by output. Returns an array
+// of |numberOfFrames| sample frames to be output.
+function process(numberOfFrames) {
+  let currentTime = context.currentTime; // context time of next rendered frame
+  let output = [];  // accumulates rendered sample frames
 
   // Combine the two k-rate parameters affecting playback rate
-  var computedPlaybackRate = playbackRate * Math.pow(2, detune / 1200);
+  let computedPlaybackRate = playbackRate * Math.pow(2, detune / 1200);
 
   // Determine loop endpoints as applicable
-  var actualLoopStart, actualLoopEnd;
+  let actualLoopStart, actualLoopEnd;
   if (loop) {
     if (loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;& loopStart &lt; loopEnd) {
       actualLoopStart = loopStart;
@@ -5112,53 +5079,53 @@ function process(output) {
   }
 
   // Render each sample frame in the quantum
-  while (index &lt; output[0].length) {
+  for (let index = 0; index &lt; numberOfFrames; index++) {
+    // Check that currentTime is within allowable range for playback
     if (currentTime &lt; start || currentTime &gt;= stop) {
-      // emit silence for the output frame for the element specified by index
-      renderFrame(output, index, 0);
+      output.push(0); // this sample frame is silent
+      currentTime += dt;
+      continue;
+    }
+
+    if (!started) {
+      // Take note that buffer has started playing and get initial playhead position.
+      bufferTime = offset + ((currentTime - start) * computedPlaybackRate);
+      started = true;
+    }
+
+    // Handle loop-related calculations
+    if (loop) {
+      // Determine if looped portion has been entered for the first time
+      if (!enteredLoop) {
+        if (offset &lt; actualLoopEnd &amp;& bufferTime &gt;= actualLoopStart) {
+          // playback began before or within loop, and playhead is now past loop start
+          enteredLoop = true;
+        }
+        if (offset &gt;= actualLoopEnd &amp;& bufferTime &lt; actualLoopEnd) {
+          // playback began after loop, and playhead is now prior to the loop end
+          enteredLoop = true;
+        }
+      }
+
+      // Wrap loop iterations as needed
+      if (enteredLoop) {
+        while (bufferTime &gt;= actualLoopEnd) {
+          bufferTime -= actualLoopEnd - actualLoopStart;
+        }
+        while (bufferTime &lt; actualLoopStart) {
+          bufferTime += actualLoopEnd - actualLoopStart;
+        }
+      }
+    }
+
+    if (bufferTime &gt;= 0 &amp;& bufferTime &lt; buffer.duration) {
+      output.push(playbackSignal(bufferTime));
     }
     else {
-      if (!started) {
-        // Take note that buffer has started playing and get initial playhead position.
-        bufferTime = offset + ((context.currentTime - start) * computedPlaybackRate);
-        started = true;
-      }
+      output.push(0); // past end of buffer, so output silent frame
+    }
 
-      // Handle loop-related calculations
-      if (loop) {
-        // Determine if looped portion has been entered
-        if (!enteredLoop) {
-          if (offset &lt; actualLoopEnd &amp;& bufferTime &gt;= actualLoopStart) {
-            // playback began before or within loop, and playhead is now past loop start
-            enteredLoop = true;
-          }
-          if (offset &gt;= actualLoopEnd &amp;& bufferTime &lt; actualLoopEnd) {
-            // playback began after loop, and playhead is now prior to the loop end
-            enteredLoop = true;
-          }
-        }
-
-        // Wrap loop iterations as needed
-        if (enteredLoop) {
-          while (bufferTime &gt;= actualLoopEnd) {
-            bufferTime -= actualLoopEnd - actualLoopStart;
-          }
-          while (bufferTime &lt; actualLoopStart) {
-            bufferTime += actualLoopEnd - actualLoopStart;
-          }
-        }
-      }
-
-      if (bufferTime &gt;= 0 &amp;& bufferTime &lt; buffer.duration) {
-        renderFrame(output, index, playbackSignal(bufferTime));
-      }
-      else {
-        renderFrame(output, index, 0);
-      }
-      bufferTime += dt * computedPlaybackRate;
-    } // End active rendering "else" case
-
-    index += 1;
+    bufferTime += dt * computedPlaybackRate;
     currentTime += dt;
   } // End of render quantum loop
 
@@ -5166,6 +5133,8 @@ function process(output) {
     // end playback state of this node.
     // no further invocations of process() will occur.
   }
+
+  return output;
 }
 </pre>
           <p>

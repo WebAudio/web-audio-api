@@ -2094,41 +2094,115 @@ function setupRoutingGraph() {
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
         </p>
-        <p>
-          The OfflineAudioContext is constructed with the same arguments as
-          AudioContext.createBuffer. <span class="synchronous">A
-          <code>NotSupportedError</code> exception MUST be thrown if any of the
-          arguments is negative, zero, or outside its nominal range.</span>
-        </p>
-        <dl class="parameters">
-          <dt>
-            unsigned long numberOfChannels
-          </dt>
-          <dd>
-            Determines how many channels the buffer will have. See <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> for the supported number of channels.
-          </dd>
-          <dt>
-            unsigned long length
-          </dt>
-          <dd>
-            Determines the size of the buffer in sample-frames.
-          </dd>
-          <dt>
-            float sampleRate
-          </dt>
-          <dd>
-            Describes the sample-rate of the linear PCM audio data in the
-            buffer in sample-frames per second. See <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> for valid sample rates.
-          </dd>
-        </dl>
         <dl title=
-        "[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate),
- Constructor(OfflineAudioContextOptions options)] interface OfflineAudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
+        "interface OfflineAudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
         class='idl'>
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <p>
+              An <a>OfflineAudioContext</a> is constructed as if
+            </p>
+            <pre>
+     new OfflineAudioContext({
+       channelCount: numberOfChannels,
+       length: length,
+       sampleRate: sampleRate
+     })
+            </pre>
+            <p>
+              were called instead.
+            </p>
+            <dl class="parameters">
+              <dt>
+                unsigned long numberOfChannels
+              </dt>
+              <dd>
+                Determines how many channels the buffer will have. See <a href=
+                "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                createBuffer</a> for the supported number of channels.
+              </dd>
+              <dt>
+                unsigned long length
+              </dt>
+              <dd>
+                Determines the size of the buffer in sample-frames.
+              </dd>
+              <dt>
+                float sampleRate
+              </dt>
+              <dd>
+                Describes the sample-rate of the linear PCM audio data in the
+                buffer in sample-frames per second. See <a href=
+                "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                createBuffer</a> for valid sample rates.
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <p>
+              The <a>OfflineAudioContext</a> is constructed using the following
+              steps.
+            </p>
+            <ol>
+              <li>Let <var>o</var> be a new object of type
+              <code>OfflineAudioContext</code>
+              </li>
+              <li>Let <var>d</var> be the <a>AudioDestinationNode</a> of <var>
+                o</var>
+              </li>
+              <li>Let <var>options</var> be the dictionary parameter given in
+              the constructor.
+              </li>
+              <li>Initialize <var>d</var> as follows
+                <ol>
+                  <li>
+                    <var>d.channelCount</var> is set to
+                    <var>options.channelCount</var> or 1 if not specified.
+                  </li>
+                  <li>
+                    <var>d.channelCountMode</var> is set to
+                    <var>options.channelCountMode</var> or "clamped-max" if not
+                    specified.
+                  </li>
+                  <li>
+                    <var>d.channelInterpretation</var> is set to
+                    <var>options.channelInterpreation</var> or "speakers" if
+                    not specified.
+                  </li>
+                </ol>
+              </li>
+              <li>Initialize <var>o</var>
+                <ol>
+                  <li>
+                    <var>o.length</var> is set to <var>options.length</var>
+                  </li>
+                  <li>
+                    <var>o.sampleRate</var> is set to
+                    <var>options.sampleRate</var>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <p>
+              <span class="synchronous">A <code>NotSupportedError</code>
+              exception MUST be thrown if any of the arguments is negative,
+              zero, or outside its nominal range or allowed values.</span> The
+              new <a>OfflineAudioContext</a>, <code>o</code> is returned.
+            </p>
+            <dl class="parameters">
+              <dt>
+                OfflineAudioContextOptions options
+              </dt>
+              <dd>
+                Initial parameter values for this <a>OfflineAudioContext</a>.
+              </dd>
+            </dl>
+          </dd>
           <dt>
             Promise&lt;AudioBuffer&gt; startRendering()
           </dt>
@@ -2174,10 +2248,10 @@ function setupRoutingGraph() {
             </p>
             <ol>
               <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>, with
-              a number of channels, length and sample rate equal respectively
-              to the <code>numberOfChannels</code>, <code>length</code> and
-              <code>sampleRate</code> parameters used when this instance's
-              constructor was called.
+              the number of channels equal to to the <code>channelCount</code>
+              of the destination node of the context and the length and sample
+              rate equal to, respectively, the <code>length</code> and
+              <code>sampleRate</code> attributes of the context.
               </li>
               <li>Given the current connections and scheduled changes, start
               rendering <code>length</code> sample-frames of audio into
@@ -2283,13 +2357,8 @@ function setupRoutingGraph() {
             <a>AudioNode</a>s. All members are optional. However, the specific
             values used for each node depends on the actual node.
           </p>
-          <dl title="dictionary OfflineAudioContextOptions" class="idl">
-            <dt>
-              unsigned long numberOfChannels = 1
-            </dt>
-            <dd>
-              Desired number of channels for the offline context.
-            </dd>
+          <dl title="dictionary OfflineAudioContextOptions : AudioNodeOptions"
+          class="idl">
             <dt>
               required unsigned long length
             </dt>
@@ -2301,20 +2370,6 @@ function setupRoutingGraph() {
             </dt>
             <dd>
               Desired sampleRate for the context.
-            </dd>
-            <dt>
-              ChannelCountMode channelCountMode = "explicit"
-            </dt>
-            <dd>
-              Desired mode for the <a>channelCountMode</a> attribute for the
-              <a>AudioDestinationNode</a> of the offline context.
-            </dd>
-            <dt>
-              ChannelInterpretation channelInterpretation = "speakers"
-            </dt>
-            <dd>
-              Desired mode for the <a>channelCountMode</a> attribute for the
-              <a>AudioDestinationNode</a> of the offline context.
             </dd>
           </dl>
         </section>

@@ -5021,12 +5021,16 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             The description of the algorithm is as follows:
           </p>
           <pre>
-let buffer;  /* AudioBuffer employed by this node */;
-let context; /* AudioContext employed by this node */;
+let buffer;  // AudioBuffer employed by this node
+let context; // AudioContext employed by this node
 
 // The following variables capture attribute and AudioParam values for the node.
 // They are updated on a k-rate basis, prior to each invocation of process().
-let loop, detune, loopStart, loopEnd, playbackRate;
+let loop;
+let detune;
+let loopStart;
+let loopEnd;
+let playbackRate;
 
 // Variables for the node's playback parameters
 let start = 0, offset = 0; // Set by start()
@@ -5035,6 +5039,27 @@ let stop = Infinity;  // Set by stop(), or by start() with a supplied duration
 // Variables for tracking node's playback state
 let bufferTime = 0, started = false, enteredLoop = false;
 let dt = 1 / context.sampleRate;
+
+// Handle invocation of start method call
+function handleStart(when, pos, duration) {
+  if (arguments.length &gt;= 1) {
+    start = when;
+  }
+  offset = pos;
+  if (arguments.length &gt;= 3) {
+    stop = when + duration;
+  }
+}
+
+// Handle invocation of stop method call
+function handleStop(when) {
+  if (arguments.length &gt;= 1) {
+    stop = when;
+  }
+  else {
+    stop = context.currentTime;
+  }
+}
 
 // Interpolate a multi-channel signal value for some sample frame.
 // Returns an array of signal values.
@@ -5071,8 +5096,7 @@ function process(numberOfFrames) {
     if (loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;& loopStart &lt; loopEnd) {
       actualLoopStart = loopStart;
       actualLoopEnd = Math.min(loopEnd, buffer.duration);
-    }
-    else {
+    } else {
       actualLoopStart = 0;
       actualLoopEnd = buffer.duration;
     }
@@ -5107,7 +5131,8 @@ function process(numberOfFrames) {
         }
       }
 
-      // Wrap loop iterations as needed
+      // Wrap loop iterations as needed. Note that enteredLoop
+      // may become true inside the preceding conditional.
       if (enteredLoop) {
         while (bufferTime &gt;= actualLoopEnd) {
           bufferTime -= actualLoopEnd - actualLoopStart;
@@ -5120,8 +5145,7 @@ function process(numberOfFrames) {
 
     if (bufferTime &gt;= 0 &amp;& bufferTime &lt; buffer.duration) {
       output.push(playbackSignal(bufferTime));
-    }
-    else {
+    } else {
       output.push(0); // past end of buffer, so output silent frame
     }
 

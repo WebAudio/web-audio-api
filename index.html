@@ -4817,10 +4817,31 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <dd>
             <p>
               Schedules a sound to playback at an exact time.
-              <code>start</code> may only be called one time and <span class=
-              "synchronous">must be called before <code>stop</code> is called
-              or an <code>InvalidStateError</code> exception MUST be
-              thrown.</span>
+            </p>
+            <p>
+              <span class="synchronous">When this method is called, execute
+              these steps:</span>
+            </p>
+            <ol>
+              <li>If <code>stop</code> has been called on this node, or if an
+              earlier call to <code>start</code> has already occurred, an
+              <code>InvalidStateError</code> exception MUST be thrown.
+              </li>
+              <li>Check for any errors that must be thrown due to parameter
+              constraints described below.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to start the
+                <a>AudioBufferSourceNode</a>, including the parameter values in
+                the messsage.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to start the
+              <a>AudioBufferSourceNode</a> means invoking the
+              <code>handleStart()</code> function in the <a href=
+              "#playback-AudioBufferSourceNode">playback algorithm</a> which
+              follows.
             </p>
             <dl class="parameters">
               <dt>
@@ -4867,6 +4888,64 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
                 <code>stop(when + duration)</code>. <span class=
                 "synchronous">An TypeError exception MUST be thrown if
                 <code>duration</code> is negative.</span>
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            void stop()
+          </dt>
+          <dd>
+            <p>
+              Schedules a sound to stop playback at an exact time. If
+              <code>stop</code> is called again after already having been
+              called, the last invocation will be the only one applied; stop
+              times set by previous calls will not be applied, unless the
+              buffer has already stopped prior to any subsequent calls. If the
+              buffer has already stopped, further calls to <code>stop</code>
+              will have no effect. If a stop time is reached prior to the
+              scheduled start time, the sound will not play.
+            </p>
+            <p>
+              <span class="synchronous">When this method is called, execute
+              these steps:</span>
+            </p>
+            <ol>
+              <li>If <code>stop</code> has been called on this node, or if an
+              earlier call to <code>start</code> has already occurred, an
+              <code>InvalidStateError</code> exception MUST be thrown.
+              </li>
+              <li>Check for any errors that must be thrown due to parameter
+              constraints described below.
+              </li>
+              <li>
+                <a href="#queue">Queue a control message</a> to stop the
+                <a>AudioBufferSourceNode</a>, including the parameter values in
+                the messsage.
+              </li>
+            </ol>
+            <p>
+              Running a <a>control message</a> to start the
+              <a>AudioBufferSourceNode</a> means invoking the
+              <code>handleStop()</code> function in the <a href=
+              "#playback-AudioBufferSourceNode">playback algorithm</a> which
+              follows.
+            </p>
+            <dl class="parameters">
+              <dt>
+                optional double when = 0
+              </dt>
+              <dd>
+                The <a><code>when</code></a> parameter describes at what time
+                (in seconds) the source should stop playing. It is in the same
+                time coordinate system as the
+                <a><code>AudioContext</code></a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                If 0 is passed in for this value or if the value is less than
+                <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
+                then the sound will stop playing immediately. <span class=
+                "synchronous">A TypeError exception MUST be thrown if
+                <code>when</code> is negative</span>.
               </dd>
             </dl>
           </dd>
@@ -4942,7 +5021,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
             <code>start()</code></a> is called, then playback will continue
             indefinitely until <code>stop()</code> is called and the stop time
-            is reached. We'll call this "loop" mode. Playback always starts at
+            is reached. This is called "loop" mode. Playback always starts at
             the point in the buffer indicated by the <code>offset</code>
             argument of <a href=
             "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
@@ -4950,7 +5029,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             playing until it reaches the <em>loopEnd</em> position in the
             buffer (or the end of the buffer), at which point it will wrap back
             around to the <em>loopStart</em> position in the buffer, and
-            continue playing according to this pattern.
+            continue playing according to this pattern. (For negative playback
+            rates, playback wraps around from <em>loopStart</em> to
+            <em>loopEnd</em>.)
           </p>
           <p>
             The effective loop start and end points are required to lie within
@@ -5163,8 +5244,9 @@ function process(numberOfFrames) {
 </pre>
           <p>
             The following non-normative figures illustrate the behavior of the
-            algorithm in assorted key scenarios. Buffer optimization is not
-            considered, but by definition it does not materially affect the
+            algorithm in assorted key scenarios. Dynamic resampling of the
+            buffer is not considered, but as long as the times of loop
+            positions are not changed this does not materially affect the
             resulting playback. In all figures, the following conventions
             apply:
           </p>

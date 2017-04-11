@@ -3090,8 +3090,8 @@ function setupRoutingGraph() {
                 <a>ConvolverNode</a>
               </dt>
               <dd>
-                The channel count mode cannot be changed from "explicit", and a
-                <span class="synchronous"><code>NotSupportedError</code>
+                The channel count mode cannot be changed from "clamped-max",
+                and a <span class="synchronous"><code>NotSupportedError</code>
                 exception MUST be thrown for any attempt to change the
                 value.</span>
               </dd>
@@ -7843,15 +7843,14 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
 </pre>
         <p>
           The input of this node is either mono (1 channel) or stereo (2
-          channels) and cannot be increased. Connections from nodes with fewer
-          or more channels will be <a href=
-          "#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
-          appropriately</a>.
+          channels) and cannot be increased. Connections from nodes with more
+          channels will be <a href=
+          "#channel-up-mixing-and-down-mixing">down-mixed appropriately</a>.
         </p>
         <p>
           There are <a>channelCount constraints</a> and <a>channelCountMode
           constraints</a> for this node. These constraints ensure that the
-          input to the node is always stereo.
+          input to the node is either mono or stereo.
         </p>
         <p>
           This node has a <a>tail-time</a> reference such that this node
@@ -7910,17 +7909,6 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
               this attribute is null.
             </p>
             <p>
-              When the <code>buffer</code> has a single channel, the
-              <a>ConvolverNode</a> treats it as if it had two channels with
-              both channels containing exactly the same data. This is needed to
-              support a stereo input.
-            </p>
-            <p>
-              When the <code>buffer</code> has four channels, the
-              <a>ConvolverNode</a> performs matrix "true" stereo convolving as
-              show in the <a href="#convolver-diagram">figure</a>.
-            </p>
-            <p>
               To set the <code>buffer</code> attribute, execute these steps:
             </p>
             <ol>
@@ -7938,6 +7926,20 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
               attribute.
               </li>
             </ol>
+            <p class="norm">
+              <em>The following text is non-normative. For normative
+              information please see the <a href=
+              "#Convolution-channel-configurations">channel configuration
+              diagrams</a>.</em>
+            </p>
+            <p>
+              The <a>ConvolverNode</a> only produces a mono output in the
+              single case where there is a single input channel and a
+              single-channel <code>buffer</code>. In all other cases, the
+              output is stereo. In particular, when the <code>buffer</code> has
+              four channels and there are two input channels, the
+              <a>ConvolverNode</a> performs matrix "true" stereo convolution.
+            </p>
           </dd>
           <dt>
             attribute boolean normalize

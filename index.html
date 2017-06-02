@@ -6066,34 +6066,16 @@ window.audioWorklet.import("bypass.js").then(function () {
               </p>
             </dd>
             <dt>
-              attribute EventHandler ondata
+              readonly attribute MessagePort port
             </dt>
             <dd>
               <p>
-                The <code>ondata</code> handler is called whenever the
-                associated <a>AudioWorkletProcessor</a> sends data back to the
-                <a>AudioWorkletNode</a> instance.
+                Every <a>AudioWorkletNode</a> has an associated <code>port
+                </code> which is a <a href="https://html.spec.whatwg.org/multipage/comms.html#message-ports">
+                MessagePort</a>. It is connected to the other message port 
+                belongs to the corresponding <a>AudioWorkletProcessor</a>
+                object.
               </p>
-            </dd>
-            <dt>
-              void sendData()
-            </dt>
-            <dd>
-              <p>
-                <code>sendData</code> may be called to send data to the
-                corresponding <a>AudioWorkletProcessor</a>.
-              </p>
-              <dl class="parameters">
-                <dt>
-                  any data
-                </dt>
-                <dd>
-                  The object to deliver to the associated processor. This may
-                  be any value or JavaScript object handled by the <a href=
-                  "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
-                  structured clone</a> algorithm.
-                </dd>
-              </dl>
             </dd>
           </dl>
           <section>
@@ -6158,34 +6140,16 @@ window.audioWorklet.import("bypass.js").then(function () {
               </p>
             </dd>
             <dt>
-              attribute EventHandler ondata
+              readonly attribute MessagePort port.
             </dt>
             <dd>
               <p>
-                The <code>ondata</code> handler is called whenever the
-                <a><code>AudioWorkletNode</code></a> posts data to the
-                corresponding processor object.
+                Every <a>AudioWorkletProcessor</a> has an associated <code>port
+                </code> which is a <a href="https://html.spec.whatwg.org/multipage/comms.html#message-ports">
+                MessagePort</a>. It is connected to the other message port 
+                belongs to the corresponding <a>AudioWorkletNode</a>
+                object.
               </p>
-            </dd>
-            <dt>
-              void sendData()
-            </dt>
-            <dd>
-              <p>
-                It may be called to send data to the associated
-                <a><code>AudioWorkletNode</code></a>.
-              </p>
-              <dl class="parameters">
-                <dt>
-                  any data
-                </dt>
-                <dd>
-                  The object to deliver to the associated node. This may be any
-                  value or JavaScript object handled by the <a href=
-                  "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
-                  structured clone</a> algorithm.
-                </dd>
-              </dl>
             </dd>
           </dl>
           <section>
@@ -6700,10 +6664,12 @@ class VUMeterNode extends AudioWorkletNode {
     this._volume = 0;
 
     // Handles updated values from AudioWorkletProcessor
-    this.ondata = event =&gt; {
+    this.port.onmessage = event =&gt; {
       if (event.data.volume)
         this._volume = event.data.volume;
     }
+
+    this.port.start();
   }
 
   get updatingInterval() {
@@ -6712,7 +6678,7 @@ class VUMeterNode extends AudioWorkletNode {
 
   set updatingInterval (intervalValue) {
     this._updatingInterval = intervalValue;
-    this.sendData({ updatingInterval: intervalValue });
+    this.port.postMessage({ updatingInterval: intervalValue });
   }
 
   draw () {
@@ -6737,10 +6703,11 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
     this._updatingInterval = options.updatingInterval;
     this._nextUpdateFrames = this.interval;
 
-    this.ondata = event =&gt; {
+    this.port.onmessage = event =&gt; {
       if (event.data.updatingInterval)
         this._updatingInterval = event.data.updatingInterval;
     }
+    this.port.start();
   }
 
   get interval () {
@@ -6769,7 +6736,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
       this._nextUpdateFrame -= bufferLength;
       if (this._nextUpdateFrame &lt; 0) {
         this._nextUpdateFrame += this.interval;
-        this.sendData({ volume: this._volume });
+        this.port.postMessage({ volume: this._volume });
       }
     }
 

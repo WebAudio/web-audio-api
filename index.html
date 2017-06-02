@@ -11951,12 +11951,11 @@ Quad up-mix:
         </p>
         <section>
           <h4 id="Spatialzation-equal-power-panning">
-            Equal-power panning
+            PannerNode "equalpower" Panning
           </h4>
           <p>
             This is a simple and relatively inexpensive algorithm which
-            provides basic, but reasonable results. It is used for the
-            <a><code>StereoPannerNode</code></a>, and for the
+            provides basic, but reasonable results. It is used for the for the
             <a><code>PannerNode</code></a> when the <a href=
             "#widl-PannerNode-panningModel"><code>panningModel</code></a>
             attribute is set to <code>"equalpower"</code>, in which case the
@@ -11987,7 +11986,6 @@ Quad up-mix:
     azimuth = -180 - azimuth;
   else if (azimuth &gt; 90)
     azimuth = 180 - azimuth;
-
 </pre>
                 </li>
                 <li>
@@ -11997,25 +11995,79 @@ Quad up-mix:
                   </p>
                   <pre>
   x = (azimuth + 90) / 180;
-
 </pre>
                   <p>
                     Or for a stereo input as:
                   </p>
                   <pre>
-  if (azimuth &lt;= 0) { // -90 ~ 0
+  if (azimuth &lt;= 0) { // -90 -&lt; 0
     // Transform the azimuth value from [-90, 0] degrees into the range [-90, 90].
     x = (azimuth + 90) / 90;
-  } else { // 0 ~ 90
+  } else { // 0 -&lt; 90
     // Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
     x = azimuth / 90;
   }
-
+</pre>
+                </li>
+                <li>
+                  <p>
+                    Left and right gain values are calculated as:
+                  </p>
+                  <pre>
+    gainL = cos(x * Math.PI / 2);
+    gainR = sin(x * Math.PI / 2);
+</pre>
+                </li>
+                <li>
+                  <p>
+                    For mono input, the stereo output is calculated as:
+                  </p>
+                  <pre>
+    outputL = input * gainL;
+    outputR = input * gainR;
+</pre>
+                  <p>
+                    Else for stereo input, the output is calculated as:
+                  </p>
+                  <pre>
+    if (azimuth &lt;= 0) {
+      outputL = inputL + inputR * gainL;
+      outputR = inputR * gainR;
+    } else {
+      outputL = inputL * gainL;
+      outputR = inputR + inputL * gainR;
+    }
 </pre>
                 </li>
               </ol>
             </li>
           </ol>
+        </section>
+        <section>
+          <h4>
+            PannerNode "HRTF" Panning (stereo only)
+          </h4>
+          <p>
+            This requires a set of <a href=
+            "https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
+            (Head-related Transfer Function) impulse responses recorded at a
+            variety of azimuths and elevations. The implementation requires a
+            highly optimized convolution function. It is somewhat more costly
+            than "equalpower", but provides more perceptually spatialized
+            sound.
+          </p>
+          <figure>
+            <img alt="HRTF panner" src="images/HRTF_panner.png" width="644"
+            height="419">
+            <figcaption>
+              A diagram showing the process of panning a source using HRTF.
+            </figcaption>
+          </figure>
+        </section>
+        <section>
+          <h4 id="stereopanner-algorithm">
+            StereoPannerNode Panning
+          </h4>
           <p>
             For a <a><code>StereoPannerNode</code></a>, the following algorithm
             MUST be implemented.
@@ -12037,7 +12089,6 @@ Quad up-mix:
                   <pre>
     pan = max(-1, pan);
     pan = min(1, pan);
-
 </pre>
                 </li>
                 <li>
@@ -12047,7 +12098,6 @@ Quad up-mix:
                   </p>
                   <pre>
     x = (pan + 1) / 2;
-
 </pre>
                   <p>
                     For stereo input:
@@ -12057,14 +12107,8 @@ Quad up-mix:
       x = pan + 1;
     else
       x = pan;
-
 </pre>
                 </li>
-              </ol>
-              <p>
-                Then following steps are used to achieve equal-power panning:
-              </p>
-              <ol>
                 <li>
                   <p>
                     Left and right gain values are calculated as:
@@ -12072,7 +12116,6 @@ Quad up-mix:
                   <pre>
     gainL = cos(x * Math.PI / 2);
     gainR = sin(x * Math.PI / 2);
-
 </pre>
                 </li>
                 <li>
@@ -12082,48 +12125,23 @@ Quad up-mix:
                   <pre>
     outputL = input * gainL;
     outputR = input * gainR;
-
 </pre>
                   <p>
                     Else for stereo input, the output is calculated as:
                   </p>
                   <pre>
     if (pan &lt;= 0) {
-      // Pass through inputL to outputL and equal-power pan inputR as in mono case.
       outputL = inputL + inputR * gainL;
       outputR = inputR * gainR;
     } else {
-      // Pass through inputR to outputR and equal-power pan inputL as in mono case.
       outputL = inputL * gainL;
       outputR = inputR + inputL * gainR;
     }
-
 </pre>
                 </li>
               </ol>
             </li>
           </ol>
-        </section>
-        <section>
-          <h4>
-            HRTF panning (stereo only)
-          </h4>
-          <p>
-            This requires a set of <a href=
-            "https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
-            (Head-related Transfer Function) impulse responses recorded at a
-            variety of azimuths and elevations. The implementation requires a
-            highly optimized convolution function. It is somewhat more costly
-            than "equalpower", but provides more perceptually spatialized
-            sound.
-          </p>
-          <figure>
-            <img alt="HRTF panner" src="images/HRTF_panner.png" width="644"
-            height="419">
-            <figcaption>
-              A diagram showing the process of panning a source using HRTF.
-            </figcaption>
-          </figure>
         </section>
       </section>
       <section>

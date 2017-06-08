@@ -859,6 +859,58 @@ function setupRoutingGraph() {
             </p>
           </dd>
           <dt>
+            readonly attribute DOMHighResTimeStamp currentPerformanceTime
+          </dt>
+          <dd>
+            <p>
+              The <code>DOMHighResTimeStamp</code> representation of <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
+            </p>
+            <p>
+              The <a href=
+              "#widl-BaseAudioContext-currentPerformanceTime"><code>currentPerformanceTime</code></a>
+              property contains the <code>DOMHighResTimeStamp</code> (described
+              in [[!hr-time-2]]) representing the time when the <a href=
+              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+              was last time updated and incremented internally by the duration
+              in milliseconds of the audio block most recently processed by the
+              context's rendering graph, so that <code>currentTime</code> and
+              <code>currentPerformanceTime</code> values always correspond to
+              each other. Naturally, the <code>currentPerformanceTime</code>
+              attribute value is updated synchronously with the
+              <code>currentTime</code> attribute value increments. If the
+              context's rendering graph has not yet processed a block of audio
+              (i.e. <code>currentTime</code> has never been updated), then
+              <a href=
+              "#widl-BaseAudioContext-currentPerformanceTime"><code>currentPerformanceTime</code></a>
+              has a value of zero.
+            </p>
+            <p class="note">
+              The audio block duration (which forms the
+              <code>currentPerformanceTime</code> shift) depends on the system:
+              on repeated calls of the Web Audio API the reference is always
+              the first call in a row. For example if the system processes
+              audio blocks of 512 sample-frames (calling the Web Audio API 4
+              times in a row) the <code>currentPerformanceTime</code> value
+              will be shifted by: <em>duration = 1000 * 4 * 128 / 44100Hz =
+              11.6ms</em>. If <code>currentTime</code> is updated after each
+              call in a row, <code>currentPerformanceTime</code> should still
+              read the time from the reference call, and add the duration of
+              the blocks processed so far in the row, so as to preserve the
+              logical linear relationship between these two attributes. The
+              implementation should adjust the value of the
+              <code>currentPerformanceTime</code> shift according to the
+              current system block duration, if it varies over time.
+            </p>
+            <p>
+              The value of <a href=
+              "#widl-BaseAudioContext-currentPerformanceTime"><code>currentPerformanceTime</code></a>
+              property is in same units and starting from the same origin as
+              values returned by <code>performance.now()</code> (described in
+              [[!hr-time-2]]).
+            </p>
+          </dd>
+          <dt>
             readonly attribute AudioListener listener
           </dt>
           <dd>
@@ -3371,6 +3423,23 @@ function setupRoutingGraph() {
               than 2 channels of audio if the audio hardware is multi-channel.
               <code>maxChannelCount</code> is the maximum number of channels
               that this hardware is capable of supporting.
+            </p>
+          </dd>
+          <dt>
+            readonly attribute double latency
+          </dt>
+          <dd>
+            <p>
+              The user agent's best estimation in seconds of audio output
+              latency, i.e. the delay between the moment the implementation
+              sends a buffer to the system and the audible sound from the audio
+              output (speaker or connector).
+            </p>
+            <p>
+              If user agent is not able to estimate the audio output latency
+              then <a href=
+              "#widl-AudioDestinationNode-latency"><code>latency</code></a> has
+              a value of zero.
             </p>
           </dd>
         </dl>

@@ -180,15 +180,15 @@
   <body>
     <section id="abstract">
       <p>
-        This specification describes a high-level JavaScript <abbr title=
+        This specification describes a high-level Web <abbr title=
         "Application Programming Interface">API</abbr> for processing and
         synthesizing audio in web applications. The primary paradigm is of an
         audio routing graph, where a number of <a><code>AudioNode</code></a>
         objects are connected together to define the overall audio rendering.
         The actual processing will primarily take place in the underlying
         implementation (typically optimized Assembly / C / C++ code), but
-        <a href="#AudioWorklet">direct JavaScript processing and synthesis</a>
-        is also supported.
+        <a href="#AudioWorklet">direct script processing and synthesis</a> is
+        also supported.
       </p>
       <p>
         The <a href="#introduction">introductory</a> section covers the
@@ -225,8 +225,8 @@
           The APIs have been designed with a wide variety of use cases
           [[webaudio-usecases]] in mind. Ideally, it should be able to support
           <i>any</i> use case which could reasonably be implemented with an
-          optimized C++ engine controlled via JavaScript and run in a browser.
-          That said, modern desktop audio software can have very advanced
+          optimized C++ engine controlled via script and run in a browser. That
+          said, modern desktop audio software can have very advanced
           capabilities, some of which would be difficult or impossible to build
           with this system. Apple's Logic Audio is one such application which
           has support for external MIDI controllers, arbitrary plugin audio
@@ -289,7 +289,7 @@
             </ul>
           </li>
           <li>Audio stream synthesis and processing <a href=
-          "#AudioWorklet">directly in JavaScript</a>.
+          "#AudioWorklet">directly using scripts</a>.
           </li>
           <li>
             <a href="#Spatialization">Spatialized audio</a> supporting a wide
@@ -585,8 +585,8 @@ function setupRoutingGraph() {
           a <a>PannerNode</a> for spatialization.
           </li>
           <li>An <a><code>AudioWorklet</code></a> interface representing a
-          factory for creating custom nodes that can process audio directly in
-          JavaScript.
+          factory for creating custom nodes that can process audio directly
+          using scripts.
           </li>
           <li>An <a><code>AudioWorkletGlobalScope</code></a> interface, the
           context in which AudioWorkletProcessor processing scripts run.
@@ -695,8 +695,8 @@ function setupRoutingGraph() {
         </p>
         <ul>
           <li>A <a><code>ScriptProcessorNode</code></a> interface, an <a><code>
-            AudioNode</code></a> for generating or processing audio directly in
-            JavaScript.
+            AudioNode</code></a> for generating or processing audio directly
+            using scripts.
           </li>
           <li>An <a><code>AudioProcessingEvent</code></a> interface, which is
           an event type used with <a><code>ScriptProcessorNode</code></a>
@@ -1186,7 +1186,7 @@ function setupRoutingGraph() {
               method is DEPRECATED, as it is intended to be replaced by
               <a href="#AudioWorkletNode"><code>AudioWorkletNode</code></a>.
               Creates a <a><code>ScriptProcessorNode</code></a> for direct
-              audio processing using JavaScript. <span class="synchronous">An
+              audio processing using scripts. <span class="synchronous">An
               <code>IndexSizeError</code> exception MUST be thrown if
               <a><code>bufferSize</code></a> or
               <a><code>numberOfInputChannels</code></a> or
@@ -3189,8 +3189,8 @@ function setupRoutingGraph() {
             There are several types of references:
           </p>
           <ol>
-            <li>A <em>normal</em> JavaScript reference obeying normal garbage
-            collection rules.
+            <li>A <em>normal</em> reference obeying normal garbage collection
+            rules.
             </li>
             <li>A <em>playing</em> reference for
             <a><code>AudioBufferSourceNode</code></a>s,
@@ -5816,11 +5816,12 @@ function process(numberOfFrames) {
             Concepts
           </h2>
           <p>
-            The <a>AudioWorklet</a> object allows developers to supply
-            JavaScript to process audio on the <a>rendering thread</a>,
-            supporting custom <a>AudioNode</a>s. This processing mechanism
-            ensures the synchronous execution of the script code with other
-            built-in <a>AudioNode</a>s in the audio graph.
+            The <a>AudioWorklet</a> object allows developers to supply scripts
+            (such as JavaScript or WebAssembly code) to process audio on the
+            <a>rendering thread</a>, supporting custom <a>AudioNode</a>s. This
+            processing mechanism ensures the synchronous execution of the
+            script code with other built-in <a>AudioNode</a>s in the audio
+            graph.
           </p>
           <p>
             An associated pair of objects must be defined in order to realize
@@ -5839,7 +5840,7 @@ function process(numberOfFrames) {
             </figcaption>
           </figure>
           <p>
-            Importing a JavaScript file via the <a href=
+            Importing a script via the <a href=
             "https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
             method registers class definitions of <a>AudioWorkletProcessor</a>
             under the <a>AudioWorkletGlobalScope</a>. There are two internal
@@ -5895,9 +5896,9 @@ window.audioWorklet.addModule("bypass.js").then(function () {
           <dd>
             <p>
               The <code>audioWorklet</code> attributes allows access to the
-              <code>Worklet</code> object that can import a JavaScript file
-              containing <a><code>AudioWorkletProcessor</code></a> class
-              definitions via the algorithm defined by [[!worklets-1]].
+              <code>Worklet</code> object that can import a script containing
+              <a><code>AudioWorkletProcessor</code></a> class definitions via
+              the algorithm defined by [[!worklets-1]].
             </p>
           </dd>
         </dl>
@@ -5907,8 +5908,8 @@ window.audioWorklet.addModule("bypass.js").then(function () {
           </h2>
           <p>
             This special execution context is designed to enable the
-            generation, processing, and analysis of audio data directly using
-            JavaScript in the audio <a>rendering thread</a>. The user-supplied
+            generation, processing, and analysis of audio data directly using a
+            script in the audio <a>rendering thread</a>. The user-supplied
             script code is evaluated in this scope to define one or more
             <a>AudioWorkletProcessor</a> subclasses, which in turn are used to
             instantiate <a>AudioWorkletProcessor</a>s, in a 1:1 association
@@ -6327,7 +6328,7 @@ class MyProcessor extends AudioWorkletProcessor {
               built-in nodes, including the following:
               <ul>
                 <li>Nodes that transform their inputs, and are active only
-                while connected inputs and/or JavaScript references exist. Such
+                while connected inputs and/or script references exist. Such
                 nodes should return <code>false</code> from
                 <code>process()</code> which allows the presence or absence of
                 connected inputs to determine whether active processing occurs.
@@ -6830,7 +6831,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
         </h2>
         <p>
           This interface is an <a><code>AudioNode</code></a> which can
-          generate, process, or analyse audio directly using JavaScript. This
+          generate, process, or analyse audio directly using a script. This
           node type is deprecated, to be replaced by the
           <a>AudioWorkletNode</a>; this text is only here for informative
           purposes until implementations remove this node type.
@@ -11551,7 +11552,7 @@ odd function with period \(2\pi\).
           will be deleted when they have no more references. Nodes in the graph
           which are long-lived and shared between dynamic voices can be managed
           explicitly. Although it sounds complicated, this all happens
-          automatically with no extra JavaScript handling required.
+          automatically with no extra handling required.
         </p>
       </section>
       <section>
@@ -11569,11 +11570,11 @@ odd function with period \(2\pi\).
           The low-pass filter, panner, and second gain nodes are directly
           connected from the one-shot sound. So when it has finished playing
           the context will automatically release them (everything within the
-          dotted line). If there are no longer any JavaScript references to the
-          one-shot sound and connected nodes, then they will be immediately
-          removed from the graph and deleted. The streaming source, has a
-          global reference and will remain connected until it is explicitly
-          disconnected. Here's how it might look in JavaScript:
+          dotted line). If there are no longer any references to the one-shot
+          sound and connected nodes, then they will be immediately removed from
+          the graph and deleted. The streaming source, has a global reference
+          and will remain connected until it is explicitly disconnected. Here's
+          how it might look in JavaScript:
         </p>
         <pre class="example">
 

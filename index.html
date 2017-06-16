@@ -8960,16 +8960,16 @@ function calculateNormalizationScale(buffer)
             </li>
             <li>The compression curve is has three parts:
               <ul>
-                <li>The first part is a linear function of equation \(f(x) =
-                y\).
+                <li>The first part is the identify: \(f(x) = x\).
                 </li>
                 <li>The second part is the soft-knee portion, which MUST be a
                 monotonically increasing function.
                 </li>
                 <li>The third part is a linear function of equation \(f(x) =
-                \frac{1}{ratio} y \).
+                \frac{1}{ratio} \cdot x \).
                 </li>
-              </ul>This curve MUST be continuous.
+              </ul>
+              This curve MUST be continuous.
             </li>
           </ul>
           <p>
@@ -9003,8 +9003,7 @@ function calculateNormalizationScale(buffer)
               var compression = new CompressionProcessor();
 
               input.connect(delay).connect(gain).connect(output);
-              input.connect(compression).connect(gain.gain);
-            </pre>
+              input.connect(compression).connect(gain.gain);</pre>
           <div class="note">
             This implements the pre-delay and the application of the reduction
             gain.
@@ -9032,10 +9031,19 @@ function calculateNormalizationScale(buffer)
             <li>Let <var>input signal</var> be the the block of audio to be
             processed.
             </li>
-            <li>Let <var>treshold</var>, <var>knee</var>, <var>ratio</var>,
-            <var>attack</var> and <var>release</var> have the value of the <a>
+            <li>Let <var>treshold</var>, <var>knee</var> have the value of the
+            <a>AudioParam</a> of the same name, <a>converted to linear unit</a> sampled at the time of
+              processing of this block (as <a>k-rate</a> parameters).
+            </li>
+            <li>Let <var>ratio</var> have the value of the <code>ratio</code>
+            <a>Audioparam</a>, sampled at the time of processing of this block
+            (as a <a>k-rate</a> parameter).</li>
+            <li>Let <var>attack</var> and <var>release</var> have the value of the <a>
               AudioParam</a> of the same name, sampled at the time of
-              processing (those are <a>k-rate</a> parameters).
+              processing (those are <a>k-rate</a> parameters), converted to
+              sample-frames, based on the sample-rate of the
+              <a>BaseAudioContext</a> this <a>DynamicsCompressorNode</a> is
+              <a href=#associated>associated</a> with.
             </li>
             <li>Set <var>attack</var> and <var>release</var> to the division
             between themselves and the sample-rate for this
@@ -9076,23 +9084,58 @@ function calculateNormalizationScale(buffer)
             steps:
           </p>
           <ol>
-            <li>XXX todo
+            <li>
+               XXX TODO
             </li>
           </ol>
           <p>
-            Computing the <dfn>enveloppe rate</dfn> means executing the
-            following steps:
-          </p>
-          <ol>
-            <li>XXX TODO
+          Computing the <dfn>enveloppe rate</dfn> is done by putting the ratio of the <var>compressor
+              gain</var> and the <var>detector average</var> through a curve.
+            User-agents are allowed to choose the shape of the attack and
+            release curve. However, they MUST respect the following constraints:
+          <ul>
+            <li> The input to the curve MUST be the ratio of the <var>compressor
+              gain</var> and the <var>detector average</var>.
+            <div class=note>
+              When attacking, this number inferior or equal to 1, when releasing, this
+              number is strictly superior to 1.
+            </div>
             </li>
-          </ol>
+            <li>The attack curve MUST be a continuous, monotonically increasing
+            function in the range \([0, 1]\).</li>
+            <li>The release curve MUST be a continuous, monotonically decreasing
+            function that is always superior to 1.</li>
+          </ul>
+          <div class=note>
+            It is allowed, for example, to have a compressor that performs an
+            <em>adaptative release</em>, that is, releasing faster the harder
+            the compression, or to have curves for attack and release that are
+            not of the same shape.
+          </div>
+          </p>
           <p>
-            Putting a sample through a <dfn>compression curve</dfn> means
-            executing the following steps:
+            Putting a the absolute value of a sample through a <dfn>compression
+            curve</dfn> means computing the absolute value of this sample to a
+            function, and returning the computed value. This function MUST
+            respects the following characteristics:
           </p>
           <ol>
-            <li>XXX TODO
+            <li>This function is the identify up to the value of the
+            linear <code>threshold</code> (i.e., \(f(sample) = sample\)). </li>
+            <li>From the <code>threshold</code> up to the <code>threshold +
+              knee</code>, User-Agents can choose the curve shape. The whole
+            function MUST be continuous (except as noted in the note below) and
+            monotonically increasing.
+            <div class=note>
+              As such, if the <code>knee</code> is 0, the
+              <a>DynamicsCompressorNode</a> is a hard-knee compressor, and the
+              function has a discontinuity at <code>treshold</code>.
+          </div>
+            </li>
+            <li>
+            This function returned is linear, based on the ratio, after the
+            <code>threshold</code> and the soft knee (i.e., \(f(sample) = sample
+              \cdot \frac{1}{ratio}\)).
             </li>
           </ol>
         </section>

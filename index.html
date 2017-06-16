@@ -775,9 +775,9 @@ function setupRoutingGraph() {
             AudioContext will throw <code>InvalidStateError</code></span>.
             (AudioBuffers may still be created, through <a href=
             "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> or <a href=
+            createBuffer</a>, <a href=
             "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
-            decodeAudioData</a>.)
+            decodeAudioData</a>, or the <a>AudioBuffer</a> constructor.)
           </dd>
         </dl>
         <dl title="interface BaseAudioContext : EventTarget" class="idl"
@@ -4582,11 +4582,60 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a><code>OfflineAudioContext</code></a> and an
           <a><code>AudioContext</code></a>.
         </p>
+        <p>
+          <a>AudioBuffer</a> has four internal slots:
+        </p>
+        <dl>
+          <dt>
+            <var>[[number of channels]]</var>
+          </dt>
+          <dd>
+            The number of audio channels for this <a>AudioBuffer</a>, which is
+            an unsigned long.
+          </dd>
+          <dt>
+            <var>[[\length]]</var>
+          </dt>
+          <dd>
+            The length of each channel of this <a>AudioBuffer</a>, which is an
+            unsigned long.
+          </dd>
+          <dt>
+            [[sample rate]]
+          </dt>
+          <dd>
+            The sample-rate, in Hz, of this <a>AudioBuffer</a>, a float
+          </dd>
+          <dt>
+            [[internal data]]
+          </dt>
+          <dd>
+            A <a href="https://tc39.github.io/ecma262/#sec-data-blocks">data
+            block</a> holding the audio sample data.
+          </dd>
+        </dl>
         <dl title="interface AudioBuffer" class="idl">
           <dt>
             Constructor
           </dt>
           <dd>
+            <p>
+              Let <var>b</var> be a new <a>AudioBuffer</a> object. Respectively
+              assign the values of the attributes <var>numberOfChannels</var>,
+              <var>length</var>, <var>sampleRate</var> of the
+              <a>AudioBufferOptions</a> passed in the constructor to the
+              internal slots <var>[[number of channels]]</var>,
+              <var>[[\length]]</var>, <var>[[sample rate]]</var>.
+            </p>
+            <p>
+              Set the internal slot <var>[[internal data]]</var> of this
+              <a>AudioBuffer</a> to the result of calling <a href=
+              "https://tc39.github.io/ecma262/#sec-createbytedatablock"><code>CreateByteDataBlock([[\length]]
+              * [[number of channels]])</code></a>.
+            </p>
+            <p class="note">
+              This initializes the underlying storage to zero.
+            </p>
             <dl class="parameters">
               <dt>
                 AudioBufferOptions options
@@ -4599,6 +4648,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <dd>
             <p>
               The sample-rate for the PCM audio data in samples per second.
+              This MUST return the value of <var>[[sample rate]]</var>.
             </p>
           </dd>
           <dt>
@@ -4606,7 +4656,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             <p>
-              Length of the PCM audio data in sample-frames.
+              Length of the PCM audio data in sample-frames. This MUST return
+              the value of <var>[[\length]]</var>.
             </p>
           </dd>
           <dt>
@@ -4616,13 +4667,20 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             <p>
               Duration of the PCM audio data in seconds.
             </p>
+            <p>
+              This is computed from the <var>[[sample rate]]</var> and the
+              <var>[[\length]]</var> of the <a>AudioBuffer</a> by performing a
+              division between the <var>[[\length]]</var> and the <var>[[sample
+              rate]]</var>.
+            </p>
           </dd>
           <dt>
             readonly attribute unsigned long numberOfChannels
           </dt>
           <dd>
             <p>
-              The number of discrete audio channels.
+              The number of discrete audio channels. This MUST return the value
+              of <var>[[number of channels]]</var>.
             </p>
           </dd>
           <dt>
@@ -4630,8 +4688,13 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             <p>
-              Returns the <code>Float32Array</code> representing the PCM audio
-              data for the specific channel.
+              According to the rules described in <a href=
+              "#acquire-the-content">acquire the content</a> either <a href=
+              "https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
+              get a reference to</a> or <a href=
+              "https://heycam.github.io/webidl/#dfn-get-buffer-source-copy">get
+              a copy of</a> the bytes stored in [[internal data]] in a new
+              <code>Float32Array</code>.
             </p>
             <dl class="parameters">
               <dt>
@@ -4775,7 +4838,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             all <code>ArrayBuffer</code>s for arrays previously returned by
             <code>getChannelData</code> on this <a>AudioBuffer</a>.
           </li>
-          <li>Retain the underlying data buffers from those
+          <li>Retain the underlying <var>[[internal data]]</var> from those
           <code>ArrayBuffer</code>s and return references to them to the
           invoker.
           </li>

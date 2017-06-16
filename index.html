@@ -8940,122 +8940,161 @@ function calculateNormalizationScale(buffer)
             Processing
           </h2>
           <p>
-          Dyamics compression can be implemented in a variety of ways. The
-          <a>DynamicsCompressorNode</a> implements a dynamics processor that has
-          the following characteristics:
+            Dynamics compression can be implemented in a variety of ways. The
+            <a>DynamicsCompressorNode</a> implements a dynamics processor that
+            has the following characteristics:
+          </p>
           <ul>
             <li>Fixed look-ahead (this means that an
             <a>DynamicsCompressorNode</a> adds a fixed latency to the signal
-            chain).</li>
-            <li>Configurabe attack speed, release speed, threshold, knee
-            hardness and ratio.</li>
-            <li>Side-chaining is not supported</li>
-            <li>The gain reduction is reported</li>
+            chain).
+            </li>
+            <li>Configurable attack speed, release speed, threshold, knee
+            hardness and ratio.
+            </li>
+            <li>Side-chaining is not supported
+            </li>
+            <li>The gain reduction is reported <em>via</em> the
+            <code>reduction</code> property on the
+            <a>DynamicsCompressorNode</a>
+            </li>
+            <li>The compression curve is has three parts:
+              <ul>
+                <li>The first part is a linear function of equation \(f(x) =
+                y\).
+                </li>
+                <li>The second part is the soft-knee portion, which MUST be a
+                monotonically increasing function.
+                </li>
+                <li>The third part is a linear function of equation \(f(x) =
+                \frac{1}{ratio} y \).
+                </li>
+              </ul>This curve MUST be continuous.
+            </li>
           </ul>
+          <p>
+            Graphically, such a curve would look something like this:
           </p>
+          <figure>
+            <img alt="Graphical representation of a compression curve" src=
+            "images/compression-curve.svg" style="width: 50%">
+            <figcaption>
+              A typical compression curve, showing the knee portion (soft or
+              hard) as well as the threshold.
+            </figcaption>
+          </figure>
           <p>
             Internally, the <a>DynamicsCompressorNode</a> is described with a
             combination of other <a>AudioNode</a>s, as well as a special
             algorithm, to compute the gain reduction value.
           </p>
           <p>
-          The following <a>AudioNode</a> graph is used internally,
-          <code>input</code> and <code>output</code> respectively being the
-          input and output <a>AudioNode</a>, <code>context</code> the
-          <a>BaseAudioContext</a> for this <a>DynamicsCompressorNode</a>, and
-          <code>CompressionProcessor</code> a special object that behaves like
-          an <a>AudioNode</a>, described below:
-            <pre>
+            The following <a>AudioNode</a> graph is used internally,
+            <code>input</code> and <code>output</code> respectively being the
+            input and output <a>AudioNode</a>, <code>context</code> the
+            <a>BaseAudioContext</a> for this <a>DynamicsCompressorNode</a>, and
+            new class, <code>CompressionProcessor</code>, that instantiate a
+            special object that behaves like an <a>AudioNode</a>, described
+            below:
+          </p>
+          <pre>
               var delay = new DelayNode(context, {delayTime: 0.006});
               var gain = new GainNode(context);
+              var compression = new CompressionProcessor();
 
               input.connect(delay).connect(gain).connect(output);
-              input.connect(CompressionProcessor).connect(gain.gain);
+              input.connect(compression).connect(gain.gain);
             </pre>
-            <div class=note>
-              This implements the pre-delay and the application of the reduction
-              gain.
-            </div>
-          </p>
+          <div class="note">
+            This implements the pre-delay and the application of the reduction
+            gain.
+          </div>
           <p>
-          The following algorithm describes the
-          <code>CompressionProcessor</code> to be applied to the input signal to
-          produce the gain reduction value. First, a couple variables that
-          persist accross invocation of this algorithm, tied to this particular
-          <code>CompressionProcessor</code>.
+            The following algorithm describes the
+            <code>CompressionProcessor</code> object to be applied to the input
+            signal to produce the gain reduction value. First, a couple
+            variables that persist accross invocation of this algorithm, tied
+            to this particular <code>CompressionProcessor</code> instance.
+          </p>
           <ul>
             <li>Let <var>detector average</var> be a floating point number,
-            initialized to 1.0.</li>
+            initialized to 1.0.
+            </li>
             <li>Let <var>compression gain</var> be a foating point number,
-            initialized to 1.0.</li>
+            initialized to 1.0.
+            </li>
           </ul>
           <p>
-            Now, the actual algorithm to determine the reduction gain, in linear
-          gain value.
+            Now, the actual algorithm to determine the reduction gain, in
+            linear gain value.
           </p>
-            <ol>
-              <li>
-                Let <var>input signal</var> be the the block of audio to be
-                processed.
-              </li>
-              <li>
-                Let <var>treshold</var>, <var>knee</var>, <var>ratio</var>,
-                <var>attack</var> and <var>release</var> have the value of the
-                <a>AudioParam</a> of the same name, sampled at the time of
-                processing (those are <a>k-rate</a> parameters).
-              </li>
-              <li>
-                Set <var>attack</var> and <var>release</var> to the division
-                between themselves and the sample-rate for this
-                <a>BaseAudioContext</a>.
-              </li>
-              <li>
-                For each samples <var>input</var> of <var>input signal</var>,
-              execute the following steps:
+          <ol>
+            <li>Let <var>input signal</var> be the the block of audio to be
+            processed.
+            </li>
+            <li>Let <var>treshold</var>, <var>knee</var>, <var>ratio</var>,
+            <var>attack</var> and <var>release</var> have the value of the <a>
+              AudioParam</a> of the same name, sampled at the time of
+              processing (those are <a>k-rate</a> parameters).
+            </li>
+            <li>Set <var>attack</var> and <var>release</var> to the division
+            between themselves and the sample-rate for this
+            <a>BaseAudioContext</a>.
+            </li>
+            <li>For each samples <var>input</var> of <var>input signal</var>,
+            execute the following steps:
               <ol>
                 <li>Let <var>envelope rate</var> be the result of computing the
-                <a href=envelope-rate>envelope rate</a> </li>
-                <li>
-                Let <var>attenuation</var> be the value of putting the absolute
-                value of <var>input</var> <a href=compression-curve>through the compression curve</a>.
+                <a href="envelope-rate">envelope rate</a>
                 </li>
-                <li> Add the difference between <var>attenuation</var> and
-                <var>detector average</var> to <var>detector average</var>, and
-                clamp <var>detector average</var> to 1.0.</li>
+                <li>Let <var>attenuation</var> be the value of putting the
+                absolute value of <var>input</var> <a href="compression-curve">
+                  through the compression curve</a>.
+                </li>
+                <li>Add the difference between <var>attenuation</var> and <var>
+                  detector average</var> to <var>detector average</var>, and
+                  clamp <var>detector average</var> to 1.0.
+                </li>
                 <li>TODO If attacking, add <var>detector average</var> minus
-                <var>compressor gain</var> to <var>compressor gain</var></li>
+                <var>compressor gain</var> to <var>compressor gain</var>
+                </li>
                 <li>Else, multiply <var>compressor gain</var> by <var>enveloppe
-                  rate</var></li>
+                rate</var>
+                </li>
                 <li>Compute <var>final gain</var> to be <var>compressor
-                  gain</var> multiplied by the return value of <a>computing the
-                  makeup gain</a>.
+                gain</var> multiplied by the return value of <a>computing the
+                makeup gain</a>.
+                </li>
                 <li>Compute <var>metering gain</var> to be <var>final
                 gain</var>, <a href="#todo">converted to decibel</a>.
+                </li>
               </ol>
-              </li>
-            </ol>
-            <p>
+            </li>
+          </ol>
+          <p>
             <dfn>Computing the makeup gain</dfn> means executing the following
             steps:
-            <ol>
-              <li>XXX todo</li>
-            </ol>
-            </p>
-            <p>
-              Computing the <dfn>enveloppe rate</dfn> means executing the
-              following steps:
-              <ol>
-                <li>XXX TODO</li>
-              </ol>
-            </p>
-            <p>
-              Putting a sample through a <dfn>compression curve</dfn> means executing the
-            following steps:
-            <ol>
-              <li>XXX TODO</li>
-            </ol>
-            </p>
           </p>
+          <ol>
+            <li>XXX todo
+            </li>
+          </ol>
+          <p>
+            Computing the <dfn>enveloppe rate</dfn> means executing the
+            following steps:
+          </p>
+          <ol>
+            <li>XXX TODO
+            </li>
+          </ol>
+          <p>
+            Putting a sample through a <dfn>compression curve</dfn> means
+            executing the following steps:
+          </p>
+          <ol>
+            <li>XXX TODO
+            </li>
+          </ol>
         </section>
       </section>
       <section>

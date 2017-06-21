@@ -3411,15 +3411,22 @@ function setupRoutingGraph() {
           "#computation-of-value">Computation of Value</a> for full details.
         </p>
         <p>
-          An <code>AudioParam</code> maintains a time-ordered event list which
-          is initially empty. The times are in the time coordinate system of
-          the <a><code>AudioContext</code></a>'s <a href=
-          "#widl-BaseAudioContext-currentTime">currentTime</a> attribute. The
-          events define a mapping from time to value. The following methods can
-          change the event list by adding a new event into the list of a type
-          specific to the method. Each event has a time associated with it, and
-          the events will always be kept in time-order in the list. These
-          methods will be called <dfn>automation methods</dfn>:
+          An <code>AudioParam</code> maintains a list of zero or more <dfn id=
+          "dfn-automation-event">automation events</dfn>. Each automation event
+          specifies changes to the parameter's value over a specific time
+          range, in relation to its <dfn>automation event time</dfn> in the
+          time coordinate system of the <a><code>AudioContext</code></a>'s
+          <a href="#widl-BaseAudioContext-currentTime">currentTime</a>
+          attribute. The list of automation events is maintained in ascending
+          order of automation event time.
+        </p>
+        <p>
+          The behavior of a given automation event is a function of the
+          <a>AudioContext</a>'s current time, as well as the automation event
+          times of this event and of adjacent events in the list. The following
+          <dfn id="dfn-automation-method">automation methods</dfn> change the
+          event list by adding a new event to the event list, of a type
+          specific to the method:
         </p>
         <ul>
           <li>
@@ -3445,7 +3452,7 @@ function setupRoutingGraph() {
           </li>
           <li>
             <a href=
-            "#widl-AudioParam-setValueCurveAtTime-AudioParam-Float32Array-values-double-startTime-double-duration">
+            "#widl-AudioParam-setValueCurveAtTime-AudioParam-sequence-float--values-double-startTime-double-duration">
             setValueCurveAtTime()</a> - <em>SetValueCurve</em>
           </li>
         </ul>
@@ -3453,28 +3460,32 @@ function setupRoutingGraph() {
           The following rules will apply when calling these methods:
         </p>
         <ul>
-          <li>Automation event times are not quantized with respect to the
-          prevailing sample rate. Formulas for determining curves and ramps are
-          applied to the exact numerical times given when scheduling events.
+          <li>
+            <a href="#dfn-automation-event-time">Automation event times</a> are
+            not quantized with respect to the prevailing sample rate. Formulas
+            for determining curves and ramps are applied to the exact numerical
+            times given when scheduling events.
           </li>
           <li>If one of these events is added at a time where there is already
           one or more events, then it will be placed in the list after them,
           but before events whose times are after the event.
           </li>
           <li>
-            <span class="synchronous">If setValueCurveAtTime() is called for
-            time \(T\) and duration \(D\) and there are any events having a
-            time greater than \(T\), but less than \(T + D\), then a
-            <code>NotSupportedError</code> exception MUST be thrown.</span> In
-            other words, it's not ok to schedule a value curve during a time
-            period containing other events.
+            <span class="synchronous">If <a href=
+            "#widl-AudioParam-setValueCurveAtTime-AudioParam-sequence-float--values-double-startTime-double-duration">
+            setValueCurveAtTime()</a> is called for time \(T\) and duration
+            \(D\) and there are any events having a time greater than \(T\),
+            but less than \(T + D\), then a <code>NotSupportedError</code>
+            exception MUST be thrown.</span> In other words, it's not ok to
+            schedule a value curve during a time period containing other
+            events.
           </li>
           <li>
             <span class="synchronous">Similarly a
             <code>NotSupportedError</code> exception MUST be thrown if any
-            <em>automation</em> method is called at a time which is inside of
-            the time interval of a <em>SetValueCurve</em> event at time T and
-            duration D.</span>
+            <a href="#dfn-automation-method">automation method</a> is called at
+            a time which is inside of the time interval of a
+            <em>SetValueCurve</em> event at time T and duration D.</span>
           </li>
         </ul>
         <dl title="interface AudioParam" class="idl">
@@ -3924,8 +3935,9 @@ function setupRoutingGraph() {
               Cancels all scheduled parameter changes with times greater than
               or equal to <code>cancelTime</code>. Cancelling a scheduled
               parameter change means removing the scheduled event from the
-              event list. Any active automations whose event time is less than
-              <code>cancelTime</code> are also cancelled, and such
+              event list. Any active automations whose <a href=
+              "#dfn-automation-event-time">automation event time</a> is less
+              than <code>cancelTime</code> are also cancelled, and such
               cancellations may cause discontinuities because the original
               value (from before such automation) is restored immediately. Any
               hold values scheduled by <code><a>cancelAndHoldAtTime</a></code>
@@ -4096,15 +4108,15 @@ function setupRoutingGraph() {
           <ol>
             <li>An <em>intrinsic</em> parameter value will be calculated at
             each time, which is either the value set directly to the
-            <code>value</code> attribute, or, if there are any scheduled
-            parameter changes (automation events) with times before or at this
-            time, the value as calculated from these events. When read, the
-            <code>value</code> attribute always returns the <em>intrinsic</em>
-            value for the current time. If automation events are removed from a
-            given time range, then the <em>intrinsic</em> value will remain
-            unchanged and stay at its previous value until either the
-            <code>value</code> attribute is directly set, or automation events
-            are added for the time range.
+            <code>value</code> attribute, or, if there are any <a href=
+            "#dfn-automation-event">automation events</a> with times before or
+            at this time, the value as calculated from these events. When read,
+            the <code>value</code> attribute always returns the
+            <em>intrinsic</em> value for the current time. If automation events
+            are removed from a given time range, then the <em>intrinsic</em>
+            value will remain unchanged and stay at its previous value until
+            either the <code>value</code> attribute is directly set, or
+            automation events are added for the time range.
             </li>
             <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
             value and the value of the <a href="#input-audioparam-buffer">input

@@ -135,7 +135,7 @@ None
 
 There are implementations of Web Audio API in Safari, in Blink-based browsers such as Chrome, in 
 Firefox, and in Microsoft Edge. This includes mobile implementations in Safari for iOS and 
-Chrome for Android.
+Chrome and Firefox for Android.
 
 A draft implementation report is available:
 

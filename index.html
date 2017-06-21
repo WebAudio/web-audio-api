@@ -3005,6 +3005,15 @@ function setupRoutingGraph() {
                 thrown for any attempt to change the value..</span>
               </dd>
               <dt>
+                <a>DynamicsCompressorNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be greater than two, and a
+                <span class="synchronous"><code>NotSupportedError</code>
+                exception MUST be thrown for any attempt to change the to a
+                value greater than two.</span>
+              </dd>
+              <dt>
                 <a>PannerNode</a>
               </dt>
               <dd>
@@ -3201,7 +3210,9 @@ function setupRoutingGraph() {
             playing.
             </li>
             <li>An <dfn>active reference</dfn> for <a>AudioWorkletNode</a>s
-            whose <a>state</a> property is set to <code>running</code>.
+            whose <a href=
+            "#widl-AudioWorkletNode-processorState">processorState</a> property
+            is set to <code>running</code>.
             </li>
             <li>A <em>connection</em> reference which occurs if another
             <a>AudioNode</a> is connected to one or more of its inputs.
@@ -3488,6 +3499,11 @@ function setupRoutingGraph() {
             <em>SetValueCurve</em> event at time T and duration D.</span>
           </li>
         </ul>
+        <p>
+          Each <a>AudioParam</a> has an internal slot <var>[[current
+          value]]</var>, initially set to the <a>AudioParam</a>'s <a href=
+          "#widl-AudioParam-defaultValue">default value</a>.
+        </p>
         <dl title="interface AudioParam" class="idl">
           <dt>
             attribute float value
@@ -3498,11 +3514,18 @@ function setupRoutingGraph() {
               initialized to the <code>defaultValue</code>.
             </p>
             <p>
-              The effect of setting this attribute is equivalent to calling
+              Getting this attribute returns the contents of the <var>[[current
+              value]]</var> slot, which maintains the value of this parameter
+              at the conclusion of the most recent render quantum on the audio
+              rendering thread, or the most recently assigned value if no
+              rendering has taken place.
+            </p>
+            <p>
+              Setting this attribute has the effect of assigning the requested
+              value to the <var>[[current value]]</var> slot, and calling
               <code>setValueAtTime()</code> with the current
-              <code>AudioContext</code>'s <code>currentTime</code> and the
-              requested value. Subsequent accesses to this attribute's getter
-              will return the same value.
+              <code>AudioContext</code>'s <code>currentTime</code> and
+              <var>[[current value]]</var>.
             </p>
           </dd>
           <dt>
@@ -4120,7 +4143,9 @@ function setupRoutingGraph() {
             </li>
             <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
             value and the value of the <a href="#input-audioparam-buffer">input
-            <code>AudioParam</code> buffer</a>.
+            <code>AudioParam</code> buffer</a>. When read, the
+            <code>value</code> attribute always returns the
+            <em>computedValue</em> for the current time.
             </li>
             <li>If this <a>AudioParam</a> is a <a>compound parameter</a>,
             compute its final value with other <a>AudioParam</a>s.
@@ -8932,9 +8957,12 @@ function calculateNormalizationScale(buffer)
     numberOfOutputs : 1
 
     channelCount = 2;
-    channelCountMode = "explicit";
+    channelCountMode = "max";
     channelInterpretation = "speakers";
 </pre>
+        <p>
+          There are <a>channelCount constraints</a> for this node.
+        </p>
         <p>
           This node has no <a>tail-time</a> reference.
         </p>
@@ -11371,6 +11399,11 @@ odd function with period \(2\pi\).
                   <li>
                     <a href="#computation-of-value">Compute the value(s)</a> of
                     this <a>AudioParam</a> for this block.
+                  </li>
+                  <li>
+                    <a href="#queue">Queue a control message</a> to set the
+                    <var>[[current value]]</var> slot of this <a>AudioParam</a>
+                    to the last value computed in the preceding step.
                   </li>
                 </ol>
               </li>

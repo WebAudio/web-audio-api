@@ -3005,6 +3005,15 @@ function setupRoutingGraph() {
                 thrown for any attempt to change the value..</span>
               </dd>
               <dt>
+                <a>DynamicsCompressorNode</a>
+              </dt>
+              <dd>
+                The channel count cannot be greater than two, and a
+                <span class="synchronous"><code>NotSupportedError</code>
+                exception MUST be thrown for any attempt to change the to a
+                value greater than two.</span>
+              </dd>
+              <dt>
                 <a>PannerNode</a>
               </dt>
               <dd>
@@ -3200,9 +3209,10 @@ function setupRoutingGraph() {
             <em>playing</em> reference to themselves while they are currently
             playing.
             </li>
-            <li>An <dfn>active reference</dfn> for
-            <a><code>AudioWorkletNode</code></a>s whose <a>active source</a>
-            flag is set to <code>true</code>.
+            <li>An <dfn>active reference</dfn> for <a>AudioWorkletNode</a>s
+            whose <a href=
+            "#widl-AudioWorkletNode-processorState">processorState</a> property
+            is set to <code>running</code>.
             </li>
             <li>A <em>connection</em> reference which occurs if another
             <a>AudioNode</a> is connected to one or more of its inputs.
@@ -3412,15 +3422,22 @@ function setupRoutingGraph() {
           "#computation-of-value">Computation of Value</a> for full details.
         </p>
         <p>
-          An <code>AudioParam</code> maintains a time-ordered event list which
-          is initially empty. The times are in the time coordinate system of
-          the <a><code>AudioContext</code></a>'s <a href=
-          "#widl-BaseAudioContext-currentTime">currentTime</a> attribute. The
-          events define a mapping from time to value. The following methods can
-          change the event list by adding a new event into the list of a type
-          specific to the method. Each event has a time associated with it, and
-          the events will always be kept in time-order in the list. These
-          methods will be called <dfn>automation methods</dfn>:
+          An <code>AudioParam</code> maintains a list of zero or more <dfn id=
+          "dfn-automation-event">automation events</dfn>. Each automation event
+          specifies changes to the parameter's value over a specific time
+          range, in relation to its <dfn>automation event time</dfn> in the
+          time coordinate system of the <a><code>AudioContext</code></a>'s
+          <a href="#widl-BaseAudioContext-currentTime">currentTime</a>
+          attribute. The list of automation events is maintained in ascending
+          order of automation event time.
+        </p>
+        <p>
+          The behavior of a given automation event is a function of the
+          <a>AudioContext</a>'s current time, as well as the automation event
+          times of this event and of adjacent events in the list. The following
+          <dfn id="dfn-automation-method">automation methods</dfn> change the
+          event list by adding a new event to the event list, of a type
+          specific to the method:
         </p>
         <ul>
           <li>
@@ -3446,7 +3463,7 @@ function setupRoutingGraph() {
           </li>
           <li>
             <a href=
-            "#widl-AudioParam-setValueCurveAtTime-AudioParam-Float32Array-values-double-startTime-double-duration">
+            "#widl-AudioParam-setValueCurveAtTime-AudioParam-sequence-float--values-double-startTime-double-duration">
             setValueCurveAtTime()</a> - <em>SetValueCurve</em>
           </li>
         </ul>
@@ -3454,28 +3471,32 @@ function setupRoutingGraph() {
           The following rules will apply when calling these methods:
         </p>
         <ul>
-          <li>Automation event times are not quantized with respect to the
-          prevailing sample rate. Formulas for determining curves and ramps are
-          applied to the exact numerical times given when scheduling events.
+          <li>
+            <a href="#dfn-automation-event-time">Automation event times</a> are
+            not quantized with respect to the prevailing sample rate. Formulas
+            for determining curves and ramps are applied to the exact numerical
+            times given when scheduling events.
           </li>
           <li>If one of these events is added at a time where there is already
           one or more events, then it will be placed in the list after them,
           but before events whose times are after the event.
           </li>
           <li>
-            <span class="synchronous">If setValueCurveAtTime() is called for
-            time \(T\) and duration \(D\) and there are any events having a
-            time greater than \(T\), but less than \(T + D\), then a
-            <code>NotSupportedError</code> exception MUST be thrown.</span> In
-            other words, it's not ok to schedule a value curve during a time
-            period containing other events.
+            <span class="synchronous">If <a href=
+            "#widl-AudioParam-setValueCurveAtTime-AudioParam-sequence-float--values-double-startTime-double-duration">
+            setValueCurveAtTime()</a> is called for time \(T\) and duration
+            \(D\) and there are any events having a time greater than \(T\),
+            but less than \(T + D\), then a <code>NotSupportedError</code>
+            exception MUST be thrown.</span> In other words, it's not ok to
+            schedule a value curve during a time period containing other
+            events.
           </li>
           <li>
             <span class="synchronous">Similarly a
             <code>NotSupportedError</code> exception MUST be thrown if any
-            <em>automation</em> method is called at a time which is inside of
-            the time interval of a <em>SetValueCurve</em> event at time T and
-            duration D.</span>
+            <a href="#dfn-automation-method">automation method</a> is called at
+            a time which is inside of the time interval of a
+            <em>SetValueCurve</em> event at time T and duration D.</span>
           </li>
         </ul>
         <p class="note">
@@ -3487,6 +3508,11 @@ function setupRoutingGraph() {
           <code>AudioContext</code>'s <code>currentTime</code> and the
           requested value.
         </p>
+        <p>
+          Each <a>AudioParam</a> has an internal slot <var>[[current
+          value]]</var>, initially set to the <a>AudioParam</a>'s <a href=
+          "#widl-AudioParam-defaultValue">default value</a>.
+        </p>
         <dl title="interface AudioParam" class="idl">
           <dt>
             attribute float value
@@ -3497,11 +3523,18 @@ function setupRoutingGraph() {
               initialized to the <code>defaultValue</code>.
             </p>
             <p>
-              The effect of setting this attribute is equivalent to calling
+              Getting this attribute returns the contents of the <var>[[current
+              value]]</var> slot, which maintains the value of this parameter
+              at the conclusion of the most recent render quantum on the audio
+              rendering thread, or the most recently assigned value if no
+              rendering has taken place.
+            </p>
+            <p>
+              Setting this attribute has the effect of assigning the requested
+              value to the <var>[[current value]]</var> slot, and calling
               <code>setValueAtTime()</code> with the current
-              <code>AudioContext</code>'s <code>currentTime</code> and the
-              requested value. Subsequent accesses to this attribute's getter
-              will return the same value.
+              <code>AudioContext</code>'s <code>currentTime</code> and
+              <var>[[current value]]</var>.
             </p>
           </dd>
           <dt>
@@ -3934,8 +3967,9 @@ function setupRoutingGraph() {
               Cancels all scheduled parameter changes with times greater than
               or equal to <code>cancelTime</code>. Cancelling a scheduled
               parameter change means removing the scheduled event from the
-              event list. Any active automations whose event time is less than
-              <code>cancelTime</code> are also cancelled, and such
+              event list. Any active automations whose <a href=
+              "#dfn-automation-event-time">automation event time</a> is less
+              than <code>cancelTime</code> are also cancelled, and such
               cancellations may cause discontinuities because the original
               value (from before such automation) is restored immediately. Any
               hold values scheduled by <code><a>cancelAndHoldAtTime</a></code>
@@ -4106,19 +4140,21 @@ function setupRoutingGraph() {
           <ol>
             <li>An <em>intrinsic</em> parameter value will be calculated at
             each time, which is either the value set directly to the
-            <code>value</code> attribute, or, if there are any scheduled
-            parameter changes (automation events) with times before or at this
-            time, the value as calculated from these events. When read, the
-            <code>value</code> attribute always returns the <em>intrinsic</em>
-            value for the current time. If automation events are removed from a
-            given time range, then the <em>intrinsic</em> value will remain
-            unchanged and stay at its previous value until either the
-            <code>value</code> attribute is directly set, or automation events
-            are added for the time range.
+            <code>value</code> attribute, or, if there are any <a href=
+            "#dfn-automation-event">automation events</a> with times before or
+            at this time, the value as calculated from these events. When read,
+            the <code>value</code> attribute always returns the
+            <em>intrinsic</em> value for the current time. If automation events
+            are removed from a given time range, then the <em>intrinsic</em>
+            value will remain unchanged and stay at its previous value until
+            either the <code>value</code> attribute is directly set, or
+            automation events are added for the time range.
             </li>
             <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
             value and the value of the <a href="#input-audioparam-buffer">input
-            <code>AudioParam</code> buffer</a>.
+            <code>AudioParam</code> buffer</a>. When read, the
+            <code>value</code> attribute always returns the
+            <em>computedValue</em> for the current time.
             </li>
             <li>If this <a>AudioParam</a> is a <a>compound parameter</a>,
             compute its final value with other <a>AudioParam</a>s.
@@ -5043,10 +5079,9 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           </dt>
           <dd>
             <p>
-              Indicates if the audio data should play in a loop. The default
-              value is false. If <code>loop</code> is dynamically modified
-              during playback, the new value will take effect on the next
-              processing block of audio.
+              Indicates if the region of audio data designated by
+              <code>loopStart</code> and <code>loopEnd</code> should be played
+              continuously in a loop. The default value is <code>false</code>.
             </p>
           </dd>
           <dt>
@@ -5289,21 +5324,30 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             normative requirements.</em>
           </p>
           <p>
-            If the <code>loop</code> attribute is true when <a href=
+            Setting the <code>loop</code> attribute to true causes playback of
+            the region of the buffer defined by the endpoints
+            <code>loopStart</code> and <code>loopEnd</code> to continue
+            indefinitely, once any part of the looped region has been played.
+            While <code>loop</code> remains true, looped playback will continue
+            until <code>stop()</code> is called, or the scheduled stop time has
+            been reached.
+          </p>
+          <p>
+            The body of the loop is considered to occupy a region from
+            <code>loopStart</code> up to, but not including,
+            <code>loopEnd</code>. The direction of playback of the looped
+            region respects the sign of the node's playback rate. For positive
+            playback rates, looping occurs from <code>loopStart</code> to
+            <code>loopEnd</code>; for negative rates, looping occurs from
+            <code>loopEnd</code> to <code>loopStart</code>.
+          </p>
+          <p>
+            Looping does not affect the interpretation of the
+            <code>offset</code> argument of <a href=
             "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-            <code>start()</code></a> is called, then playback will continue
-            indefinitely until <code>stop()</code> is called and the stop time
-            is reached. This is called "loop" mode. Playback always starts at
-            the point in the buffer indicated by the <code>offset</code>
-            argument of <a href=
-            "#widl-AudioBufferSourceNode-start-void-double-when-double-offset-double-duration">
-            <code>start()</code></a>, and in <em>loop</em> mode will continue
-            playing until it reaches the <em>loopEnd</em> position in the
-            buffer (or the end of the buffer), at which point it will wrap back
-            around to the <em>loopStart</em> position in the buffer, and
-            continue playing according to this pattern. (For negative playback
-            rates, playback wraps around from <em>loopStart</em> to
-            <em>loopEnd</em>.)
+            <code>start()</code></a>. Playback always starts at the requested
+            offset, and looping only begins once the body of the loop is
+            encountered during playback.
           </p>
           <p>
             The effective loop start and end points are required to lie within
@@ -5314,22 +5358,31 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             contents.
           </p>
           <p>
+            Loop endpoints have subsample accuracy. When endpoints do not fall
+            on exact sample frame offsets, or when the playback rate is not
+            equal to 1, playback of the loop is interpolated to splice the
+            beginning and end of the loop together just as if the looped audio
+            occurred in sequential, non-looped regions of the buffer.
+          </p>
+          <p>
             Loop-related properties may be varied during playback of the
-            buffer. The exact results are defined by the playback algorithm
+            buffer, and in general take effect on the next rendering quantum.
+            The exact results are defined by the normative playback algorithm
             which follows.
           </p>
           <p>
-            Note that the default <code>value</code>s for
-            <code>loopStart</code> and <code>loopEnd</code> are both 0, which
-            indicates that looping should occur from the very start to the very
-            end of the buffer.
+            The default values of the <code>loopStart</code> and
+            <code>loopEnd</code> attributes are both 0. Since a
+            <code>loopEnd</code> value of zero is equivalent to the length of
+            the buffer, the default endpoints cause the entire buffer to be
+            included in the loop.
           </p>
           <p>
-            Please note that as a low-level implementation detail, the
-            AudioBuffer is at a specific sample-rate (usually the same as the
-            <a><code>AudioContext</code></a> sample-rate), and that the loop
-            times (in seconds) must be converted to the appropriate
-            sample-frame positions in the buffer according to this sample-rate.
+            Note that the values of the loop endpoints are expressed as time
+            offsets in terms of the sample rate of the buffer, meaning that
+            these values are independent of the node's
+            <code>playbackRate</code> parameter which can vary dynamically
+            during the course of playback.
           </p>
         </section>
         <section>
@@ -5408,8 +5461,7 @@ function handleStart(when, pos, duration) {
 function handleStop(when) {
   if (arguments.length &gt;= 1) {
     stop = when;
-  }
-  else {
+  } else {
     stop = context.currentTime;
   }
 }
@@ -5453,6 +5505,9 @@ function process(numberOfFrames) {
       actualLoopStart = 0;
       actualLoopEnd = buffer.duration;
     }
+  } else {
+    // If the loop flag is false, remove any record of the loop having been entered
+    enteredLoop = false;
   }
 
   // Render each sample frame in the quantum
@@ -6073,7 +6128,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             <a>AudioWorkletProcessor</a> handling the processing for this node.
           </p>
           <p>
-            Every <a>AudioWorkletNode</a> has an associated <dfn>active
+            Every <a>AudioWorkletProcessor</a> has an associated <dfn>active
             source</dfn> flag, initially <code>true</code>. This flag causes
             the node to be retained in memory and perform audio processing in
             the absence of any connected inputs.
@@ -6082,6 +6137,40 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             <dt>
               readonly maplike&lt;DOMString, AudioParam&gt;
             </dt>
+          </dl>
+          <dl title="enum AudioWorkletProcessorState" class="idl">
+            <dt>
+              pending
+            </dt>
+            <dd>
+              The construction of associated processor has not been completed.
+              In this state, no audio processing can happen and all messages to
+              the processor will be queued.
+            </dd>
+            <dt>
+              running
+            </dt>
+            <dd>
+              Indicates that the <a>active source</a> flag on the corresponding
+              processor is <code>true</code>.
+            </dd>
+            <dt>
+              stopped
+            </dt>
+            <dd>
+              Indicates that the <a>active source</a> flag on the corresponding
+              processor is <code>false</code>.
+            </dd>
+            <dt>
+              error
+            </dt>
+            <dd>
+              When an exception is thrown from the processor's
+              <code>constructor</code>, <code>process</code> method, or any
+              user-defined class method throws an exception. Note that once an
+              <a>AudioWorkletNode</a> reaches to this state, the processor will
+              output silence throughout its lifetime.
+            </dd>
           </dl>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
@@ -6139,6 +6228,26 @@ window.audioWorklet.addModule("bypass.js").then(function () {
                 corresponding <a>AudioWorkletProcessor</a> object allowing
                 bidirectional communication between a pair of
                 <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
+              </p>
+            </dd>
+            <dt>
+              readonly attribute AudioWorkletProcessorState processorState
+            </dt>
+            <dd>
+              <p>
+                Indicates the state of the associated processor. The
+                propagation from the actual processor's <a>active source</a>
+                flag to this property is done by queueing a task.
+              </p>
+            </dd>
+            <dt>
+              attribute EventHandler <dfn>onprocessorstatechange</dfn>
+            </dt>
+            <dd>
+              <p>
+                Any state change on the processor will queue a task on the
+                control thread to fire <a>onprocessorstatechange</a> event to
+                the node.
               </p>
             </dd>
           </dl>
@@ -6279,8 +6388,8 @@ class MyProcessor extends AudioWorkletProcessor {
               true:
             </p>
             <ol>
-              <li>The associated <a>AudioWorkletNode</a>'s <a>active source</a>
-              flag is equal to <code>true</code>.
+              <li>The associated <a>AudioWorkletProcessor</a>'s <a>active
+              source</a> flag is equal to <code>true</code>.
               </li>
               <li>There are one or more connected inputs to the
               <a>AudioWorkletNode</a>.
@@ -6335,11 +6444,13 @@ class MyProcessor extends AudioWorkletProcessor {
               <code>process()</code> method, if the result of applying <a href=
               "https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a>
               (described in [[!ECMASCRIPT]]) to the return value is assigned to
-              the associated <a>AudioWorkletNode</a>'s <a>active source</a>
-              flag, which causes the node to be retained in memory when set.
-              This in turn can affects whether subsequent invocations of
-              <code>process()</code> occur, via the <a>active processing
-              conditions</a> above.
+              the associated <a>AudioWorkletProcessor</a>'s <a>active
+              source</a> flag. This in turn can affects whether subsequent
+              invocations of <code>process()</code> occur and also the flag
+              change is propagated by <a href="#queue">queueing a task</a> on
+              the control thread to update the corresponding
+              <a>AudioWorkletNode</a>'s <code>state</code> property
+              accordingly.
             </p>
             <div class="note">
               This lifetime policy can support a variety of approaches found in
@@ -8855,9 +8966,12 @@ function calculateNormalizationScale(buffer)
     numberOfOutputs : 1
 
     channelCount = 2;
-    channelCountMode = "explicit";
+    channelCountMode = "max";
     channelInterpretation = "speakers";
 </pre>
+        <p>
+          There are <a>channelCount constraints</a> for this node.
+        </p>
         <p>
           This node has no <a>tail-time</a> reference.
         </p>
@@ -10503,25 +10617,24 @@ odd function with period \(2\pi\).
                 IndexSizeError</code> exception MUST be thrown.
               </li>
               <li>If <var>options</var> has not been passed in, let
-              <var>[[real]]</var> and <var>[[imag]]</var> be two internal slots
-              of type <code>Float32Array</code> and length 2. Set the second
-              element of the <var>[[imag]]</var> array be 1.
+              <var>[[\real]]</var> and <var>[[\imag]]</var> be two internal
+              slots of type <code>Float32Array</code> and length 2. Set the
+              second element of the <var>[[\imag]]</var> array be 1.
                 <div class="note">
                   When setting this <a>PeriodicWave</a> on an
                   <a>OscillatorNode</a>, this is equivalent to using the
                   built-in type <code>"sine"</code>.
                 </div>
               </li>
-              <li>Otherwise, let <var>[[real]]</var> and <var>[[imag]]</var> be
-              two internal slots of type <code>Float32Array</code>, of length
-              both equal to the maximum length of the <var>real</var> and <var>
-                imag</var> of the attributes of the <a>PeriodicWaveOptions</a>
-                passed in. <a href=
-                "https://heycam.github.io/webidl/#dfn-get-buffer-source-copy">Make
-                a copy</a> of those arrays into their respective internal
-                slots.
+              <li>Otherwise, let <var>[[\real]]</var> and <var>[[\imag]]</var>
+              be two internal slots of type <code>Float32Array</code>, of
+              length both equal to the maximum length of the <var>real</var>
+              and <var>imag</var> of the attributes of the
+              <a>PeriodicWaveOptions</a> passed in. <a href=
+              "https://heycam.github.io/webidl/#dfn-get-buffer-source-copy">Make
+              a copy</a> of those arrays into their respective internal slots.
               </li>
-              <li>Let [[normalize]] be an internal slot of the
+              <li>Let [[\normalize]] be an internal slot of the
               <a>PeriodicWave</a> the is initialized to the inverse of the
               <var>disableNormalization</var> attribute of the
               <a>PeriodicWaveConstraints</a> on the <a>PeriodicWaveOptions</a>.
@@ -11295,6 +11408,11 @@ odd function with period \(2\pi\).
                   <li>
                     <a href="#computation-of-value">Compute the value(s)</a> of
                     this <a>AudioParam</a> for this block.
+                  </li>
+                  <li>
+                    <a href="#queue">Queue a control message</a> to set the
+                    <var>[[current value]]</var> slot of this <a>AudioParam</a>
+                    to the last value computed in the preceding step.
                   </li>
                 </ol>
               </li>

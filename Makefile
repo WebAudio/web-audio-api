@@ -7,7 +7,7 @@
 support_dir ?= $(CURDIR)/.support
 # We pin tidy to a specific revision to avoid failures caused by changes to tidy
 # itself
-tidy_revision = 5.2.0
+tidy_revision = 5.4.0
 tidy ?= $(shell which tidy 2>/dev/null)
 tidy_version ?= $(shell tidy --version)
 

@@ -3200,9 +3200,8 @@ function setupRoutingGraph() {
             <em>playing</em> reference to themselves while they are currently
             playing.
             </li>
-            <li>An <dfn>active reference</dfn> for
-            <a><code>AudioWorkletNode</code></a>s whose <a>active source</a>
-            flag is set to <code>true</code>.
+            <li>An <dfn>active reference</dfn> for <a>AudioWorkletNode</a>s
+            whose <a>state</a> property is set to <code>running</code>.
             </li>
             <li>A <em>connection</em> reference which occurs if another
             <a>AudioNode</a> is connected to one or more of its inputs.
@@ -6083,7 +6082,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             <a>AudioWorkletProcessor</a> handling the processing for this node.
           </p>
           <p>
-            Every <a>AudioWorkletNode</a> has an associated <dfn>active
+            Every <a>AudioWorkletProcessor</a> has an associated <dfn>active
             source</dfn> flag, initially <code>true</code>. This flag causes
             the node to be retained in memory and perform audio processing in
             the absence of any connected inputs.
@@ -6092,6 +6091,40 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             <dt>
               readonly maplike&lt;DOMString, AudioParam&gt;
             </dt>
+          </dl>
+          <dl title="enum AudioWorkletProcessorState" class="idl">
+            <dt>
+              pending
+            </dt>
+            <dd>
+              The construction of associated processor has not been completed.
+              In this state, no audio processing can happen and all messages to
+              the processor will be queued.
+            </dd>
+            <dt>
+              running
+            </dt>
+            <dd>
+              Indicates that the <a>active source</a> flag on the corresponding
+              processor is <code>true</code>.
+            </dd>
+            <dt>
+              stopped
+            </dt>
+            <dd>
+              Indicates that the <a>active source</a> flag on the corresponding
+              processor is <code>false</code>.
+            </dd>
+            <dt>
+              error
+            </dt>
+            <dd>
+              When an exception is thrown from the processor's
+              <code>constructor</code>, <code>process</code> method, or any
+              user-defined class method throws an exception. Note that once an
+              <a>AudioWorkletNode</a> reaches to this state, the processor will
+              output silence throughout its lifetime.
+            </dd>
           </dl>
           <dl title="interface AudioWorkletNode : AudioNode" class="idl">
             <dt>
@@ -6149,6 +6182,26 @@ window.audioWorklet.addModule("bypass.js").then(function () {
                 corresponding <a>AudioWorkletProcessor</a> object allowing
                 bidirectional communication between a pair of
                 <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
+              </p>
+            </dd>
+            <dt>
+              readonly attribute AudioWorkletProcessorState processorState
+            </dt>
+            <dd>
+              <p>
+                Indicates the state of the associated processor. The
+                propagation from the actual processor's <a>active source</a>
+                flag to this property is done by queueing a task.
+              </p>
+            </dd>
+            <dt>
+              attribute EventHandler <dfn>onprocessorstatechange</dfn>
+            </dt>
+            <dd>
+              <p>
+                Any state change on the processor will queue a task on the
+                control thread to fire <a>onprocessorstatechange</a> event to
+                the node.
               </p>
             </dd>
           </dl>
@@ -6289,8 +6342,8 @@ class MyProcessor extends AudioWorkletProcessor {
               true:
             </p>
             <ol>
-              <li>The associated <a>AudioWorkletNode</a>'s <a>active source</a>
-              flag is equal to <code>true</code>.
+              <li>The associated <a>AudioWorkletProcessor</a>'s <a>active
+              source</a> flag is equal to <code>true</code>.
               </li>
               <li>There are one or more connected inputs to the
               <a>AudioWorkletNode</a>.
@@ -6345,11 +6398,13 @@ class MyProcessor extends AudioWorkletProcessor {
               <code>process()</code> method, if the result of applying <a href=
               "https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a>
               (described in [[!ECMASCRIPT]]) to the return value is assigned to
-              the associated <a>AudioWorkletNode</a>'s <a>active source</a>
-              flag, which causes the node to be retained in memory when set.
-              This in turn can affects whether subsequent invocations of
-              <code>process()</code> occur, via the <a>active processing
-              conditions</a> above.
+              the associated <a>AudioWorkletProcessor</a>'s <a>active
+              source</a> flag. This in turn can affects whether subsequent
+              invocations of <code>process()</code> occur and also the flag
+              change is propagated by <a href="#queue">queueing a task</a> on
+              the control thread to update the corresponding
+              <a>AudioWorkletNode</a>'s <code>state</code> property
+              accordingly.
             </p>
             <div class="note">
               This lifetime policy can support a variety of approaches found in

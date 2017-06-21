@@ -3477,6 +3477,11 @@ function setupRoutingGraph() {
             duration D.</span>
           </li>
         </ul>
+        <p>
+          Each <a>AudioParam</a> has an internal slot <var>[[current
+          value]]</var>, initially set to the <a>AudioParam</a>'s <a href=
+          "#widl-AudioParam-defaultValue">default value</a>.
+        </p>
         <dl title="interface AudioParam" class="idl">
           <dt>
             attribute float value
@@ -3487,11 +3492,18 @@ function setupRoutingGraph() {
               initialized to the <code>defaultValue</code>.
             </p>
             <p>
-              The effect of setting this attribute is equivalent to calling
+              Getting this attribute returns the contents of the <var>[[current
+              value]]</var> slot, which maintains the value of this parameter
+              at the conclusion of the most recent render quantum on the audio
+              rendering thread, or the most recently assigned value if no
+              rendering has taken place.
+            </p>
+            <p>
+              Setting this attribute has the effect of assigning the requested
+              value to the <var>[[current value]]</var> slot, and calling
               <code>setValueAtTime()</code> with the current
-              <code>AudioContext</code>'s <code>currentTime</code> and the
-              requested value. Subsequent accesses to this attribute's getter
-              will return the same value.
+              <code>AudioContext</code>'s <code>currentTime</code> and
+              <var>[[current value]]</var>.
             </p>
           </dd>
           <dt>
@@ -4098,17 +4110,17 @@ function setupRoutingGraph() {
             each time, which is either the value set directly to the
             <code>value</code> attribute, or, if there are any scheduled
             parameter changes (automation events) with times before or at this
-            time, the value as calculated from these events. When read, the
-            <code>value</code> attribute always returns the <em>intrinsic</em>
-            value for the current time. If automation events are removed from a
-            given time range, then the <em>intrinsic</em> value will remain
-            unchanged and stay at its previous value until either the
-            <code>value</code> attribute is directly set, or automation events
-            are added for the time range.
+            time, the value as calculated from these events. If automation
+            events are removed from a given time range, then the
+            <em>intrinsic</em> value will remain unchanged and stay at its
+            previous value until either the <code>value</code> attribute is
+            directly set, or automation events are added for the time range.
             </li>
             <li>The <em>computedValue</em> is the sum of the <em>intrinsic</em>
             value and the value of the <a href="#input-audioparam-buffer">input
-            <code>AudioParam</code> buffer</a>.
+            <code>AudioParam</code> buffer</a>. When read, the
+            <code>value</code> attribute always returns the
+            <em>computedValue</em> for the current time.
             </li>
             <li>If this <a>AudioParam</a> is a <a>compound parameter</a>,
             compute its final value with other <a>AudioParam</a>s.
@@ -11359,6 +11371,11 @@ odd function with period \(2\pi\).
                   <li>
                     <a href="#computation-of-value">Compute the value(s)</a> of
                     this <a>AudioParam</a> for this block.
+                  </li>
+                  <li>
+                    <a href="#queue">Queue a control message</a> to set the
+                    <var>[[current value]]</var> slot of this <a>AudioParam</a>
+                    to the last value computed in the preceding step.
                   </li>
                 </ol>
               </li>

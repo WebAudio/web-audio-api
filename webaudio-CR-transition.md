@@ -86,7 +86,16 @@ Web Audio tests for AudioWorklet will help test Worklet as well.
 ## Wide Review
 
 The specification has received wide review, including presentation and active discussion 
-at two sucessful Web Audio conferences and uptake by an entusiastic developer community. 
+at three sucessful Web Audio conferences and uptake by an entusiastic developer community. 
+These conferences have included public plenary sessions with the working group. 
+
+[WAC 2015 http://wac.eecs.qmul.ac.uk/](http://wac.eecs.qmul.ac.uk/)
+
+[WAC 2016 http://wac.ircam.fr/](http://wac.ircam.fr/)
+
+[WAC 2017 http://webaudio.gatech.edu/](http://webaudio.gatech.edu/)
+
+
 
 The specification was developed on GitHub, see the issues list
 
@@ -122,9 +131,9 @@ The issues list is on GitHub:
 
 https://github.com/WebAudio/web-audio-api/issues
 
-There are currently 65 open issues and 655 closed. 
+There are currently 74 open issues and 742 closed. 
 
-Of those, 61 were feature requests that were deferred to the next version
+Of those, 58 were feature requests that were deferred to the next version
 https://github.com/WebAudio/web-audio-api/issues?utf8=%E2%9C%93&q=%20label%3A%22Feature%20Request%2FMissing%20Feature%22%20-label%3A%22V1%20(TPAC%202014)%22%20
 
 ## Formal Objections

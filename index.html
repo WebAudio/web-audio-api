@@ -12234,37 +12234,35 @@ Quad up-mix:
         </p>
         <pre>
   // Calculate the source-listener vector.
-  vec3 sourceListener = source.position - listener.position;
+  let listener = context.listener;
+  let sourcePosition =
+    new Vec3(panner.positionX, panner.positionY, panner.positionZ);
+  let listenerPosition =
+    new Vec3(listener.positionX, listener.positionY, listener.positionZ);
+  let sourceListener = sourcePosition.diff(listenerPosition).normalize();
 
-  if (sourceListener.isZero()) {
+  if (sourceListener.magnitude == 0) {
       // Handle degenerate case if source and listener are at the same point.
       azimuth = 0;
       elevation = 0;
       return;
   }
 
-  sourceListener.normalize();
-
   // Align axes.
-  vec3 listenerFront = listener.orientation;
-  vec3 listenerUp = listener.up;
-  vec3 listenerRight = listenerFront.cross(listenerUp);
-  listenerRight.normalize();
+  let listenerFront =
+    new Vec3(listener.orientationX, listener.orientationY, listener.orientationZ);
+  let listenerUp =
+    new Vec3(listener.upX, listener.upY, listener.upZ);
+  let listenerRight = listenerFront.cross(listenerUp).normalize();
+  let listenerFrontNorm = listenerFront.normalize();
+  let up = listenerRight.cross(listenerFrontNorm);
+  let upProjection = sourceListener.dot(up);
+  let projectedSource = sourceListener.diff(up.scale(upProjection)).normalize();
 
-  vec3 listenerFrontNorm = listenerFront;
-  listenerFrontNorm.normalize();
-
-  vec3 up = listenerRight.cross(listenerFrontNorm);
-
-  float upProjection = sourceListener.dot(up);
-
-  vec3 projectedSource = sourceListener - upProjection * up;
-  projectedSource.normalize();
-
-  azimuth = 180 * acos(projectedSource.dot(listenerRight)) / PI;
+  azimuth = 180 * Math.acos(projectedSource.dot(listenerRight)) / PI;
 
   // Source in front or behind the listener.
-  float frontBack = projectedSource.dot(listenerFrontNorm);
+  let frontBack = projectedSource.dot(listenerFrontNorm);
   if (frontBack &lt; 0)
       azimuth = 360 - azimuth;
 
@@ -12274,7 +12272,7 @@ Quad up-mix:
   else
       azimuth = 450 - azimuth;
 
-  elevation = 90 - 180 * acos(sourceListener.dot(up)) / PI;
+  elevation = 90 - 180 * Math.acos(sourceListener.dot(up)) / PI;
 
   if (elevation &gt; 90)
       elevation = 180 - elevation;
@@ -12503,15 +12501,12 @@ Quad up-mix:
           based on the panner and listener positions according to:
         </p>
         <pre>
-  function dotProduct(v1, v2) {
-    var d = 0;
-    for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
-      d += v1[i] * v2[i];
-    return d;
-  }
-  var v = panner.position - listener.position;
-  var distance = Math.sqrt(dotProduct(v, v));
-  
+function distance(panner) {
+  let pannerPosition = new Vec3(panner.positionX, panner.positionY, panner.positionZ);
+  let listener = context.listener;
+  let listenerPosition = new Vec3(listener.positionX, listener.positionY, listener.positionZ);
+  return pannerPosition.diff(listenerPosition).magnitude;
+}  
 </pre>
         <p>
           <em>distance</em> will then be used to calculate
@@ -12547,41 +12542,29 @@ Quad up-mix:
           <a><code>PannerNode</code></a>) and the listener:
         </p>
         <pre>
-function dotProduct(v1, v2) {
-  var d = 0;
-  for (var i = 0; i &lt; Math.min(v1.length, v2.length); i++)
-    d += v1[i] * v2[i];
-  return d;
-}
-
-function diff(v1, v2) {
-  var v = [];
-  for (var i = 0; i & lt; Math.min(v1.length, v2.length); i++)
-    v[i] = v1[i] - v2[i];
-  return v;
-}
-
 function coneGain() {
-  if (dotProduct(source.orientation, source.orientation) == 0 || ((source.coneInnerAngle ==
+  let sourceOrientation = new Vec3(source.orientationX, source.orientationY, source.orientationZ);
+  if (sourceOrientation.magnitude == 0 || ((source.coneInnerAngle ==
       360) &amp;& (source.coneOuterAngle == 360)))
     return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
-  var sourceToListener = diff(listener.position, source.position);
-  sourceToListener.normalize();
+  let sourcePosition =
+    new Vec3(panner.positionX, panner.positionY, panner.positionZ);
+  let listenerPosition =
+    new Vec3(listener.positionX, listener.positionY, listener.positionZ);
+  let sourceToListener = sourcePosition.diff(listenerPosition).normalize();
 
-  var normalizedSourceOrientation = source.orientation;
-  normalizedSourceOrientation.normalize();
+  let normalizedSourceOrientation = sourceOrientation.normalize();
 
   // Angle between the source orientation vector and the source-listener vector
-  var dotProduct = dotProduct(sourceToListener, normalizedSourceOrientation);
-  var angle = 180 * Math.acos(dotProduct) / Math.PI;
-  var absAngle = Math.abs(angle);
+  let angle = 180 * Math.acos(sourceToListener.dot(normalizedSourceOrientation)) / Math.PI;
+  let absAngle = Math.abs(angle);
 
   // Divide by 2 here since API is entire angle (not half-angle)
-  var absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
-  var absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
-  var gain = 1;
+  let absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
+  let absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
+  let gain = 1;
 
   if (absAngle &lt;= absInnerAngle) {
     // No attenuation
@@ -12944,6 +12927,63 @@ function coneGain() {
       <p>
         Please see [[webaudio-usecases]].
       </p>
+    </section>
+    <section>
+      <h2>
+        Common Definitions for Specification Code
+      </h2>
+      <p>
+        This section describes common functions and classes employed by
+        JavaScript code used within this specification.
+      </p>
+      <pre>
+// Three dimensional vector class.
+class Vec3 {
+  // Construct from 3 coordinates.
+  constructor(x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+
+  // Dot product with another vector.
+  dot(v) {
+    return (this.x * v.x) + (this.y * v.y) + (this.z * v.z);
+  }
+
+  // Cross product with another vector.
+  cross(v) {
+    return new Vec3((this.y * v.z) - (this.z * v.y),
+                    (this.z * v.x) - (this.x * v.z),
+                    (this.x * v.y) - (this.y * v.x));
+  }
+
+  // Difference with another vector.
+  diff(v) {
+    return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z);
+  }
+
+  // Get the magnitude of this vector.
+  get magnitude() {
+    return Math.sqrt(dot(this));
+  }
+
+  // Get a copy of this vector multiplied by a scalar.
+  scale(s) {
+    return new Vec3(this.x * s, this.y * s, this.z * s);
+  }
+
+  // Get a normalized copy of this vector.
+  normalize() {
+    let m = magnitude;
+    if (m == 0) {
+      return new Vec3(0, 0, 0);
+    }
+    return scale(1 / m);
+  }
+}
+
+      </pre>
     </section>
     <section>
       <h2>

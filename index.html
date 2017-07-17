@@ -2107,40 +2107,105 @@ function setupRoutingGraph() {
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
         </p>
-        <p>
-          The OfflineAudioContext is constructed with the same arguments as
-          AudioContext.createBuffer. <span class="synchronous">A
-          <code>NotSupportedError</code> exception MUST be thrown if any of the
-          arguments is negative, zero, or outside its nominal range.</span>
-        </p>
-        <dl class="parameters">
-          <dt>
-            unsigned long numberOfChannels
-          </dt>
-          <dd>
-            Determines how many channels the buffer will have. See <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> for the supported number of channels.
-          </dd>
-          <dt>
-            unsigned long length
-          </dt>
-          <dd>
-            Determines the size of the buffer in sample-frames.
-          </dd>
-          <dt>
-            float sampleRate
-          </dt>
-          <dd>
-            Describes the sample-rate of the linear PCM audio data in the
-            buffer in sample-frames per second. See <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a> for valid sample rates.
-          </dd>
-        </dl>
         <dl title=
-        "[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate)] interface OfflineAudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
+        "interface OfflineAudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
         class='idl'>
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <p>
+              Let <var>c</var> be a new <a>OfflineAudioContext</a> object.
+              Initialize <var>c</var> as follows:
+            </p>
+            <ol>
+              <li>Set the <code>control thread state</code> for <var>c</var> to
+              <code>"suspended"</code>.
+              </li>
+              <li>Set the <code>rendering thread state</code> for <var>c</var>
+              to <code>"suspended"</code>.
+              </li>
+              <li>Construct an <a>AudioDestinationNode</a> with its
+              <a>channelCount</a> set to
+              <code>contextOptions.numberOfChannels</code>.
+              </li>
+              <li>
+                <p>
+                  Let <dfn>[[rendered buffer]]</dfn> be an internal slot
+                  initialized with an <a>AudioBuffer</a> constructed by
+                </p>
+                <pre>
+new AudioBuffer({
+    numberOfChannels: contextOptions.numberOfChannels,
+    length: contextOptions.length,
+    sampleRate: contextOptions.sampleRate
+})
+                </pre>
+                <p>
+                  This buffer holds the rendered audio data for the offline
+                  context.
+                </p>
+              </li>
+            </ol>
+            <dl class="parameters">
+              <dt>
+                OfflineAudioContextOptions contextOptions
+              </dt>
+              <dd>
+                The initial parameters needed to construct this context.
+              </dd>
+            </dl>
+          </dd>
+          <dt>
+            Constructor
+          </dt>
+          <dd>
+            <p>
+              The OfflineAudioContext can constructed with the same arguments
+              as AudioContext.createBuffer. <span class="synchronous">A
+              <code>NotSupportedError</code> exception MUST be thrown if any of
+              the arguments is negative, zero, or outside its nominal
+              range.</span>
+            </p>
+            <p>
+              The OfflineAudioContext is constructed as if
+            </p>
+            <pre>
+  new OfflineAudioContext({
+      numberOfChannels: numberOfChannels,
+      length: length,
+      sampleRate: sampleRate
+  })
+</pre>
+            <p>
+              were called instead.
+            </p>
+            <dl class="parameters">
+              <dt>
+                unsigned long numberOfChannels
+              </dt>
+              <dd>
+                Determines how many channels the buffer will have. See <a href=
+                "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                createBuffer</a> for the supported number of channels.
+              </dd>
+              <dt>
+                unsigned long length
+              </dt>
+              <dd>
+                Determines the size of the buffer in sample-frames.
+              </dd>
+              <dt>
+                float sampleRate
+              </dt>
+              <dd>
+                Describes the sample-rate of the linear PCM audio data in the
+                buffer in sample-frames per second. See <a href=
+                "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                createBuffer</a> for valid sample rates.
+              </dd>
+            </dl>
+          </dd>
           <dt>
             Promise&lt;AudioBuffer&gt; startRendering()
           </dt>
@@ -2185,15 +2250,9 @@ function setupRoutingGraph() {
               for the occasion.
             </p>
             <ol>
-              <li>Let <var>buffer</var> be a new <code>AudioBuffer</code>, with
-              a number of channels, length and sample rate equal respectively
-              to the <code>numberOfChannels</code>, <code>length</code> and
-              <code>sampleRate</code> parameters used when this instance's
-              constructor was called.
-              </li>
               <li>Given the current connections and scheduled changes, start
               rendering <code>length</code> sample-frames of audio into
-              <var>buffer</var>.
+              <a><var>[[rendered buffer]]</var></a>.
               </li>
               <li>For every <a>render quantum</a>, check and suspend the
               rendering if necessary.
@@ -2205,22 +2264,14 @@ function setupRoutingGraph() {
               <a>control thread</a>'s event loop to perform the following
               steps:
                 <ol>
-                  <li>Resolve <var>promise</var> with <var>buffer</var>.
+                  <li>Resolve <var>promise</var> with <a><var>[[rendered
+                  buffer]]</var></a>.
                   </li>
-                  <li>If a suspended context is resumed, continue to render the
-                  buffer.
-                  </li>
-                  <li>Once the rendering is complete,
-                    <ol>
-                      <li>Resolve <var>promise</var> with <var>buffer</var>.
-                      </li>
-                      <li>Queue a task to fire an event named
-                      <code>complete</code> at this instance, using an instance
-                      of <a><code>OfflineAudioCompletionEvent</code></a> whose
-                      <code>renderedBuffer</code> property is set to
-                      <var>buffer</var>.
-                      </li>
-                    </ol>
+                  <li>Queue a task to fire an event named <code>complete</code>
+                  at this instance, using an instance of
+                  <a><code>OfflineAudioCompletionEvent</code></a> whose <code>
+                    renderedBuffer</code> property is set to <a><var>[[rendered
+                    buffer]]</var></a>.
                   </li>
                 </ol>
               </li>
@@ -2286,6 +2337,35 @@ function setupRoutingGraph() {
             </p>
           </dd>
         </dl>
+        <section>
+          <h3>
+            OfflineAudioContextOptions
+          </h3>
+          <p>
+            This specifies the options to use in constructing an
+            <a>OfflineAudioContext</a>.
+          </p>
+          <dl title="dictionary OfflineAudioContextOptions" class="idl">
+            <dt>
+              unsigned long numberOfChannels = 1
+            </dt>
+            <dd>
+              The number of channels for this <a>OfflineAudioContext</a>.
+            </dd>
+            <dt>
+              required unsigned long length
+            </dt>
+            <dd>
+              The length of the rendered <a>AudioBuffer</a> in sample-frames.
+            </dd>
+            <dt>
+              required float sampleRate
+            </dt>
+            <dd>
+              The sample rate for this <a>OfflineAudioContext</a>.
+            </dd>
+          </dl>
+        </section>
         <section>
           <h2 id="OfflineAudioCompletionEvent">
             The OfflineAudioCompletionEvent Interface

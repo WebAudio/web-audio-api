@@ -9085,7 +9085,7 @@ function calculateNormalizationScale(buffer)
             <p>
               Let <var>node</var> be a new <a>DynamicsCompressorNode</a>
               object. <a href="#audionode-constructor-init">Initialize</a>
-              <var>node</var>. Let [[\reduction]] be a private slote on this
+              <var>node</var>. Let [[\reduction]] be a private slot on this
               <a>DynamicsCompressorNode</a>, that holds a floating point
               number, in decibels. Return <var>node</var>.
             </p>
@@ -9147,7 +9147,7 @@ function calculateNormalizationScale(buffer)
               current amount of gain reduction that the compressor is applying
               to the signal. If fed no signal the value will be 0 (no gain
               reduction). When this attribute is read, return the value of the
-              private slot [[\reduction]].
+              private slot [[internal reduction]].
             </p>
           </dd>
           <dt>
@@ -9248,9 +9248,9 @@ function calculateNormalizationScale(buffer)
             <code>reduction</code> property on the
             <a>DynamicsCompressorNode</a>
             </li>
-            <li>The compression curve is has three parts:
+            <li>The compression curve has three parts:
               <ul>
-                <li>The first part is the identify: \(f(x) = x\).
+                <li>The first part is the identity: \(f(x) = x\).
                 </li>
                 <li>The second part is the soft-knee portion, which MUST be a
                 monotonically increasing function.
@@ -9258,8 +9258,10 @@ function calculateNormalizationScale(buffer)
                 <li>The third part is a linear function of equation \(f(x) =
                 \frac{1}{ratio} \cdot x \).
                 </li>
-              </ul>This curve MUST be continuously differentiable, and
-              corresponds to a target output level, based on the input level.
+              </ul>
+              This curve MUST be continuous and piece-wise differentiable,
+              and corresponds to a target output level, based on the input
+              level.
             </li>
           </ul>
           <p>
@@ -9350,27 +9352,35 @@ function calculateNormalizationScale(buffer)
             execute the following steps:
               <ol>
                 <li>Let <var>envelope rate</var> be the result of <a href=
-                "envelope-rate">computing the envelope rate</a>
+                "#envelope-rate">computing the envelope rate</a>
                 </li>
-                <li>Let <var>attenuation</var> be the value of applying the
-                <a href="compression-curve">compression curve</a> to the
-                absolute value of <var>input</var> .
+                <li>If the absolute value of <var>input</var> is less than
+                0.0001, let <var>attenuation</var> be 1.0. Else, let
+                <var>attenuation</var> be the value of applying the <a
+                href="#compression-curve">compression curve</a> to the absolute
+                value of <var>input</var>, divided by the absolute value of
+                <var>input</var>.
                 </li>
+                <li>Let <var>decibels per frame</var> be the result of dividing
+                <var>attenuationDB</var> by <var>releaseRate</var>.</li>
+                <li>Set <var>relaseRate</var> be the result of
+                <a href="#db-to-linear">converting <var>decibels per frames
+                </var>to linear gain</a>, and substract one.</li>
                 <li>Set <var>change-rate</var> to the difference between <var>
-                  attenuation</var> and <var>detector average</var>. Multiply
-                  <var>change-rate</var> by the <var>envelope rate</var>. Add
-                  <var>change-rate</var> to <var>detector average</var>, and
-                  clamp <var>detector average</var> to a maximum of 1.0.
+                  attenuation</var> and <var>detector average</var>.
                 </li>
+                <li>Apply the <a href="#detector-curve">detector curve</a> to
+                <var>change-rate</var></li>
+                <li>Add <var>change-rate</var> to <var>detector average</var>,
+                and clamp <var>detector average</var> to a maximum of 1.0.  </li>
                 <li>If attacking, set <var>attack</var> to <var>detector
                 average</var> minus <var>compressor gain</var>. Set
                 <var>compressor gain</var> to the multiplication of
                 <var>attack</var> by <var>envelope rate</var>. Clamp
                 <var>compressor gain</var> to a maximum of 1.0.
                 </li>
-                <li>Else, multiply <var>compressor gain</var> by <var>envelope
-                rate</var>
-                </li>
+                <li>Multiply <var>attack</var> by <var>envelope rate</var>. Add
+                <var>attack</var> to <var>compressor gain</var>.</li>
                 <li>Compute <var>final gain</var> to be <var>compressor
                 gain</var> multiplied by the return value of <a>computing the
                 makeup gain</a>.
@@ -9380,8 +9390,8 @@ function calculateNormalizationScale(buffer)
                 decibel</a>.
                 </li>
                 <li>
-                  <a href="atomic">Atomically</a> set the internal slot
-                  [[\reduction]] to the value of <var>metering gain</var>.
+                  <a href="#atomic">Atomically</a> set the internal slot
+                  [[internal reduction]] to the value of <var>metering gain</var>.
                 </li>
               </ol>
             </li>
@@ -9411,34 +9421,44 @@ function calculateNormalizationScale(buffer)
             <dfn id="#envelope-rate">Computing the envelope rate</dfn> is done
             by applying a function to the ratio of the <var>compressor
             gain</var> and the <var>detector average</var>. User-agents are
-            allowed to choose the shape of the attack and release curve.
+            allowed to choose the shape the enveloppe function.
             However, they MUST respect the following constraints:
           </p>
           <ul>
-            <li>The input to the curve MUST be the ratio of the <var>compressor
-            gain</var> and the <var>detector average</var>.
-              <div class="note">
-                When attacking, this number less than or equal to 1, when
-                releasing, this number is strictly greater to 1.
-              </div>
+            <li>The enveloppe rate MUST be the calculated from the ratio of the
+            <var>compressor gain</var> and the <var>detector average</var>.
+            <div class="note">
+              When attacking, this number less than or equal to 1, when
+              releasing, this number is strictly greater than 1.
+            </div>
             </li>
             <li>The attack curve MUST be a continuous, monotonically increasing
             function in the range \([0, 1]\).
             </li>
             <li>The release curve MUST be a continuous, monotonically
-            decreasing function that is always greater to 1.
+            decreasing function that is always greater than 1.
             </li>
+          </ul>
+          <p>
+          Applying the <dfn id="detector-curve">detector curve</dfn> to the
+          change rate when attacking or releasing allow implementing
+          <em>adaptive release</em>.  It is a function that MUST respect the
+          following constraints:
+          </p>
+          <ul>
+            <li>The output of the function MUST be in \([0,1]\).</li>
+            <li>The function MUST be monotonically increasing, continuous.</li>
           </ul>
           <div class="note">
             It is allowed, for example, to have a compressor that performs an
-            <em>adaptative release</em>, that is, releasing faster the harder
+            <em>adaptive release</em>, that is, releasing faster the harder
             the compression, or to have curves for attack and release that are
             not of the same shape.
           </div>
           <p>
             Applying a <dfn>compression curve</dfn> to a value means computing
             the value of this sample when passed to a function, and returning
-            the computed value. This function MUST respects the following
+            the computed value. This function MUST respect the following
             characteristics:
           </p>
           <ol>
@@ -9447,9 +9467,7 @@ function calculateNormalizationScale(buffer)
             </li>
             <li>From the <code>threshold</code> up to the <code>threshold +
             knee</code>, User-Agents can choose the curve shape. The whole
-            function MUST be monotonically increasing and continuous except
-            when the <code>knee</code> parameter is 0, in which case a
-            discontinuity happens at the treshold.
+            function MUST be monotonically increasing and continuous.
               <div class="note">
                 If the <code>knee</code> is 0, the
                 <a>DynamicsCompressorNode</a> is called a hard-knee compressor.
@@ -9467,7 +9485,7 @@ function calculateNormalizationScale(buffer)
           <ol>
             <li>If <var>v</var> is equal to zero, return -1000.
             </li>
-            <li>Else, return \( 20 \times \log_{10}{v} \)
+            <li>Else, return \( 20 \, \log_{10}{v} \)
             </li>
           </ol>
           <p>

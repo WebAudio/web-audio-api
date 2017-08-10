@@ -9085,7 +9085,10 @@ function calculateNormalizationScale(buffer)
             <p>
               Let <var>node</var> be a new <a>DynamicsCompressorNode</a>
               object. <a href="#audionode-constructor-init">Initialize</a>
-              <var>node</var>, and return <var>node</var>.
+              <var>node</var>. Let [[internal reduction]] be a private slot on
+              this <a>DynamicsCompressorNode</a>, that holds a floating point
+              number, in decibels. Set [[internal reduction]] to 0.0. Return
+              <var>node</var>.
             </p>
             <dl class="parameters">
               <dt>
@@ -9144,7 +9147,8 @@ function calculateNormalizationScale(buffer)
               A read-only decibel value for metering purposes, representing the
               current amount of gain reduction that the compressor is applying
               to the signal. If fed no signal the value will be 0 (no gain
-              reduction).
+              reduction). When this attribute is read, return the value of the
+              private slot [[internal reduction]].
             </p>
           </dd>
           <dt>
@@ -9221,6 +9225,301 @@ function calculateNormalizationScale(buffer)
               AudioParam.
             </dd>
           </dl>
+        </section>
+        <section>
+          <h2>
+            Processing
+          </h2>
+          <p>
+            Dynamics compression can be implemented in a variety of ways. The
+            <a>DynamicsCompressorNode</a> implements a dynamics processor that
+            has the following characteristics:
+          </p>
+          <ul>
+            <li>Fixed look-ahead (this means that an
+            <a>DynamicsCompressorNode</a> adds a fixed latency to the signal
+            chain).
+            </li>
+            <li>Configurable attack speed, release speed, threshold, knee
+            hardness and ratio.
+            </li>
+            <li>Side-chaining is not supported.
+            </li>
+            <li>The gain reduction is reported <em>via</em> the
+            <code>reduction</code> property on the
+            <a>DynamicsCompressorNode</a>.
+            </li>
+            <li>The compression curve has three parts:
+              <ul>
+                <li>The first part is the identity: \(f(x) = x\).
+                </li>
+                <li>The second part is the soft-knee portion, which MUST be a
+                monotonically increasing function.
+                </li>
+                <li>The third part is a linear function: \(f(x) =
+                \frac{1}{ratio} \cdot x \).
+                </li>
+              </ul>This curve MUST be continuous and piece-wise differentiable,
+              and corresponds to a target output level, based on the input
+              level.
+            </li>
+          </ul>
+          <p>
+            Graphically, such a curve would look something like this:
+          </p>
+          <figure>
+            <img alt="Graphical representation of a compression curve" src=
+            "images/compression-curve.svg" style="width: 50%">
+            <figcaption>
+              A typical compression curve, showing the knee portion (soft or
+              hard) as well as the threshold.
+            </figcaption>
+          </figure>
+          <p>
+            Internally, the <a>DynamicsCompressorNode</a> is described with a
+            combination of other <a>AudioNode</a>s, as well as a special
+            algorithm, to compute the gain reduction value.
+          </p>
+          <p>
+            The following <a>AudioNode</a> graph is used internally,
+            <code>input</code> and <code>output</code> respectively being the
+            input and output <a>AudioNode</a>, <code>context</code> the
+            <a>BaseAudioContext</a> for this <a>DynamicsCompressorNode</a>, and
+            new class, <code>EnvelopeFollower</code>, that instantiate a
+            special object that behaves like an <a>AudioNode</a>, described
+            below:
+          </p>
+          <pre>
+              var delay = new DelayNode(context, {delayTime: 0.006});
+              var gain = new GainNode(context);
+              var compression = new EnvelopeFollower();
+
+              input.connect(delay).connect(gain).connect(output);
+              input.connect(compression).connect(gain.gain);</pre>
+          <figure>
+            <img src="images/dynamicscompressor-internal-graph.svg" alt=
+            "Schema of
+            the internal graph used by the DynamicCompressorNode">
+            <figcaption>
+              The graph of internal <a>AudioNode</a>s used as part of the
+              <a>DynamicsCompressorNode</a> processing algorithm.
+            </figcaption>
+          </figure>
+          <div class="note">
+            This implements the pre-delay and the application of the reduction
+            gain.
+          </div>
+          <p>
+            The following algorithm describes the processing performed by an
+            <code>EnvelopeFollower</code> object, to be applied to the input
+            signal to produce the gain reduction value. An
+            <code>EnvelopeFollower</code> has two slots holding floating point
+            values. Those values persist accros invocation of this algorithm.
+          </p>
+          <ul>
+            <li>Let <code>[[detector average]]</code> be a floating point
+            number, initialized to 0.0.
+            </li>
+            <li>Let <code>[[compression gain]]</code> be a floating point
+            number, initialized to 1.0.
+            </li>
+          </ul>
+          <p>
+            The following algorithm allow determining a value for
+            <var>reduction gain</var>, for each sample of input, for a render
+            quantum of audio.
+          </p>
+          <ol>
+            <li>Let <var>threshold</var>, <var>knee</var> have the value of the
+            <a>AudioParam</a> of the same name, <a href=
+            "#db-to-linear">converted to linear unit</a> sampled at the time of
+            processing of this block (as <a>k-rate</a> parameters).
+            </li>
+            <li>Let <var>ratio</var> have the value of the <code>ratio</code>
+            <a>AudioParam</a>, sampled at the time of processing of this block
+            (as a <a>k-rate</a> parameter).
+            </li>
+            <li>Let <var>attack</var> and <var>release</var> have the value of
+            the <a>AudioParam</a> of the same name, sampled at the time of
+            processing (those are <a>k-rate</a> parameters), mutiplied by the
+            sample-rate of the <a>BaseAudioContext</a> this
+            <a>DynamicsCompressorNode</a> is <a href=
+            "#associated">associated</a> with.
+            </li>
+            <li>Let <var>detector average</var> be the value of the slot <code>
+              [[detector average]]</code>.
+            </li>
+            <li>Let <var>compressor gain</var> be the value of the slot <code>
+              [[compressor gain]]</code>.
+            </li>
+            <li>For each sample <var>input</var> of the render quantum to be
+            processed, execute the following steps:
+              <ol>
+                <li>Let <var>releasing</var> be <code>true</code> if
+                <var>target gain</var> is greater than <var>compressor
+                gain</var>, <code>false</code> otherwise.
+                </li>
+                <li>If the absolute value of <var>input</var> is less than
+                0.0001, let <var>attenuation</var> be 1.0. Else, let
+                <var>shaped input</var> be the value of applying the <a href=
+                "#compression-curve">compression curve</a> to the absolute
+                value of <var>input</var>. Let <var>attenuation</var> be <var>
+                  shaped input</var> divided by the absolute value of
+                  <var>input</var>.
+                </li>
+                <li>Let <var>detector rate</var> be the result of applying the
+                <a href="#detector-curve">detector curve</a> to
+                <var>attenuation</var>.
+                </li>
+                <li>Substract <var>detector average</var> to
+                <var>attenuation</var>, and multiply the result by
+                <var>detector rate</var>. Add this new result to <var>detector
+                average</var>.
+                </li>
+                <li>Clamp <var>detector average</var> to a maximum of 1.0.
+                </li>
+                <li>Let <var>envelope rate</var> be the result of <a href=
+                "#envelope-rate">computing the envelope rate</a>.
+                </li>
+                <li>If <var>releasing</var> is <code>true</code>, set
+                <var>compressor gain</var> to the multiplication of
+                <var>compressor gain</var> by <var>envelope rate</var>, clamped
+                to a maximum of 1.0.
+                </li>
+                <li>Else, if <var>releasing</var> is <code>false</code>, let
+                <var>gain increment</var> to be <var>detector average</var>
+                minus <var>compressor gain</var>. Multiply <var>gain
+                increment</var> by <var>envelope rate</var>, and add the result
+                to <var>compressor gain</var>.
+                </li>
+                <li>Compute <var>reduction gain</var> to be <var>compressor
+                gain</var> multiplied by the return value of <a>computing the
+                makeup gain</a>.
+                </li>
+                <li>Compute <var>metering gain</var> to be <var>final
+                gain</var>, <a href="#linear-to-decibel">converted to
+                decibel</a>.
+                </li>
+              </ol>
+            </li>
+            <li>Set <code>[[compressor gain]]</code> to <var>compressor
+            gain</var>.
+            </li>
+            <li>Set <code>[[detector average]]</code> to <var>detector
+            average</var>.
+            </li>
+            <li>
+              <a href="#atomic">Atomically</a> set the internal slot [[internal
+              reduction]] to the value of <var>metering gain</var>.
+              <div class="note">
+                This step makes the metering gain update once per block, at the
+                end of the block processing.
+              </div>
+            </li>
+          </ol>
+          <p>
+            The makeup gain is a fixed gain stage that only depends on ratio,
+            knee and threshold parameter of the compressor, and not on the
+            input signal. The intent here is to increase the output level of
+            the compressor so it is comparable to the input level.
+          </p>
+          <p>
+            <dfn>Computing the makeup gain</dfn> means executing the following
+            steps:
+          </p>
+          <ol>
+            <li>Let <var>full range gain</var> be the value returned by
+            applying the <a>compression curve</a> to the value 1.0.
+            </li>
+            <li>Let <var>full range makeup gain</var> the inverse of <var>full
+            range gain</var>.
+            </li>
+            <li>Return the result of taking 0.6 power of <var>full range makeup
+            gain</var>.
+            </li>
+          </ol>
+          <p>
+            <dfn id="#envelope-rate">Computing the envelope rate</dfn> is done
+            by applying a function to the ratio of the <var>compressor
+            gain</var> and the <var>detector average</var>. User-agents are
+            allowed to choose the shape the envelope function. However, this
+            function MUST respect the following constraints:
+          </p>
+          <ul>
+            <li>The envelope rate MUST be the calculated from the ratio of the
+            <var>compressor gain</var> and the <var>detector average</var>.
+              <div class="note">
+                When attacking, this number less than or equal to 1, when
+                releasing, this number is strictly greater than 1.
+              </div>
+            </li>
+            <li>The attack curve MUST be a continuous, monotonically increasing
+            function in the range \([0, 1]\).
+            </li>
+            <li>The release curve MUST be a continuous, monotonically
+            decreasing function that is always greater than 1.
+            </li>
+          </ul>
+          <p>
+            This operation returns the value computed by applying this function
+            to the ratio of <var>compressor gain</var> and <var>detector
+            average</var>.
+          </p>
+          <p>
+            Applying the <dfn id="detector-curve">detector curve</dfn> to the
+            change rate when attacking or releasing allow implementing
+            <em>adaptive release</em>. It is a function that MUST respect the
+            following constraints:
+          </p>
+          <ul>
+            <li>The output of the function MUST be in \([0,1]\).
+            </li>
+            <li>The function MUST be monotonically increasing, continuous.
+            </li>
+          </ul>
+          <div class="note">
+            It is allowed, for example, to have a compressor that performs an
+            <em>adaptive release</em>, that is, releasing faster the harder the
+            compression, or to have curves for attack and release that are not
+            of the same shape.
+          </div>
+          <p>
+            Applying a <dfn>compression curve</dfn> to a value means computing
+            the value of this sample when passed to a function, and returning
+            the computed value. This function MUST respect the following
+            characteristics:
+          </p>
+          <ol>
+            <li>This function is the identity up to the value of the linear
+            <code>threshold</code> (i.e., \(f(x) = x\)).
+            </li>
+            <li>From the <code>threshold</code> up to the <code>threshold +
+            knee</code>, User-Agents can choose the curve shape. The whole
+            function MUST be monotonically increasing and continuous.
+              <div class="note">
+                If the <code>knee</code> is 0, the
+                <a>DynamicsCompressorNode</a> is called a hard-knee compressor.
+              </div>
+            </li>
+            <li>This function is linear, based on the ratio, after the
+            <code>threshold</code> and the soft knee (i.e., \(f(x) =
+            \frac{1}{ratio} \cdot x \)).
+            </li>
+          </ol>
+          <p>
+            Converting a value \(v\) in <dfn id="linear-to-decibel">linear gain
+            unit to decibel means</dfn> executing the following steps:
+          </p>
+          <ol>
+            <li>If <var>v</var> is equal to zero, return -1000.
+            </li>
+            <li>Else, return \( 20 \, \log_{10}{v} \)
+            </li>
+          </ol>
+          <p>
+            Converting a value \(v\) in <dfn id="db-to-linear">decibels to
+            linear gain unit</dfn> means returning \(10^\frac{v}{20}\)
+          </p>
         </section>
       </section>
       <section>

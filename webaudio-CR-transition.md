@@ -89,11 +89,11 @@ The specification has received wide review, including presentation and active di
 at three sucessful Web Audio conferences and uptake by an entusiastic developer community. 
 These conferences have included public plenary sessions with the working group. 
 
-[WAC 2015 http://wac.eecs.qmul.ac.uk/](http://wac.eecs.qmul.ac.uk/)
+[WAC 2015 http://wac.ircam.fr/](http://wac.ircam.fr/)
 
-[WAC 2016 http://wac.ircam.fr/](http://wac.ircam.fr/)
+[WAC 2016 http://webaudio.gatech.edu/](http://webaudio.gatech.edu/)
 
-[WAC 2017 http://webaudio.gatech.edu/](http://webaudio.gatech.edu/)
+[WAC 2017 http://wac.eecs.qmul.ac.uk/](http://wac.eecs.qmul.ac.uk/)
 
 
 

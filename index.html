@@ -7262,6 +7262,19 @@ function process(numberOfFrames) {
               "#widl-AudioWorkletGlobalScope-registerProcessor-void-DOMString-name-VoidFunction-processorCtor">
               registerProcessor</a> method is called.
             </dd>
+            <dt>
+              <dfn>node name to parameter descriptor map</dfn>
+            </dt>
+            <dd>
+              Belongs to <a>BaseAudioContext</a>. This map contains an
+              identical set of string keys from <a>node name to processor
+              definition map</a> that are associated with the matching
+              <a>parameterDescriptors</a> values. This internal storage is
+              populated when a promise from <a href=
+              "https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule">addModule()</a>
+              on <a href="#widl-Window-audioWorklet">audioWorklet</a> gets
+              resolved.
+            </dd>
           </dl>
           <pre class="example" title=
           "Registering an AudioWorkletProcessor class definition">
@@ -7680,8 +7693,8 @@ window.audioWorklet.addModule("bypass.js").then(function () {
               <a>AudioWorkletProcessor</a>. The subclass MUST define a method
               named <code>process()</code> that implements the audio processing
               algorithm and have a valid static property named
-              <code>parameterDescriptors</code> which is an iterable of
-              <a>AudioParamDescriptor</a> that is looked up by the
+              <dfn><code>parameterDescriptors</code></dfn> which is an iterable
+              of <a>AudioParamDescriptor</a> that is looked up by the
               <a>AudioWorkletProcessor</a> constructor to create instances of
               <a>AudioParam</a> in the <code>parameters</code> maplike storage
               in the node. The step 5 and 6 of <a href=
@@ -7920,92 +7933,147 @@ class MyProcessor extends AudioWorkletProcessor {
             <a>AudioWorkletNode</a> instance is destroyed.
           </p>
           <p>
-            When <a>AudioWorkletNode</a>(<var>context</var>, <var>name</var>,
-            <var>options</var>) constructor is called, the user agent MUST run
-            the following steps <a data-lt="atomic">atomically</a>.
+            Note that the instantiation of these two objects spans the control
+            thread and the rendering thread.
+          </p>
+          <p>
+            When <a>AudioWorkletNode</a>(<var>context</var>,
+            <var>nodeName</var>, <var>options</var>) constructor is invoked,
+            the user agent MUST perform the following steps on the control
+            thread, where the constructor was called.
           </p>
           <ol>
             <li>Let <var>this</var> be the instance being created by
             constructor of <a>AudioWorkletNode</a> or its subclass.
             </li>
-            <li>If <var>name</var> does not exists as a key in the
-            <a>AudioWorkletGlobalScope</a>’s <a>node name to processor
-            definition map</a>, throw a <code>NotSupportedError</code>
-            exception and abort these steps.
+            <li>If <var>nodeName</var> does not exists as a key in the
+            <a>BaseAudioContext</a>’s <a>node name to parameter descriptor
+            map</a>, throw a <code>NotSupportedError</code> exception and abort
+            these steps.
             </li>
-            <li>Let <var>processorConstructor</var> be the result of looking up
-            <var>name</var> on the <a>AudioWorkletGlobalScope</a>’s <a>node
-            name to processor definition map</a>.
+            <li>Let <var>node</var> be a new <a>AudioWorkletNode</a> object.
             </li>
-            <li>Let <var>processorInstance</var> be the result of <a href=
-            "http://www.ecma-international.org/ecma-262/6.0/#sec-construct">Construct</a>(<var>processorConstructor</var>,
-            <var>« options »</var>). The argument list <var>options</var> is
-            serialized using the <a href=
-            "http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data">
-              structured clone</a> algorithm.
+            <li>Let <var>messageChannel</var> be a new <a href=
+            "https://html.spec.whatwg.org/multipage/#message-channels">MessageChannel</a>.
             </li>
-            <li>Let <var>parameterDescriptors</var> be the result of <a href=
-            "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>processorConstructor</var>,
-            P="parameterDescriptors"). If <var>parameterDescriptors</var> is
-            <code>undefined</code>, skip to the step 8.
+            <li>Let <var>nodePort</var> be the value of
+            <var>messageChannel</var>'s <code>port1</code> attribute.
             </li>
-            <li>Let <var>parameterMap</var> be the result of <a href=
-            "https://tc39.github.io/ecma262/#sec-map-iterable">Map</a>().
+            <li>Let <var>processorPortOnThisSide</var> be the value of
+            <var>messageChannel</var>'s <code>port2</code> attribute.
             </li>
-            <li>For each <var>descriptor</var> in
-            <var>parameterDescriptors</var> perform the following substeps:
+            <li>Let <var>processorPortSerialization</var> be <a href=
+            "https://html.spec.whatwg.org/multipage/infrastructure.html#structuredserializewithtransfer">
+              StructuredSerializeWithTransfer</a>(<var>processorPortOnThisSide</var>,
+              « <var>processorPortOnThisSide</var> »).
+            </li>
+            <li>Set <var>node</var>'s <a href=
+            "#widl-AudioWorkletNode-port">port</a> to <var>nodePort</var>.
+            </li>
+            <li>Let <var>parameterDescriptors</var> be the result of retrieval
+            of <var>nodeName</var> from <a>node name to parameter descriptor
+            map</a>:
               <ol>
-                <li>Let <var>audioParam</var> be a new <a>AudioParam</a>
-                instance with:
-                  <ul>
-                    <li>
-                      <var>paramName</var> being the result <a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
-                      P="name").
-                    </li>
-                    <li>
-                      <var>defaultValue</var> being the result <a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
-                      P="defaultValue").
-                    </li>
-                    <li>
-                      <var>minValue</var> being the result <a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
-                      P="minValue").
-                    </li>
-                    <li>
-                      <var>maxValue</var> being the result <a href=
-                      "https://tc39.github.io/ecma262/#sec-get-o-p">Get</a>(O=<var>descriptor</var>,
-                      P="maxValue").
-                    </li>
-                  </ul>
+                <li>Let <var>audioParamMap</var> be a new <a>AudioParamMap</a>
+                object.
                 </li>
-                <li>If <var>options</var> contains a dictionary member with
-                name <var>paramName</var> whose value is of type
-                <code>Number</code>, perform <a href=
-                "https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a>(<var>audioParam</var>,
-                "value", <a href="https://tc39.github.io/ecma262/#sec-get-o-p">
-                  Get</a>(O=<var>options</var>, P=<var>paramName</var>),
-                  false).
+                <li>For each <var>descriptor</var> of
+                <var>parameterDescriptors</var>:
+                  <ol>
+                    <li>Let <var>paramName</var> be the value of
+                    <var>descriptor</var>'s <a href=
+                    "#widl-AudioParamDescriptor-name">name</a>.
+                    </li>
+                    <li>Let <var>audioParam</var> be a new <a>AudioParam</a>
+                    instance.
+                    </li>
+                    <li>Append (<var>paramName</var>, <var>audioParam</var>) to
+                    <var>audioParamMap</var>'s entries.
+                    </li>
+                  </ol>
                 </li>
-                <li>Perform <a href=
-                "https://tc39.github.io/ecma262/#https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">
-                  Set</a>(O=<var>parameterMap</var>, P=<var>paramName</var>,
-                  V=<var>audioParam</var>).
+                <li>For each <var>paramNameInOption</var> → <var>value</var> of
+                <var>options</var>:
+                  <ol>
+                    <li>If there exists an entry with name member equal to
+                    <var>paramNameInOption</var> inside
+                    <var>audioParamMap</var>, set that <a>AudioParam</a>'s
+                    value to <var>value</var>.
+                    </li>
+                    <li>
+                      <var>paramNameInOption</var> will be ignored when:
+                      <ul>
+                        <li>
+                          <var>audioParamMap</var> does not have any entry with
+                          the same name member.
+                        </li>
+                        <li>
+                          <var>value</var> is not a type of <code>Number</code>
+                          or out of the range specified in
+                          <a>AudioParamDescriptor</a>.
+                        </li>
+                      </ul>
+                    </li>
+                  </ol>
+                </li>
+                <li>Set <var>node</var>'s <a href=
+                "#widl-AudioWorkletNode-parameters">parameters</a> to
+                <var>audioParamMap</var>.
                 </li>
               </ol>
             </li>
-            <li>Perform <a href=
-            "https://tc39.github.io/ecma262/#sec-createmethodproperty">CreateDataProperty</a>(O=<var>this</var>,
-            P="parameters", V=<var>parameterMap</var>).
+            <li>
+              <a href="#queuing">Queue a control message</a> to create an
+              <a>AudioWorkletProcessor</a>, given <var>nodeName</var>,
+              <var>processorPortSerialization</var>, and <var>node</var>.
             </li>
-            <li>Set <a>node reference</a> in <var>processorInstance</var> to
-            <var>this</var>.
+            <li>Return <var>node</var>.
             </li>
-            <li>Set <a>processor reference</a> in <var>this</var> to
-            <var>processorInstance</var>.
+          </ol>
+          <p>
+            In order to process a control message for the construction of an
+            <a>AudioWorkletProcessor</a>, given a string <var>nodeName</var>, a
+            serialization record <var>processorPortSerialization</var>, and an
+            <a>AudioWorkletNode</a> <var>node</var>, perform the following
+            steps on the <a>rendering thread</a>. If any of these steps throws
+            an exception (either explicitly or implicitly), abort the rest of
+            steps and queue a task on the <a>control thread</a> to fire
+            <a href="#widl-AudioWorkletNode-onprocessorstatechange"><code>processorstatechange</code></a>
+            event to <var>node</var> with <code>error</code> state.
+          </p>
+          <ol>
+            <li>Let <var>processorPort</var> be <a href=
+            "https://html.spec.whatwg.org/multipage/infrastructure.html#structureddeserializewithtransfer">
+              StructuredDeserializeWithTransfer</a>(<var>processorPortSerialization</var>,
+              the current Realm).
             </li>
-            <li>Return <var>this</var> as a result of the construction.
+            <li>Let <var>processorConstructor</var> be the result of looking up
+            <var>nodeName</var> on the <a>AudioWorkletGlobalScope</a>'s <a>node
+            name to processor definition map</a>.
+            </li>
+            <li>If <var>processorConstructor</var> is <code>undefined</code>,
+            throw a <code>NotSupportedError</code> DOMException.
+            </li>
+            <li>Let <var>processor</var> be the result of
+            Construct(<var>processorConstructor</var>).
+            </li>
+            <li>If <var>processor</var> does not implement the
+            <a>AudioWorkletProcessor</a> interface, throw an
+            <code>"InvalidStateError"</code> DOMException.
+            </li>
+            <li>Set <var>processor</var>'s <a href=
+            "#widl-AudioWorkletProcessor-port">port</a> to
+            <var>processorPort</var>.
+            </li>
+            <li>Set <var>processor</var>'s <a>node reference</a> to
+            <var>node</var>.
+            </li>
+            <li>Set <var>node</var>'s <a>processor reference</a> to
+            <var>processor</var>.
+            </li>
+            <li>Queue a task the <a>control thread</a> to set the associated
+            <a>AudioWorkletNode</a>'s state to <code>running</code>, then fire
+            a <code>statechange</code> event.
             </li>
           </ol>
         </section>
@@ -8154,6 +8222,14 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
 });
 </pre>
+            <div class="note">
+              <p>
+                In the definition of <a>AudioWorkletProcessor</a> class, an
+                <code>InvalidStateError</code> will be thrown if the
+                author-supplied constructor uses JavaScript's return-override
+                feature, or does not properly call <code>super()</code>.
+              </p>
+            </div>
           </section>
           <section>
             <h3>
@@ -9684,10 +9760,10 @@ function calculateNormalizationScale(buffer)
             </p>
             <p>
               If another call to <code>getFloatFrequencyData</code> or
-              <code>getByteFrequencyData</code>occurs within the same <a>render
-              quantum</a> as a previous call, the <a>current frequency data</a>
-              is not updated with the same data. Instead, the previously
-              computed data is returned.
+              <code>getByteFrequencyData</code> occurs within the same
+              <a>render quantum</a> as a previous call, the <a>current
+              frequency data</a> is not updated with the same data. Instead,
+              the previously computed data is returned.
             </p>
             <p>
               The frequency data are in dB units.

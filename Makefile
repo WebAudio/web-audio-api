@@ -9,7 +9,10 @@ support_dir ?= $(CURDIR)/.support
 # itself
 tidy_revision = 5.4.0
 tidy ?= $(shell which tidy 2>/dev/null)
+
+ifneq ($(tidy),)
 tidy_version ?= $(shell tidy --version)
+endif
 
 ifeq (,$(findstring 5.4,$(tidy_version)))
 $(info Found a tidy, but with a wrong version)

@@ -4330,9 +4330,148 @@ new AudioBuffer({
           <dl class="methods" data-dfn-for="OfflineAudioContext" data-link-for=
           "OfflineAudioContext">
             <dt>
-              <dfn><code></code></dfn>
+              <dfn><code>startRendering</code></dfn>
             </dt>
             <dd>
+              <p>
+              Given the current connections and scheduled changes, starts
+              rendering audio. The system shall ensure that the
+              <code>OfflineAudioContext</code> is not garbage collected until
+              either the promise is resolved and any callback function is
+              called and completes, or until the <code>suspend</code> function
+              is called.
+            </p>
+            <p>
+              Although the primary method of getting the rendered audio data is
+              via its promise return value, the instance will also fire an
+              event named <code>complete</code> for legacy reasons.
+            </p>
+            <p>
+              <span class="synchronous">When <code>startRendering</code> is
+              called, the following steps MUST be performed on the <a>control
+              thread</a>:</span>
+            </p>
+            <ol>
+              <li>Set a flag called <var>renderingStarted</var> on the
+              <a>OfflineAudioContext</a> to <em>true</em>.
+              </li>
+              <li>If the <em>renderingStarted</em> flag on the
+              <a>OfflineAudioContext</a> is <em>true</em>, return a rejected
+              promise with <code>InvalidStateError</code>, and abort these
+              steps.
+              </li>
+              <li>Let <var>promise</var> be a new promise.
+              </li>
+              <li>Start to render the audio graph on another thread.
+              </li>
+              <li>Return <var>promise</var>.
+              </li>
+            </ol>
+            <p>
+              When rendering an audio graph on another thread, the following
+              steps MUST happen on a <a>rendering thread</a> that is created
+              for the occasion.
+            </p>
+            <ol>
+              <li>Given the current connections and scheduled changes, start
+              rendering <code>length</code> sample-frames of audio into
+              <a><var>[[rendered buffer]]</var></a>.
+              </li>
+              <li>For every <a>render quantum</a>, check and suspend the
+              rendering if necessary.
+              </li>
+              <li>If a suspended context is resumed, continue to render the
+              buffer.
+              </li>
+              <li>Once the rendering is complete, queue a task on the
+              <a>control thread</a>'s event loop to perform the following
+              steps:
+                <ol>
+                  <li>Resolve <var>promise</var> with <a><var>[[rendered
+                  buffer]]</var></a>.
+                  </li>
+                  <li>Queue a task to fire an event named <code>complete</code>
+                  at this instance, using an instance of
+                  <a><code>OfflineAudioCompletionEvent</code></a> whose <code>
+                    renderedBuffer</code> property is set to <a><var>[[rendered
+                    buffer]]</var></a>.
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            </dd>
+            <dt>
+              <dfn><code>suspend</code></dfn>
+            </dt>
+            <dd>
+            <p>
+              Schedules a suspension of the time progression in the audio
+              context at the specified time and returns a promise. This is
+              generally useful when manipulating the audio graph synchronously
+              on <a><code>OfflineAudioContext</code></a>.
+            </p>
+            <p>
+              Note that the maximum precision of suspension is the size of the
+              <a>render quantum</a> and the specified suspension time will be
+              rounded down to the nearest <a>render quantum</a> boundary. For
+              this reason, it is not allowed to schedule multiple suspends at
+              the same quantized frame. Also, scheduling should be done while
+              the context is not running to ensure precise suspension.
+            </p>
+            <table class="parameters">
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      suspendTime
+                    </td>
+                    <td class="prmType">
+                      <code>double</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                Schedules a suspension of the rendering at the specified time,
+                which is quantized and rounded down to the <a>render
+                quantum</a> size. If the quantized frame number
+                <ol>
+                  <li>is negative or
+                  </li>
+                  <li>is less than or equal to the current time or
+                  </li>
+                  <li>is greater than or equal to the total render duration or
+                  </li>
+                  <li>is scheduled by another suspend for the same time,
+                  </li>
+                </ol>then the promise is rejected with
+                <code>InvalidStateError</code>.
+                    </td>
+                  </tr>
+                </table>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+              </dt>
+            </dl>
             </dd>
           </dt>
         </section>

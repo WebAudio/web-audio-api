@@ -7448,8 +7448,137 @@ interface AudioParam {
                 <em>Return type:</em> <a><code>AudioParam</code></a>
               </div>
             </dd>
+            <dt>
+              <dfn>exponentialRampToValueAtTime</dfn>
+            </dt>
+            <dd>
+            <p>
+              Schedules an exponential continuous change in parameter value
+              from the previous scheduled parameter value to the given value.
+              Parameters representing filter frequencies and playback rate are
+              best changed exponentially because of the way humans perceive
+              sound.
+            </p>
+            <p>
+              The value during the time interval \(T_0 \leq t &lt; T_1\) (where
+              \(T_0\) is the time of the previous event and \(T_1\) is the
+              <code>endTime</code> parameter passed into this method) will be
+              calculated as:
+            </p>
+            <pre class="nohighlight">
+              $$
+                v(t) = V_0 \left(\frac{V_1}{V_0}\right)^\frac{t - T_0}{T_1 - T_0}
+              $$
+</pre>
+            <p>
+              where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is the
+              <code>value</code> parameter passed into this method. If \(V_0\)
+              and \(V_1\) have opposite signs or if \(V_0\) is zero, then
+              \(v(t) = V_0\) for \(T_0 \le t \lt T_1\).
+            </p>
+            <p>
+              This also implies an exponential ramp to 0 is not possible. A
+              good approximation can be achieved using <a href=
+              "#widl-AudioParam-setTargetAtTime-AudioParam-float-target-double-startTime-float-timeConstant">
+              setTargetAtTime</a> with an appropriately chosen time constant.
+            </p>
+            <p>
+              If there are no more events after this ExponentialRampToValue
+              event then for \(t \geq T_1\), \(v(t) = V_1\).
+            </p>
+            <p>
+              If there is no event preceding this event, the exponential ramp
+              behaves as if <code>setValueAtTime(value, currentTime)</code>
+              were called where <code>value</code> is the current value of the
+              attribute and <code>currentTime</code> is the context <a href=
+              "#widl-AudioContext-currentTime">currentTime</a> at the time
+              <code>exponentialRampToValueAtTime</code> is called.
+            </p>
+            <p>
+              If the preceding event is a <em>SetTarget</em> event, \(T_0\) and
+              \(V_0\) are chosen from the current time and value of
+              <em>SetTarget</em> automation. That is, if the <em>SetTarget</em>
+              event has not started, \(T_0\) is the start time of the event,
+              and \(V_0\) is the value just before the <em>SetTarget</em> event
+              starts. In this case, the <em>ExponentialRampToValue</em> event
+              effectively replaces the <em>SetTarget</em> event. If the
+              <em>SetTarget</em> event has already started, \(T_0\) is the
+              current context time, and \(V_0\) is the current
+              <em>SetTarget</em> automation value at time \(T_0\). In both
+              cases, the automation curve is continuous.
+            </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    value
+                  </td>
+                  <td class="prmType">
+                    <code>float</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                The value the parameter will exponentially ramp to at the given
+                time. <span class="synchronous">A <code>RangeError</code>
+                exception MUST be thrown if this value is equal to 0.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    endTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                The time in the same time coordinate system as the
+                <a><code>AudioContext</code></a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute
+                where the exponential ramp ends. <span class="synchronous">A
+                RangeError exception MUST be thrown if <code>endTime</code> is
+                negative or is not a finite number.</span> If
+                <var>endTime</var> is less than <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                clamped to <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
           </dl>
-        </section><!--
+        </section>
+
+<!--
         <dl title="interface AudioParam" class="x-idl">
           <dt>
             attribute float value

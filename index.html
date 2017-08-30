@@ -7148,6 +7148,245 @@ interface AudioDestinationNode : AudioNode {
           value]]</var>, initially set to the <a>AudioParam</a>'s <a href=
           "#widl-AudioParam-defaultValue">default value</a>.
         </p>
+        <pre class="idl">
+interface AudioParam {
+                    attribute float value;
+    readonly        attribute float defaultValue;
+    readonly        attribute float minValue;
+    readonly        attribute float maxValue;
+    AudioParam setValueAtTime (float value, double startTime);
+    AudioParam linearRampToValueAtTime (float value, double endTime);
+    AudioParam exponentialRampToValueAtTime (float value, double endTime);
+    AudioParam setTargetAtTime (float target, double startTime, float timeConstant);
+    AudioParam setValueCurveAtTime (sequence<float> values, double startTime, double duration);
+    AudioParam cancelScheduledValues (double cancelTime);
+    AudioParam cancelAndHoldAtTime (double cancelTime);
+};
+        </pre>
+        <section>
+          <h3>
+            Attributes
+          </h3>
+          <dl class="attributes" data-dfn-for="AudioParam"
+          data-link-for="AudioParam">
+            <dt>
+              <dfn><code>defaultValue</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>, readonly
+            </dt>
+            <dd>
+              Initial value for the <code>value</code> attribute.
+            </dd>
+            <dt>
+              <dfn><code>maxValue</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>, readonly
+            </dt>
+            <dd>
+              The nominal maximum value that the parameter can take. Together
+              with <code>minValue</code>, this forms the <a>nominal range</a>
+              for this parameter.
+            </dd>
+            <dt>
+              <dfn><code>minValue</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>, readonly
+            </dt>
+            <dd>
+              The nominal minimum value that the parameter can take. Together
+              with <code>maxValue</code>, this forms the <a>nominal range</a>
+              for this parameter.
+            </dd>
+            <dt>
+              <dfn><code>value</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>
+            </dt>
+            <dd>
+            <p>
+              The parameter's floating-point value. This attribute is
+              initialized to the <code>defaultValue</code>.
+            </p>
+            <p>
+              Getting this attribute returns the contents of the <var>[[current
+              value]]</var> slot, which maintains the value of this parameter
+              at the conclusion of the most recent render quantum on the audio
+              rendering thread, or the most recently assigned value if no
+              rendering has taken place.
+            </p>
+            <p>
+              Setting this attribute has the effect of assigning the requested
+              value to the <var>[[current value]]</var> slot, and calling
+              <code>setValueAtTime()</code> with the current
+              <code>AudioContext</code>'s <code>currentTime</code> and
+              <var>[[current value]]</var>.
+            </p>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h3>
+            Methods
+          </h3>
+          <dl class="methods" data-dfn-for="AudioParam" data-link-for=
+          "AudioParam">
+            <dt>
+              <dfn>cancelAndHoldAtTime</dfn>
+            </dt>
+            <dd>
+            <p>
+              This is similar to <a href=
+              "#widl-AudioParam-cancelScheduledValues-AudioParam-double-cancelTime">
+              cancelScheduledValues</a> in that it cancels all scheduled
+              parameter changes with times greater than or equal to
+              <code>cancelTime</code>. However, in addition, the automation
+              value that would have happened at <code>cancelTime</code> is then
+              proprogated for all future time until other automation events are
+              introduced.
+            </p>
+            <p>
+              The behavior of the timeline in the face of
+              <code>cancelAndHoldAtTime</code> when automations are running and
+              can be introduced at any time after calling
+              <code>cancelAndHoldAtTime</code> and before
+              <code>cancelTime</code> is reached is quite complicated. The
+              behavior of <code>cancelAndHoldAtTime</code> is therefore
+              specified in the following algorithm.
+            </p>
+            <p>
+              Let \(t_c\) be the value of <code>cancelTime</code>. Then
+            </p>
+            <ol>
+              <li>Let \(E_1\) be the event (if any) at time \(t_1\) where
+              \(t_1\) is the largest number satisfying \(t_1 \le t_c\).
+              </li>
+              <li>Let \(E_2\) be the event (if any) at time \(t_2\) where
+              \(t_2\) is the smallest number satisfying \(t_c \lt t_2\).
+              </li>
+              <li>If \(E_2\) exists:
+                <ol type="I">
+                  <li>If \(E_2\) is a linear or exponential ramp,
+                    <ol type="a">
+                      <li>Effectively rewrite \(E_2\) to be the same kind of
+                      ramp ending at time \(t_c\) with an end value that would
+                      be the value of the original ramp at time
+                      \(t_c\).<img alt=
+                      "Graphical representation of calling cancelAndHoldAtTime when linearRampToValueAtTime has been called at this time."
+                        src="images/cancel-linear.svg" style=
+                        "height:75%;width:75%">
+                      </li>
+                      <li>Go to step 5.
+                      </li>
+                    </ol>
+                  </li>
+                  <li>Otherwise, go to step 4.
+                  </li>
+                </ol>
+              </li>
+              <li>If \(E_1\) exists:
+                <ol type="I">
+                  <li>If \(E_1\) is a <code>setTarget</code> event,
+                    <ol type="a">
+                      <li>Implicitly insert a <code>setValueAtTime</code> event
+                      at time \(t_c\) with the value that the
+                      <code>setTarget</code> would have at time
+                      \(t_c\).<img alt=
+                      "Graphical representation of calling cancelAndHoldAtTime when setTargetAtTime has been called at this time"
+                        src="images/cancel-setTarget.svg" style=
+                        "height:75%;width:75%">
+                      </li>
+                      <li>Go to step 5.
+                      </li>
+                    </ol>
+                  </li>
+                  <li>If \(E_1\) is a <code>setValueCurve</code> with a start
+                  time of \(t_3\) and a duration of \(d\)
+                    <ol type="a">
+                      <li>If \(t_c \gt t_3 + d\), go to step 5.
+                      </li>
+                      <li>Otherwise,
+                        <ol type="i">
+                          <li>Effectively replace this event with a
+                          <code>setValueCurve</code> event with a start time of
+                          \(t_3\) and a new duration of \(t_c-t_3\). However,
+                          this is not a true replacement; this automation MUST
+                          take care to produce the same output as the original,
+                          and not one computed using a different duration.
+                          (That would cause sampling of the value curve in a
+                          slightly different way, producing different
+                          results.)<img alt=
+                          "Graphical representation of calling cancelAndHoldAtTime when setValueCurve has been called at this time"
+                            src="images/cancel-setValueCurve.svg" style=
+                            "height:75%;width:75%">
+                          </li>
+                          <li>Go to step 5.
+                          </li>
+                        </ol>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+              <li>Remove all events with time greater than \(t_c\).
+              </li>
+            </ol>
+            <p>
+              If no events are added, then the automation value after
+              <code>cancelAndHoldAtTime</code> is the the constant value that
+              the original timeline would have had at time \(t_c\).
+            </p>
+            <table class="parameters">
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      cancelTime
+                    </td>
+                    <td class="prmType">
+                      <code>double</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                The time after which any previously scheduled parameter changes
+                will be cancelled. It is a time in the same time coordinate
+                system as the <a><code>AudioContext</code></a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a> attribute.
+                <span class="synchronous">A RangeError exception MUST be thrown
+                if <code>cancelTime</code> is negative or is not a finite
+                number.</span> If <var>cancelTime</var> is less than <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                clamped to <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                    </td>
+                  </tr>
+              </table>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+              
+            </dd>
+          </dl>
+        </section>
+<!--
         <dl title="interface AudioParam" class="x-idl">
           <dt>
             attribute float value
@@ -7753,6 +7992,7 @@ interface AudioDestinationNode : AudioNode {
             </dl>
           </dd>
         </dl>
+-->
         <section>
           <h3>
             Computation of Value

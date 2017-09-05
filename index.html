@@ -6,7 +6,8 @@
     </title>
     <meta charset="utf-8">
     <link rel="icon" href="favicon.png">
-    <script src='respec-w3c-common-3.3.2.js' class='remove'></script>
+    <script src='https://www.w3.org/Tools/respec/respec-w3c-common' class=
+    'remove'></script>
     <link rel="preload" href=
     "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
     as="script">
@@ -48,11 +49,11 @@
 
         previousMaturity: "WD",
         previousPublishDate:  "2013-10-10",
-        previousURI:  "http://www.w3.org/TR/2012/WD-webaudio-20121213/",
+        previousURI:  "https://www.w3.org/TR/2012/WD-webaudio-20121213/",
         wg:           "Audio Working Group",
-        wgURI:        "http://www.w3.org/2011/audio/",
+        wgURI:        "https://www.w3.org/2011/audio/",
         wgPublicList: "public-audio",
-        wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46884/status",
+        wgPatentURI:  "https://www.w3.org/2004/01/pp-impl/46884/status",
         tocIntroductory: true,
         copyrightStart: 2013,
         testSuiteURI: "https://github.com/w3c/web-platform-tests/tree/master/webaudio",
@@ -772,751 +773,1265 @@ function setupRoutingGraph() {
           <a><code>AudioContext</code></a> (for real-time rendering) and
           <a><code>OfflineAudioContext</code></a> (for offline rendering).
         </p>
-        <dl title="enum AudioContextState" class="idl">
-          <dt>
-            suspended
-          </dt>
-          <dd>
-            This context is currently suspended (context time is not
-            proceeding, audio hardware may be powered down/released).
-          </dd>
-          <dt>
-            running
-          </dt>
-          <dd>
-            Audio is being processed.
-          </dd>
-          <dt>
-            closed
-          </dt>
-          <dd>
-            This context has been released, and can no longer be used to
-            process audio. All system audio resources have been released.
-            <span class="synchronous">Attempts to create new Nodes on the
-            AudioContext will throw <code>InvalidStateError</code></span>.
-            (AudioBuffers may still be created, through <a href=
-            "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
-            createBuffer</a>, <a href=
-            "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
-            decodeAudioData</a>, or the <a>AudioBuffer</a> constructor.)
-          </dd>
-        </dl>
-        <dl title="interface BaseAudioContext : EventTarget" class="idl"
-        data-merge="DecodeSuccessCallback DecodeErrorCallback">
-          <dt>
-            readonly attribute AudioDestinationNode destination
-          </dt>
-          <dd>
-            <p>
-              An <a href=
-              "#AudioDestinationNode"><code>AudioDestinationNode</code></a>
-              with a single input representing the final destination for all
-              audio. Usually this will represent the actual audio hardware. All
-              <a><code>AudioNode</code></a>s actively rendering audio will
-              directly or indirectly connect to <a href=
-              "#widl-BaseAudioContext-destination"><code>destination</code></a>.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute float sampleRate
-          </dt>
-          <dd>
-            <p>
-              The sample rate (in sample-frames per second) at which the
-              <a><code>BaseAudioContext</code></a> handles audio. It is assumed
-              that all <a><code>AudioNode</code></a>s in the context run at
-              this rate. In making this assumption, sample-rate converters or
-              "varispeed" processors are not supported in real-time processing.
-              The <dfn>Nyquist frequency</dfn> is half this sample-rate value.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute double currentTime
-          </dt>
-          <dd>
-            <p>
-              This is the time in seconds of the sample frame immediately
-              following the last sample-frame in the block of audio most
-              recently processed by the context's rendering graph. If the
-              context's rendering graph has not yet processed a block of audio,
-              then <a href=
-              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
-              has a value of zero.
-            </p>
-            <p>
-              In the time coordinate system of <a href=
-              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
-              the value of zero corresponds to the first sample-frame in the
-              first block processed by the graph. Elapsed time in this system
-              corresponds to elapsed time in the audio stream generated by the
-              <a><code>BaseAudioContext</code></a>, which may not be
-              synchronized with other clocks in the system. (For an
-              <a><code>OfflineAudioContext</code></a>, since the stream is not
-              being actively played by any device, there is not even an
-              approximation to real time.)
-            </p>
-            <p>
-              All scheduled times in the Web Audio API are relative to the
-              value of <a href=
-              "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
-            </p>
-            <p>
-              When the <a><code>BaseAudioContext</code></a> is in the <a href=
-              "#idl-def-AudioContextState.running"><code>running</code></a>
-              state, the value of this attribute is monotonically increasing
-              and is updated by the rendering thread in uniform increments,
-              corresponding to one <a href="#dfn-render-quantum">render
-              quantum</a>. Thus, for a running context,
-              <code>currentTime</code> increases steadily as the system
-              processes audio blocks, and always represents the time of the
-              start of the next audio block to be processed. It is also the
-              earliest possible time when any change scheduled in the current
-              state might take effect.
-            </p>
-            <p>
-              <code>currentTime</code> MUST be read <a data-lt=
-              "atomic">atomically</a> on the control thread before being
-              returned.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute AudioListener listener
-          </dt>
-          <dd>
-            <p>
-              An <a href="#AudioListener"><code>AudioListener</code></a> which
-              is used for 3D <a href="#Spatialization">spatialization</a>.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute AudioContextState state
-          </dt>
-          <dd>
-            <p>
+        <pre class="idl">
+enum <dfn>AudioContextState</dfn> {
+    "suspended",
+    "running",
+    "closed"
+};
+        </pre>
+        <table class="simple" data-dfn-for="AudioContextState" data-link-for=
+        "AudioContextState">
+          <tbody>
+            <tr>
+              <th colspan="2">
+                Enumeration description
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>suspended</dfn></code>
+              </td>
+              <td>
+                <p>
+                  This context is currently suspended (context time is not
+                  proceeding, audio hardware may be powered down/released).
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>running</dfn></code>
+              </td>
+              <td>
+                Audio is being processed.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>closed</dfn></code>
+              </td>
+              <td>
+                This context has been released, and can no longer be used to
+                process audio. All system audio resources have been released.
+                <span class="synchronous">Attempts to create new Nodes on the
+                AudioContext will throw <code>InvalidStateError</code></span>.
+                (AudioBuffers may still be created, through <a href=
+                "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                createBuffer</a>, <a href=
+                "#widl-BaseAudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+                decodeAudioData</a>, or the <a>AudioBuffer</a> constructor.)
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <pre class="idl">
+callback DecodeErrorCallback = void (DOMException error);
+
+callback DecodeSuccessCallback = void (AudioBuffer decodedData);
+
+interface BaseAudioContext : EventTarget {
+    readonly        attribute AudioDestinationNode destination;
+    readonly        attribute float                sampleRate;
+    readonly        attribute double               currentTime;
+    readonly        attribute AudioListener        listener;
+    readonly        attribute AudioContextState    state;
+    Promise&lt;void&gt;          resume ();
+                    attribute EventHandler         onstatechange;
+    AudioBuffer            createBuffer (unsigned long numberOfChannels, unsigned long length, float sampleRate);
+    Promise&lt;AudioBuffer&gt;   decodeAudioData (ArrayBuffer audioData, optional DecodeSuccessCallback successCallback, optional DecodeErrorCallback errorCallback);
+    AudioBufferSourceNode  createBufferSource ();
+    ConstantSourceNode     createConstantSource ();
+    ScriptProcessorNode    createScriptProcessor (optional unsigned long bufferSize = 0
+              , optional unsigned long numberOfInputChannels = 2
+              , optional unsigned long numberOfOutputChannels = 2
+              );
+    AnalyserNode           createAnalyser ();
+    GainNode               createGain ();
+    DelayNode              createDelay (optional double maxDelayTime = 1.0
+              );
+    BiquadFilterNode       createBiquadFilter ();
+    IIRFilterNode          createIIRFilter (sequence&lt;double&gt; feedforward, sequence&lt;double&gt; feedback);
+    WaveShaperNode         createWaveShaper ();
+    PannerNode             createPanner ();
+    StereoPannerNode       createStereoPanner ();
+    ConvolverNode          createConvolver ();
+    ChannelSplitterNode    createChannelSplitter (optional unsigned long numberOfOutputs = 6
+              );
+    ChannelMergerNode      createChannelMerger (optional unsigned long numberOfInputs = 6
+              );
+    DynamicsCompressorNode createDynamicsCompressor ();
+    OscillatorNode         createOscillator ();
+    PeriodicWave           createPeriodicWave (sequence&lt;float&gt; real, sequence&lt;float&gt; imag, optional PeriodicWaveConstraints constraints);
+};
+        </pre>
+        <section>
+          <h2>
+            Attributes
+          </h2>
+          <dl class="attributes" data-dfn-for="BaseAudioContext" data-link-for=
+          "BaseAudioContext">
+            <dt>
+              <code><dfn>currentTime</dfn></code> of type <span class=
+              "idlAttrType"><a>double</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                This is the time in seconds of the sample frame immediately
+                following the last sample-frame in the block of audio most
+                recently processed by the context's rendering graph. If the
+                context's rendering graph has not yet processed a block of
+                audio, then <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                has a value of zero.
+              </p>
+              <p>
+                In the time coordinate system of <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>,
+                the value of zero corresponds to the first sample-frame in the
+                first block processed by the graph. Elapsed time in this system
+                corresponds to elapsed time in the audio stream generated by
+                the <a><code>BaseAudioContext</code></a>, which may not be
+                synchronized with other clocks in the system. (For an
+                <a><code>OfflineAudioContext</code></a>, since the stream is
+                not being actively played by any device, there is not even an
+                approximation to real time.)
+              </p>
+              <p>
+                All scheduled times in the Web Audio API are relative to the
+                value of <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
+              </p>
+              <p>
+                When the <a><code>BaseAudioContext</code></a> is in the
+                <a href="#idl-def-AudioContextState.running"><code>running</code></a>
+                state, the value of this attribute is monotonically increasing
+                and is updated by the rendering thread in uniform increments,
+                corresponding to one <a href="#dfn-render-quantum">render
+                quantum</a>. Thus, for a running context,
+                <code>currentTime</code> increases steadily as the system
+                processes audio blocks, and always represents the time of the
+                start of the next audio block to be processed. It is also the
+                earliest possible time when any change scheduled in the current
+                state might take effect.
+              </p>
+              <p>
+                <code>currentTime</code> MUST be read <a data-lt=
+                "atomic">atomically</a> on the control thread before being
+                returned.
+              </p>
+            </dd>
+            <dt>
+              <code><dfn>destination</dfn></code> of type <span class=
+              "idlAttrType"><a>AudioDestinationNode</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                An <a href=
+                "#AudioDestinationNode"><code>AudioDestinationNode</code></a>
+                with a single input representing the final destination for all
+                audio. Usually this will represent the actual audio hardware.
+                All <a><code>AudioNode</code></a>s actively rendering audio
+                will directly or indirectly connect to <a href=
+                "#widl-BaseAudioContext-destination"><code>destination</code></a>.
+              </p>
+            </dd>
+            <dt>
+              <code><dfn>listener</dfn></code> of type <span class=
+              "idlAttrType"><a>AudioListener</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                An <a href="#AudioListener"><code>AudioListener</code></a>
+                which is used for 3D <a href=
+                "#Spatialization">spatialization</a>.
+              </p>
+            </dd>
+            <dt>
+              <code><dfn>onstatechange</dfn></code> of type <span class=
+              "idlAttrType"><a>EventHandler</a></span>
+            </dt>
+            <dd>
+              <p>
+                A property used to set the <code>EventHandler</code> for an
+                event that is dispatched to
+                <a><code>BaseAudioContext</code></a> when the state of the
+                AudioContext has changed (i.e. when the corresponding promise
+                would have resolved). An event of type
+                <a><code>Event</code></a> will be dispatched to the event
+                handler, which can query the AudioContext's state directly. A
+                newly-created AudioContext will always begin in the
+                <code>suspended</code> state, and a state change event will be
+                fired whenever the state changes to a different state. This
+                event is fired before the <a><code>oncomplete</code></a> event
+                is fired.
+              </p>
+            </dd>
+            <dt>
+              <code><dfn>sampleRate</dfn></code> of type <span class=
+              "idlAttrType"><a>float</a></span>, readonly
+            </dt>
+            <dd>
+              Describes the sample-rate of the linear PCM audio data in the
+              buffer in sample-frames per second. An implementation MUST
+              support sample rates in at least the range 8000 to 96000.
+            </dd>
+            <dt>
+              <code><dfn>state</dfn></code> of type <span class=
+              "idlAttrType"><a>AudioContextState</a></span>, readonly
+            </dt>
+            <dd>
               Describes the current state of the <a>AudioContext</a>, on the
               <a>control thread</a>.
-            </p>
-          </dd>
-          <dt>
-            Promise&lt;void&gt; resume()
-          </dt>
-          <dd>
-            <p>
-              Resumes the progression of the <a>BaseAudioContext</a>'s <a href=
-              "#widl-AudioContext-currentTime">currentTime</a> when it has been
-              suspended.
-            </p>
-            <p>
-              <span class="synchronous">When resume is called, execute these
-              steps:</span>
-            </p>
-            <ol>
-              <li>Let <em>promise</em> be a new Promise.
-              </li>
-              <li>If the <em>control thread state</em> flag on the
-              <a>BaseAudioContext</a> is <code>closed</code> reject the promise
-              with <code>InvalidStateError</code>, abort these steps, returning
-              <em>promise</em>.
-              </li>
-              <li>If the <a href="#widl-BaseAudioContext-state">state</a>
-              attribute of the <a>BaseAudioContext</a> is already
-              <code>running</code>, resolve <em>promise</em>, return it, and
-              abort these steps.
-              </li>
-              <li>If the <a>BaseAudioContext</a> is not <a>allowed to
-              start</a>, append <em>promise</em> to
-              <a>pendingResumePromises</a> and abort these steps, returning
-              <em>promise</em>.
-              </li>
-              <li>Set the <em>control thread state</em> flag on the
-              <a>BaseAudioContext</a> to <code>running</code>.
-              </li>
-              <li>
-                <a href="#queue">Queue a control message</a> to resume the
-                <a>BaseAudioContext</a>.
-              </li>
-              <li>Return <em>promise</em>.
-              </li>
-            </ol>
-            <p>
-              Running a <a>control message</a> to resume an
-              <a>BaseAudioContext</a> means running these steps on the
-              <a>rendering thread</a>:
-            </p>
-            <ol>
-              <li>Attempt to <a href="#acquiring">acquire system resources</a>.
-              </li>
-              <li>Set the <a>rendering thread state</a> flag on the
-              <a>BaseAudioContext</a> to <code>running</code>.
-              </li>
-              <li>Start <a href="#rendering-loop">rendering the audio
-              graph</a>.
-              </li>
-              <li>In case of failure, queue a task on the <a>control thread</a>
-              to execute the following, and abort these steps
-                <ol>
-                  <li>Reject all promises from <a>pendingResumePromises</a> in
-                  order, then clear <a>pendingResumePromises</a>.
-                  </li>
-                  <li>Reject <em>promise</em>.
-                  </li>
-                </ol>
-              </li>
-              <li>Queue a task on the <a>control thread</a>'s event loop, to
-              execute these steps:
-                <ol>
-                  <li>Resolve all promises from <a>pendingResumePromises</a> in
-                  order, then clear <a>pendingResumePromises</a>.
-                  </li>
-                  <li>Resolve <em>promise</em>.
-                  </li>
-                  <li>If the <a href="#widl-BaseAudioContext-state">state</a>
-                  attribute of the <a>BaseAudioContext</a> is not already
-                  <code>running</code>:
-                    <ol>
-                      <li>Set the <a href=
-                      "#widl-BaseAudioContext-state">state</a> attribute of the
-                      <a>BaseAudioContext</a> to <code>running</code>.
-                      </li>
-                      <li>Queue a task to fire a simple event named
-                      <code>statechange</code> at the <a>BaseAudioContext</a>.
-                      </li>
-                    </ol>
-                  </li>
-                </ol>
-              </li>
-            </ol>
-          </dd>
-          <dt>
-            attribute EventHandler onstatechange
-          </dt>
-          <dd>
-            <p>
-              A property used to set the <code>EventHandler</code> for an event
-              that is dispatched to <a><code>BaseAudioContext</code></a> when
-              the state of the AudioContext has changed (i.e. when the
-              corresponding promise would have resolved). An event of type
-              <a><code>Event</code></a> will be dispatched to the event
-              handler, which can query the AudioContext's state directly. A
-              newly-created AudioContext will always begin in the
-              <code>suspended</code> state, and a state change event will be
-              fired whenever the state changes to a different state. This event
-              is fired before the <a><code>oncomplete</code></a> event is
-              fired.
-            </p>
-          </dd>
-          <dt>
-            AudioBuffer createBuffer()
-          </dt>
-          <dd>
-            <p>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Methods
+          </h2>
+          <dl class="methods" data-dfn-for="BaseAudioContext" data-link-for=
+          "BaseAudioContext">
+            <dt>
+              <code><dfn>createAnalyser</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for an <a><code>AnalyserNode</code></a>.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>AnalyserNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createBiquadFilter</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for a <a><code>BiquadFilterNode</code></a>
+              representing a second order filter which can be configured as one
+              of several common filter types.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>BiquadFilterNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createBuffer</dfn></code>
+            </dt>
+            <dd>
               Creates an AudioBuffer of the given size. The audio data in the
               buffer will be zero-initialized (silent). <span class=
               "synchronous">A <code>NotSupportedError</code> exception MUST be
               thrown if any of the arguments is negative, zero, or outside its
               nominal range.</span>
-            </p>
-            <dl class="parameters">
-              <dt>
-                unsigned long numberOfChannels
-              </dt>
-              <dd>
-                Determines how many channels the buffer will have. An
-                implementation MUST support at least 32 channels.
-              </dd>
-              <dt>
-                unsigned long length
-              </dt>
-              <dd>
-                Determines the size of the buffer in sample-frames.
-              </dd>
-              <dt>
-                float sampleRate
-              </dt>
-              <dd>
-                Describes the sample-rate of the linear PCM audio data in the
-                buffer in sample-frames per second. An implementation MUST
-                support sample rates in at least the range 8000 to 96000.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            Promise&lt;AudioBuffer&gt; decodeAudioData()
-          </dt>
-          <dd>
-            <p>
-              Asynchronously decodes the audio file data contained in the
-              <code>ArrayBuffer</code>. The <code>ArrayBuffer</code> can, for
-              example, be loaded from an <code>XMLHttpRequest</code>'s
-              <code>response</code> attribute after setting the
-              <code>responseType</code> to <code>"arraybuffer"</code>. Audio
-              file data can be in any of the formats supported by the
-              <code>audio</code> element. The buffer passed to <a href=
-              "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
-              decodeAudioData</a> has its content-type determined by sniffing,
-              as described in [[mimesniff]].
-            </p>
-            <dl class="parameters">
-              <dt>
-                ArrayBuffer audioData
-              </dt>
-              <dd>
-                An ArrayBuffer containing compressed audio data.
-              </dd>
-              <dt>
-                optional DecodeSuccessCallback successCallback
-              </dt>
-              <dd>
-                A callback function which will be invoked when the decoding is
-                finished. The single argument to this callback is an
-                AudioBuffer representing the decoded PCM audio data.
-              </dd>
-              <dt>
-                optional DecodeErrorCallback errorCallback
-              </dt>
-              <dd>
-                A callback function which will be invoked if there is an error
-                decoding the audio file.
-              </dd>
-            </dl>
-            <p>
-              Although the primary method of interfacing with this function is
-              via its promise return value, the callback parameters are
-              provided for legacy reasons. The system shall ensure that the
-              <a>AudioContext</a> is not garbage collected before the promise
-              is resolved or rejected and any callback function is called and
-              completes.
-            </p>
-            <p>
-              <span class="synchronous">When <code>decodeAudioData</code> is
-              called, the following steps MUST be performed on the control
-              thread:</span>
-            </p>
-            <ol>
-              <li>Let <var>promise</var> be a new promise.
-              </li>
-              <li>If the operation <a href=
-              "https://tc39.github.io/ecma262/#sec-isdetachedbuffer"><code>IsDetachedBuffer</code></a>
-              (described in [[!ECMASCRIPT]]) on <a>audioData</a> is
-              <code>false</code>, execute the following steps:
-                <ol>
-                  <li>
-                    <a href=
-                    "https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
-                    the <a>audioData</a> <code>ArrayBuffer</code>. This
-                    operation is described in [[!ECMASCRIPT]].
-                  </li>
-                  <li>Queue a decoding operation to be performed on another
-                  thread.
-                  </li>
-                </ol>
-              </li>
-              <li>Else, execute the following steps:
-                <ol>
-                  <li>Let <var>error</var> be a <code>DataCloneError</code>.
-                  </li>
-                  <li>Reject <var>promise</var> with <var>error</var>.
-                  </li>
-                  <li>Queue a task to invoke <a>errorCallback</a> with
-                  <var>error</var>.
-                  </li>
-                </ol>
-              </li>
-              <li>Return <var>promise</var>.
-              </li>
-            </ol>
-            <p>
-              When queuing a decoding operation to be performed on another
-              thread, the following steps MUST happen on a thread that is not
-              the <a>control thread</a> nor the <a>rendering thread</a>, called
-              the <em>decoding thread</em>.
-            </p>
-            <div class="note">
-              Multiple <em>decoding threads</em> can run in parallel to service
-              multiple calls to <code>decodeAudioData</code>.
-            </div>
-            <ol>
-              <li>Attempt to decode the encoded <a>audioData</a> into linear
-              PCM.
-              </li>
-              <li>If a decoding error is encountered due to the audio format
-              not being recognized or supported, or because of
-              corrupted/unexpected/inconsistent data, then queue a task to
-              execute the following step, on the <a>control thread</a>'s event
-              loop:
-                <ol>
-                  <li>Let <var>error</var> be a <code>DOMException</code> whose
-                  name is <code>"EncodingError"</code>.
-                  </li>
-                  <li>Reject <var>promise</var> with <var>error</var>.
-                  </li>
-                  <li>If <dfn>errorCallback</dfn> is not missing, invoke
-                  <a>errorCallback</a> with <var>error</var>.
-                  </li>
-                </ol>
-              </li>
-              <li>Otherwise:
-                <ol>
-                  <li>Take the result, representing the decoded linear PCM
-                  audio data, and resample it to the sample-rate of the
-                  <a><code>AudioContext</code></a> if it is different from the
-                  sample-rate of <a>audioData</a>.
-                  </li>
-                  <li>Queue a task on the <a>control thread</a>'s event loop to
-                  execute the following steps:
-                    <ol>
-                      <li>Let <var>buffer</var> be an <code>AudioBuffer</code>
-                      containing the final result (after possibly sample-rate
-                      conversion).
-                      </li>
-                      <li>Resolve <var>promise</var> with <var>buffer</var>.
-                      </li>
-                      <li>If <dfn>successCallback</dfn> is not missing, invoke
-                      <a>successCallback</a> with <var>buffer</var>.
-                      </li>
-                    </ol>
-                  </li>
-                </ol>
-              </li>
-            </ol>
-          </dd>
-          <dt>
-            AudioBufferSourceNode createBufferSource()
-          </dt>
-          <dd>
-            <p>
+              <table class="parameters">
+                <tbody>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      numberOfChannels
+                    </td>
+                    <td class="prmType">
+                      <code>unsigned long</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                      Determines how many channels the buffer will have. An
+                      implementation MUST support at least 32 channels.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      length
+                    </td>
+                    <td class="prmType">
+                      <code>unsigned long</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                      Determines the size of the buffer in sample-frames.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      sampleRate
+                    </td>
+                    <td class="prmType">
+                      <code>float</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                      Describes the sample-rate of the linear PCM audio data in
+                      the buffer in sample-frames per second. An implementation
+                      MUST support sample rates in at least the range 8000 to
+                      96000.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div>
+                <em>Return type:</em> <code>AudioBuffer</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createBufferSource</dfn></code>
+            </dt>
+            <dd>
               <a>Factory method</a> for a
               <a><code>AudioBufferSourceNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            ConstantSourceNode createConstantSource()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a
-              <a><code>ConstantSourceNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            ScriptProcessorNode createScriptProcessor()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a>ScriptProcessorNode</a>. This
-              method is DEPRECATED, as it is intended to be replaced by
-              <a href="#AudioWorkletNode"><code>AudioWorkletNode</code></a>.
-              Creates a <a><code>ScriptProcessorNode</code></a> for direct
-              audio processing using scripts. <span class="synchronous">An
-              <code>IndexSizeError</code> exception MUST be thrown if
-              <a><code>bufferSize</code></a> or
-              <a><code>numberOfInputChannels</code></a> or
-              <a><code>numberOfOutputChannels</code></a> are outside the valid
-              range.</span>
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional unsigned long bufferSize = 0
-              </dt>
-              <dd>
-                The <a><code>bufferSize</code></a> parameter determines the
-                buffer size in units of sample-frames. If it's not passed in,
-                or if the value is 0, then the implementation will choose the
-                best buffer size for the given environment, which will be
-                constant power of 2 throughout the lifetime of the node.
-                Otherwise if the author explicitly specifies the bufferSize, it
-                MUST be one of the following values: 256, 512, 1024, 2048,
-                4096, 8192, 16384. This value controls how frequently the
-                <a href=
-                "#widl-ScriptProcessorNode-onaudioprocess"><code>audioprocess</code></a>
-                event is dispatched and how many sample-frames need to be
-                processed each call. Lower values for
-                <a><code>bufferSize</code></a> will result in a lower (better)
-                <a href="#latency">latency</a>. Higher values will be necessary
-                to avoid audio breakup and <a href=
-                "#audio-glitching">glitches</a>. It is recommended for authors
-                to not specify this buffer size and allow the implementation to
-                pick a good buffer size to balance between <a href=
-                "#latency">latency</a> and audio quality. If the value of this
-                parameter is not one of the allowed power-of-2 values listed
-                above, <span class="synchronous">an <code>IndexSizeError</code>
-                MUST be thrown</span>.
-              </dd>
-              <dt>
-                optional unsigned long numberOfInputChannels = 2
-              </dt>
-              <dd>
-                This parameter determines the number of channels for this
-                node's input. Values of up to 32 must be supported.
-                <span class="synchronous">A <code>NotSupportedError</code> must
-                be thrown if the number of channels is not supported.</span>
-              </dd>
-              <dt>
-                optional unsigned long numberOfOutputChannels = 2
-              </dt>
-              <dd>
-                This parameter determines the number of channels for this
-                node's output. Values of up to 32 must be supported.
-                <span class="synchronous">A <code>NotSupportedError</code> must
-                be thrown if the number of channels is not supported.</span>
-              </dd>
-            </dl>
-            <p>
-              It is invalid for both <a><code>numberOfInputChannels</code></a>
-              and <a><code>numberOfOutputChannels</code></a> to be zero. In
-              this case an <code>IndexSizeError</code> MUST be thrown.
-            </p>
-          </dd>
-          <dt>
-            AnalyserNode createAnalyser()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for an <a><code>AnalyserNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            GainNode createGain()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for <a>GainNode</a>.
-            </p>
-          </dd>
-          <dt>
-            DelayNode createDelay()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a>DelayNode</a>. The initial default
-              delay time will be 0 seconds.
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional double maxDelayTime = 1.0
-              </dt>
-              <dd>
-                The <dfn>maxDelayTime</dfn> parameter is optional and specifies
-                the maximum delay time in seconds allowed for the delay line.
-                <span class="synchronous">If specified, this value MUST be
-                greater than zero and less than three minutes or a
-                <code>NotSupportedError</code> exception MUST be thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            BiquadFilterNode createBiquadFilter()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a><code>BiquadFilterNode</code></a>
-              representing a second order filter which can be configured as one
-              of several common filter types.
-            </p>
-          </dd>
-          <dt>
-            IIRFilterNode createIIRFilter(sequence&lt;double&gt; b,
-            sequence&lt;double&gt; a)
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for an <a><code>IIRFilterNode</code></a>
-              representing a general IIR Filter.
-            </p>
-            <dl class="parameters">
-              <dt>
-                sequence&lt;double&gt; feedforward
-              </dt>
-              <dd>
-                An array of the feedforward (numerator) coefficients for the
-                transfer function of the IIR filter. The maximum length of this
-                array is 20. If all of the values are zero, <span class=
-                "synchronous">an <code>InvalidStateError</code> MUST be
-                thrown</span>. <span class="synchronous">A
-                <code>NotSupportedError</code> MUST be thrown if the array
-                length is 0 or greater than 20</span>.
-              </dd>
-              <dt>
-                sequence&lt;double&gt; feedback
-              </dt>
-              <dd>
-                An array of the feedback (denominator) coefficients for the
-                transfer function of the IIR filter. The maximum length of this
-                array is 20. If the first element of the array is 0,
-                <span class="synchronous">an <code>InvalidStateError</code>
-                MUST be thrown</span>. <span class="synchronous">A
-                <code>NotSupportedError</code> MUST be thrown if the array
-                length is 0 or greater than 20</span>.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            WaveShaperNode createWaveShaper()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a><code>WaveShaperNode</code></a>
-              representing a non-linear distortion.
-            </p>
-          </dd>
-          <dt>
-            PannerNode createPanner()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a><code>PannerNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            StereoPannerNode createStereoPanner()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for an a
-              <a><code>StereoPannerNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            ConvolverNode createConvolver()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a><code>ConvolverNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            ChannelSplitterNode createChannelSplitter()
-          </dt>
-          <dd>
-            <p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>AudioBufferSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createChannelMerger</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                <a>Factory method</a> for a
+                <a><code>ChannelMergerNode</code></a> representing a channel
+                merger. <span class="synchronous">An
+                <code>IndexSizeError</code> exception MUST be thrown for
+                invalid parameter values.</span>
+              </p>
+              <table class="parameters">
+                <tbody>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      numberOfInputs
+                    </td>
+                    <td class="prmType">
+                      <code>unsigned long = 6</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptTrue">
+                      <span role="img" aria-label="True">✔</span>
+                    </td>
+                    <td class="prmDesc">
+                      The <dfn>numberOfInputs</dfn> parameter determines the
+                      number of inputs. Values of up to 32 MUST be supported.
+                      If not specified, then 6 will be used.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div>
+                <em>Return type:</em> <code>ChannelMergerNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createChannelSplitter</dfn></code>
+            </dt>
+            <dd>
               <a>Factory method</a> for a
               <a><code>ChannelSplitterNode</code></a> representing a channel
               splitter. <span class="synchronous">An
               <code>IndexSizeError</code> exception MUST be thrown for invalid
               parameter values.</span>
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional unsigned long numberOfOutputs = 6
-              </dt>
-              <dd>
-                The number of outputs. Values of up to 32 MUST be supported. If
-                not specified, then 6 will be used.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            ChannelMergerNode createChannelMerger()
-          </dt>
-          <dd>
-            <p>
-              <a>Factory method</a> for a <a><code>ChannelMergerNode</code></a>
-              representing a channel merger. <span class="synchronous">An
-              <code>IndexSizeError</code> exception MUST be thrown for invalid
-              parameter values.</span>
-            </p>
-            <dl class="parameters">
-              <dt>
-                optional unsigned long numberOfInputs = 6
-              </dt>
-              <dd>
-                The <dfn>numberOfInputs</dfn> parameter determines the number
-                of inputs. Values of up to 32 MUST be supported. If not
-                specified, then 6 will be used.
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            DynamicsCompressorNode createDynamicsCompressor()
-          </dt>
-          <dd>
-            <p>
+              <table class="parameters">
+                <tbody>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      numberOfOutputs
+                    </td>
+                    <td class="prmType">
+                      <code>unsigned long = 6</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptTrue">
+                      <span role="img" aria-label="True">✔</span>
+                    </td>
+                    <td class="prmDesc">
+                      The number of outputs. Values of up to 32 MUST be
+                      supported. If not specified, then 6 will be used.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div>
+                <em>Return type:</em> <code>ChannelSplitterNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createConstantSource</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for a
+              <a><code>ConstantSourceNode</code></a>.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>ConstantSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createConvolver</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for a <a><code>ConvolverNode</code></a>.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>ConvolverNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createDelay</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for a <a>DelayNode</a>. The initial default
+              delay time will be 0 seconds.
+              <table class="parameters">
+                <tbody>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      maxDelayTime
+                    </td>
+                    <td class="prmType">
+                      <code>double = 1.0</code>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptTrue">
+                      <span role="img" aria-label="True">✔</span>
+                    </td>
+                    <td class="prmDesc">
+                      The <dfn>maxDelayTime</dfn> parameter is optional and
+                      specifies the maximum delay time in seconds allowed for
+                      the delay line. <span class="synchronous">If specified,
+                      this value MUST be greater than zero and less than three
+                      minutes or a <code>NotSupportedError</code> exception
+                      MUST be thrown.</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div>
+                <em>Return type:</em> <code>DelayNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createDynamicsCompressor</dfn></code>
+            </dt>
+            <dd>
               <a>Factory method</a> for a
               <a><code>DynamicsCompressorNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            OscillatorNode createOscillator()
-          </dt>
-          <dd>
-            <p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>DynamicsCompressorNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createGain</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for <a>GainNode</a>.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>GainNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createIIRFilter</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for an <a><code>IIRFilterNode</code></a>
+              representing a general IIR Filter.
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    feedforward
+                  </td>
+                  <td class="prmType">
+                    <code>sequence&lt;double&gt;</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    An array of the feedforward (numerator) coefficients for
+                    the transfer function of the IIR filter. The maximum length
+                    of this array is 20. If all of the values are zero,
+                    <span class="synchronous">an <code>InvalidStateError</code>
+                    <em class="rfc2119" title="MUST">MUST</em> be
+                    thrown</span>. <span class="synchronous">A
+                    <code>NotSupportedError</code> <em class="rfc2119" title=
+                    "MUST">MUST</em> be thrown if the array length is 0 or
+                    greater than 20</span>.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    feedback
+                  </td>
+                  <td class="prmType">
+                    <code>sequence&lt;double&gt;</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    An array of the feedback (denominator) coefficients for the
+                    transfer function of the IIR filter. The maximum length of
+                    this array is 20. If the first element of the array is 0,
+                    <span class="synchronous">an <code>InvalidStateError</code>
+                    <em class="rfc2119" title="MUST">MUST</em> be
+                    thrown</span>. <span class="synchronous">A
+                    <code>NotSupportedError</code> <em class="rfc2119" title=
+                    "MUST">MUST</em> be thrown if the array length is 0 or
+                    greater than 20</span>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>IIRFilterNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createOscillator</dfn></code>
+            </dt>
+            <dd>
               <a>Factory method</a> for an <a><code>OscillatorNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            PeriodicWave createPeriodicWave()
-          </dt>
-          <dd>
-            <p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>OscillatorNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createPanner</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for a <a><code>PannerNode</code></a>.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>PannerNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createPeriodicWave</dfn></code>
+            </dt>
+            <dd>
               <a>Factory method</a> to create a
               <a><code>PeriodicWave</code></a>. When calling this method,
               execute these steps:
-            </p>
-            <ul>
-              <li>If <var>real</var> and <var>imag</var> are not of the same
-              length, an <var>IndexSizeError</var> MUST be thrown.
-              </li>
-              <li>Let <var>o</var> a new object of type
-              <a>PeriodicWaveOption</a>.
-              </li>
-              <li>Respectively set the <code>real</code> and <code>imag</code>
-              parameters passed to this factory method to the attributes of the
-              same name on <var>o</var>.
-              </li>
-              <li>Set the <code>disableNormalization</code> attribute on <var>
-                o</var> to the value of the <code>disableNormalization</code>
-                attribute of the <code>constraints</code> attribute passed to
-                the factory method.
-              </li>
-              <li>Return the result of constructing a new <a>PeriodicWave</a>
-              <var>p</var>, passing the <a>BaseAudioContext</a> this factory
-              method has been called on as a first argument, and <var>o</var>.
-              </li>
-            </ul>
-            <dl class="parameters">
-              <dt>
-                sequence&lt;float&gt; real
-              </dt>
-              <dd>
-                A sequence of cosine parameters. See its <a href=
-                "#widl-PeriodicWaveOptions-real">constructor counterpart</a>
-                for a more detailed description.
-              </dd>
-              <dt>
-                sequence&lt;float&gt; imag
-              </dt>
-              <dd>
-                A sequence of sine parameters. See its <a href=
-                "#widl-PeriodicWaveOptions-imag">constructor counterpart</a>
-                for a more detailed description.
-              </dd>
-              <dt>
-                optional PeriodicWaveConstraints constraints
-              </dt>
-              <dd>
-                If not given, the waveform is normalized. Otherwise, the
-                waveform is normalized according the value given by
-                <code>constraints</code>.
-              </dd>
-            </dl>
-          </dd>
-        </dl>
-        <dl title="callback DecodeSuccessCallback = void" class="idl">
-          <dt>
-            AudioBuffer decodedData
-          </dt>
-          <dd>
-            The AudioBuffer containing the decoded audio data.
-          </dd>
-        </dl>
-        <dl title="callback DecodeErrorCallback = void" class="idl">
-          <dt>
-            DOMException error
-          </dt>
-          <dd>
-            The error that occurred while decoding.
-          </dd>
-        </dl>
+              <ol class="method-algorithm">
+                <li>If <var>real</var> and <var>imag</var> are not of the same
+                length, an <var>IndexSizeError</var> MUST be thrown.
+                </li>
+                <li>Let <var>o</var> a new object of type
+                <a>PeriodicWaveOption</a>.
+                </li>
+                <li>Respectively set the <code>real</code> and
+                <code>imag</code> parameters passed to this factory method to
+                the attributes of the same name on <var>o</var>.
+                </li>
+                <li>Set the <code>disableNormalization</code> attribute on
+                <var>o</var> to the value of the
+                <code>disableNormalization</code> attribute of the
+                <code>constraints</code> attribute passed to the factory
+                method.
+                </li>
+                <li>Return the result of constructing a new <a>PeriodicWave</a>
+                <var>p</var>, passing the <a>BaseAudioContext</a> this factory
+                method has been called on as a first argument, and
+                <var>o</var>.
+                </li>
+              </ol>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    real
+                  </td>
+                  <td class="prmType">
+                    <code>sequence&lt;float&gt;</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    A sequence of cosine parameters. See its <a href=
+                    "#widl-PeriodicWaveOptions-real">constructor
+                    counterpart</a> for a more detailed description.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    imag
+                  </td>
+                  <td class="prmType">
+                    <code>sequence&lt;float&gt;</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    A sequence of sine parameters. See its <a href=
+                    "#widl-PeriodicWaveOptions-imag">constructor
+                    counterpart</a> for a more detailed description.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    constraints
+                  </td>
+                  <td class="prmType">
+                    <code><a href="#idl-def-PeriodicWaveConstraints" class=
+                    "idlType"><code>PeriodicWaveConstraints</code></a></code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    If not given, the waveform is normalized. Otherwise, the
+                    waveform is normalized according the value given by
+                    <code>constraints</code>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>PeriodicWave</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createScriptProcessor</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                <a>Factory method</a> for a <a>ScriptProcessorNode</a>. This
+                method is DEPRECATED, as it is intended to be replaced by
+                <a href="#AudioWorkletNode"><code>AudioWorkletNode</code></a>.
+                Creates a <a><code>ScriptProcessorNode</code></a> for direct
+                audio processing using scripts. <span class="synchronous">An
+                <code>IndexSizeError</code> exception MUST be thrown if
+                <a><code>bufferSize</code></a> or
+                <a><code>numberOfInputChannels</code></a> or
+                <a><code>numberOfOutputChannels</code></a> are outside the
+                valid range.</span>
+              </p>
+              <p>
+                It is invalid for both
+                <a><code>numberOfInputChannels</code></a> and
+                <a><code>numberOfOutputChannels</code></a> to be zero. In this
+                case an <code>IndexSizeError</code> MUST be thrown.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    bufferSize
+                  </td>
+                  <td class="prmType">
+                    <code>unsigned long = 0</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <a href="#dfn-buffersize" class="internalDFN"
+                    data-link-type="dfn"><code>bufferSize</code></a> parameter
+                    determines the buffer size in units of sample-frames. If
+                    it's not passed in, or if the value is 0, then the
+                    implementation will choose the best buffer size for the
+                    given environment, which will be constant power of 2
+                    throughout the lifetime of the node. Otherwise if the
+                    author explicitly specifies the bufferSize, it <em class=
+                    "rfc2119" title="MUST">MUST</em> be one of the following
+                    values: 256, 512, 1024, 2048, 4096, 8192, 16384. This value
+                    controls how frequently the <a href=
+                    "#widl-ScriptProcessorNode-onaudioprocess"><code>audioprocess</code></a>
+                    event is dispatched and how many sample-frames need to be
+                    processed each call. Lower values for <a href=
+                    "#dfn-buffersize" class="internalDFN" data-link-type=
+                    "dfn"><code>bufferSize</code></a> will result in a lower
+                    (better) <a href="#latency">latency</a>. Higher values will
+                    be necessary to avoid audio breakup and <a href=
+                    "#audio-glitching">glitches</a>. It is recommended for
+                    authors to not specify this buffer size and allow the
+                    implementation to pick a good buffer size to balance
+                    between <a href="#latency">latency</a> and audio quality.
+                    If the value of this parameter is not one of the allowed
+                    power-of-2 values listed above, <span class=
+                    "synchronous">an <code>IndexSizeError</code> <em class=
+                    "rfc2119" title="MUST">MUST</em> be thrown</span>.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    numberOfInputChannels
+                  </td>
+                  <td class="prmType">
+                    <code>unsigned long = 2</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    This parameter determines the number of channels for this
+                    node's input. Values of up to 32 must be supported.
+                    <span class="synchronous">A <code>NotSupportedError</code>
+                    must be thrown if the number of channels is not
+                    supported.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    numberOfOutputChannels
+                  </td>
+                  <td class="prmType">
+                    <code>unsigned long = 2</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    This parameter determines the number of channels for this
+                    node's output. Values of up to 32 must be supported.
+                    <span class="synchronous">A <code>NotSupportedError</code>
+                    must be thrown if the number of channels is not
+                    supported.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>ScriptProcessorNode</code>
+              </div>
+            </dd>
+            <dd>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Node</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createStereoPanner</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for an a
+              <a><code>StereoPannerNode</code></a>.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>StereoPannerNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createWaveShaper</dfn></code>
+            </dt>
+            <dd>
+              <a>Factory method</a> for a <a><code>WaveShaperNode</code></a>
+              representing a non-linear distortion.
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>WaveShaperNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>decodeAudioData</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Asynchronously decodes the audio file data contained in the
+                <code>ArrayBuffer</code>. The <code>ArrayBuffer</code> can, for
+                example, be loaded from an <code>XMLHttpRequest</code>'s
+                <code>response</code> attribute after setting the
+                <code>responseType</code> to <code>"arraybuffer"</code>. Audio
+                file data can be in any of the formats supported by the
+                <code>audio</code> element. The buffer passed to <a href=
+                "#widl-AudioContext-decodeAudioData-Promise-AudioBuffer--ArrayBuffer-audioData-DecodeSuccessCallback-successCallback-DecodeErrorCallback-errorCallback">
+                decodeAudioData</a> has its content-type determined by
+                sniffing, as described in [[mimesniff]].
+              </p>
+              <p>
+                Although the primary method of interfacing with this function
+                is via its promise return value, the callback parameters are
+                provided for legacy reasons. The system shall ensure that the
+                <a>AudioContext</a> is not garbage collected before the promise
+                is resolved or rejected and any callback function is called and
+                completes.
+              </p>
+              <p>
+                <span class="synchronous">When <code>decodeAudioData</code> is
+                called, the following steps MUST be performed on the control
+                thread:</span>
+              </p>
+              <ol class="method-algorithm">
+                <li>Let <var>promise</var> be a new promise.
+                </li>
+                <li>If the operation <a href=
+                "https://tc39.github.io/ecma262/#sec-isdetachedbuffer"><code>IsDetachedBuffer</code></a>
+                (described in [[!ECMASCRIPT]]) on <a>audioData</a> is
+                <code>false</code>, execute the following steps:
+                  <ol>
+                    <li>
+                      <a href=
+                      "https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
+                      the <a>audioData</a> <code>ArrayBuffer</code>. This
+                      operation is described in [[!ECMASCRIPT]].
+                    </li>
+                    <li>Queue a decoding operation to be performed on another
+                    thread.
+                    </li>
+                  </ol>
+                </li>
+                <li>Else, execute the following steps:
+                  <ol>
+                    <li>Let <var>error</var> be a <code>DataCloneError</code>.
+                    </li>
+                    <li>Reject <var>promise</var> with <var>error</var>.
+                    </li>
+                    <li>Queue a task to invoke <a>errorCallback</a> with <var>
+                      error</var>.
+                    </li>
+                  </ol>
+                </li>
+                <li>Return <var>promise</var>.
+                </li>
+              </ol>
+              <p>
+                When queuing a decoding operation to be performed on another
+                thread, the following steps MUST happen on a thread that is not
+                the <a>control thread</a> nor the <a>rendering thread</a>,
+                called the <em>decoding thread</em>.
+              </p>
+              <div class="note">
+                Multiple <em>decoding threads</em> can run in parallel to
+                service multiple calls to <code>decodeAudioData</code>.
+              </div>
+              <ol class="method-algorithm">
+                <li>Attempt to decode the encoded <a>audioData</a> into linear
+                PCM.
+                </li>
+                <li>If a decoding error is encountered due to the audio format
+                not being recognized or supported, or because of
+                corrupted/unexpected/inconsistent data, then queue a task to
+                execute the following step, on the <a>control thread</a>'s
+                event loop:
+                  <ol>
+                    <li>Let <var>error</var> be a <code>DOMException</code>
+                    whose name is <code>"EncodingError"</code>.
+                    </li>
+                    <li>Reject <var>promise</var> with <var>error</var>.
+                    </li>
+                    <li>If <dfn>errorCallback</dfn> is not missing, invoke <a>
+                      errorCallback</a> with <var>error</var>.
+                    </li>
+                  </ol>
+                </li>
+                <li>Otherwise:
+                  <ol>
+                    <li>Take the result, representing the decoded linear PCM
+                    audio data, and resample it to the sample-rate of the
+                    <a><code>AudioContext</code></a> if it is different from
+                    the sample-rate of <a>audioData</a>.
+                    </li>
+                    <li>Queue a task on the <a>control thread</a>'s event loop
+                    to execute the following steps:
+                      <ol>
+                        <li>Let <var>buffer</var> be an
+                        <code>AudioBuffer</code> containing the final result
+                        (after possibly sample-rate conversion).
+                        </li>
+                        <li>Resolve <var>promise</var> with <var>buffer</var>.
+                        </li>
+                        <li>If <dfn>successCallback</dfn> is not missing,
+                        invoke <a>successCallback</a> with <var>buffer</var>.
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    audioData
+                  </td>
+                  <td class="prmType">
+                    <code>ArrayBuffer</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    An ArrayBuffer containing compressed audio data.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    successCallback
+                  </td>
+                  <td class="prmType">
+                    <code><a href="#idl-def-DecodeSuccessCallback" class=
+                    "idlType"><code>DecodeSuccessCallback</code></a></code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    A callback function which will be invoked when the decoding
+                    is finished. The single argument to this callback is an
+                    AudioBuffer representing the decoded PCM audio data.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    errorCallback
+                  </td>
+                  <td class="prmType">
+                    <code><a href="#idl-def-DecodeErrorCallback" class=
+                    "idlType"><code>DecodeErrorCallback</code></a></code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    A callback function which will be invoked if there is an
+                    error decoding the audio file.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;AudioBuffer&gt;</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>resume</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Resumes the progression of the <a>BaseAudioContext</a>'s
+                <a href="#widl-AudioContext-currentTime">currentTime</a> when
+                it has been suspended.
+              </p>
+              <p>
+                <span class="synchronous">When resume is called, execute these
+                steps:</span>
+              </p>
+              <ol class="method-algorithm">
+                <li>Let <em>promise</em> be a new Promise.
+                </li>
+                <li>If the <em>control thread state</em> flag on the
+                <a>BaseAudioContext</a> is <code>closed</code> reject the
+                promise with <code>InvalidStateError</code>, abort these steps,
+                returning <em>promise</em>.
+                </li>
+                <li>If the <a href="#widl-BaseAudioContext-state">state</a>
+                attribute of the <a>BaseAudioContext</a> is already
+                <code>running</code>, resolve <em>promise</em>, return it, and
+                abort these steps.
+                </li>
+                <li>If the <a>BaseAudioContext</a> is not <a>allowed to
+                start</a>, append <em>promise</em> to
+                <a>pendingResumePromises</a> and abort these steps, returning
+                <em>promise</em>.
+                </li>
+                <li>Set the <em>control thread state</em> flag on the
+                <a>BaseAudioContext</a> to <code>running</code>.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to resume the
+                  <a>BaseAudioContext</a>.
+                </li>
+                <li>Return <em>promise</em>.
+                </li>
+              </ol>
+              <p>
+                Running a <a>control message</a> to resume an
+                <a>BaseAudioContext</a> means running these steps on the
+                <a>rendering thread</a>:
+              </p>
+              <ol class="method-algorithm">
+                <li>Attempt to <a href="#acquiring">acquire system
+                resources</a>.
+                </li>
+                <li>Set the <a>rendering thread state</a> flag on the
+                <a>BaseAudioContext</a> to <code>running</code>.
+                </li>
+                <li>Start <a href="#rendering-loop">rendering the audio
+                graph</a>.
+                </li>
+                <li>In case of failure, queue a task on the <a>control
+                thread</a> to execute the following, and abort these steps
+                  <ol>
+                    <li>Reject all promises from <a>pendingResumePromises</a>
+                    in order, then clear <a>pendingResumePromises</a>.
+                    </li>
+                    <li>Reject <em>promise</em>.
+                    </li>
+                  </ol>
+                </li>
+                <li>Queue a task on the <a>control thread</a>'s event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Resolve all promises from <a>pendingResumePromises</a>
+                    in order, then clear <a>pendingResumePromises</a>.
+                    </li>
+                    <li>Resolve <em>promise</em>.
+                    </li>
+                    <li>If the <a href="#widl-BaseAudioContext-state">state</a>
+                    attribute of the <a>BaseAudioContext</a> is not already
+                    <code>running</code>:
+                      <ol>
+                        <li>Set the <a href=
+                        "#widl-BaseAudioContext-state">state</a> attribute of
+                        the <a>BaseAudioContext</a> to <code>running</code>.
+                        </li>
+                        <li>Queue a task to fire a simple event named
+                        <code>statechange</code> at the
+                        <a>BaseAudioContext</a>.
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Node</code>
+              </div>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Callback <a>DecodeSuccessCallback</a> Parameters
+          </h2>
+          <dl class="attributes" data-dfn-for="DecodeSuccessCallback"
+          data-link-for="DecodeSuccessCallback">
+            <dt>
+              <code><dfn>decodedData</dfn></code> of type <span class=
+              "idlAttrType"><a>AudioBuffer</a></span>
+            </dt>
+            <dd>
+              The AudioBuffer containing the decoded audio data.
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Callback <a>DecodeErrorCallback</a> Parameters
+          </h2>
+          <dl class="attributes" data-dfn-for="DecodeSuccessCallback"
+          data-link-for="DecodeSuccessCallback">
+            <dt>
+              <code><dfn>error</dfn></code> of type <span class=
+              "idlAttrType"><a>DOMException</a></span>
+            </dt>
+            <dd>
+              The error that occurred while decoding.
+            </dd>
+          </dl>
+        </section>
         <section>
           <h3 id="lifetime-AudioContext" class="informative">
             Lifetime
@@ -1613,7 +2128,50 @@ function setupRoutingGraph() {
           "https://html.spec.whatwg.org/multipage/interaction.html#triggered-by-user-activation">
           triggered by a user activation</a> (as described in [[HTML]]).
         </p>
-        <dl title="enum AudioContextLatencyCategory" class="idl">
+        <pre class="idl">
+enum <dfn>AudioContextLatencyCategory</dfn> {
+    "balanced",
+    "interactive",
+    "playback"
+};
+        </pre>
+        <table class="simple" data-dfn-for="AudioContextLatencyCategory"
+        data-link-for="AudioContextLatencyCategory">
+          <tbody>
+            <tr>
+              <th colspan="2">
+                Enumeration description
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>balanced</dfn></code>
+              </td>
+              <td>
+                Balance audio output latency and power consumption.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>interactive</dfn></code>
+              </td>
+              <td>
+                Provide the lowest audio output latency possible without
+                glitching. This is the default.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>playback</dfn></code>
+              </td>
+              <td>
+                Prioritize sustained playback without interruption over audio
+                output latency. Lowest power consumption.
+              </td>
+            </tr>
+          </tbody>
+        </table><!--
+        <dl title="enum AudioContextLatencyCategory" class="x-idl">
           <dt>
             balanced
           </dt>
@@ -1635,9 +2193,625 @@ function setupRoutingGraph() {
             output latency. Lowest power consumption.
           </dd>
         </dl>
+-->
+        <pre class="idl">
+[Constructor,
+ Constructor(optional AudioContextOptions contextOptions)]
+interface AudioContext : BaseAudioContext {
+    readonly        attribute double baseLatency;
+    readonly        attribute double outputLatency;
+    AudioTimestamp                  getOutputTimestamp ();
+    Promise&lt;void&gt;                   suspend ();
+    Promise&lt;void&gt;                   close ();
+    MediaElementAudioSourceNode     createMediaElementSource (HTMLMediaElement mediaElement);
+    MediaStreamAudioSourceNode      createMediaStreamSource (MediaStream mediaStream);
+    MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (MediaStreamTrack mediaStreamTrack);
+    MediaStreamAudioDestinationNode createMediaStreamDestination ();
+};              
+        </pre>
+        <section>
+          <h2>
+            Constructors
+          </h2>
+          <dl class="methods" data-dfn-for="AudioContext" data-link-for=
+          "AudioContext">
+            <dt>
+              <code><dfn>AudioContext</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                <span class="synchronous">When creating an <a>AudioContext</a>,
+                execute these steps:</span>
+              </p>
+              <ol class="method-algorithm">
+                <li>Set a <code>control thread state</code> to
+                <code>suspended</code> on the <a>AudioContext</a>.
+                </li>
+                <li>Set a <dfn>rendering thread state</dfn> to
+                <code>suspended</code> on the <a>AudioContext</a>.
+                </li>
+                <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered
+                list of promises.
+                </li>
+                <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
+                abort these steps.
+                </li>
+                <li>Send a <a>control message</a> to start processing.
+                </li>
+              </ol>
+              <p>
+                Sending a <a>control message</a> to start processing means
+                executing the following steps:
+              </p>
+              <ol class="method-algorithm">
+                <li>Attempt to <a href="#acquiring">acquire system
+                resources</a>.
+                </li>
+                <li>In case of failure, abort these steps.
+                </li>
+                <li>Set the <a>rendering thread state</a> to
+                <code>running</code> on the <a>AudioContext</a>.
+                </li>
+                <li>Queue a task on the <a>control thread</a> event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Set the <a href="#widl-audiocontext-state">state</a>
+                    attribute of the <a>AudioContext</a> to
+                    <code>running</code>.
+                    </li>
+                    <li>Queue a task to fire a simple event named
+                    <code>statechange</code> at the <a>AudioContext</a>.
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <p class="note">
+                It is unfortunately not possible to programatically notify
+                authors that the creation of the <a>AudioContext</a> failed.
+                User-Agents are encouraged to log an informative message if
+                they have access to a logging mechanism, such as a developer
+                tools console.
+              </p>
+            </dd>
+            <dd>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <code>contextOptions</code>
+                  </td>
+                  <td class="prmtype">
+                    <a>AudioContextOptions</a>
+                  </td>
+                  <td class="prmNullTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    User-specified options controlling how the
+                    <a>AudioContext</a> should be constructed.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Attributes
+          </h2>
+          <dl class="attributes" data-dfn-for="AudioContext" data-link-for=
+          "AudioContext">
+            <dt>
+              <dfn>baseLatency</dfn> of type <span class=
+              "idlAttrType"><a>double</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                This represents the number of seconds of processing latency
+                incurred by the <a>AudioContext</a> passing the audio from the
+                <a>AudioDestinationNode</a> to the audio subsystem. It does not
+                include any additional latency that might be caused by any
+                other processing between the output of the
+                <a>AudioDestinationNode</a> and the audio hardware and
+                specifically does not include any latency incurred the audio
+                graph itself.
+              </p>
+              <p>
+                For example, if the audio context is running at 44.1 kHz and
+                the <a>AudioDestinationNode</a> implements double buffering
+                internally and can process and output audio each <a>render
+                quantum</a>, then the processing latency is \((2\cdot128)/44100
+                = 5.805 \mathrm{ ms}\), approximately.
+              </p>
+            </dd>
+            <dt>
+              <dfn>outputLatency</dfn> of type <span class=
+              "idlAttrType"><a>double</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                The estimation in seconds of audio output latency, i.e., the
+                interval between the time the UA requests the host system to
+                play a buffer and the time at which the first sample in the
+                buffer is actually processed by the audio output device. For
+                devices such as speakers or headphones that produce an acoustic
+                signal, this latter time refers to the time when a sample's
+                sound is produced.
+              </p>
+              <p>
+                The <a><code>outputLatency</code></a> attribute value depends
+                on the platform and the connected hardware audio output device.
+                The <a><code>outputLatency</code></a> attribute value does not
+                change for the context's lifetime as long as the connected
+                audio output device remains the same. If the audio output
+                device is changed the <a><code>outputLatency</code></a>
+                attribute value will be updated accordingly.
+              </p>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Methods
+          </h2>
+          <dl class="methods" data-dfn-for="AudioContext" data-link-for=
+          "AudioContext">
+            <dt>
+              <code><dfn>close</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Closes the <a>AudioContext</a>, <a>releasing the system
+                resources</a> it's using. This will not automatically release
+                all <a>AudioContext</a>-created objects, but will suspend the
+                progression of the <a><code>AudioContext</code></a>'s <a href=
+                "#widl-AudioContext-currentTime">currentTime</a>, and stop
+                processing audio data.
+              </p>
+              <p>
+                <span class="synchronous">When close is called, execute these
+                steps:</span>
+              </p>
+              <ol>
+                <li>Let <em>promise</em> be a new Promise.
+                </li>
+                <li>If the <em>control thread state</em> flag on the
+                <a>AudioContext</a> is <code>closed</code> reject the promise
+                with <code>InvalidStateError</code>, abort these steps,
+                returning <em>promise</em>.
+                </li>
+                <li>If the <a href="#widl-AudioContext-state">state</a>
+                attribute of the <a>AudioContext</a> is already
+                <code>closed</code>, resolve <em>promise</em>, return it, and
+                abort these steps.
+                </li>
+                <li>Set the <em>control thread state</em> flag on the
+                <a>AudioContext</a> to <code>closed</code>.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to the
+                  <a>AudioContext</a>.
+                </li>
+                <li>Return <em>promise</em>.
+                </li>
+              </ol>
+              <p>
+                Running a <a>control message</a> to close an
+                <a>AudioContext</a> means running these steps on the
+                <a>rendering thread</a>:
+              </p>
+              <ol>
+                <li>Attempt to <a>release system resources</a>.
+                </li>
+                <li>Set the <a>rendering thread state</a> to
+                <code>suspended</code>.
+                </li>
+                <li>Queue a task on the <a>control thread</a>'s event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Resolve <em>promise</em>.
+                    </li>
+                    <li>If the <a href="#widl-audiocontext-state">state</a>
+                    attribute of the <a>AudioContext</a> is not already <code>
+                      closed</code>:
+                      <ol>
+                        <li>Set the <a href=
+                        "#widl-audiocontext-state">state</a> attribute of the
+                        <a>AudioContext</a> to <code>closed</code>.
+                        </li>
+                        <li>Queue a task to fire a simple event named
+                        <code>statechange</code> at the <a>AudioContext</a>.
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <p class="note">
+                When an <a>AudioContext</a> has been closed, implementation can
+                choose to aggressively release more resources than when
+                suspending.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaElementSource</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a href=
+                "#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
+                given an HTMLMediaElement. As a consequence of calling this
+                method, audio playback from the HTMLMediaElement will be
+                re-routed into the processing graph of the
+                <a><code>AudioContext</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    mediaElement
+                  </td>
+                  <td class="prmtype">
+                    <code>HTMLMediaElement</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The media element that will be re-routed.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>MediaElementAudioSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaStreamDestination</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a><code>MediaStreamAudioDestinationNode</code></a>
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em>
+                <code>MediaStreamAudioDestinationNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaStreamSource</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a><code>MediaStreamAudioSourceNode</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    mediaStream
+                  </td>
+                  <td class="prmType">
+                    MediaStream
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The media stream that will act as source.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>MediaStreamAudioSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaStreamTrackSource</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a><code>MediaStreamTrackAudioSourceNode</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    mediaStreamTrack
+                  </td>
+                  <td class="prmType">
+                    <code>MediaStreamTrack</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>MediaStreamTrack</code> that will act as source.
+                    <span class="synchronous">The value of its
+                    <code>kind</code> attribute must be equal to
+                    <code>"audio"</code>, or an <code>InvalidStateError</code>
+                    exception MUST be thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em>
+                <code>MediaStreamTrackAudioSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>getOutputTimestamp</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Returns a new <a><code>AudioTimestamp</code></a> instance
+                containing two correlated context's audio stream position
+                values: the <a href=
+                "#widl-AudioTimestamp-contextTime"><code>contextTime</code></a>
+                member contains the time of the sample frame which is currently
+                being rendered by the audio output device (i.e., output audio
+                stream position), in the same units and origin as context's
+                <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>;
+                the <a href=
+                "#widl-AudioTimestamp-performanceTime"><code>performanceTime</code></a>
+                member contains the time estimating the moment when the sample
+                frame corresponding to the stored <code>contextTime</code>
+                value was rendered by the audio output device, in the same
+                units and origin as <code>performance.now()</code> (described
+                in [[!hr-time-2]]).
+              </p>
+              <p>
+                If the context's rendering graph has not yet processed a block
+                of audio, then <a><code>getOutputTimestamp</code></a> call
+                returns an <code>AudioTimestamp</code> instance with both
+                members containing zero.
+              </p>
+              <p>
+                After the context's rendering graph has started processing of
+                blocks of audio, its <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                attribute value always exceeds the <a href=
+                "#widl-AudioTimestamp-contextTime"><code>contextTime</code></a>
+                value obtained from <a href=
+                "#widl-AudioContext-getOutputTimestamp-AudioTimestamp"><code>getOutputTimestamp</code></a>
+                method call.
+              </p>
+              <p>
+                The value returned from <a><code>getOutputTimestamp</code></a>
+                method can be used to get performance time estimation for the
+                slightly later context's time value:
+              </p>
+              <pre class="example">
+            function outputPerformanceTime(contextTime) {
+                var timestamp = context.getOutputTimestamp();
+                var elapsedTime = contextTime - timestamp.contextTime;
+                return timestamp.performanceTime + elapsedTime * 1000;
+            }
+</pre>
+              <p>
+                In the above example the accuracy of the estimation depends on
+                how close the argument value is to the current output audio
+                stream position: the closer the given <code>contextTime</code>
+                is to <code>timestamp.contextTime</code>, the better the
+                accuracy of the obtained estimation.
+              </p>
+              <p class="note">
+                The difference between the values of the context's <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                and the <a href=
+                "#widl-AudioTimestamp-contextTime"><code>contextTime</code></a>
+                obtained from <a href=
+                "#widl-AudioContext-getOutputTimestamp-AudioTimestamp"><code>getOutputTimestamp</code></a>
+                method call cannot be considered as a reliable output latency
+                estimation because <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                may be incremented at non-uniform time intervals, so <a href=
+                "#widl-AudioContext-outputLatency"><code>outputLatency</code></a>
+                attribute should be used instead.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>AudioTimestamp</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>suspend</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Suspends the progression of <a>AudioContext</a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a>, allows
+                any current context processing blocks that are already
+                processed to be played to the destination, and then allows the
+                system to release its claim on audio hardware. This is
+                generally useful when the application knows it will not need
+                the <a>AudioContext</a> for some time, and wishes to
+                temporarily <a>release system resource</a> associated with the
+                <a>AudioContext</a>. The promise resolves when the frame buffer
+                is empty (has been handed off to the hardware), or immediately
+                (with no other effect) if the context is already
+                <code>suspended</code>. The promise is rejected if the context
+                has been closed.
+              </p>
+              <p>
+                <span class="synchronous">When suspend is called, execute these
+                steps:</span>
+              </p>
+              <ol>
+                <li>Let <em>promise</em> be a new Promise.
+                </li>
+                <li>If the <em>control thread state</em> flag on the
+                <a>AudioContext</a> is <code>closed</code> reject the promise
+                with <code>InvalidStateError</code>, abort these steps,
+                returning <em>promise</em>.
+                </li>
+                <li>If the <a href="#widl-AudioContext-state">state</a>
+                attribute of the <a>AudioContext</a> is already
+                <code>suspended</code>, resolve <em>promise</em>, return it,
+                and abort these steps.
+                </li>
+                <li>Set the <em>control thread state</em> flag on the
+                <a>AudioContext</a> to <code>suspended</code>.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to suspend the
+                  <a>AudioContext</a>.
+                </li>
+                <li>Return <em>promise</em>.
+                </li>
+              </ol>
+              <p>
+                Running a <a>control message</a> to suspend an
+                <a>AudioContext</a> means running these steps on the
+                <a>rendering thread</a>:
+              </p>
+              <ol>
+                <li>Attempt to <a>release system resources</a>.
+                </li>
+                <li>Set the <a>rendering thread state</a> on the
+                <a>AudioContext</a> to <code>suspended</code>.
+                </li>
+                <li>Queue a task on the <a>control thread</a>'s event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Resolve <em>promise</em>.
+                    </li>
+                    <li>If the <a href="#widl-audiocontext-state">state</a>
+                    attribute of the <a>AudioContext</a> is not already <code>
+                      suspended</code>:
+                      <ol>
+                        <li>Set the <a href=
+                        "#widl-audiocontext-state">state</a> attribute of the
+                        <a>AudioContext</a> to <code>suspended</code>.
+                        </li>
+                        <li>Queue a task to fire a simple event named
+                        <code>statechange</code> at the <a>AudioContext</a>.
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <p>
+                While an <a>AudioContext</a> is suspended,
+                <code>MediaStream</code>s will have their output ignored; that
+                is, data will be lost by the real time nature of media streams.
+                <code>HTMLMediaElement</code>s will similarly have their output
+                ignored until the system is resumed. <a>AudioWorkletNode</a>s
+                and <a>ScriptProcessorNode</a>s will cease to have their
+                processing handlers invoked while suspended, but will resume
+                when the context is resumed. For the purpose of
+                <a>AnalyserNode</a> window functions, the data is considered as
+                a continuous stream - i.e. the
+                <code>resume()</code>/<code>suspend()</code> does not cause
+                silence to appear in the <a>AnalyserNode</a>'s stream of data.
+                In particular, calling <a>AnalyserNode</a> functions repeatedly
+                when a <a>AudioContext</a> is suspended MUST return the same
+                data.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+            </dd>
+          </dl>
+        </section><!--
         <dl title=
         "[Constructor(optional &lt;a&gt;AudioContextOptions&lt;/a&gt; contextOptions)] interface AudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
-        class='idl'>
+        class='x-idl'>
           <dt>
             Constructor
           </dt>
@@ -2052,6 +3226,7 @@ function setupRoutingGraph() {
             </p>
           </dd>
         </dl>
+-->
         <section>
           <h3>
             AudioContextOptions
@@ -2060,7 +3235,64 @@ function setupRoutingGraph() {
             The <a><code>AudioContextOptions</code></a> dictionary is used to
             specify user-specified options for an <a>AudioContext</a>.
           </p>
-          <dl title="dictionary AudioContextOptions" class="idl">
+          <pre class="idl">
+dictionary AudioContextOptions {
+             (AudioContextLatencyCategory or double) latencyHint = "interactive";
+             float                                   sampleRate;
+};
+          </pre>
+          <section>
+            <h4>
+              Dictionary <a>AudioContextOptions</a> Members
+            </h4>
+            <dl class="attributes" data-dfn-for="AudioContextOptions"
+            data-link-for="AudioContextOptions">
+              <dt>
+                <code><dfn>latencyHint</dfn></code> of type <span class=
+                "idlAttrType"><a>AudioContextLatencyCategory</a> or
+                <a>double</a></span>, defaulting to "interactive"
+              </dt>
+              <dd>
+                <p>
+                  Identify the type of playback, which affects tradeoffs
+                  between audio output latency and power consumption.
+                </p>
+                <p>
+                  The preferred value of the <code>latencyHint</code> is a
+                  value from <a>AudioContextLatencyCategory</a>. However, a
+                  double can also be specified for the number of seconds of
+                  latency for finer control to balance latency and power
+                  consumption. It is at the browser's discretion to interpret
+                  the number appropriately. The actual latency used is given by
+                  AudioContext's <a href=
+                  "#widl-BaseAudioContext-baseLatency">baseLatency</a>
+                  attribute.
+                </p>
+              </dd>
+              <dt>
+                <code><dfn>sampleRate</dfn></code> of type <span class=
+                "idlAttrType"><a>float</a></span>
+              </dt>
+              <dd>
+                <p>
+                  Set the <a href=
+                  "#widl-BaseAudioContext-sampleRate"><code>sampleRate</code></a>
+                  to this value for the <a>AudioContext</a> that will be
+                  created. The supported values are the same as the sample
+                  rates for an <a>AudioBuffer</a>. <span class="synchronous">A
+                  <code>NotSupportedError</code> exception MUST be thrown if
+                  the specified sample rate is not supported.</span>
+                </p>
+                <p>
+                  If <a href=
+                  "#widl-AudioContextOptions-sampleRate"><code>sampleRate</code></a>
+                  is not specified, the preferred sample rate of the output
+                  device for this <a>AudioContext</a> is used.
+                </p>
+              </dd>
+            </dl>
+          </section><!--
+          <dl title="dictionary AudioContextOptions" class="x-idl">
             <dt>
               (AudioContextLatencyCategory or double) latencyHint =
               "interactive"
@@ -2102,12 +3334,45 @@ function setupRoutingGraph() {
               </p>
             </dd>
           </dl>
+-->
         </section>
         <section>
           <h3>
             AudioTimestamp
           </h3>
-          <dl title="dictionary AudioTimestamp" class="idl">
+          <pre class="idl">
+dictionary AudioTimestamp {
+             double              contextTime;
+             DOMHighResTimeStamp performanceTime;
+};
+          </pre>
+          <section>
+            <h4>
+              Dictionary <a>AudioTimestamp</a> Members
+            </h4>
+            <dl class="attributes" data-dfn-for="AudioTimestamp" data-link-for=
+            "AudioTimestamp">
+              <dt>
+                <code><dfn>contextTime</dfn></code> of type <span class=
+                "idlAttrType"><a>double</a></span>
+              </dt>
+              <dd>
+                Represents a point in the time coordinate system of
+                BaseAudioContext's <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
+              </dd>
+              <dt>
+                <code><dfn>performanceTime</dfn></code> of type <span class=
+                "idlAttrType"><a>DOMHighResTimeStamp</a></span>
+              </dt>
+              <dd>
+                Represents a point in the time coordinate system of a
+                <code>Performance</code> interface implementation (described in
+                [[!hr-time-2]]).
+              </dd>
+            </dl>
+          </section><!--
+          <dl title="dictionary AudioTimestamp" class="x-idl">
             <dt>
               double contextTime
             </dt>
@@ -2125,6 +3390,7 @@ function setupRoutingGraph() {
               [[!hr-time-2]]).
             </dd>
           </dl>
+-->
         </section>
       </section>
       <section>
@@ -2139,9 +3405,375 @@ function setupRoutingGraph() {
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
         </p>
+        <pre class="idl">
+[Constructor (OfflineAudioContextOptions contextOptions),
+ Constructor (unsigned long numberOfChannels, unsigned long length, float sampleRate)]
+interface OfflineAudioContext : BaseAudioContext {
+    Promise&lt;AudioBuffer&gt; startRendering ();
+    Promise&lt;void&gt;        suspend (double suspendTime);
+    readonly        attribute unsigned long length;
+                    attribute EventHandler  oncomplete;
+};
+        </pre>
+        <section>
+          <h2>
+            Constructors
+          </h2>
+          <dl class="methods" data-dfn-for="OfflineAudioContext" data-link-for=
+          "OfflineAudioContext">
+            <dt>
+              <dfn><code>OfflineAudioContext</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Let <var>c</var> be a new <a>OfflineAudioContext</a> object.
+                Initialize <var>c</var> as follows:
+              </p>
+              <ol>
+                <li>Set the <code>control thread state</code> for <var>c</var>
+                to <code>"suspended"</code>.
+                </li>
+                <li>Set the <code>rendering thread state</code> for
+                <var>c</var> to <code>"suspended"</code>.
+                </li>
+                <li>Construct an <a>AudioDestinationNode</a> with its
+                <a>channelCount</a> set to
+                <code>contextOptions.numberOfChannels</code>.
+                </li>
+              </ol>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>contextOptions</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>OfflineAudioContextOptions</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The initial parameters needed to construct this context.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+            <dt>
+              <code>OfflineAudioContext</code>
+            </dt>
+            <dd>
+              <p>
+                The OfflineAudioContext can constructed with the same arguments
+                as AudioContext.createBuffer. <span class="synchronous">A
+                <code>NotSupportedError</code> exception MUST be thrown if any
+                of the arguments is negative, zero, or outside its nominal
+                range.</span>
+              </p>
+              <p>
+                The OfflineAudioContext is constructed as if
+              </p>
+              <pre>
+  new OfflineAudioContext({
+      numberOfChannels: numberOfChannels,
+      length: length,
+      sampleRate: sampleRate
+  })
+</pre>
+              <p>
+                were called instead.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>numberOfChannels</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Determines how many channels the buffer will have. See
+                    <a href=
+                    "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                    createBuffer</a> for the supported number of channels.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>length</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Determines the size of the buffer in sample-frames.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>sampleRate</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Describes the sample-rate of the linear PCM audio data in
+                    the buffer in sample-frames per second. See <a href=
+                    "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                    createBuffer</a> for valid sample rates.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Attributes
+          </h2>
+          <dl class="attributes" data-dfn-for="OfflineAudioContext"
+          data-link-for="OfflineAudioContext">
+            <dt>
+              <dfn>length</dfn> of type <span class="idlAttrType"><a>unsigned
+              long</a></span>, readonly
+            </dt>
+            <dd>
+              The size of the buffer in sample-frames. This is the same as the
+              value of the <code>length</code> parameter for the constructor.
+            </dd>
+            <dt>
+              <dfn>oncomplete</dfn> of type <span class=
+              "idlAttrType"><a>EventHandler</a></span>, readonly
+            </dt>
+            <dd>
+              An EventHandler of type <a href=
+              "#OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</a>.
+              It is the last event fired on an <a>OfflineAudioContext</a>.
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Methods
+          </h2>
+          <dl class="methods" data-dfn-for="OfflineAudioContext" data-link-for=
+          "OfflineAudioContext">
+            <dt>
+              <dfn><code>startRendering</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Given the current connections and scheduled changes, starts
+                rendering audio. The system shall ensure that the
+                <code>OfflineAudioContext</code> is not garbage collected until
+                either the promise is resolved and any callback function is
+                called and completes, or until the <code>suspend</code>
+                function is called.
+              </p>
+              <p>
+                Although the primary method of getting the rendered audio data
+                is via its promise return value, the instance will also fire an
+                event named <code>complete</code> for legacy reasons.
+              </p>
+              <p>
+                <span class="synchronous">When <code>startRendering</code> is
+                called, the following steps MUST be performed on the <a>control
+                thread</a>:</span>
+              </p>
+              <ol>
+                <li>Set a flag called <var>renderingStarted</var> on the
+                <a>OfflineAudioContext</a> to <em>true</em>.
+                </li>
+                <li>If the <em>renderingStarted</em> flag on the
+                <a>OfflineAudioContext</a> is <em>true</em>, return a rejected
+                promise with <code>InvalidStateError</code>, and abort these
+                steps.
+                </li>
+                <li>Let <var>promise</var> be a new promise.
+                </li>
+                <li>Create a new <code>AudioBuffer</code>, with a number of
+                channels, length and sample rate equal respectively to the
+                <code>numberOfChannels</code>, <code>length</code> and
+                <code>sampleRate</code> values passed to this instance's
+                constructor in the <code>contextOptions</code> parameter.
+                Assign this buffer to an internal slot <a><var>[[rendered
+                buffer]]</var></a> in the <a>OfflineAudioContext</a>.
+                </li>
+                <li>If an exception was thrown during the preceding
+                <code>AudioBuffer</code> constructor call, reject
+                <var>promise</var> with this exception.
+                </li>
+                <li>Otherwise, in the case that the buffer was successfully
+                constructed, <a>begin offline rendering</a>.
+                </li>
+                <li>Return <var>promise</var>.
+                </li>
+              </ol>
+              <p>
+                When rendering an audio graph on another thread, the following
+                steps MUST happen on a <a>rendering thread</a> that is created
+                for the occasion.
+              </p>
+              <ol>
+                <li>Given the current connections and scheduled changes, start
+                rendering <code>length</code> sample-frames of audio into
+                <a><var>[[rendered buffer]]</var></a>.
+                </li>
+                <li>For every <a>render quantum</a>, check and suspend the
+                rendering if necessary.
+                </li>
+                <li>If a suspended context is resumed, continue to render the
+                buffer.
+                </li>
+                <li>Once the rendering is complete, queue a task on the
+                <a>control thread</a>'s event loop to perform the following
+                steps:
+                  <ol>
+                    <li>Resolve <var>promise</var> with <a><var>[[rendered
+                    buffer]]</var></a>.
+                    </li>
+                    <li>Queue a task to fire an event named
+                    <code>complete</code> at this instance, using an instance
+                    of <a><code>OfflineAudioCompletionEvent</code></a> whose
+                    <code>renderedBuffer</code> property is set to
+                    <a><var>[[rendered buffer]]</var></a>.
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+            </dd>
+            <dt>
+              <dfn><code>suspend</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Schedules a suspension of the time progression in the audio
+                context at the specified time and returns a promise. This is
+                generally useful when manipulating the audio graph
+                synchronously on <a><code>OfflineAudioContext</code></a>.
+              </p>
+              <p>
+                Note that the maximum precision of suspension is the size of
+                the <a>render quantum</a> and the specified suspension time
+                will be rounded down to the nearest <a>render quantum</a>
+                boundary. For this reason, it is not allowed to schedule
+                multiple suspends at the same quantized frame. Also, scheduling
+                should be done while the context is not running to ensure
+                precise suspension.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    suspendTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Schedules a suspension of the rendering at the specified
+                    time, which is quantized and rounded down to the <a>render
+                    quantum</a> size. If the quantized frame number
+                    <ol>
+                      <li>is negative or
+                      </li>
+                      <li>is less than or equal to the current time or
+                      </li>
+                      <li>is greater than or equal to the total render duration
+                      or
+                      </li>
+                      <li>is scheduled by another suspend for the same time,
+                      </li>
+                    </ol>then the promise is rejected with
+                    <code>InvalidStateError</code>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+            </dd>
+          </dl>
+        </section><!--
         <dl title=
         "interface OfflineAudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
-        class='idl'>
+        class='x-idl'>
           <dt>
             Constructor
           </dt>
@@ -2162,14 +3794,6 @@ function setupRoutingGraph() {
               <code>contextOptions.numberOfChannels</code>.
               </li>
             </ol>
-            <dl class="parameters">
-              <dt>
-                OfflineAudioContextOptions contextOptions
-              </dt>
-              <dd>
-                The initial parameters needed to construct this context.
-              </dd>
-            </dl>
           </dd>
           <dt>
             Constructor
@@ -2365,6 +3989,7 @@ function setupRoutingGraph() {
             </p>
           </dd>
         </dl>
+-->
         <section>
           <h3>
             OfflineAudioContextOptions
@@ -2373,7 +3998,44 @@ function setupRoutingGraph() {
             This specifies the options to use in constructing an
             <a>OfflineAudioContext</a>.
           </p>
-          <dl title="dictionary OfflineAudioContextOptions" class="idl">
+          <pre class="idl">
+dictionary OfflineAudioContextOptions {
+             unsigned long numberOfChannels = 1;
+    required unsigned long length;
+    required float         sampleRate;
+};
+          </pre>
+          <section>
+            <h4>
+              Dictionary <a>OfflineAudioContextOptions</a> Members
+            </h4>
+            <dl class="attributes" data-dfn-for="OfflineAudioContextOptions"
+            data-link-for="OfflineAudioContextOptions">
+              <dt>
+                <dfn><code>length</code></dfn> of type <span class=
+                "idlAttrType"><a>unsigned long</a></span>, required
+              </dt>
+              <dd>
+                The length of the rendered <a>AudioBuffer</a> in sample-frames.
+              </dd>
+              <dt>
+                <dfn><code>numberOfchannels</code></dfn> of type <span class=
+                "idlAttrType"><a>unsigned long</a></span>, required, defaulting
+                to 1
+              </dt>
+              <dd>
+                The number of channels for this <a>OfflineAudioContext</a>.
+              </dd>
+              <dt>
+                <dfn><code>sampleRate</code></dfn> of type <span class=
+                "idlAttrType"><a>double</a></span>, required
+              </dt>
+              <dd>
+                The sample rate for this <a>OfflineAudioContext</a>.
+              </dd>
+            </dl>
+          </section><!--
+          <dl title="dictionary OfflineAudioContextOptions" class="x-idl">
             <dt>
               unsigned long numberOfChannels = 1
             </dt>
@@ -2393,6 +4055,7 @@ function setupRoutingGraph() {
               The sample rate for this <a>OfflineAudioContext</a>.
             </dd>
           </dl>
+-->
         </section>
         <section>
           <h2 id="OfflineAudioCompletionEvent">
@@ -2402,9 +4065,30 @@ function setupRoutingGraph() {
             This is an <code>Event</code> object which is dispatched to
             <a><code>OfflineAudioContext</code></a> for legacy reasons.
           </p>
+          <pre class="idl">
+[Constructor(DOMString type, OfflineAudioCompletionEventInit eventInitDict)]
+interface OfflineAudioCompletionEvent : Event {
+    readonly        attribute AudioBuffer renderedBuffer;
+};
+          </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="OfflineAudioCompletionEvent"
+            data-link-for="OfflineAudioCompletionEvent">
+              <dt>
+                <dfn><code>renderedBuffer</code></dfn> of type <span class=
+                "idlAttrType"><a>AudioBuffer</a></span>, readonly
+              </dt>
+              <dd>
+                An <code>AudioBuffer</code> containing the rendered audio data.
+              </dd>
+            </dl>
+          </section><!--
           <dl title=
           "[Constructor(DOMString type, &lt;a&gt;OfflineAudioCompletionEventInit&lt;/a&gt; eventInitDict)]interface OfflineAudioCompletionEvent : Event"
-          class="idl">
+          class="x-idl">
             <dt>
               readonly attribute AudioBuffer renderedBuffer
             </dt>
@@ -2414,12 +4098,36 @@ function setupRoutingGraph() {
               </p>
             </dd>
           </dl>
+-->
           <section>
             <h3>
               OfflineAudioCompletionEventInit
             </h3>
+            <pre class="idl">
+dictionary OfflineAudioCompletionEventInit : EventInit {
+    required AudioBuffer renderedBuffer;
+};
+            </pre>
+            <section>
+              <h4>
+                Dictionary <a>OfflineAudioCompleteionEventInit</a> Members
+              </h4>
+              <dl class="attributes" data-dfn-for=
+              "OfflineAudioCompletionEventInit" data-link-for=
+              "OfflineAudioCompletionEventInit">
+                <dt>
+                  <dfn><code>renderedBuffer</code></dfn> of type <span class=
+                  "idlAttrType"><a>AudioBuffer</a></span>, readonly
+                </dt>
+                <dd>
+                  Value to be assigned to the <a href=
+                  "#widl-OfflineAudioCompletionEvent-renderedBuffer"><code>renderedBuffer</code></a>
+                  attribute of the event.
+                </dd>
+              </dl>
+            </section><!--
             <dl title="dictionary OfflineAudioCompletionEventInit : EventInit"
-            class="idl">
+            class="x-idl">
               <dt>
                 required AudioBuffer renderedBuffer
               </dt>
@@ -2429,6 +4137,7 @@ function setupRoutingGraph() {
                 attribute of the event.
               </dd>
             </dl>
+-->
           </section>
         </section>
       </section>
@@ -2623,7 +4332,7 @@ function setupRoutingGraph() {
           <a><code>AudioNode</code></a>s the same way that other EventTargets
           accept events.
         </p>
-        <dl title="enum ChannelCountMode" class="idl">
+        <dl title="enum ChannelCountMode" class="x-idl">
           <dt>
             max
           </dt>
@@ -2646,7 +4355,7 @@ function setupRoutingGraph() {
             specified in channelCount
           </dd>
         </dl>
-        <dl title="enum ChannelInterpretation" class="idl">
+        <dl title="enum ChannelInterpretation" class="x-idl">
           <dt>
             speakers
           </dt>
@@ -2664,7 +4373,7 @@ function setupRoutingGraph() {
             possible, then dropping remaining channels.
           </dd>
         </dl>
-        <dl title="interface AudioNode : EventTarget" class="idl">
+        <dl title="interface AudioNode : EventTarget" class="x-idl">
           <dt>
             AudioNode connect()
           </dt>
@@ -3278,7 +4987,7 @@ function setupRoutingGraph() {
             <a>AudioNode</a>s. All members are optional. However, the specific
             values used for each node depends on the actual node.
           </p>
-          <dl title="dictionary AudioNodeOptions" class="idl">
+          <dl title="dictionary AudioNodeOptions" class="x-idl">
             <dt>
               unsigned long channelCount
             </dt>
@@ -3469,7 +5178,7 @@ function setupRoutingGraph() {
           "#widl-AudioNode-channelCount">channelCount</a> is changed to a
           different value</span>.
         </p>
-        <dl title="interface AudioDestinationNode : AudioNode" class="idl">
+        <dl title="interface AudioDestinationNode : AudioNode" class="x-idl">
           <dt>
             readonly attribute unsigned long maxChannelCount
           </dt>
@@ -3629,7 +5338,7 @@ function setupRoutingGraph() {
           value]]</var>, initially set to the <a>AudioParam</a>'s <a href=
           "#widl-AudioParam-defaultValue">default value</a>.
         </p>
-        <dl title="interface AudioParam" class="idl">
+        <dl title="interface AudioParam" class="x-idl">
           <dt>
             attribute float value
           </dt>
@@ -4389,7 +6098,8 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           <a>AudioScheduledSourceNode</a> cannot be instantiated directly, but
           is instead extended by the concrete interfaces for the source nodes.
         </p>
-        <dl title="interface AudioScheduledSourceNode : AudioNode" class="idl">
+        <dl title="interface AudioScheduledSourceNode : AudioNode" class=
+        "x-idl">
           <dt>
             attribute EventHandler onended
           </dt>
@@ -4516,7 +6226,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           This node has no <a>tail-time</a> reference.
         </p>
         <dl title="interface GainNode : &lt;a&gt;AudioNode&lt;/a&gt;" class=
-        "idl">
+        "x-idl">
           <dt>
             Constructor
           </dt>
@@ -4562,7 +6272,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             <a><code>GainNode</code></a>. All members are optional; if not
             specified, the normal defaults are used in constructing the node.
           </p>
-          <dl title="dictionary GainOptions : AudioNodeOptions" class="idl">
+          <dl title="dictionary GainOptions : AudioNodeOptions" class="x-idl">
             <dt>
               float gain = 1.0
             </dt>
@@ -4623,7 +6333,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
           latency equal to the amount of the delay.
         </p>
         <dl title="interface DelayNode : &lt;a&gt;AudioNode&lt;/a&gt;" class=
-        "idl">
+        "x-idl">
           <dt>
             Constructor
           </dt>
@@ -4689,7 +6399,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             <a><code>DelayNode</code></a>. All members are optional; if not
             given, the node is constructed using the normal defaults.
           </p>
-          <dl title="dictionary DelayOptions : AudioNodeOptions" class="idl">
+          <dl title="dictionary DelayOptions : AudioNodeOptions" class="x-idl">
             <dt>
               double maxDelayTime = 1
             </dt>
@@ -4758,7 +6468,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             block</a> holding the audio sample data.
           </dd>
         </dl>
-        <dl title="interface AudioBuffer" class="idl">
+        <dl title="interface AudioBuffer" class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -5031,7 +6741,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             members are required. A <code>NotFoundError</code> exception MUST
             be thrown if any of the required members are not specified.
           </p>
-          <dl title="dictionary AudioBufferOptions" class="idl">
+          <dl title="dictionary AudioBufferOptions" class="x-idl">
             <dt>
               unsigned long numberOfChannels = 1
             </dt>
@@ -5115,7 +6825,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
         </p>
         <dl title=
         "interface AudioBufferSourceNode : &lt;a&gt;AudioScheduledSourceNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -5378,7 +7088,7 @@ param.setValueCurveAtTime(curve, t7, t8 - t7);
             optional; if not specified, the normal default is used in
             constructing the node.
           </p>
-          <dl title="dictionary AudioBufferSourceOptions" class="idl">
+          <dl title="dictionary AudioBufferSourceOptions" class="x-idl">
             <dt>
               AudioBuffer? buffer
             </dt>
@@ -5794,7 +7504,7 @@ function process(numberOfFrames) {
 </pre>
         <dl title=
         "interface ConstantSourceNode : &lt;a&gt;AudioScheduledSourceNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -5842,7 +7552,7 @@ function process(numberOfFrames) {
             if not specified, the normal defaults are used for constructing the
             node.
           </p>
-          <dl title="dictionary ConstantSourceOptions" class="idl">
+          <dl title="dictionary ConstantSourceOptions" class="x-idl">
             <dt>
               float offset = 1
             </dt>
@@ -5878,7 +7588,7 @@ function process(numberOfFrames) {
         </p>
         <dl title=
         "interface MediaElementAudioSourceNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -5950,7 +7660,7 @@ function process(numberOfFrames) {
             This specifies the options to use in constructing a
             <a><code>MediaElementAudioSourceNode</code></a>.
           </p>
-          <dl title="dictionary MediaElementAudioSourceOptions" class="idl">
+          <dl title="dictionary MediaElementAudioSourceOptions" class="x-idl">
             <dt>
               required HTMLMediaElement mediaElement
             </dt>
@@ -6082,7 +7792,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             <a href="#processing-model">processing model</a> section.
           </p>
         </section>
-        <dl title="partial interface Window" class="idl">
+        <dl title="partial interface Window" class="x-idl">
           <dt>
             [SameObject] readonly attribute Worklet audioWorklet
           </dt>
@@ -6140,7 +7850,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
           </div>
           <dl title=
           "[Global=(Worklet, AudioWorklet), Exposed=AudioWorklet] interface AudioWorkletGlobalScope : WorkletGlobalScope"
-          class="idl">
+          class="x-idl">
             <dt>
               void registerProcessor ()
             </dt>
@@ -6262,12 +7972,12 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             the node to be retained in memory and perform audio processing in
             the absence of any connected inputs.
           </p>
-          <dl title="interface AudioParamMap" class="idl">
+          <dl title="interface AudioParamMap" class="x-idl">
             <dt>
               readonly maplike&lt;DOMString, AudioParam&gt;
             </dt>
           </dl>
-          <dl title="enum AudioWorkletProcessorState" class="idl">
+          <dl title="enum AudioWorkletProcessorState" class="x-idl">
             <dt>
               pending
             </dt>
@@ -6301,7 +8011,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
               output silence throughout its lifetime.
             </dd>
           </dl>
-          <dl title="interface AudioWorkletNode : AudioNode" class="idl">
+          <dl title="interface AudioWorkletNode : AudioNode" class="x-idl">
             <dt>
               Constructor(<a>BaseAudioContext</a> context, DOMString name,
               optional <a>AudioWorkletNodeOptions</a> options)
@@ -6394,7 +8104,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
               the parameter values upon the creation of a node.
             </p>
             <dl title="dictionary AudioWorkletNodeOptions : AudioNodeOptions"
-            class="idl">
+            class="x-idl">
               <dt>
                 unsigned long numberOfInputs = 1
               </dt>
@@ -6438,7 +8148,7 @@ window.audioWorklet.addModule("bypass.js").then(function () {
             <a>AudioWorkletProcessor</a> has an associated <dfn>node
             reference</dfn>, initially null.
           </p>
-          <dl title="interface AudioWorkletProcessor" class="idl">
+          <dl title="interface AudioWorkletProcessor" class="x-idl">
             <dt>
               AudioContextInfo getContextInfo()
             </dt>
@@ -6630,7 +8340,7 @@ class MyProcessor extends AudioWorkletProcessor {
               specify properties for an <a><code>AudioParam</code></a> object
               that is used in an <a><code>AudioWorkletNode</code></a>.
             </p>
-            <dl title="dictionary AudioParamDescriptor" class="idl">
+            <dl title="dictionary AudioParamDescriptor" class="x-idl">
               <dt>
                 required DOMString name
               </dt>
@@ -6679,7 +8389,7 @@ class MyProcessor extends AudioWorkletProcessor {
               <a>AudioWorkletGlobalScope</a> with a view of a
               <a>BaseAudioContext</a>.
             </p>
-            <dl title="dictionary AudioContextInfo" class="idl">
+            <dl title="dictionary AudioContextInfo" class="x-idl">
               <dt>
                 double currentTime
               </dt>
@@ -7203,7 +8913,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
   numberOfOutputChannels);
 </pre>
-        <dl title="interface ScriptProcessorNode : AudioNode" class="idl">
+        <dl title="interface ScriptProcessorNode : AudioNode" class="x-idl">
           <dt>
             attribute EventHandler onaudioprocess
           </dt>
@@ -7252,7 +8962,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           </p>
           <dl title=
           "[Constructor(DOMString type, &lt;a&gt;AudioProcessingEventInit&lt;/a&gt; eventInitDict)]interface AudioProcessingEvent : Event"
-          class="idl">
+          class="x-idl">
             <dt>
               readonly attribute double playbackTime
             </dt>
@@ -7300,7 +9010,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
               AudioProcessingEventInit
             </h3>
             <dl title="dictionary AudioProcessingEventInit : EventInit" class=
-            "idl">
+            "x-idl">
               <dt>
                 required double playbackTime
               </dt>
@@ -7374,7 +9084,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           the node will produce non-silent output for silent input due to the
           inherent processing for the head responses.
         </p>
-        <dl title="enum PanningModelType" class="idl">
+        <dl title="enum PanningModelType" class="x-idl">
           <dt>
             equalpower
           </dt>
@@ -7411,7 +9121,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           value of the <code>maxDistance</code> attribute; and \(f\) be the
           value of the <code>rolloffFactor</code> attribute.
         </p>
-        <dl title="enum DistanceModelType" class="idl">
+        <dl title="enum DistanceModelType" class="x-idl">
           <dt>
             linear
           </dt>
@@ -7478,7 +9188,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           </dd>
         </dl>
         <dl title="interface PannerNode : &lt;a&gt;AudioNode&lt;/a&gt;" class=
-        "idl">
+        "x-idl">
           <dt>
             Constructor
           </dt>
@@ -7755,7 +9465,8 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             <a><code>PannerNode</code></a>. All members are optional; if not
             specified, the normal default is used in constructing the node.
           </p>
-          <dl title="dictionary PannerOptions : AudioNodeOptions" class="idl">
+          <dl title="dictionary PannerOptions : AudioNodeOptions" class=
+          "x-idl">
             <dt>
               PanningModelType panningModel = "equalpower"
             </dt>
@@ -7908,7 +9619,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           how these values are to be interpreted, see the
           <a>Spatialization/Panning</a> section.
         </p>
-        <dl title="interface AudioListener" class="idl">
+        <dl title="interface AudioListener" class="x-idl">
           <dt>
             readonly attribute AudioParam positionX
           </dt>
@@ -8125,7 +9836,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           This node has no <a>tail-time</a> reference.
         </p>
         <dl title="interface StereoPannerNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -8174,7 +9885,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             not specified, the normal default is used in constructing the node.
           </p>
           <dl title="dictionary StereoPannerOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               float pan = 0
             </dt>
@@ -8237,7 +9948,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
           set</code>, initially set to false.
         </p>
         <dl title="interface ConvolverNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -8420,7 +10131,7 @@ function calculateNormalizationScale(buffer)
             specified, the node is contructing using the normal defaults.
           </p>
           <dl title="dictionary ConvolverOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               AudioBuffer? buffer
             </dt>
@@ -8496,7 +10207,7 @@ function calculateNormalizationScale(buffer)
           This node has no <a>tail-time</a> reference.
         </p>
         <dl title="interface AnalyserNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <!--<dt> // Real-time frequency-domain data </dt>-->
           <dt>
             Constructor
@@ -8755,7 +10466,7 @@ function calculateNormalizationScale(buffer)
             node.
           </p>
           <dl title="dictionary AnalyserOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               unsigned long fftSize = 2048
             </dt>
@@ -8984,7 +10695,7 @@ function calculateNormalizationScale(buffer)
         </p>
         <dl title=
         "interface ChannelSplitterNode : &lt;a&gt;AudioNode&lt;/a&gt;" class=
-        "idl">
+        "x-idl">
           <dt>
             Constructor
           </dt>
@@ -9017,7 +10728,7 @@ function calculateNormalizationScale(buffer)
             ChannelSplitterOptions
           </h2>
           <dl title="dictionary ChannelSplitterOptions : AudioNodeOptions"
-          class="idl">
+          class="x-idl">
             <dt>
               unsigned long numberOfOutputs = 6
             </dt>
@@ -9090,7 +10801,7 @@ function calculateNormalizationScale(buffer)
             A diagram of ChannelMerger
           </figcaption>
         </figure>
-        <dl title="interface ChannelMergerNode : AudioNode" class="idl">
+        <dl title="interface ChannelMergerNode : AudioNode" class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -9123,7 +10834,7 @@ function calculateNormalizationScale(buffer)
             ChannelMergerOptions
           </h2>
           <dl title="dictionary ChannelMergerOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               unsigned long numberOfInputs = 6
             </dt>
@@ -9169,7 +10880,7 @@ function calculateNormalizationScale(buffer)
         </p>
         <dl title=
         "interface DynamicsCompressorNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -9275,7 +10986,7 @@ function calculateNormalizationScale(buffer)
             constructing the node.
           </p>
           <dl title="dictionary DynamicsCompressorOptions : AudioNodeOptions"
-          class="idl">
+          class="x-idl">
             <dt>
               float attack = 0.003
             </dt>
@@ -9668,7 +11379,7 @@ function calculateNormalizationScale(buffer)
           is sufficiently close to zero. The actual time depends on the filter
           coefficients.
         </p>
-        <dl title="enum BiquadFilterType" class="idl">
+        <dl title="enum BiquadFilterType" class="x-idl">
           <dt>
             lowpass
           </dt>
@@ -9961,7 +11672,7 @@ function calculateNormalizationScale(buffer)
           <a>a-rate</a> <a><code>AudioParam</code></a>.
         </p>
         <dl title="interface BiquadFilterNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -10122,7 +11833,7 @@ function calculateNormalizationScale(buffer)
             node.
           </p>
           <dl title="dictionary BiquadFilterOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               BiquadFilterType type = "lowpass"
             </dt>
@@ -10415,7 +12126,7 @@ $$
           coefficients.
         </p>
         <dl title="interface IIRFilterNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -10508,7 +12219,7 @@ $$
             filter coefficients of the <a><code>IIRFilterNode</code></a>.
           </p>
           <dl title="dictionary IIRFilterOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               required sequence&lt;double&gt; feedforward
             </dt>
@@ -10604,7 +12315,7 @@ $$
           duration of this <a>tail-time</a> is therefore
           implementation-dependent.
         </p>
-        <dl title="enum OverSampleType" class="idl">
+        <dl title="enum OverSampleType" class="x-idl">
           <dt>
             none
           </dt>
@@ -10625,7 +12336,7 @@ $$
           </dd>
         </dl>
         <dl title="interface WaveShaperNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl" data-merge="OverSampleType">
+        class="x-idl" data-merge="OverSampleType">
           <dt>
             Constructor
           </dt>
@@ -10764,7 +12475,7 @@ $$
             not specified, the normal default is used in constructing the node.
           </p>
           <dl title="dictionary WaveShaperOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               sequence&lt;float&gt; curve
             </dt>
@@ -10841,7 +12552,7 @@ $$
   numberOfInputs  : 0
   numberOfOutputs : 1 (mono output)
 </pre>
-        <dl title="enum OscillatorType" class="idl">
+        <dl title="enum OscillatorType" class="x-idl">
           <dt>
             sine
           </dt>
@@ -10875,7 +12586,7 @@ $$
         </dl>
         <dl title=
         "interface OscillatorNode : &lt;a&gt;AudioScheduledSourceNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -10963,7 +12674,7 @@ $$
             constructing the oscillator.
           </p>
           <dl title="dictionary OscillatorOptions : AudioNodeOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               OscillatorType type = "sine"
             </dt>
@@ -11092,7 +12803,7 @@ odd function with period \(2\pi\).
           Conforming implementations MUST support <a>PeriodicWave</a> up to at
           least 8192 elements.
         </p>
-        <dl title="interface PeriodicWave" class="idl">
+        <dl title="interface PeriodicWave" class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -11163,7 +12874,7 @@ odd function with period \(2\pi\).
             PeriodicWaveConstraints
           </h2>The <code>PeriodicWaveConstraints</code> dictionary is used to
           specify how the waveform is normalized.
-          <dl title="dictionary PeriodicWaveConstraints" class="idl">
+          <dl title="dictionary PeriodicWaveConstraints" class="x-idl">
             <dt>
               boolean disableNormalization = false
             </dt>
@@ -11193,7 +12904,7 @@ odd function with period \(2\pi\).
             <code>NotSupportedError</code> MUST be thrown</span>.
           </p>
           <dl title="dictionary PeriodicWaveOptions : PeriodicWaveConstraints"
-          class="idl">
+          class="x-idl">
             <dt>
               sequence&lt;float&gt; real
             </dt>
@@ -11396,7 +13107,7 @@ odd function with period \(2\pi\).
         </p>
         <dl title=
         "interface MediaStreamAudioSourceNode : &lt;a&gt;AudioNode&lt;/a&gt;"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -11447,7 +13158,7 @@ odd function with period \(2\pi\).
             This specifies the options for constructing a
             <a><code>MediaStreamAudioSourceNode</code></a>.
           </p>
-          <dl title="dictionary MediaStreamAudioSourceOptions" class="idl">
+          <dl title="dictionary MediaStreamAudioSourceOptions" class="x-idl">
             <dt>
               required MediaStream mediaStream
             </dt>
@@ -11478,7 +13189,7 @@ odd function with period \(2\pi\).
           This node has no <a>tail-time</a> reference.
         </p>
         <dl title="interface MediaStreamTrackAudioSourceNode : AudioNode"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>
@@ -11518,7 +13229,7 @@ odd function with period \(2\pi\).
             required.
           </p>
           <dl title="dictionary MediaStreamTrackAudioSourceOptions" class=
-          "idl">
+          "x-idl">
             <dt>
               required MediaStreamTrack mediaStreamTrack
             </dt>
@@ -11555,7 +13266,7 @@ odd function with period \(2\pi\).
           The number of channels of the input is by default 2 (stereo).
         </p>
         <dl title="interface MediaStreamAudioDestinationNode : AudioNode"
-        class="idl">
+        class="x-idl">
           <dt>
             Constructor
           </dt>

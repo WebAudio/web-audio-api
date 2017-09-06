@@ -5059,6 +5059,939 @@ interface AudioDestinationNode : AudioNode {
           value]]</var>, initially set to the <a>AudioParam</a>'s <a href=
           "#widl-AudioParam-defaultValue">default value</a>.
         </p>
+        <pre class="idl">
+interface AudioParam {
+                    attribute float value;
+    readonly        attribute float defaultValue;
+    readonly        attribute float minValue;
+    readonly        attribute float maxValue;
+    AudioParam setValueAtTime (float value, double startTime);
+    AudioParam linearRampToValueAtTime (float value, double endTime);
+    AudioParam exponentialRampToValueAtTime (float value, double endTime);
+    AudioParam setTargetAtTime (float target, double startTime, float timeConstant);
+    AudioParam setValueCurveAtTime (sequence&lt;float&gt; values, double startTime, double duration);
+    AudioParam cancelScheduledValues (double cancelTime);
+    AudioParam cancelAndHoldAtTime (double cancelTime);
+};
+        </pre>
+        <section>
+          <h3>
+            Attributes
+          </h3>
+          <dl class="attributes" data-dfn-for="AudioParam" data-link-for=
+          "AudioParam">
+            <dt>
+              <dfn><code>defaultValue</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>, readonly
+            </dt>
+            <dd>
+              Initial value for the <code>value</code> attribute.
+            </dd>
+            <dt>
+              <dfn><code>maxValue</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>, readonly
+            </dt>
+            <dd>
+              The nominal maximum value that the parameter can take. Together
+              with <code>minValue</code>, this forms the <a>nominal range</a>
+              for this parameter.
+            </dd>
+            <dt>
+              <dfn><code>minValue</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>, readonly
+            </dt>
+            <dd>
+              The nominal minimum value that the parameter can take. Together
+              with <code>maxValue</code>, this forms the <a>nominal range</a>
+              for this parameter.
+            </dd>
+            <dt>
+              <dfn><code>value</code></dfn> of type <span class=
+              "idlAttrType"><code>float</code></span>
+            </dt>
+            <dd>
+              <p>
+                The parameter's floating-point value. This attribute is
+                initialized to the <code>defaultValue</code>.
+              </p>
+              <p>
+                Getting this attribute returns the contents of the
+                <var>[[current value]]</var> slot, which maintains the value of
+                this parameter at the conclusion of the most recent render
+                quantum on the audio rendering thread, or the most recently
+                assigned value if no rendering has taken place.
+              </p>
+              <p>
+                Setting this attribute has the effect of assigning the
+                requested value to the <var>[[current value]]</var> slot, and
+                calling <code>setValueAtTime()</code> with the current
+                <code>AudioContext</code>'s <code>currentTime</code> and
+                <var>[[current value]]</var>.
+              </p>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h3>
+            Methods
+          </h3>
+          <dl class="methods" data-dfn-for="AudioParam" data-link-for=
+          "AudioParam">
+            <dt>
+              <dfn>cancelAndHoldAtTime</dfn>
+            </dt>
+            <dd>
+              <p>
+                This is similar to <a href=
+                "#widl-AudioParam-cancelScheduledValues-AudioParam-double-cancelTime">
+                cancelScheduledValues</a> in that it cancels all scheduled
+                parameter changes with times greater than or equal to
+                <code>cancelTime</code>. However, in addition, the automation
+                value that would have happened at <code>cancelTime</code> is
+                then proprogated for all future time until other automation
+                events are introduced.
+              </p>
+              <p>
+                The behavior of the timeline in the face of
+                <code>cancelAndHoldAtTime</code> when automations are running
+                and can be introduced at any time after calling
+                <code>cancelAndHoldAtTime</code> and before
+                <code>cancelTime</code> is reached is quite complicated. The
+                behavior of <code>cancelAndHoldAtTime</code> is therefore
+                specified in the following algorithm.
+              </p>
+              <p>
+                Let \(t_c\) be the value of <code>cancelTime</code>. Then
+              </p>
+              <ol>
+                <li>Let \(E_1\) be the event (if any) at time \(t_1\) where
+                \(t_1\) is the largest number satisfying \(t_1 \le t_c\).
+                </li>
+                <li>Let \(E_2\) be the event (if any) at time \(t_2\) where
+                \(t_2\) is the smallest number satisfying \(t_c \lt t_2\).
+                </li>
+                <li>If \(E_2\) exists:
+                  <ol type="I">
+                    <li>If \(E_2\) is a linear or exponential ramp,
+                      <ol type="a">
+                        <li>Effectively rewrite \(E_2\) to be the same kind of
+                        ramp ending at time \(t_c\) with an end value that
+                        would be the value of the original ramp at time
+                        \(t_c\).<img alt=
+                        "Graphical representation of calling cancelAndHoldAtTime when linearRampToValueAtTime has been called at this time."
+                          src="images/cancel-linear.svg" style=
+                          "height:75%;width:75%">
+                        </li>
+                        <li>Go to step 5.
+                        </li>
+                      </ol>
+                    </li>
+                    <li>Otherwise, go to step 4.
+                    </li>
+                  </ol>
+                </li>
+                <li>If \(E_1\) exists:
+                  <ol type="I">
+                    <li>If \(E_1\) is a <code>setTarget</code> event,
+                      <ol type="a">
+                        <li>Implicitly insert a <code>setValueAtTime</code>
+                        event at time \(t_c\) with the value that the
+                        <code>setTarget</code> would have at time
+                        \(t_c\).<img alt=
+                        "Graphical representation of calling cancelAndHoldAtTime when setTargetAtTime has been called at this time"
+                          src="images/cancel-setTarget.svg" style=
+                          "height:75%;width:75%">
+                        </li>
+                        <li>Go to step 5.
+                        </li>
+                      </ol>
+                    </li>
+                    <li>If \(E_1\) is a <code>setValueCurve</code> with a start
+                    time of \(t_3\) and a duration of \(d\)
+                      <ol type="a">
+                        <li>If \(t_c \gt t_3 + d\), go to step 5.
+                        </li>
+                        <li>Otherwise,
+                          <ol type="i">
+                            <li>Effectively replace this event with a
+                            <code>setValueCurve</code> event with a start time
+                            of \(t_3\) and a new duration of \(t_c-t_3\).
+                            However, this is not a true replacement; this
+                            automation MUST take care to produce the same
+                            output as the original, and not one computed using
+                            a different duration. (That would cause sampling of
+                            the value curve in a slightly different way,
+                            producing different results.)<img alt=
+                            "Graphical representation of calling cancelAndHoldAtTime when setValueCurve has been called at this time"
+                              src="images/cancel-setValueCurve.svg" style=
+                              "height:75%;width:75%">
+                            </li>
+                            <li>Go to step 5.
+                            </li>
+                          </ol>
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+                <li>Remove all events with time greater than \(t_c\).
+                </li>
+              </ol>
+              <p>
+                If no events are added, then the automation value after
+                <code>cancelAndHoldAtTime</code> is the the constant value that
+                the original timeline would have had at time \(t_c\).
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    cancelTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The time after which any previously scheduled parameter
+                    changes will be cancelled. It is a time in the same time
+                    coordinate system as the <a><code>AudioContext</code></a>'s
+                    <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>
+                    attribute. <span class="synchronous">A RangeError exception
+                    MUST be thrown if <code>cancelTime</code> is negative or is
+                    not a finite number.</span> If <var>cancelTime</var> is
+                    less than <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+            <dt>
+              <dfn>cancelScheduledValues</dfn>
+            </dt>
+            <dd>
+              Cancels all scheduled parameter changes with times greater than
+              or equal to <code>cancelTime</code>. Cancelling a scheduled
+              parameter change means removing the scheduled event from the
+              event list. Any active automations whose <a href=
+              "#dfn-automation-event-time">automation event time</a> is less
+              than <code>cancelTime</code> are also cancelled, and such
+              cancellations may cause discontinuities because the original
+              value (from before such automation) is restored immediately. Any
+              hold values scheduled by <code><a>cancelAndHoldAtTime</a></code>
+              are also removed if the hold time occurs after
+              <code>cancelTime</code>.
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    cancelTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The time after which any previously scheduled parameter
+                    changes will be cancelled. It is a time in the same time
+                    coordinate system as the <a><code>AudioContext</code></a>'s
+                    <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>
+                    attribute. <span class="synchronous">A RangeError exception
+                    MUST be thrown if <code>cancelTime</code> is negative or is
+                    not a finite number.</span> If <var>cancelTime</var> is
+                    less than <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+            <dt>
+              <dfn>exponentialRampToValueAtTime</dfn>
+            </dt>
+            <dd>
+              <p>
+                Schedules an exponential continuous change in parameter value
+                from the previous scheduled parameter value to the given value.
+                Parameters representing filter frequencies and playback rate
+                are best changed exponentially because of the way humans
+                perceive sound.
+              </p>
+              <p>
+                The value during the time interval \(T_0 \leq t &lt; T_1\)
+                (where \(T_0\) is the time of the previous event and \(T_1\) is
+                the <code>endTime</code> parameter passed into this method)
+                will be calculated as:
+              </p>
+              <pre class="nohighlight">
+              $$
+                v(t) = V_0 \left(\frac{V_1}{V_0}\right)^\frac{t - T_0}{T_1 - T_0}
+              $$
+</pre>
+              <p>
+                where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is
+                the <code>value</code> parameter passed into this method. If
+                \(V_0\) and \(V_1\) have opposite signs or if \(V_0\) is zero,
+                then \(v(t) = V_0\) for \(T_0 \le t \lt T_1\).
+              </p>
+              <p>
+                This also implies an exponential ramp to 0 is not possible. A
+                good approximation can be achieved using <a href=
+                "#widl-AudioParam-setTargetAtTime-AudioParam-float-target-double-startTime-float-timeConstant">
+                setTargetAtTime</a> with an appropriately chosen time constant.
+              </p>
+              <p>
+                If there are no more events after this ExponentialRampToValue
+                event then for \(t \geq T_1\), \(v(t) = V_1\).
+              </p>
+              <p>
+                If there is no event preceding this event, the exponential ramp
+                behaves as if <code>setValueAtTime(value, currentTime)</code>
+                were called where <code>value</code> is the current value of
+                the attribute and <code>currentTime</code> is the context
+                <a href="#widl-AudioContext-currentTime">currentTime</a> at the
+                time <code>exponentialRampToValueAtTime</code> is called.
+              </p>
+              <p>
+                If the preceding event is a <em>SetTarget</em> event, \(T_0\)
+                and \(V_0\) are chosen from the current time and value of
+                <em>SetTarget</em> automation. That is, if the
+                <em>SetTarget</em> event has not started, \(T_0\) is the start
+                time of the event, and \(V_0\) is the value just before the
+                <em>SetTarget</em> event starts. In this case, the
+                <em>ExponentialRampToValue</em> event effectively replaces the
+                <em>SetTarget</em> event. If the <em>SetTarget</em> event has
+                already started, \(T_0\) is the current context time, and
+                \(V_0\) is the current <em>SetTarget</em> automation value at
+                time \(T_0\). In both cases, the automation curve is
+                continuous.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    value
+                  </td>
+                  <td class="prmType">
+                    <code>float</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The value the parameter will exponentially ramp to at the
+                    given time. <span class="synchronous">A
+                    <code>RangeError</code> exception MUST be thrown if this
+                    value is equal to 0.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    endTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The time in the same time coordinate system as the
+                    <a><code>AudioContext</code></a>'s <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>
+                    attribute where the exponential ramp ends. <span class=
+                    "synchronous">A RangeError exception MUST be thrown if
+                    <code>endTime</code> is negative or is not a finite
+                    number.</span> If <var>endTime</var> is less than <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+            <dt>
+              <dfn>linearRampToValueAtTime</dfn>
+            </dt>
+            <dd>
+              <p>
+                Schedules a linear continuous change in parameter value from
+                the previous scheduled parameter value to the given value.
+              </p>
+              <p>
+                The value during the time interval \(T_0 \leq t &lt; T_1\)
+                (where \(T_0\) is the time of the previous event and \(T_1\) is
+                the <code>endTime</code> parameter passed into this method)
+                will be calculated as:
+              </p>
+              <pre class="nohighlight">
+              $$
+                v(t) = V_0 + (V_1 - V_0) \frac{t - T_0}{T_1 - T_0}
+              $$
+</pre>
+              <p>
+                Where \(V_0\) is the value at the time \(T_0\) and \(V_1\) is
+                the <code>value</code> parameter passed into this method.
+              </p>
+              <p>
+                If there are no more events after this LinearRampToValue event
+                then for \(t \geq T_1\), \(v(t) = V_1\).
+              </p>
+              <p>
+                If there is no event preceding this event, the linear ramp
+                behaves as if <code>setValueAtTime(value, currentTime)</code>
+                were called where <code>value</code> is the current value of
+                the attribute and <code>currentTime</code> is the context
+                <a href="#widl-AudioContext-currentTime">currentTime</a> at the
+                time <code>linearRampToValueAtTime</code> is called.
+              </p>
+              <p>
+                If the preceding event is a <em>SetTarget</em> event, \(T_0\)
+                and \(V_0\) are chosen from the current time and value of
+                <em>SetTarget</em> automation. That is, if the
+                <em>SetTarget</em> event has not started, \(T_0\) is the start
+                time of the event, and \(V_0\) is the value just before the
+                <em>SetTarget</em> event starts. In this case, the
+                <em>LinearRampToValue</em> event effectively replaces the
+                <em>SetTarget</em> event. If the <em>SetTarget</em> event has
+                already started, \(T_0\) is the current context time, and
+                \(V_0\) is the current <em>SetTarget</em> automation value at
+                time \(T_0\). In both cases, the automation curve is
+                continuous.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    value
+                  </td>
+                  <td class="prmType">
+                    <code>float</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The value the parameter will linearly ramp to at the given
+                    time.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    endTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The time in the same time coordinate system as the
+                    <a><code>AudioContext</code></a>'s <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>
+                    attribute at which the automation ends. <span class=
+                    "synchronous">A RangeError exception MUST be thrown if
+                    <code>endTime</code> is negative or is not a finite
+                    number.</span> If <var>endTime</var> is less than <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+            <dt>
+              <dfn>setTargetAtTime</dfn>
+            </dt>
+            <dd>
+              <p>
+                Start exponentially approaching the target value at the given
+                time with a rate having the given time constant. Among other
+                uses, this is useful for implementing the "decay" and "release"
+                portions of an ADSR envelope. Please note that the parameter
+                value does not immediately change to the target value at the
+                given time, but instead gradually changes to the target value.
+              </p>
+              <p>
+                During the time interval: \(T_0 \leq t\), where \(T_0\) is the
+                <code>startTime</code> parameter:
+              </p>
+              <pre class="nohighlight">
+              $$
+                v(t) = V_1 + (V_0 - V_1)\, e^{-\left(\frac{t - T_0}{\tau}\right)}
+              $$
+
+</pre>
+              <p>
+                where \(V_0\) is the initial value (the <code>.value</code>
+                attribute) at \(T_0\) (the <code>startTime</code> parameter),
+                \(V_1\) is equal to the <code>target</code> parameter, and
+                \(\tau\) is the <code>timeConstant</code> parameter.
+              </p>
+              <p>
+                If a <em>LinearRampToValue</em> or
+                <em>ExponentialRampToValue</em> event follows this event, the
+                behavior is described in <code><a href=
+                "#widl-AudioParam-linearRampToValueAtTime-AudioParam-float-value-double-endTime">
+                linearRampToValueAtTime</a></code> or <code><a href=
+                "#widl-AudioParam-exponentialRampToValueAtTime-AudioParam-float-value-double-endTime">
+                exponentialRampToValueAtTime</a></code>, respectively. For all
+                other events, the <em>SetTarget</em> event ends at the time of
+                the next event.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    target
+                  </td>
+                  <td class="prmType">
+                    <code>float</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The value the parameter will <em>start</em> changing to at
+                    the given time.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    startTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The time at which the exponential approach will begin, in
+                    the same time coordinate system as the
+                    <a><code>AudioContext</code></a>'s <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>
+                    attribute. <span class="synchronous">A RangeError exception
+                    MUST be thrown if <code>start</code> is negative or is not
+                    a finite number.</span> If <var>startTime</var> is less
+                    than <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    timeConstant
+                  </td>
+                  <td class="prmType">
+                    <code>float</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    <p>
+                      The time-constant value of first-order filter
+                      (exponential) approach to the target value. The larger
+                      this value is, the slower the transition will be.
+                      <span class="synchronous">The value MUST be non-negative
+                      or a RangeError exception MUST be thrown.</span> If
+                      <code>timeConstant</code> is zero, the output value jumps
+                      immediately to the final value.
+                    </p>
+                    <p>
+                      More precisely, <em>timeConstant</em> is the time it
+                      takes a first-order linear continuous time-invariant
+                      system to reach the value \(1 - 1/e\) (around 63.2%)
+                      given a step input response (transition from 0 to 1
+                      value).
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+            <dt>
+              <dfn>setValueAtTime</dfn>
+            </dt>
+            <dd>
+              <p>
+                Schedules a parameter value change at the given time.
+              </p>
+              <p>
+                If there are no more events after this <em>SetValue</em> event,
+                then for \(t \geq T_0\), \(v(t) = V\), where \(T_0\) is the
+                <code>startTime</code> parameter and \(V\) is the
+                <code>value</code> parameter. In other words, the value will
+                remain constant.
+              </p>
+              <p>
+                If the next event (having time \(T_1\)) after this
+                <em>SetValue</em> event is not of type
+                <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>,
+                then, for \(T_0 \leq t &lt; T_1\):
+              </p>
+              <pre class="nohighlight">
+              $$
+                v(t) = V
+              $$
+
+</pre>
+              <p>
+                In other words, the value will remain constant during this time
+                interval, allowing the creation of "step" functions.
+              </p>
+              <p>
+                If the next event after this <em>SetValue</em> event is of type
+                <em>LinearRampToValue</em> or <em>ExponentialRampToValue</em>
+                then please see <code><a href=
+                "#widl-AudioParam-linearRampToValueAtTime-AudioParam-float-value-double-endTime">
+                linearRampToValueAtTime</a></code> or <code><a href=
+                "#widl-AudioParam-exponentialRampToValueAtTime-AudioParam-float-value-double-endTime">
+                exponentialRampToValueAtTime</a></code>, respectively.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    value
+                  </td>
+                  <td class="prmType">
+                    <code>float</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The value the parameter will change to at the given time.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    startTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The time in the same time coordinate system as the
+                    <a><code>BaseAudioContext</code></a>'s <a href=
+                    "#widl-AudioContext-currentTime">currentTime</a> attribute
+                    at which the parameter changes to the given value.
+                    <span class="synchronous">A RangeError exception MUST be
+                    thrown if <code>startTime</code> is negative or is not a
+                    finite number.</span> If <var>startTime</var> is less than
+                    <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+            <dt>
+              <dfn>setValueCurveAtTime</dfn>
+            </dt>
+            <dd>
+              <p>
+                Sets an array of arbitrary parameter values starting at the
+                given time for the given duration. The number of values will be
+                scaled to fit into the desired duration.
+              </p>
+              <p>
+                Let \(T_0\) be <code>startTime</code>, \(T_D\) be
+                <code>duration</code>, \(V\) be the <code>values</code> array,
+                and \(N\) be the length of the <code>values</code> array. Then,
+                during the time interval: \(T_0 \le t &lt; T_0 + T_D\), let
+              </p>
+              <pre class="nohighlight">
+              $$
+                \begin{align*} k &amp;= \left\lfloor \frac{N - 1}{T_D}(t-T_0) \right\rfloor \\
+                \end{align*}
+              $$
+
+</pre>
+              <p>
+                Then \(v(t)\) is computed by linearly interpolating between
+                \(V[k]\) and \(V[k+1]\),
+              </p>
+              <p>
+                After the end of the curve time interval (\(t \ge T_0 + T_D\)),
+                the value will remain constant at the final curve value, until
+                there is another automation event (if any).
+              </p>
+              <p>
+                An implicit call to <code><a href=
+                "#widl-AudioParam-setValueAtTime-AudioParam-float-value-double-startTime">
+                setValueAtTime</a></code> is made at time \(T_0 + T_D\) with
+                value \(V[N-1]\) so that following automations will start from
+                the end of the <code><a href=
+                "#widl-AudioParam-setValueCurveAtTime-AudioParam-Float32Array-values-double-startTime-double-duration">
+                setValueCurveAtTime</a></code> event.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    values
+                  </td>
+                  <td class="prmType">
+                    <code>sequence&lt;float&gt;</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    A sequence of float values representing a parameter value
+                    curve. These values will apply starting at the given time
+                    and lasting for the given duration. When this method is
+                    called, an internal copy of the curve is created for
+                    automation purposes. Subsequent modifications of the
+                    contents of the passed-in array therefore have no effect on
+                    the <a>AudioParam</a>.
+                    <p>
+                      <span class="synchronous">An
+                      <code>InvalidStateError</code> MUST be thrown if this
+                      attribute is a <code>sequence&lt;float&gt;</code> object
+                      that has a length less than 2.</span>
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    startTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The start time in the same time coordinate system as the
+                    <a><code>AudioContext</code></a>'s <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>
+                    attribute at which the value curve will be applied.
+                    <span class="synchronous">A RangeError exception MUST be
+                    thrown if <code>startTime</code> is negative or is not a
+                    finite number.</span>. If <var>startTime</var> is less than
+                    <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>, it is
+                    clamped to <a href=
+                    "#widl-BaseAudioContext-currentTime">currentTime</a>.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    duration
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The amount of time in seconds (after the <em>time</em>
+                    parameter) where values will be calculated according to the
+                    <em>values</em> parameter. <span class="synchronous">A
+                    <code>RangeError</code> exception MUST be thrown if
+                    <code>duration</code> is not strictly positive or is not a
+                    finite number</span>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a><code>AudioParam</code></a>
+              </div>
+            </dd>
+          </dl>
+        </section><!--
         <dl title="interface AudioParam" class="x-idl">
           <dt>
             attribute float value
@@ -5664,6 +6597,7 @@ interface AudioDestinationNode : AudioNode {
             </dl>
           </dd>
         </dl>
+-->
         <section>
           <h3>
             Computation of Value

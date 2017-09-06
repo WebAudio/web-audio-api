@@ -2128,6 +2128,49 @@ interface BaseAudioContext : EventTarget {
           "https://html.spec.whatwg.org/multipage/interaction.html#triggered-by-user-activation">
           triggered by a user activation</a> (as described in [[HTML]]).
         </p>
+        <pre class="idl">
+enum <dfn>AudioContextLatencyCategory</dfn> {
+    "balanced",
+    "interactive",
+    "playback"
+};
+        </pre>
+        <table class="simple" data-dfn-for="AudioContextLatencyCategory"
+        data-link-for="AudioContextLatencyCategory">
+          <tbody>
+            <tr>
+              <th colspan="2">
+                Enumeration description
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>balanced</dfn></code>
+              </td>
+              <td>
+                Balance audio output latency and power consumption.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>interactive</dfn></code>
+              </td>
+              <td>
+                Provide the lowest audio output latency possible without
+                glitching. This is the default.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code><dfn>playback</dfn></code>
+              </td>
+              <td>
+                Prioritize sustained playback without interruption over audio
+                output latency. Lowest power consumption.
+              </td>
+            </tr>
+          </tbody>
+        </table><!--
         <dl title="enum AudioContextLatencyCategory" class="x-idl">
           <dt>
             balanced
@@ -2150,6 +2193,622 @@ interface BaseAudioContext : EventTarget {
             output latency. Lowest power consumption.
           </dd>
         </dl>
+-->
+        <pre class="idl">
+[Constructor,
+ Constructor(optional AudioContextOptions contextOptions)]
+interface AudioContext : BaseAudioContext {
+    readonly        attribute double baseLatency;
+    readonly        attribute double outputLatency;
+    AudioTimestamp                  getOutputTimestamp ();
+    Promise&lt;void&gt;                   suspend ();
+    Promise&lt;void&gt;                   close ();
+    MediaElementAudioSourceNode     createMediaElementSource (HTMLMediaElement mediaElement);
+    MediaStreamAudioSourceNode      createMediaStreamSource (MediaStream mediaStream);
+    MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (MediaStreamTrack mediaStreamTrack);
+    MediaStreamAudioDestinationNode createMediaStreamDestination ();
+};              
+        </pre>
+        <section>
+          <h2>
+            Constructors
+          </h2>
+          <dl class="methods" data-dfn-for="AudioContext" data-link-for=
+          "AudioContext">
+            <dt>
+              <code><dfn>AudioContext</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                <span class="synchronous">When creating an <a>AudioContext</a>,
+                execute these steps:</span>
+              </p>
+              <ol class="method-algorithm">
+                <li>Set a <code>control thread state</code> to
+                <code>suspended</code> on the <a>AudioContext</a>.
+                </li>
+                <li>Set a <dfn>rendering thread state</dfn> to
+                <code>suspended</code> on the <a>AudioContext</a>.
+                </li>
+                <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered
+                list of promises.
+                </li>
+                <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
+                abort these steps.
+                </li>
+                <li>Send a <a>control message</a> to start processing.
+                </li>
+              </ol>
+              <p>
+                Sending a <a>control message</a> to start processing means
+                executing the following steps:
+              </p>
+              <ol class="method-algorithm">
+                <li>Attempt to <a href="#acquiring">acquire system
+                resources</a>.
+                </li>
+                <li>In case of failure, abort these steps.
+                </li>
+                <li>Set the <a>rendering thread state</a> to
+                <code>running</code> on the <a>AudioContext</a>.
+                </li>
+                <li>Queue a task on the <a>control thread</a> event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Set the <a href="#widl-audiocontext-state">state</a>
+                    attribute of the <a>AudioContext</a> to
+                    <code>running</code>.
+                    </li>
+                    <li>Queue a task to fire a simple event named
+                    <code>statechange</code> at the <a>AudioContext</a>.
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <p class="note">
+                It is unfortunately not possible to programatically notify
+                authors that the creation of the <a>AudioContext</a> failed.
+                User-Agents are encouraged to log an informative message if
+                they have access to a logging mechanism, such as a developer
+                tools console.
+              </p>
+            </dd>
+            <dd>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <code>contextOptions</code>
+                  </td>
+                  <td class="prmtype">
+                    <a>AudioContextOptions</a>
+                  </td>
+                  <td class="prmNullTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    User-specified options controlling how the
+                    <a>AudioContext</a> should be constructed.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Attributes
+          </h2>
+          <dl class="attributes" data-dfn-for="AudioContext" data-link-for=
+          "AudioContext">
+            <dt>
+              <dfn>baseLatency</dfn> of type <span class=
+              "idlAttrType"><a>double</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                This represents the number of seconds of processing latency
+                incurred by the <a>AudioContext</a> passing the audio from the
+                <a>AudioDestinationNode</a> to the audio subsystem. It does not
+                include any additional latency that might be caused by any
+                other processing between the output of the
+                <a>AudioDestinationNode</a> and the audio hardware and
+                specifically does not include any latency incurred the audio
+                graph itself.
+              </p>
+              <p>
+                For example, if the audio context is running at 44.1 kHz and
+                the <a>AudioDestinationNode</a> implements double buffering
+                internally and can process and output audio each <a>render
+                quantum</a>, then the processing latency is \((2\cdot128)/44100
+                = 5.805 \mathrm{ ms}\), approximately.
+              </p>
+            </dd>
+            <dt>
+              <dfn>outputLatency</dfn> of type <span class=
+              "idlAttrType"><a>double</a></span>, readonly
+            </dt>
+            <dd>
+              <p>
+                The estimation in seconds of audio output latency, i.e., the
+                interval between the time the UA requests the host system to
+                play a buffer and the time at which the first sample in the
+                buffer is actually processed by the audio output device. For
+                devices such as speakers or headphones that produce an acoustic
+                signal, this latter time refers to the time when a sample's
+                sound is produced.
+              </p>
+              <p>
+                The <a><code>outputLatency</code></a> attribute value depends
+                on the platform and the connected hardware audio output device.
+                The <a><code>outputLatency</code></a> attribute value does not
+                change for the context's lifetime as long as the connected
+                audio output device remains the same. If the audio output
+                device is changed the <a><code>outputLatency</code></a>
+                attribute value will be updated accordingly.
+              </p>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Methods
+          </h2>
+          <dl class="methods" data-dfn-for="AudioContext" data-link-for=
+          "AudioContext">
+            <dt>
+              <code><dfn>close</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Closes the <a>AudioContext</a>, <a>releasing the system
+                resources</a> it's using. This will not automatically release
+                all <a>AudioContext</a>-created objects, but will suspend the
+                progression of the <a><code>AudioContext</code></a>'s <a href=
+                "#widl-AudioContext-currentTime">currentTime</a>, and stop
+                processing audio data.
+              </p>
+              <p>
+                <span class="synchronous">When close is called, execute these
+                steps:</span>
+              </p>
+              <ol>
+                <li>Let <em>promise</em> be a new Promise.
+                </li>
+                <li>If the <em>control thread state</em> flag on the
+                <a>AudioContext</a> is <code>closed</code> reject the promise
+                with <code>InvalidStateError</code>, abort these steps,
+                returning <em>promise</em>.
+                </li>
+                <li>If the <a href="#widl-AudioContext-state">state</a>
+                attribute of the <a>AudioContext</a> is already
+                <code>closed</code>, resolve <em>promise</em>, return it, and
+                abort these steps.
+                </li>
+                <li>Set the <em>control thread state</em> flag on the
+                <a>AudioContext</a> to <code>closed</code>.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to the
+                  <a>AudioContext</a>.
+                </li>
+                <li>Return <em>promise</em>.
+                </li>
+              </ol>
+              <p>
+                Running a <a>control message</a> to close an
+                <a>AudioContext</a> means running these steps on the
+                <a>rendering thread</a>:
+              </p>
+              <ol>
+                <li>Attempt to <a>release system resources</a>.
+                </li>
+                <li>Set the <a>rendering thread state</a> to
+                <code>suspended</code>.
+                </li>
+                <li>Queue a task on the <a>control thread</a>'s event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Resolve <em>promise</em>.
+                    </li>
+                    <li>If the <a href="#widl-audiocontext-state">state</a>
+                    attribute of the <a>AudioContext</a> is not already <code>
+                      closed</code>:
+                      <ol>
+                        <li>Set the <a href=
+                        "#widl-audiocontext-state">state</a> attribute of the
+                        <a>AudioContext</a> to <code>closed</code>.
+                        </li>
+                        <li>Queue a task to fire a simple event named
+                        <code>statechange</code> at the <a>AudioContext</a>.
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <p class="note">
+                When an <a>AudioContext</a> has been closed, implementation can
+                choose to aggressively release more resources than when
+                suspending.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaElementSource</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a href=
+                "#MediaElementAudioSourceNode">MediaElementAudioSourceNode</a>
+                given an HTMLMediaElement. As a consequence of calling this
+                method, audio playback from the HTMLMediaElement will be
+                re-routed into the processing graph of the
+                <a><code>AudioContext</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    mediaElement
+                  </td>
+                  <td class="prmtype">
+                    <code>HTMLMediaElement</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The media element that will be re-routed.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>MediaElementAudioSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaStreamDestination</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a><code>MediaStreamAudioDestinationNode</code></a>
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em>
+                <code>MediaStreamAudioDestinationNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaStreamSource</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a><code>MediaStreamAudioSourceNode</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    mediaStream
+                  </td>
+                  <td class="prmType">
+                    MediaStream
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The media stream that will act as source.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>MediaStreamAudioSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>createMediaStreamTrackSource</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Creates a <a><code>MediaStreamTrackAudioSourceNode</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    mediaStreamTrack
+                  </td>
+                  <td class="prmType">
+                    <code>MediaStreamTrack</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>MediaStreamTrack</code> that will act as source.
+                    <span class="synchronous">The value of its
+                    <code>kind</code> attribute must be equal to
+                    <code>"audio"</code>, or an <code>InvalidStateError</code>
+                    exception MUST be thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em>
+                <code>MediaStreamTrackAudioSourceNode</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>getOutputTimestamp</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Returns a new <a><code>AudioTimestamp</code></a> instance
+                containing two correlated context's audio stream position
+                values: the <a href=
+                "#widl-AudioTimestamp-contextTime"><code>contextTime</code></a>
+                member contains the time of the sample frame which is currently
+                being rendered by the audio output device (i.e., output audio
+                stream position), in the same units and origin as context's
+                <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>;
+                the <a href=
+                "#widl-AudioTimestamp-performanceTime"><code>performanceTime</code></a>
+                member contains the time estimating the moment when the sample
+                frame corresponding to the stored <code>contextTime</code>
+                value was rendered by the audio output device, in the same
+                units and origin as <code>performance.now()</code> (described
+                in [[!hr-time-2]]).
+              </p>
+              <p>
+                If the context's rendering graph has not yet processed a block
+                of audio, then <a><code>getOutputTimestamp</code></a> call
+                returns an <code>AudioTimestamp</code> instance with both
+                members containing zero.
+              </p>
+              <p>
+                After the context's rendering graph has started processing of
+                blocks of audio, its <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                attribute value always exceeds the <a href=
+                "#widl-AudioTimestamp-contextTime"><code>contextTime</code></a>
+                value obtained from <a href=
+                "#widl-AudioContext-getOutputTimestamp-AudioTimestamp"><code>getOutputTimestamp</code></a>
+                method call.
+              </p>
+              <p>
+                The value returned from <a><code>getOutputTimestamp</code></a>
+                method can be used to get performance time estimation for the
+                slightly later context's time value:
+              </p>
+              <pre class="example">
+            function outputPerformanceTime(contextTime) {
+                var timestamp = context.getOutputTimestamp();
+                var elapsedTime = contextTime - timestamp.contextTime;
+                return timestamp.performanceTime + elapsedTime * 1000;
+            }
+</pre>
+              <p>
+                In the above example the accuracy of the estimation depends on
+                how close the argument value is to the current output audio
+                stream position: the closer the given <code>contextTime</code>
+                is to <code>timestamp.contextTime</code>, the better the
+                accuracy of the obtained estimation.
+              </p>
+              <p class="note">
+                The difference between the values of the context's <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                and the <a href=
+                "#widl-AudioTimestamp-contextTime"><code>contextTime</code></a>
+                obtained from <a href=
+                "#widl-AudioContext-getOutputTimestamp-AudioTimestamp"><code>getOutputTimestamp</code></a>
+                method call cannot be considered as a reliable output latency
+                estimation because <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>
+                may be incremented at non-uniform time intervals, so <a href=
+                "#widl-AudioContext-outputLatency"><code>outputLatency</code></a>
+                attribute should be used instead.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>AudioTimestamp</code>
+              </div>
+            </dd>
+            <dt>
+              <code><dfn>suspend</dfn></code>
+            </dt>
+            <dd>
+              <p>
+                Suspends the progression of <a>AudioContext</a>'s <a href=
+                "#widl-BaseAudioContext-currentTime">currentTime</a>, allows
+                any current context processing blocks that are already
+                processed to be played to the destination, and then allows the
+                system to release its claim on audio hardware. This is
+                generally useful when the application knows it will not need
+                the <a>AudioContext</a> for some time, and wishes to
+                temporarily <a>release system resource</a> associated with the
+                <a>AudioContext</a>. The promise resolves when the frame buffer
+                is empty (has been handed off to the hardware), or immediately
+                (with no other effect) if the context is already
+                <code>suspended</code>. The promise is rejected if the context
+                has been closed.
+              </p>
+              <p>
+                <span class="synchronous">When suspend is called, execute these
+                steps:</span>
+              </p>
+              <ol>
+                <li>Let <em>promise</em> be a new Promise.
+                </li>
+                <li>If the <em>control thread state</em> flag on the
+                <a>AudioContext</a> is <code>closed</code> reject the promise
+                with <code>InvalidStateError</code>, abort these steps,
+                returning <em>promise</em>.
+                </li>
+                <li>If the <a href="#widl-AudioContext-state">state</a>
+                attribute of the <a>AudioContext</a> is already
+                <code>suspended</code>, resolve <em>promise</em>, return it,
+                and abort these steps.
+                </li>
+                <li>Set the <em>control thread state</em> flag on the
+                <a>AudioContext</a> to <code>suspended</code>.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to suspend the
+                  <a>AudioContext</a>.
+                </li>
+                <li>Return <em>promise</em>.
+                </li>
+              </ol>
+              <p>
+                Running a <a>control message</a> to suspend an
+                <a>AudioContext</a> means running these steps on the
+                <a>rendering thread</a>:
+              </p>
+              <ol>
+                <li>Attempt to <a>release system resources</a>.
+                </li>
+                <li>Set the <a>rendering thread state</a> on the
+                <a>AudioContext</a> to <code>suspended</code>.
+                </li>
+                <li>Queue a task on the <a>control thread</a>'s event loop, to
+                execute these steps:
+                  <ol>
+                    <li>Resolve <em>promise</em>.
+                    </li>
+                    <li>If the <a href="#widl-audiocontext-state">state</a>
+                    attribute of the <a>AudioContext</a> is not already <code>
+                      suspended</code>:
+                      <ol>
+                        <li>Set the <a href=
+                        "#widl-audiocontext-state">state</a> attribute of the
+                        <a>AudioContext</a> to <code>suspended</code>.
+                        </li>
+                        <li>Queue a task to fire a simple event named
+                        <code>statechange</code> at the <a>AudioContext</a>.
+                        </li>
+                      </ol>
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+              <p>
+                While an <a>AudioContext</a> is suspended,
+                <code>MediaStream</code>s will have their output ignored; that
+                is, data will be lost by the real time nature of media streams.
+                <code>HTMLMediaElement</code>s will similarly have their output
+                ignored until the system is resumed. <a>AudioWorkletNode</a>s
+                and <a>ScriptProcessorNode</a>s will cease to have their
+                processing handlers invoked while suspended, but will resume
+                when the context is resumed. For the purpose of
+                <a>AnalyserNode</a> window functions, the data is considered as
+                a continuous stream - i.e. the
+                <code>resume()</code>/<code>suspend()</code> does not cause
+                silence to appear in the <a>AnalyserNode</a>'s stream of data.
+                In particular, calling <a>AnalyserNode</a> functions repeatedly
+                when a <a>AudioContext</a> is suspended MUST return the same
+                data.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+            </dd>
+          </dl>
+        </section><!--
         <dl title=
         "[Constructor(optional &lt;a&gt;AudioContextOptions&lt;/a&gt; contextOptions)] interface AudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
         class='x-idl'>
@@ -2567,6 +3226,7 @@ interface BaseAudioContext : EventTarget {
             </p>
           </dd>
         </dl>
+-->
         <section>
           <h3>
             AudioContextOptions
@@ -2575,6 +3235,63 @@ interface BaseAudioContext : EventTarget {
             The <a><code>AudioContextOptions</code></a> dictionary is used to
             specify user-specified options for an <a>AudioContext</a>.
           </p>
+          <pre class="idl">
+dictionary AudioContextOptions {
+             (AudioContextLatencyCategory or double) latencyHint = "interactive";
+             float                                   sampleRate;
+};
+          </pre>
+          <section>
+            <h4>
+              Dictionary <a>AudioContextOptions</a> Members
+            </h4>
+            <dl class="attributes" data-dfn-for="AudioContextOptions"
+            data-link-for="AudioContextOptions">
+              <dt>
+                <code><dfn>latencyHint</dfn></code> of type <span class=
+                "idlAttrType"><a>AudioContextLatencyCategory</a> or
+                <a>double</a></span>, defaulting to "interactive"
+              </dt>
+              <dd>
+                <p>
+                  Identify the type of playback, which affects tradeoffs
+                  between audio output latency and power consumption.
+                </p>
+                <p>
+                  The preferred value of the <code>latencyHint</code> is a
+                  value from <a>AudioContextLatencyCategory</a>. However, a
+                  double can also be specified for the number of seconds of
+                  latency for finer control to balance latency and power
+                  consumption. It is at the browser's discretion to interpret
+                  the number appropriately. The actual latency used is given by
+                  AudioContext's <a href=
+                  "#widl-BaseAudioContext-baseLatency">baseLatency</a>
+                  attribute.
+                </p>
+              </dd>
+              <dt>
+                <code><dfn>sampleRate</dfn></code> of type <span class=
+                "idlAttrType"><a>float</a></span>
+              </dt>
+              <dd>
+                <p>
+                  Set the <a href=
+                  "#widl-BaseAudioContext-sampleRate"><code>sampleRate</code></a>
+                  to this value for the <a>AudioContext</a> that will be
+                  created. The supported values are the same as the sample
+                  rates for an <a>AudioBuffer</a>. <span class="synchronous">A
+                  <code>NotSupportedError</code> exception MUST be thrown if
+                  the specified sample rate is not supported.</span>
+                </p>
+                <p>
+                  If <a href=
+                  "#widl-AudioContextOptions-sampleRate"><code>sampleRate</code></a>
+                  is not specified, the preferred sample rate of the output
+                  device for this <a>AudioContext</a> is used.
+                </p>
+              </dd>
+            </dl>
+          </section><!--
           <dl title="dictionary AudioContextOptions" class="x-idl">
             <dt>
               (AudioContextLatencyCategory or double) latencyHint =
@@ -2617,11 +3334,44 @@ interface BaseAudioContext : EventTarget {
               </p>
             </dd>
           </dl>
+-->
         </section>
         <section>
           <h3>
             AudioTimestamp
           </h3>
+          <pre class="idl">
+dictionary AudioTimestamp {
+             double              contextTime;
+             DOMHighResTimeStamp performanceTime;
+};
+          </pre>
+          <section>
+            <h4>
+              Dictionary <a>AudioTimestamp</a> Members
+            </h4>
+            <dl class="attributes" data-dfn-for="AudioTimestamp" data-link-for=
+            "AudioTimestamp">
+              <dt>
+                <code><dfn>contextTime</dfn></code> of type <span class=
+                "idlAttrType"><a>double</a></span>
+              </dt>
+              <dd>
+                Represents a point in the time coordinate system of
+                BaseAudioContext's <a href=
+                "#widl-BaseAudioContext-currentTime"><code>currentTime</code></a>.
+              </dd>
+              <dt>
+                <code><dfn>performanceTime</dfn></code> of type <span class=
+                "idlAttrType"><a>DOMHighResTimeStamp</a></span>
+              </dt>
+              <dd>
+                Represents a point in the time coordinate system of a
+                <code>Performance</code> interface implementation (described in
+                [[!hr-time-2]]).
+              </dd>
+            </dl>
+          </section><!--
           <dl title="dictionary AudioTimestamp" class="x-idl">
             <dt>
               double contextTime
@@ -2640,6 +3390,7 @@ interface BaseAudioContext : EventTarget {
               [[!hr-time-2]]).
             </dd>
           </dl>
+-->
         </section>
       </section>
       <section>
@@ -2654,6 +3405,372 @@ interface BaseAudioContext : EventTarget {
           returned promise with the rendered result as an
           <code>AudioBuffer</code>.
         </p>
+        <pre class="idl">
+[Constructor (OfflineAudioContextOptions contextOptions),
+ Constructor (unsigned long numberOfChannels, unsigned long length, float sampleRate)]
+interface OfflineAudioContext : BaseAudioContext {
+    Promise&lt;AudioBuffer&gt; startRendering ();
+    Promise&lt;void&gt;        suspend (double suspendTime);
+    readonly        attribute unsigned long length;
+                    attribute EventHandler  oncomplete;
+};
+        </pre>
+        <section>
+          <h2>
+            Constructors
+          </h2>
+          <dl class="methods" data-dfn-for="OfflineAudioContext" data-link-for=
+          "OfflineAudioContext">
+            <dt>
+              <dfn><code>OfflineAudioContext</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Let <var>c</var> be a new <a>OfflineAudioContext</a> object.
+                Initialize <var>c</var> as follows:
+              </p>
+              <ol>
+                <li>Set the <code>control thread state</code> for <var>c</var>
+                to <code>"suspended"</code>.
+                </li>
+                <li>Set the <code>rendering thread state</code> for
+                <var>c</var> to <code>"suspended"</code>.
+                </li>
+                <li>Construct an <a>AudioDestinationNode</a> with its
+                <a>channelCount</a> set to
+                <code>contextOptions.numberOfChannels</code>.
+                </li>
+              </ol>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>contextOptions</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>OfflineAudioContextOptions</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The initial parameters needed to construct this context.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+            <dt>
+              <code>OfflineAudioContext</code>
+            </dt>
+            <dd>
+              <p>
+                The OfflineAudioContext can constructed with the same arguments
+                as AudioContext.createBuffer. <span class="synchronous">A
+                <code>NotSupportedError</code> exception MUST be thrown if any
+                of the arguments is negative, zero, or outside its nominal
+                range.</span>
+              </p>
+              <p>
+                The OfflineAudioContext is constructed as if
+              </p>
+              <pre>
+  new OfflineAudioContext({
+      numberOfChannels: numberOfChannels,
+      length: length,
+      sampleRate: sampleRate
+  })
+</pre>
+              <p>
+                were called instead.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>numberOfChannels</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Determines how many channels the buffer will have. See
+                    <a href=
+                    "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                    createBuffer</a> for the supported number of channels.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>length</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Determines the size of the buffer in sample-frames.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    <a><code>sampleRate</code></a>
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Describes the sample-rate of the linear PCM audio data in
+                    the buffer in sample-frames per second. See <a href=
+                    "#widl-BaseAudioContext-createBuffer-AudioBuffer-unsigned-long-numberOfChannels-unsigned-long-length-float-sampleRate">
+                    createBuffer</a> for valid sample rates.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Attributes
+          </h2>
+          <dl class="attributes" data-dfn-for="OfflineAudioContext"
+          data-link-for="OfflineAudioContext">
+            <dt>
+              <dfn>length</dfn> of type <span class="idlAttrType"><a>unsigned
+              long</a></span>, readonly
+            </dt>
+            <dd>
+              The size of the buffer in sample-frames. This is the same as the
+              value of the <code>length</code> parameter for the constructor.
+            </dd>
+            <dt>
+              <dfn>oncomplete</dfn> of type <span class=
+              "idlAttrType"><a>EventHandler</a></span>, readonly
+            </dt>
+            <dd>
+              An EventHandler of type <a href=
+              "#OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</a>.
+              It is the last event fired on an <a>OfflineAudioContext</a>.
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Methods
+          </h2>
+          <dl class="methods" data-dfn-for="OfflineAudioContext" data-link-for=
+          "OfflineAudioContext">
+            <dt>
+              <dfn><code>startRendering</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Given the current connections and scheduled changes, starts
+                rendering audio. The system shall ensure that the
+                <code>OfflineAudioContext</code> is not garbage collected until
+                either the promise is resolved and any callback function is
+                called and completes, or until the <code>suspend</code>
+                function is called.
+              </p>
+              <p>
+                Although the primary method of getting the rendered audio data
+                is via its promise return value, the instance will also fire an
+                event named <code>complete</code> for legacy reasons.
+              </p>
+              <p>
+                <span class="synchronous">When <code>startRendering</code> is
+                called, the following steps MUST be performed on the <a>control
+                thread</a>:</span>
+              </p>
+              <ol>
+                <li>Set a flag called <var>renderingStarted</var> on the
+                <a>OfflineAudioContext</a> to <em>true</em>.
+                </li>
+                <li>If the <em>renderingStarted</em> flag on the
+                <a>OfflineAudioContext</a> is <em>true</em>, return a rejected
+                promise with <code>InvalidStateError</code>, and abort these
+                steps.
+                </li>
+                <li>Let <var>promise</var> be a new promise.
+                </li>
+                <li>Create a new <code>AudioBuffer</code>, with a number of
+                channels, length and sample rate equal respectively to the
+                <code>numberOfChannels</code>, <code>length</code> and
+                <code>sampleRate</code> values passed to this instance's
+                constructor in the <code>contextOptions</code> parameter.
+                Assign this buffer to an internal slot <a><var>[[rendered
+                buffer]]</var></a> in the <a>OfflineAudioContext</a>.
+                </li>
+                <li>If an exception was thrown during the preceding
+                <code>AudioBuffer</code> constructor call, reject
+                <var>promise</var> with this exception.
+                </li>
+                <li>Otherwise, in the case that the buffer was successfully
+                constructed, <a>begin offline rendering</a>.
+                </li>
+                <li>Return <var>promise</var>.
+                </li>
+              </ol>
+              <p>
+                When rendering an audio graph on another thread, the following
+                steps MUST happen on a <a>rendering thread</a> that is created
+                for the occasion.
+              </p>
+              <ol>
+                <li>Given the current connections and scheduled changes, start
+                rendering <code>length</code> sample-frames of audio into
+                <a><var>[[rendered buffer]]</var></a>.
+                </li>
+                <li>For every <a>render quantum</a>, check and suspend the
+                rendering if necessary.
+                </li>
+                <li>If a suspended context is resumed, continue to render the
+                buffer.
+                </li>
+                <li>Once the rendering is complete, queue a task on the
+                <a>control thread</a>'s event loop to perform the following
+                steps:
+                  <ol>
+                    <li>Resolve <var>promise</var> with <a><var>[[rendered
+                    buffer]]</var></a>.
+                    </li>
+                    <li>Queue a task to fire an event named
+                    <code>complete</code> at this instance, using an instance
+                    of <a><code>OfflineAudioCompletionEvent</code></a> whose
+                    <code>renderedBuffer</code> property is set to
+                    <a><var>[[rendered buffer]]</var></a>.
+                    </li>
+                  </ol>
+                </li>
+              </ol>
+            </dd>
+            <dt>
+              <dfn><code>suspend</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Schedules a suspension of the time progression in the audio
+                context at the specified time and returns a promise. This is
+                generally useful when manipulating the audio graph
+                synchronously on <a><code>OfflineAudioContext</code></a>.
+              </p>
+              <p>
+                Note that the maximum precision of suspension is the size of
+                the <a>render quantum</a> and the specified suspension time
+                will be rounded down to the nearest <a>render quantum</a>
+                boundary. For this reason, it is not allowed to schedule
+                multiple suspends at the same quantized frame. Also, scheduling
+                should be done while the context is not running to ensure
+                precise suspension.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    suspendTime
+                  </td>
+                  <td class="prmType">
+                    <code>double</code>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    Schedules a suspension of the rendering at the specified
+                    time, which is quantized and rounded down to the <a>render
+                    quantum</a> size. If the quantized frame number
+                    <ol>
+                      <li>is negative or
+                      </li>
+                      <li>is less than or equal to the current time or
+                      </li>
+                      <li>is greater than or equal to the total render duration
+                      or
+                      </li>
+                      <li>is scheduled by another suspend for the same time,
+                      </li>
+                    </ol>then the promise is rejected with
+                    <code>InvalidStateError</code>.
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>Promise&lt;void&gt;</code>
+              </div>
+            </dd>
+          </dl>
+        </section><!--
         <dl title=
         "interface OfflineAudioContext : &lt;a&gt;BaseAudioContext&lt;/a&gt;"
         class='x-idl'>
@@ -2677,14 +3794,6 @@ interface BaseAudioContext : EventTarget {
               <code>contextOptions.numberOfChannels</code>.
               </li>
             </ol>
-            <dl class="parameters">
-              <dt>
-                OfflineAudioContextOptions contextOptions
-              </dt>
-              <dd>
-                The initial parameters needed to construct this context.
-              </dd>
-            </dl>
           </dd>
           <dt>
             Constructor
@@ -2880,6 +3989,7 @@ interface BaseAudioContext : EventTarget {
             </p>
           </dd>
         </dl>
+-->
         <section>
           <h3>
             OfflineAudioContextOptions
@@ -2888,6 +3998,43 @@ interface BaseAudioContext : EventTarget {
             This specifies the options to use in constructing an
             <a>OfflineAudioContext</a>.
           </p>
+          <pre class="idl">
+dictionary OfflineAudioContextOptions {
+             unsigned long numberOfChannels = 1;
+    required unsigned long length;
+    required float         sampleRate;
+};
+          </pre>
+          <section>
+            <h4>
+              Dictionary <a>OfflineAudioContextOptions</a> Members
+            </h4>
+            <dl class="attributes" data-dfn-for="OfflineAudioContextOptions"
+            data-link-for="OfflineAudioContextOptions">
+              <dt>
+                <dfn><code>length</code></dfn> of type <span class=
+                "idlAttrType"><a>unsigned long</a></span>, required
+              </dt>
+              <dd>
+                The length of the rendered <a>AudioBuffer</a> in sample-frames.
+              </dd>
+              <dt>
+                <dfn><code>numberOfchannels</code></dfn> of type <span class=
+                "idlAttrType"><a>unsigned long</a></span>, required, defaulting
+                to 1
+              </dt>
+              <dd>
+                The number of channels for this <a>OfflineAudioContext</a>.
+              </dd>
+              <dt>
+                <dfn><code>sampleRate</code></dfn> of type <span class=
+                "idlAttrType"><a>double</a></span>, required
+              </dt>
+              <dd>
+                The sample rate for this <a>OfflineAudioContext</a>.
+              </dd>
+            </dl>
+          </section><!--
           <dl title="dictionary OfflineAudioContextOptions" class="x-idl">
             <dt>
               unsigned long numberOfChannels = 1
@@ -2908,6 +4055,7 @@ interface BaseAudioContext : EventTarget {
               The sample rate for this <a>OfflineAudioContext</a>.
             </dd>
           </dl>
+-->
         </section>
         <section>
           <h2 id="OfflineAudioCompletionEvent">
@@ -2917,6 +4065,27 @@ interface BaseAudioContext : EventTarget {
             This is an <code>Event</code> object which is dispatched to
             <a><code>OfflineAudioContext</code></a> for legacy reasons.
           </p>
+          <pre class="idl">
+[Constructor(DOMString type, OfflineAudioCompletionEventInit eventInitDict)]
+interface OfflineAudioCompletionEvent : Event {
+    readonly        attribute AudioBuffer renderedBuffer;
+};
+          </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="OfflineAudioCompletionEvent"
+            data-link-for="OfflineAudioCompletionEvent">
+              <dt>
+                <dfn><code>renderedBuffer</code></dfn> of type <span class=
+                "idlAttrType"><a>AudioBuffer</a></span>, readonly
+              </dt>
+              <dd>
+                An <code>AudioBuffer</code> containing the rendered audio data.
+              </dd>
+            </dl>
+          </section><!--
           <dl title=
           "[Constructor(DOMString type, &lt;a&gt;OfflineAudioCompletionEventInit&lt;/a&gt; eventInitDict)]interface OfflineAudioCompletionEvent : Event"
           class="x-idl">
@@ -2929,10 +4098,34 @@ interface BaseAudioContext : EventTarget {
               </p>
             </dd>
           </dl>
+-->
           <section>
             <h3>
               OfflineAudioCompletionEventInit
             </h3>
+            <pre class="idl">
+dictionary OfflineAudioCompletionEventInit : EventInit {
+    required AudioBuffer renderedBuffer;
+};
+            </pre>
+            <section>
+              <h4>
+                Dictionary <a>OfflineAudioCompleteionEventInit</a> Members
+              </h4>
+              <dl class="attributes" data-dfn-for=
+              "OfflineAudioCompletionEventInit" data-link-for=
+              "OfflineAudioCompletionEventInit">
+                <dt>
+                  <dfn><code>renderedBuffer</code></dfn> of type <span class=
+                  "idlAttrType"><a>AudioBuffer</a></span>, readonly
+                </dt>
+                <dd>
+                  Value to be assigned to the <a href=
+                  "#widl-OfflineAudioCompletionEvent-renderedBuffer"><code>renderedBuffer</code></a>
+                  attribute of the event.
+                </dd>
+              </dl>
+            </section><!--
             <dl title="dictionary OfflineAudioCompletionEventInit : EventInit"
             class="x-idl">
               <dt>
@@ -2944,6 +4137,7 @@ interface BaseAudioContext : EventTarget {
                 attribute of the event.
               </dd>
             </dl>
+-->
           </section>
         </section>
       </section>

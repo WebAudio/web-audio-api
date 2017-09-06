@@ -3603,652 +3603,1029 @@ dictionary OfflineAudioCompletionEventInit : EventInit {
           <a><code>AudioNode</code></a>s the same way that other EventTargets
           accept events.
         </p>
-        <dl title="enum ChannelCountMode" class="x-idl">
-          <dt>
-            max
-          </dt>
-          <dd>
-            <a><code>computedNumberOfChannels</code></a> is computed as the
-            maximum of the number of channels of all connections. In this mode
-            channelCount is ignored
-          </dd>
-          <dt>
-            clamped-max
-          </dt>
-          <dd>
-            Same as “max” up to a limit of the channelCount
-          </dd>
-          <dt>
-            explicit
-          </dt>
-          <dd>
-            <a><code>computedNumberOfChannels</code></a> is the exact value as
-            specified in channelCount
-          </dd>
-        </dl>
-        <dl title="enum ChannelInterpretation" class="x-idl">
-          <dt>
-            speakers
-          </dt>
-          <dd>
-            use <a href="#ChannelLayouts">up-down-mix equations for
-            mono/stereo/quad/5.1</a>. In cases where the number of channels do
-            not match any of these basic speaker layouts, revert to "discrete".
-          </dd>
-          <dt>
-            discrete
-          </dt>
-          <dd>
-            Up-mix by filling channels until they run out then zero out
-            remaining channels. down-mix by filling as many channels as
-            possible, then dropping remaining channels.
-          </dd>
-        </dl>
-        <dl title="interface AudioNode : EventTarget" class="x-idl">
-          <dt>
-            AudioNode connect()
-          </dt>
-          <dd>
-            <dl class="parameters">
-              <dt>
-                AudioNode destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioNode</code></a> to connect to. If the
-                <code>destination</code> parameter is an
-                <a><code>AudioNode</code></a> that has been created using
-                another <a><code>AudioContext</code></a>, an
-                <code>InvalidAccessError</code> MUST be thrown. That is,
-                <a><code>AudioNodes</code></a> cannot be shared between
-                <a><code>AudioContext</code></a>s.
-              </dd>
-              <dt>
-                optional unsigned long output = 0
-              </dt>
-              <dd>
-                The <code>output</code> parameter is an index describing which
-                output of the <a><code>AudioNode</code></a> from which to
-                connect. <span class="synchronous">If this parameter is
-                out-of-bound, an <code>IndexSizeError</code> exception MUST be
-                thrown.</span> It is possible to connect an
-                <a><code>AudioNode</code></a> output to more than one input
-                with multiple calls to connect(). Thus, "fan-out" is supported.
-              </dd>
-              <dt>
-                optional unsigned long input = 0
-              </dt>
-              <dd>
-                The <code>input</code> parameter is an index describing which
-                input of the destination <a><code>AudioNode</code></a> to
-                connect to. <span class="synchronous">If this parameter is
-                out-of-bounds, an <code>IndexSizeError</code> exception MUST be
-                thrown.</span> It is possible to connect an
-                <a><code>AudioNode</code></a> to another
-                <a><code>AudioNode</code></a> which creates a <dfn>cycle</dfn>:
-                an <a><code>AudioNode</code></a> may connect to another
-                <a><code>AudioNode</code></a>, which in turn connects back to
-                the first <a><code>AudioNode</code></a>. This is allowed only
-                if there is at least one <a><code>DelayNode</code></a> in the
-                <em>cycle</em> <span class="synchronous">or a
-                <code>NotSupportedError</code> exception MUST be thrown.</span>
-              </dd>
-            </dl>
-            <p>
-              There can only be one connection between a given output of one
-              specific node and a given input of another specific node.
-              Multiple connections with the same termini are ignored. For
-              example:
-            </p>
-            <pre class="example">
+        <pre class="idl">
+enum ChannelCountMode {
+    "max",
+    "clamped-max",
+    "explicit"
+};
+        </pre>
+        <table class="simple" data-dfn-for="ChannelCountMode" data-link-for=
+        "ChannelCountMode">
+          <tr>
+            <th colspan="2">
+              Enumeration description
+            </th>
+          </tr>
+          <tr>
+            <td>
+              <code>max</code>
+            </td>
+            <td>
+              <a><code>computedNumberOfChannels</code></a> is computed as the
+              maximum of the number of channels of all connections. In this
+              mode channelCount is ignored
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>clamped-max</code>
+            </td>
+            <td>
+              Same as “max” up to a limit of the channelCount
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>explicit</code>
+            </td>
+            <td>
+              <a><code>computedNumberOfChannels</code></a> is the exact value
+              as specified in channelCount
+            </td>
+          </tr>
+        </table>
+        <pre class="idl">
+enum ChannelInterpretation {
+    "speakers",
+    "discrete"
+};
+        </pre>
+        <table class="simple" data-dfn-for="ChannelInterpretation"
+        data-link-for="ChannelInterpretation">
+          <tr>
+            <th colspan="2">
+              Enumeration description
+            </th>
+          </tr>
+          <tr>
+            <td>
+              <code>speakers</code>
+            </td>
+            <td>
+              use <a href="#ChannelLayouts">up-down-mix equations for
+              mono/stereo/quad/5.1</a>. In cases where the number of channels
+              do not match any of these basic speaker layouts, revert to
+              "discrete".
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>discrete</code>
+            </td>
+            <td>
+              Up-mix by filling channels until they run out then zero out
+              remaining channels. down-mix by filling as many channels as
+              possible, then dropping remaining channels.
+            </td>
+          </tr>
+        </table>
+        <pre class="idl">
+interface AudioNode : EventTarget {
+    AudioNode connect (AudioNode destination, optional unsigned long output = 0
+              , optional unsigned long input = 0
+              );
+    void      connect (AudioParam destination, optional unsigned long output = 0
+              );
+    void      disconnect ();
+    void      disconnect (unsigned long output);
+    void      disconnect (AudioNode destination);
+    void      disconnect (AudioNode destination, unsigned long output);
+    void      disconnect (AudioNode destination, unsigned long output, unsigned long input);
+    void      disconnect (AudioParam destination);
+    void      disconnect (AudioParam destination, unsigned long output);
+    readonly        attribute BaseAudioContext      context;
+    readonly        attribute unsigned long         numberOfInputs;
+    readonly        attribute unsigned long         numberOfOutputs;
+                    attribute unsigned long         channelCount;
+                    attribute ChannelCountMode      channelCountMode;
+                    attribute ChannelInterpretation channelInterpretation;
+};
+        </pre>
+        <section>
+          <h2>
+            Attributes
+          </h2>
+          <dl class="attributes" data-dfn-for="AudioNode" data-link-for=
+          "AudioNode">
+            <dt>
+              <dfn><code>channelCount</code></dfn> of type <span class=
+              "idlAttrType"><a><code>unsigned long</code></a></span>
+            </dt>
+            <dd>
+              <p>
+                <a>channelCount</a> is the number of channels used when
+                up-mixing and down-mixing connections to any inputs to the
+                node. The default value is 2 except for specific nodes where
+                its value is specially determined. This attribute has no effect
+                for nodes with no inputs. <span class="synchronous">If this
+                value is set to zero or to a value greater than the
+                implementation's maximum number of channels the implementation
+                MUST throw a <code>NotSupportedError</code> exception.</span>
+              </p>
+              <p>
+                In addition, some nodes have additional <dfn>channelCount
+                constraints</dfn> on the possible values for the channel count:
+              </p>
+              <dl>
+                <dt>
+                  <a>AudioDestinationNode</a>
+                </dt>
+                <dd>
+                  <p>
+                    The behavior depends on whether the destination node is the
+                    destination of an <a>AudioContext</a> or
+                    <a>OfflineAudioContext</a>
+                  </p>
+                  <dl>
+                    <dt>
+                      <a>AudioContext</a>
+                    </dt>
+                    <dd>
+                      The channel count MUST be between 1 and
+                      <a>maxChannelCount</a>. An <span class=
+                      "synchronous"><code>IndexSizeError</code> exception MUST
+                      be thrown for any attempt to set the count outside this
+                      range</span>.
+                    </dd>
+                    <dt>
+                      <a>OfflineAudioContext</a>
+                    </dt>
+                    <dd>
+                      The channel count cannot be changed. An <span class=
+                      "synchronous"><code>InvalidStateError</code> exception
+                      MUST be thrown for any attempt to change the
+                      value.</span>
+                    </dd>
+                  </dl>
+                </dd>
+                <dt>
+                  <a>ChannelSplitterNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot be changed, and an <span class=
+                  "synchronous"><code>InvalidStateError</code> exception MUST
+                  be thrown for any attempt to change the value.</span>
+                </dd>
+                <dt>
+                  <a>ChannelMergerNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot be changed, and an <span class=
+                  "synchronous"><code>InvalidStateError</code> exception MUST
+                  be thrown for any attempt to change the value.</span>
+                </dd>
+                <dt>
+                  <a>ConvolverNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot changed from two, and a <span class=
+                  "synchronous"><code>NotSupportedError</code> exception MUST
+                  be thrown for any attempt to change the value..</span>
+                </dd>
+                <dt>
+                  <a>DynamicsCompressorNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot be greater than two, and a
+                  <span class="synchronous"><code>NotSupportedError</code>
+                  exception MUST be thrown for any attempt to change the to a
+                  value greater than two.</span>
+                </dd>
+                <dt>
+                  <a>PannerNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot be greater than two, and a
+                  <span class="synchronous"><code>NotSupportedError</code>
+                  exception MUST be thrown for any attempt to change the to a
+                  value greater than two.</span>
+                </dd>
+                <dt>
+                  <a>ScriptProcessorNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot be changed, and an <span class=
+                  "synchronous"><code>InvalidStateError</code> exception MUST
+                  be thrown for any attempt to change the value.</span>
+                </dd>
+                <dt>
+                  <a>StereoPannerNode</a>
+                </dt>
+                <dd>
+                  The channel count cannot be greater than two, and a
+                  <span class="synchronous"><code>NotSupportedError</code>
+                  exception MUST be thrown for any attempt to change the to a
+                  value greater than two.</span>
+                </dd>
+              </dl>
+              <p>
+                See the <a href="#channel-up-mixing-and-down-mixing"></a>
+                section for more information on this attribute.
+              </p>
+            </dd>
+            <dt>
+              <dfn><code>channelCountMode</code></dfn> of type <span class=
+              "idlAttrType"><a><code>ChannelCountMode</code></a></span>
+            </dt>
+            <dd>
+              <p>
+                <a>channelCountMode</a> determines how channels will be
+                counted when up-mixing and down-mixing connections to any
+                inputs to the node. This attribute has no effect for nodes with
+                no inputs.
+              </p>
+              <p>
+                In addition, some nodes have additional <dfn>channelCountMode
+                constraints</dfn> on the possible values for the channel count
+                mode:
+              </p>
+              <dl>
+                <dt>
+                  <a>AudioDestinationNode</a>
+                </dt>
+                <dd>
+                  If the <a>AudioDestinationNode</a> is the <a href=
+                  "#widl-BaseAudioContext-destination">destination</a> node of
+                  an <a>OfflineAudioContext</a>, then the channel count mode
+                  cannot be changed. An <span class=
+                  "synchronous"><code>InvalidStateError</code> exception MUST
+                  be thrown for any attempt to change the value.</span>
+                </dd>
+                <dt>
+                  <a>ChannelSplitterNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be changed from "explicit" and
+                  an <span class="synchronous"><code>InvalidStateError</code>
+                  exception MUST be thrown for any attempt to change the
+                  value.</span>
+                </dd>
+                <dt>
+                  <a>ChannelMergerNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be changed from "explicit" and
+                  an <span class="synchronous"><code>InvalidStateError</code>
+                  exception MUST be thrown for any attempt to change the
+                  value.</span>
+                </dd>
+                <dt>
+                  <a>ConvolverNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be changed from "clamped-max",
+                  and a <span class=
+                  "synchronous"><code>NotSupportedError</code> exception MUST
+                  be thrown for any attempt to change the value.</span>
+                </dd>
+                <dt>
+                  <a>DynamicsCompressorNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be set to "max", and a
+                  <span class="synchronous"><code>NotSupportedError</code>
+                  exception MUST be thrown for any attempt to set it to
+                  "max".</span>
+                </dd>
+                <dt>
+                  <a>PannerNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be set to "max", and a
+                  <span class="synchronous"><code>NotSupportedError</code>
+                  exception MUST be thrown for any attempt to set it to
+                  "max".</span>
+                </dd>
+                <dt>
+                  <a>ScriptProcessorNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be changed from "explicit" and
+                  an <span class="synchronous"><code>InvalidStateError</code>
+                  exception MUST be thrown for any attempt to change the
+                  value.</span>
+                </dd>
+                <dt>
+                  <a>StereoPannerNode</a>
+                </dt>
+                <dd>
+                  The channel count mode cannot be set to "max", and a
+                  <span class="synchronous"><code>NotSupportedError</code>
+                  exception MUST be thrown for any attempt to set it to
+                  "max".</span>
+                </dd>
+              </dl>
+              <p>
+                See the <a href="#channel-up-mixing-and-down-mixing"></a>
+                section for more information on this attribute.
+              </p>
+            </dd>
+            <dt>
+              <dfn><code>channelInterpretation</code></dfn> of type
+              <span class="idlAttrType"><a><code>ChannelInterpretation</code></a></span>
+            </dt>
+            <dd>
+              <p>
+                <dfn>channelInterpetation</dfn> determines how individual
+                channels will be treated when up-mixing and down-mixing
+                connections to any inputs to the node. This attribute has no
+                effect for nodes with no inputs.
+              </p>
+              <p>
+                See the <a href="#channel-up-mixing-and-down-mixing"></a>
+                section for more information on this attribute.
+              </p>
+              <p>
+                <span class="synchronous">When attempting to this attribute on
+                a <a>ChannelSplitterNode</a>, an <code>InvalidStateError</code>
+                MUST be thrown.</span>
+              </p>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2>
+            Methods
+          </h2>
+          <dl class="methods" data-dfn-for="AudioNode" data-link-for=
+          "AudioNode">
+            <dt>
+              <dfn>connect</dfn>
+            </dt>
+            <dd>
+              <!--
+              <dl class="parameters">
+                <dt>
+                  AudioNode destination
+                </dt>
+                <dd>
+                  The <code>destination</code> parameter is the
+                  <a><code>AudioNode</code></a> to connect to. If the
+                  <code>destination</code> parameter is an
+                  <a><code>AudioNode</code></a> that has been created using
+                  another <a><code>AudioContext</code></a>, an
+                  <code>InvalidAccessError</code> MUST be thrown. That is,
+                  <a><code>AudioNodes</code></a> cannot be shared between
+                  <a><code>AudioContext</code></a>s.
+                </dd>
+                <dt>
+                  optional unsigned long output = 0
+                </dt>
+                <dd>
+                  The <code>output</code> parameter is an index describing
+                  which output of the <a><code>AudioNode</code></a> from which
+                  to connect. <span class="synchronous">If this parameter is
+                  out-of-bound, an <code>IndexSizeError</code> exception MUST
+                  be thrown.</span> It is possible to connect an
+                  <a><code>AudioNode</code></a> output to more than one input
+                  with multiple calls to connect(). Thus, "fan-out" is
+                  supported.
+                </dd>
+                <dt>
+                  optional unsigned long input = 0
+                </dt>
+                <dd>
+                  The <code>input</code> parameter is an index describing which
+                  input of the destination <a><code>AudioNode</code></a> to
+                  connect to. <span class="synchronous">If this parameter is
+                  out-of-bounds, an <code>IndexSizeError</code> exception MUST
+                  be thrown.</span> It is possible to connect an
+                  <a><code>AudioNode</code></a> to another
+                  <a><code>AudioNode</code></a> which creates a
+                  <dfn>cycle</dfn>: an <a><code>AudioNode</code></a> may
+                  connect to another <a><code>AudioNode</code></a>, which in
+                  turn connects back to the first
+                  <a><code>AudioNode</code></a>. This is allowed only if there
+                  is at least one <a><code>DelayNode</code></a> in the
+                  <em>cycle</em> <span class="synchronous">or a
+                  <code>NotSupportedError</code> exception MUST be
+                  thrown.</span>
+                </dd>
+              </dl>
+-->
+              <p>
+                There can only be one connection between a given output of one
+                specific node and a given input of another specific node.
+                Multiple connections with the same termini are ignored. For
+                example:
+              </p>
+              <pre class="example">
     nodeA.connect(nodeB);
     nodeA.connect(nodeB);
 
 </pre>
-            <p>
-              will have the same effect as
-            </p>
-            <pre class="example">
+              <p>
+                will have the same effect as
+              </p>
+              <pre class="example">
       nodeA.connect(nodeB);
 
 </pre>
-            <p>
-              This method returns <code>destination</code>
-              <a><code>AudioNode</code></a> object.
-            </p>
-          </dd>
-          <dt>
-            void connect()
-          </dt>
-          <dd>
-            <p>
-              Connects the <a><code>AudioNode</code></a> to an
-              <a><code>AudioParam</code></a>, controlling the parameter value
-              with an audio-rate signal.
-            </p>
-            <dl class="parameters">
-              <dt>
-                AudioParam destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioParam</code></a> to connect to. This method does
-                not return <code>destination</code>
-                <a><code>AudioParam</code></a> object. <span class=
-                "synchronous">If <var>destination</var> belongs to an
-                <a>AudioNode</a> that belongs to a <a>BaseAudioContext</a> that
-                is different from the <a>BaseAudioContext</a> that has created
-                the <a>AudioNode</a> on which this method was called, an
-                <code>InvalidAccessError</code> MUST be thrown.</span>
-              </dd>
-              <dt>
-                optional unsigned long output = 0
-              </dt>
-              <dd>
-                The <code>output</code> parameter is an index describing which
-                output of the <a><code>AudioNode</code></a> from which to
-                connect. <span class="synchronous">If the
-                <code>parameter</code> is out-of-bound, an
-                <code>IndexSizeError</code> exception MUST be thrown.</span>
-              </dd>
-            </dl>
-            <p>
-              It is possible to connect an <a><code>AudioNode</code></a> output
-              to more than one <a><code>AudioParam</code></a> with multiple
-              calls to connect(). Thus, "fan-out" is supported.
-            </p>
-            <p>
-              It is possible to connect more than one
-              <a><code>AudioNode</code></a> output to a single
-              <a><code>AudioParam</code></a> with multiple calls to connect().
-              Thus, "fan-in" is supported.
-            </p>
-            <p>
-              An <a><code>AudioParam</code></a> will take the rendered audio
-              data from any <a><code>AudioNode</code></a> output connected to
-              it and <a href="#down-mix">convert it to mono</a> by down-mixing
-              if it is not already mono, then mix it together with other such
-              outputs and finally will mix with the <em>intrinsic</em>
-              parameter value (the <code>value</code> the
-              <a><code>AudioParam</code></a> would normally have without any
-              audio connections), including any timeline changes scheduled for
-              the parameter.
-            </p>
-            <p>
-              There can only be one connection between a given output of one
-              specific node and a specific <a><code>AudioParam</code></a>.
-              Multiple connections with the same termini are ignored. For
-              example:
-            </p>
-            <pre>
+              <p>
+                This method returns <code>destination</code>
+                <a><code>AudioNode</code></a> object.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    destination
+                  </td>
+                  <td class="prmType">
+                    <a><code>AudioNode</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>destination</code> parameter is the
+                    <a><code>AudioNode</code></a> to connect to. If the
+                    <code>destination</code> parameter is an
+                    <a><code>AudioNode</code></a> that has been created using
+                    another <a><code>AudioContext</code></a>, an
+                    <code>InvalidAccessError</code> MUST be thrown. That is,
+                    <a><code>AudioNodes</code></a> cannot be shared between
+                    <a><code>AudioContext</code></a>s.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    output
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long = 0</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>output</code> parameter is an index describing
+                    which output of the <a><code>AudioNode</code></a> from
+                    which to connect. <span class="synchronous">If this
+                    parameter is out-of-bound, an <code>IndexSizeError</code>
+                    exception MUST be thrown.</span> It is possible to connect
+                    an <a><code>AudioNode</code></a> output to more than one
+                    input with multiple calls to connect(). Thus, "fan-out" is
+                    supported.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    input
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long = 0</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>input</code> parameter is an index describing
+                    which input of the destination
+                    <a><code>AudioNode</code></a> to connect to. <span class=
+                    "synchronous">If this parameter is out-of-bounds, an
+                    <code>IndexSizeError</code> exception MUST be
+                    thrown.</span> It is possible to connect an
+                    <a><code>AudioNode</code></a> to another
+                    <a><code>AudioNode</code></a> which creates a
+                    <dfn>cycle</dfn>: an <a><code>AudioNode</code></a> may
+                    connect to another <a><code>AudioNode</code></a>, which in
+                    turn connects back to the first
+                    <a><code>AudioNode</code></a>. This is allowed only if
+                    there is at least one <a><code>DelayNode</code></a> in the
+                    <em>cycle</em> <span class="synchronous">or a
+                    <code>NotSupportedError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <a>AudioNode</a>
+              </div>
+            </dd>
+            <dt>
+              connect
+            </dt>
+            <dd>
+              <p>
+                Connects the <a><code>AudioNode</code></a> to an
+                <a><code>AudioParam</code></a>, controlling the parameter value
+                with an audio-rate signal.
+              </p>
+              <p>
+                It is possible to connect an <a><code>AudioNode</code></a>
+                output to more than one <a><code>AudioParam</code></a> with
+                multiple calls to connect(). Thus, "fan-out" is supported.
+              </p>
+              <p>
+                It is possible to connect more than one
+                <a><code>AudioNode</code></a> output to a single
+                <a><code>AudioParam</code></a> with multiple calls to
+                connect(). Thus, "fan-in" is supported.
+              </p>
+              <p>
+                An <a><code>AudioParam</code></a> will take the rendered audio
+                data from any <a><code>AudioNode</code></a> output connected to
+                it and <a href="#down-mix">convert it to mono</a> by
+                down-mixing if it is not already mono, then mix it together
+                with other such outputs and finally will mix with the
+                <em>intrinsic</em> parameter value (the <code>value</code> the
+                <a><code>AudioParam</code></a> would normally have without any
+                audio connections), including any timeline changes scheduled
+                for the parameter.
+              </p>
+              <p>
+                There can only be one connection between a given output of one
+                specific node and a specific <a><code>AudioParam</code></a>.
+                Multiple connections with the same termini are ignored. For
+                example:
+              </p>
+              <pre>
       nodeA.connect(param);
       nodeA.connect(param);
 
 </pre>
-            <p>
-              will have the same effect as
-            </p>
-            <pre>
+              <p>
+                will have the same effect as
+              </p>
+              <pre>
       nodeA.connect(param);
 
 </pre>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects all outgoing connections from the
-              <a><code>AudioNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects a single output of the <a><code>AudioNode</code></a>
-              from any other <a><code>AudioNode</code></a> or
-              <a><code>AudioParam</code></a> objects to which it is connected.
-            </p>
-            <dl class="parameters">
-              <dt>
-                unsigned long output
-              </dt>
-              <dd>
-                This parameter is an index describing which output of the
-                <a><code>AudioNode</code></a> to disconnect. It disconnects all
-                outgoing connections from the given output. <span class=
-                "synchronous">If this parameter is out-of-bounds, an
-                <code>IndexSizeError</code> exception MUST be thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects all outputs of the <a><code>AudioNode</code></a> that
-              go to a specific destination <a><code>AudioNode</code></a>.
-            </p>
-            <dl class="parameters">
-              <dt>
-                AudioNode destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioNode</code></a> to disconnect. It disconnects all
-                outgoing connections to the given <code>destination</code>.
-                <span class="synchronous">If there is no connection to
-                <code>destination</code>, an <code>InvalidAccessError</code>
-                exception MUST be thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects a specific output of the
-              <a><code>AudioNode</code></a> from a specific destination
-              <a><code>AudioNode</code></a>.
-            </p>
-            <dl class="parameters">
-              <dt>
-                AudioNode destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioNode</code></a> to disconnect. <span class=
-                "synchronous">If there is no connection to the
-                <code>destination</code> from the given output, an
-                <code>InvalidAccessError</code> exception MUST be
-                thrown.</span>
-              </dd>
-              <dt>
-                unsigned long output
-              </dt>
-              <dd>
-                The <code>output</code> parameter is an index describing which
-                output of the <a><code>AudioNode</code></a> from which to
-                disconnect. <span class="synchronous">If this parameter is
-                out-of-bound, an <code>IndexSizeError</code> exception MUST be
-                thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects a specific output of the
-              <a><code>AudioNode</code></a> from a specific input of some
-              destination <a><code>AudioNode</code></a>.
-            </p>
-            <dl class="parameters">
-              <dt>
-                AudioNode destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioNode</code></a> to disconnect. <span class=
-                "synchronous">If there is no connection to the
-                <code>destination</code> from the given output to the given
-                input, an <code>InvalidAccessError</code> exception MUST be
-                thrown.</span>
-              </dd>
-              <dt>
-                unsigned long output
-              </dt>
-              <dd>
-                The <code>output</code> parameter is an index describing which
-                output of the <a><code>AudioNode</code></a> from which to
-                disconnect. <span class="synchronous">If this parameter is
-                out-of-bound, an <code>IndexSizeError</code> exception MUST be
-                thrown.</span>
-              </dd>
-              <dt>
-                unsigned long input
-              </dt>
-              <dd>
-                The <code>input</code> parameter is an index describing which
-                input of the destination <a><code>AudioNode</code></a> to
-                disconnect. <span class="synchronous">If this parameter is
-                out-of-bounds, an <code>IndexSizeError</code> exception MUST be
-                thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects all outputs of the <a><code>AudioNode</code></a> that
-              go to a specific destination <a><code>AudioParam</code></a>. The
-              contribution of this <a><code>AudioNode</code></a> to the
-              computed parameter value goes to 0 when this operation takes
-              effect. The intrinsic parameter value is not affected by this
-              operation.
-            </p>
-            <dl class="parameters">
-              <dt>
-                AudioParam destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioParam</code></a> to disconnect. <span class=
-                "synchronous">If there is no connection to the
-                <code>destination</code>, an <code>InvalidAccessError</code>
-                exception MUST be thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            void disconnect()
-          </dt>
-          <dd>
-            <p>
-              Disconnects a specific output of the
-              <a><code>AudioNode</code></a> from a specific destination
-              <a><code>AudioParam</code></a>. The contribution of this
-              <a><code>AudioNode</code></a> to the computed parameter value
-              goes to 0 when this operation takes effect. The intrinsic
-              parameter value is not affected by this operation.
-            </p>
-            <dl class="parameters">
-              <dt>
-                AudioParam destination
-              </dt>
-              <dd>
-                The <code>destination</code> parameter is the
-                <a><code>AudioParam</code></a> to disconnect. <span class=
-                "synchronous">If there is no connection to the
-                <code>destination</code>, an <code>InvalidAccessError</code>
-                exception MUST be thrown.</span>
-              </dd>
-              <dt>
-                unsigned long output
-              </dt>
-              <dd>
-                The <code>output</code> parameter is an index describing which
-                output of the <a><code>AudioNode</code></a> from which to
-                disconnect. <span class="synchronous">If the
-                <code>parameter</code> is out-of-bound, an
-                <code>IndexSizeError</code> exception MUST be thrown.</span>
-              </dd>
-            </dl>
-          </dd>
-          <dt>
-            readonly attribute BaseAudioContext context
-          </dt>
-          <dd>
-            <p>
-              The <a><code>BaseAudioContext</code></a> which owns this
-              <a><code>AudioNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute unsigned long numberOfInputs
-          </dt>
-          <dd>
-            <p>
-              The number of inputs feeding into the
-              <a><code>AudioNode</code></a>. For <dfn>source nodes</dfn>, this
-              will be 0. This attribute is predetermined for many
-              <a><code>AudioNode</code></a> types, but some
-              <a><code>AudioNode</code></a>s, like the
-              <a><code>ChannelMergerNode</code></a> and the
-              <a><code>AudioWorkletNode</code></a>, have variable number of
-              inputs.
-            </p>
-          </dd>
-          <dt>
-            readonly attribute unsigned long numberOfOutputs
-          </dt>
-          <dd>
-            <p>
-              The number of outputs coming out of the
-              <a><code>AudioNode</code></a>. This attribute is predetermined
-              for some <a><code>AudioNode</code></a> types, but can be
-              variable, like for the <a><code>ChannelSplitterNode</code></a>
-              and the <a><code>AudioWorkletNode</code></a>.
-            </p>
-          </dd>
-          <dt>
-            attribute unsigned long channelCount
-          </dt>
-          <dd>
-            <p>
-              <dfn>channelCount</dfn> is the number of channels used when
-              up-mixing and down-mixing connections to any inputs to the node.
-              The default value is 2 except for specific nodes where its value
-              is specially determined. This attribute has no effect for nodes
-              with no inputs. <span class="synchronous">If this value is set to
-              zero or to a value greater than the implementation's maximum
-              number of channels the implementation MUST throw a
-              <code>NotSupportedError</code> exception.</span>
-            </p>
-            <p>
-              In addition, some nodes have additional <dfn>channelCount
-              constraints</dfn> on the possible values for the channel count:
-            </p>
-            <dl>
-              <dt>
-                <a>AudioDestinationNode</a>
-              </dt>
-              <dd>
-                <p>
-                  The behavior depends on whether the destination node is the
-                  destination of an <a>AudioContext</a> or
-                  <a>OfflineAudioContext</a>
-                </p>
-                <dl>
-                  <dt>
-                    <a>AudioContext</a>
-                  </dt>
-                  <dd>
-                    The channel count MUST be between 1 and
-                    <a>maxChannelCount</a>. An <span class=
-                    "synchronous"><code>IndexSizeError</code> exception MUST be
-                    thrown for any attempt to set the count outside this
-                    range</span>.
-                  </dd>
-                  <dt>
-                    <a>OfflineAudioContext</a>
-                  </dt>
-                  <dd>
-                    The channel count cannot be changed. An <span class=
-                    "synchronous"><code>InvalidStateError</code> exception MUST
-                    be thrown for any attempt to change the value.</span>
-                  </dd>
-                </dl>
-              </dd>
-              <dt>
-                <a>ChannelSplitterNode</a>
-              </dt>
-              <dd>
-                The channel count cannot be changed, and an <span class=
-                "synchronous"><code>InvalidStateError</code> exception MUST be
-                thrown for any attempt to change the value.</span>
-              </dd>
-              <dt>
-                <a>ChannelMergerNode</a>
-              </dt>
-              <dd>
-                The channel count cannot be changed, and an <span class=
-                "synchronous"><code>InvalidStateError</code> exception MUST be
-                thrown for any attempt to change the value.</span>
-              </dd>
-              <dt>
-                <a>ConvolverNode</a>
-              </dt>
-              <dd>
-                The channel count cannot changed from two, and a <span class=
-                "synchronous"><code>NotSupportedError</code> exception MUST be
-                thrown for any attempt to change the value..</span>
-              </dd>
-              <dt>
-                <a>DynamicsCompressorNode</a>
-              </dt>
-              <dd>
-                The channel count cannot be greater than two, and a
-                <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to change the to a
-                value greater than two.</span>
-              </dd>
-              <dt>
-                <a>PannerNode</a>
-              </dt>
-              <dd>
-                The channel count cannot be greater than two, and a
-                <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to change the to a
-                value greater than two.</span>
-              </dd>
-              <dt>
-                <a>ScriptProcessorNode</a>
-              </dt>
-              <dd>
-                The channel count cannot be changed, and an <span class=
-                "synchronous"><code>InvalidStateError</code> exception MUST be
-                thrown for any attempt to change the value.</span>
-              </dd>
-              <dt>
-                <a>StereoPannerNode</a>
-              </dt>
-              <dd>
-                The channel count cannot be greater than two, and a
-                <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to change the to a
-                value greater than two.</span>
-              </dd>
-            </dl>
-            <p>
-              See the <a href="#channel-up-mixing-and-down-mixing"></a> section
-              for more information on this attribute.
-            </p>
-          </dd>
-          <dt>
-            attribute ChannelCountMode channelCountMode
-          </dt>
-          <dd>
-            <p>
-              <dfn>channelCountMode</dfn> determines how channels will be
-              counted when up-mixing and down-mixing connections to any inputs
-              to the node. This attribute has no effect for nodes with no
-              inputs.
-            </p>
-            <p>
-              In addition, some nodes have additional <dfn>channelCountMode
-              constraints</dfn> on the possible values for the channel count
-              mode:
-            </p>
-            <dl>
-              <dt>
-                <a>AudioDestinationNode</a>
-              </dt>
-              <dd>
-                If the <a>AudioDestinationNode</a> is the <a href=
-                "#widl-BaseAudioContext-destination">destination</a> node of an
-                <a>OfflineAudioContext</a>, then the channel count mode cannot
-                be changed. An <span class=
-                "synchronous"><code>InvalidStateError</code> exception MUST be
-                thrown for any attempt to change the value.</span>
-              </dd>
-              <dt>
-                <a>ChannelSplitterNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be changed from "explicit" and an
-                <span class="synchronous"><code>InvalidStateError</code>
-                exception MUST be thrown for any attempt to change the
-                value.</span>
-              </dd>
-              <dt>
-                <a>ChannelMergerNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be changed from "explicit" and an
-                <span class="synchronous"><code>InvalidStateError</code>
-                exception MUST be thrown for any attempt to change the
-                value.</span>
-              </dd>
-              <dt>
-                <a>ConvolverNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be changed from "clamped-max",
-                and a <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to change the
-                value.</span>
-              </dd>
-              <dt>
-                <a>DynamicsCompressorNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be set to "max", and a
-                <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to set it to
-                "max".</span>
-              </dd>
-              <dt>
-                <a>PannerNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be set to "max", and a
-                <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to set it to
-                "max".</span>
-              </dd>
-              <dt>
-                <a>ScriptProcessorNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be changed from "explicit" and an
-                <span class="synchronous"><code>InvalidStateError</code>
-                exception MUST be thrown for any attempt to change the
-                value.</span>
-              </dd>
-              <dt>
-                <a>StereoPannerNode</a>
-              </dt>
-              <dd>
-                The channel count mode cannot be set to "max", and a
-                <span class="synchronous"><code>NotSupportedError</code>
-                exception MUST be thrown for any attempt to set it to
-                "max".</span>
-              </dd>
-            </dl>
-            <p>
-              See the <a href="#channel-up-mixing-and-down-mixing"></a> section
-              for more information on this attribute.
-            </p>
-          </dd>
-          <dt>
-            attribute ChannelInterpretation channelInterpretation
-          </dt>
-          <dd>
-            <p>
-              <dfn>channelInterpetation</dfn> determines how individual
-              channels will be treated when up-mixing and down-mixing
-              connections to any inputs to the node. This attribute has no
-              effect for nodes with no inputs.
-            </p>
-            <p>
-              See the <a href="#channel-up-mixing-and-down-mixing"></a> section
-              for more information on this attribute.
-            </p>
-            <p>
-              <span class="synchronous">When attempting to this attribute on a
-              <a>ChannelSplitterNode</a>, an <code>InvalidStateError</code>
-              MUST be thrown.</span>
-            </p>
-          </dd>
-        </dl>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    destination
+                  </td>
+                  <td class="prmType">
+                    <a><code>AudioParam</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>destination</code> parameter is the
+                    <a><code>AudioParam</code></a> to connect to. This method
+                    does not return <code>destination</code>
+                    <a><code>AudioParam</code></a> object. <span class=
+                    "synchronous">If <var>destination</var> belongs to an
+                    <a>AudioNode</a> that belongs to a <a>BaseAudioContext</a>
+                    that is different from the <a>BaseAudioContext</a> that has
+                    created the <a>AudioNode</a> on which this method was
+                    called, an <code>InvalidAccessError</code> MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    output
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long = 0</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>output</code> parameter is an index describing
+                    which output of the <a><code>AudioNode</code></a> from
+                    which to connect. <span class="synchronous">If the
+                    <code>parameter</code> is out-of-bound, an
+                    <code>IndexSizeError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+            <dt>
+              <dfn>disconnect</dfn>
+            </dt>
+            <dd>
+              <p>
+                Disconnects all outgoing connections from the
+                <a><code>AudioNode</code></a>.
+              </p>
+              <div>
+                <em>No parameters.</em>
+              </div>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+            <dt>
+              disconnect
+            </dt>
+            <dd>
+              <p>
+                Disconnects a single output of the
+                <a><code>AudioNode</code></a> from any other
+                <a><code>AudioNode</code></a> or <a><code>AudioParam</code></a>
+                objects to which it is connected.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    output
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    This parameter is an index describing which output of the
+                    <a><code>AudioNode</code></a> to disconnect. It disconnects
+                    all outgoing connections from the given output.
+                    <span class="synchronous">If this parameter is
+                    out-of-bounds, an <code>IndexSizeError</code> exception
+                    MUST be thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+            <dt>
+              disconnect
+            </dt>
+            <dd>
+              <p>
+                Disconnects a specific output of the
+                <a><code>AudioNode</code></a> from a specific input of some
+                destination <a><code>AudioNode</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    destination
+                  </td>
+                  <td class="prmType">
+                    <a><code>AudioNode</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>destination</code> parameter is the
+                    <a><code>AudioNode</code></a> to disconnect. <span class=
+                    "synchronous">If there is no connection to the
+                    <code>destination</code> from the given output, an
+                    <code>InvalidAccessError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    output
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>output</code> parameter is an index describing
+                    which output of the <a><code>AudioNode</code></a> from
+                    which to disconnect. <span class="synchronous">If this
+                    parameter is out-of-bound, an <code>IndexSizeError</code>
+                    exception MUST be thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+            <dt>
+              disconnect
+            </dt>
+            <dd>
+              <p>
+                Disconnects a specific output of the
+                <a><code>AudioNode</code></a> from a specific input of some
+                destination <a><code>AudioNode</code></a>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    destination
+                  </td>
+                  <td class="prmType">
+                    <a><code>AudioNode</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>destination</code> parameter is the
+                    <a><code>AudioNode</code></a> to disconnect. <span class=
+                    "synchronous">If there is no connection to the
+                    <code>destination</code> from the given output, an
+                    <code>InvalidAccessError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    output
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>output</code> parameter is an index describing
+                    which output of the <a><code>AudioNode</code></a> from
+                    which to disconnect. <span class="synchronous">If this
+                    parameter is out-of-bound, an <code>IndexSizeError</code>
+                    exception MUST be thrown.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    input
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>input</code> parameter is an index describing
+                    which input of the destination
+                    <a><code>AudioNode</code></a> to disconnect. <span class=
+                    "synchronous">If this parameter is out-of-bounds, an
+                    <code>IndexSizeError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+            <dt>
+              disconnect
+            </dt>
+            <dd>
+              <p>
+                Disconnects all outputs of the <a><code>AudioNode</code></a>
+                that go to a specific destination
+                <a><code>AudioParam</code></a>. The contribution of this
+                <a><code>AudioNode</code></a> to the computed parameter value
+                goes to 0 when this operation takes effect. The intrinsic
+                parameter value is not affected by this operation.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    destination
+                  </td>
+                  <td class="prmType">
+                    <a><code>AudioParam</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>destination</code> parameter is the
+                    <a><code>AudioParam</code></a> to disconnect. <span class=
+                    "synchronous">If there is no connection to the
+                    <code>destination</code>, an
+                    <code>InvalidAccessError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+              </table>
+            </dd>
+            <dt>
+              disconnect
+            </dt>
+            <dd>
+              <p>
+                Disconnects a specific output of the
+                <a><code>AudioNode</code></a> from a specific destination
+                <a><code>AudioParam</code></a>. The contribution of this
+                <a><code>AudioNode</code></a> to the computed parameter value
+                goes to 0 when this operation takes effect. The intrinsic
+                parameter value is not affected by this operation.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    destination
+                  </td>
+                  <td class="prmType">
+                    <a><code>AudioParam</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>destination</code> parameter is the
+                    <a><code>AudioParam</code></a> to disconnect. <span class=
+                    "synchronous">If there is no connection to the
+                    <code>destination</code>, an
+                    <code>InvalidAccessError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    output
+                  </td>
+                  <td class="prmType">
+                    <a><code>unsigned long</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <code>output</code> parameter is an index describing
+                    which output of the <a><code>AudioNode</code></a> from
+                    which to disconnect. <span class="synchronous">If the
+                    <code>parameter</code> is out-of-bound, an
+                    <code>IndexSizeError</code> exception MUST be
+                    thrown.</span>
+                  </td>
+                </tr>
+              </table>
+            </dd>
+          </dl>
+        </section>
         <section>
           <h2>
             AudioNodeOptions
@@ -4258,6 +4635,43 @@ dictionary OfflineAudioCompletionEventInit : EventInit {
             <a>AudioNode</a>s. All members are optional. However, the specific
             values used for each node depends on the actual node.
           </p>
+          <pre class="idl">
+dictionary AudioNodeOptions {
+             unsigned long         channelCount;
+             ChannelCountMode      channelCountMode;
+             ChannelInterpretation channelInterpretation;
+};
+          </pre>
+          <section>
+            <h3>
+              Dictionary <a>AudioNodeOptions</a> Members
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioNodeOptions"
+            data-link-for="AudioNodeOptions">
+              <dt>
+                <dfn><code>channelCount</code></dfn> of type <span class=
+                "idlAttrType"><a>unsigned long</a></span>
+              </dt>
+              <dd>
+                Desired number of channels for the <a>channelCount</a>
+                attribute.
+              </dd>
+              <dt>
+                <dfn><code>channelCountMode</code></dfn> of type <span class=
+                "idlAttrType"><a>ChannelCountMode</a></span>
+              </dt>
+              <dd>
+                Desired mode for the <a>channelCountMode</a> attribute.
+              </dd>
+              <dt>
+                <dfn><code>channelInterpretation</code></dfn> of type
+                <span class="idlAttrType"><a>ChannelInterpretation</a></span>
+              </dt>
+              <dd>
+                Desired mode for the <a>channelCountMode</a> attribute.
+              </dd>
+            </dl>
+          </section><!--
           <dl title="dictionary AudioNodeOptions" class="x-idl">
             <dt>
               unsigned long channelCount
@@ -4278,6 +4692,7 @@ dictionary OfflineAudioCompletionEventInit : EventInit {
               Desired mode for the <a>channelCountMode</a> attribute.
             </dd>
           </dl>
+-->
         </section>
         <section>
           <h3 id="lifetime-AudioNode">

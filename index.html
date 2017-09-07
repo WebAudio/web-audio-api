@@ -10072,6 +10072,47 @@ dictionary AudioProcessingEventInit : EventInit {
           the node will produce non-silent output for silent input due to the
           inherent processing for the head responses.
         </p>
+        <pre class="idl">
+enum PanningModelType {
+    "equalpower",
+    "HRTF"
+};
+        </pre>
+        <table class="simple" data-dfn-for="PanningModelType" data-link-for=
+        "PanningModelType">
+          <tr>
+            <th colspan="2">
+              Enumeration description
+            </th>
+          </tr>
+          <tr>
+            <td>
+              <code>equalpower</code>
+            </td>
+            <td>
+              A simple and efficient spatialization algorithm using equal-power
+              panning.
+              <div class="note">
+                When this panning model is used, all the <a>AudioParam</a>s
+                used to compute the output of this node are <a>a-rate</a>.
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>HRTF</code>
+            </td>
+            <td>
+              A higher quality spatialization algorithm using a convolution
+              with measured impulse responses from human subjects. This panning
+              method renders stereo output.
+              <div class="note">
+                When this panning model is used, all the <a>AudioParam</a>s
+                used to compute the output of this node are <a>k-rate</a>.
+              </div>
+            </td>
+          </tr>
+        </table><!--
         <dl title="enum PanningModelType" class="x-idl">
           <dt>
             equalpower
@@ -10097,6 +10138,7 @@ dictionary AudioProcessingEventInit : EventInit {
             </div>
           </dd>
         </dl>
+-->
         <p>
           The <a><code>DistanceModelType</code></a> enum determines which
           algorithm will be used to reduce the volume of an audio source as it
@@ -10109,6 +10151,92 @@ dictionary AudioProcessingEventInit : EventInit {
           value of the <code>maxDistance</code> attribute; and \(f\) be the
           value of the <code>rolloffFactor</code> attribute.
         </p>
+        <pre class="idl">
+enum DistanceModelType {
+    "linear",
+    "inverse",
+    "exponential"
+};
+        </pre>
+        <table class="simple" data-dfn-for="DistanceModelType" data-link-for=
+        "DistanceModelType">
+          <tr>
+            <th colspan="2">
+              Enumeration description
+            </th>
+          </tr>
+          <tr>
+            <td>
+              <code>linear</code>
+            </td>
+            <td>
+              <p>
+                A linear distance model which calculates <em>distanceGain</em>
+                according to:
+              </p>
+              <pre class="nohighlight">
+            $$
+              1 - f\frac{\max(\min(d, d'_{max}), d'_{ref}) - d'_{ref}}{d'_{max} - d'_{ref}}
+            $$
+
+</pre>
+              <p>
+                where \(d'_{ref} = \min(d_{ref}, d_{max})\) and \(d'_{max} =
+                \max(d_{ref}, d_{max})\). In the case where \(d'_{ref} =
+                d'_{max}\), the value of the linear model is taken to be
+                \(1-f\).
+              </p>
+              <p>
+                Note that \(d\) is clamped to the interval \([d'_{ref},\,
+                d'_{max}]\).
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>inverse</code>
+            </td>
+            <td>
+              <p>
+                An inverse distance model which calculates
+                <em>distanceGain</em> according to:
+              </p>
+              <pre class="nohighlight">
+              $$
+                \frac{d_{ref}}{d_{ref} + f (\max(d, d_{ref}) - d_{ref})}
+              $$
+
+</pre>
+              <p>
+                That is, \(d\) is clamped to the interval \([d_{ref},\,
+                \infty)\). If \(d_{ref} = 0\), the value of the inverse model
+                is taken to be 0, independent of the value of \(d\) and \(f\).
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>exponential</code>
+            </td>
+            <td>
+              <p>
+                An exponential distance model which calculates
+                <em>distanceGain</em> according to:
+              </p>
+              <pre class="nohighlight">
+              $$
+                \left(\frac{\max(d, d_{ref})}{d_{ref}}\right)^{-f}
+              $$
+
+</pre>
+              <p>
+                That is, \(d\) is clamped to the interval \([d_{ref},\,
+                \infty)\). If \(d_{ref} = 0\), the value of the exponential
+                model is taken to be 0, independent of \(d\) and \(f\).
+              </p>
+            </td>
+          </tr>
+        </table><!--
         <dl title="enum DistanceModelType" class="x-idl">
           <dt>
             linear
@@ -10175,6 +10303,480 @@ dictionary AudioProcessingEventInit : EventInit {
             </p>
           </dd>
         </dl>
+-->
+        <pre class="idl">
+[ Constructor (BaseAudioContext context, optional PannerOptions options)]
+interface PannerNode : AudioNode {
+                    attribute PanningModelType  panningModel;
+    readonly        attribute AudioParam        positionX;
+    readonly        attribute AudioParam        positionY;
+    readonly        attribute AudioParam        positionZ;
+    readonly        attribute AudioParam        orientationX;
+    readonly        attribute AudioParam        orientationY;
+    readonly        attribute AudioParam        orientationZ;
+                    attribute DistanceModelType distanceModel;
+                    attribute double            refDistance;
+                    attribute double            maxDistance;
+                    attribute double            rolloffFactor;
+                    attribute double            coneInnerAngle;
+                    attribute double            coneOuterAngle;
+                    attribute double            coneOuterGain;
+    void setPosition (float x, float y, float z);
+    void setOrientation (float x, float y, float z);
+};
+        </pre>
+        <section>
+          <h3>
+            Constructors
+          </h3>
+          <dl class="methods" data-dfn-for="PannerNode" data-link-for=
+          "PannerNode">
+            <dt>
+              <dfn><code>PannerNode</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                Let <var>node</var> be a new <a>PannerNode</a> object. <a href=
+                "#audionode-constructor-init">Initialize</a> <var>node</var>,
+                and return <var>node</var>.
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    context
+                  </td>
+                  <td class="prmType">
+                    <a><code>BaseAudioContext</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc">
+                    The <a>BaseAudioContext</a> this new <a>PannerNode</a> will
+                    be <a href="#associated">associated</a> with.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    options
+                  </td>
+                  <td class="prmType">
+                    <a><code>PannerOptions</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptTrue">
+                    <span role="img" aria-label="True">✔</span>
+                  </td>
+                  <td class="prmDesc">
+                    Optional initial parameter value for this
+                    <a>PannerNode</a>.
+                  </td>
+                </tr>
+              </table>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h3>
+            Attributes
+          </h3>
+          <dl class="attributes" data-dfn-for="PannerNode" data-link-for=
+          "PannerNode">
+            <dt>
+              <dfn><code>coneInnerAngle</code></dfn> of type <span class=
+              "idlAttrType"><a><code>double</code></a></span>
+            </dt>
+            <dd>
+              A parameter for directional audio sources, this is an angle, in
+              degrees, inside of which there will be no volume reduction. The
+              default value is 360. The behavior is undefined if the angle is
+              outside the interval [0, 360].
+            </dd>
+            <dt>
+              <dfn><code>coneOuterAngle</code></dfn> of type <span class=
+              "idlAttrType"><a><code>double</code></a></span>
+            </dt>
+            <dd>
+              A parameter for directional audio sources, this is an angle, in
+              degrees, outside of which the volume will be reduced to a
+              constant value of <a><code>coneOuterGain</code></a>. The default
+              value is 360. The behavior is undefined if the angle is outside
+              the interval [0, 360].
+            </dd>
+            <dt>
+              <dfn><code>coneOuterGain</code></dfn> of type <span class=
+              "idlAttrType"><a><code>double</code></a></span>
+            </dt>
+            <dd>
+              A parameter for directional audio sources, this is the gain
+              outside of the <a><code>coneOuterAngle</code></a>. The default
+              value is 0. It is a linear value (not dB) in the range [0, 1]. An
+              <code>InvalidStateError</code> MUST be thrown if the parameter is
+              outside this range.
+            </dd>
+            <dt>
+              <dfn><code>distanceModel</code></dfn> of type <span class=
+              "idlAttrType"><a><code>DistanceModelType</code></a></span>
+            </dt>
+            <dd>
+              Specifies the distance model used by this
+              <a><code>PannerNode</code></a>. Defaults to
+              <a><code>"inverse"</code></a>.
+            </dd>
+            <dt>
+              <dfn><code>maxDistance</code></dfn> of type <span class=
+              "idlAttrType"><a><code>double</code></a></span>
+            </dt>
+            <dd>
+              The maximum distance between source and listener, after which the
+              volume will not be reduced any further. The default value is
+              10000. A <code>RangeError</code> exception MUST be thrown if this
+              is set to a non-positive value.
+            </dd>
+            <dt>
+              <dfn><code>orientationX</code></dfn> of type <span class=
+              "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
+            </dt>
+            <dd>
+              Describes the x component of the vector of the direction the
+              audio source is pointing in 3D Cartesian coordinate space.
+              Depending on how directional the sound is (controlled by the
+              <b>cone</b> attributes), a sound pointing away from the listener
+              can be very quiet or completely silent. The default value is 1.
+              This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
+              range is \((-\infty, \infty)\).
+            </dd>
+            <dt>
+              <dfn><code>orientationY</code></dfn> of type <span class=
+              "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
+            </dt>
+            <dd>
+              Describes the y component of the vector of the direction the
+              audio source is pointing in 3D cartesian coordinate space. The
+              default value is 0. This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
+              range is \((-\infty, \infty)\).
+            </dd>
+            <dt>
+              <dfn><code>orientationZ</code></dfn> of type <span class=
+              "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
+            </dt>
+            <dd>
+              Describes the Z component of the vector of the direction the
+              audio source is pointing in 3D cartesian coordinate space. The
+              default value is 0. This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
+              range is \((-\infty, \infty)\).
+            </dd>
+            <dt>
+              <dfn><code>panningModel</code></dfn> of type <span class=
+              "idlAttrType"><a><code>PanningModelType</code></a></span>
+            </dt>
+            <dd>
+              Specifies the panning model used by this
+              <a><code>PannerNode</code></a>. Defaults to
+              <a><code>"equalpower"</code></a>.
+            </dd>
+            <dt>
+              <dfn><code>positionX</code></dfn> of type <span class=
+              "idlAttrType"><a><code>AudioParam</code></a></span>
+            </dt>
+            <dd>
+              Sets the x coordinate position of the audio source in a 3D
+              Cartesian system. The default value is 0. This parameter is
+              <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
+              range is \((-\infty, \infty)\).
+            </dd>
+            <dt>
+              <dfn><code>positionY</code></dfn> of type <span class=
+              "idlAttrType"><a><code>AudioParam</code></a></span>
+            </dt>
+            <dd>
+              Sets the y coordinate position of the audio source in a 3D
+              Cartesian system. The default value is 0. This parameter is
+              <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
+              range is \((-\infty, \infty)\).
+            </dd>
+            <dt>
+              <dfn><code>positionZ</code></dfn> of type <span class=
+              "idlAttrType"><a><code>AudioParam</code></a></span>
+            </dt>
+            <dd>
+              Sets the z coordinate position of the audio source in a 3D
+              Cartesian system. The default value is 0. The default value is 0.
+              This parameter is <a>a-rate</a> when <a href=
+              "#widl-PannerNode-panningModel">panningModel</a> is
+              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
+              range is \((-\infty, \infty)\).
+            </dd>
+            <dt>
+              <dfn><code>refDistance</code></dfn> of type <span class=
+              "idlAttrType"><a><code>double</code></a></span>
+            </dt>
+            <dd>
+              A reference distance for reducing volume as source moves further
+              from the listener. The default value is 1. A
+              <code>RangeError</code> exception MUST be thrown if this is set
+              to a non-negative value.
+            </dd>
+            <dt>
+              <dfn><code>rolloffFactor</code></dfn> of type <span class=
+              "idlAttrType"><a><code>double</code></a></span>
+            </dt>
+            <dd>
+              <p>
+                Describes how quickly the volume is reduced as source moves
+                away from listener. The default value is 1.
+              </p>
+              <p>
+                The nominal range for the <code>rolloffFactor</code> specifies
+                the minimum and maximum values the <code>rolloffFactor</code>
+                can have. Values outside the range are clamped to lie within
+                this range. The nominal range depends on the <a href=
+                "#widl-PannerNode-distanceModel"><code>distanceModel</code></a>
+                as follows:
+              </p>
+              <dl>
+                <dt>
+                  <code>linear</code>
+                </dt>
+                <dd>
+                  The nominal range is \([0, 1]\).
+                </dd>
+                <dt>
+                  <code>inverse</code>
+                </dt>
+                <dd>
+                  The nominal range is \([0, \infty)\).
+                </dd>
+                <dt>
+                  <code>exponential</code>
+                </dt>
+                <dd>
+                  The nominal range is \([0, \infty)\).
+                </dd>
+              </dl>
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h3>
+            Methods
+          </h3>
+          <dl class="methods" data-dfn-for="PannerNode" data-link-for=
+          "PannerNode">
+            <dt>
+              <dfn><code>setOrientation</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                This method is DEPRECATED. It is equivalent to setting
+                <code>orientationX</code>, <code>orientationY</code>, and
+                <code>orientationZ</code> AudioParams directly.
+              </p>
+              <p>
+                Describes which direction the audio source is pointing in the
+                3D cartesian coordinate space. Depending on how directional the
+                sound is (controlled by the <b>cone</b> attributes), a sound
+                pointing away from the listener can be very quiet or completely
+                silent.
+              </p>
+              <p>
+                The <code>x, y, z</code> parameters represent a direction
+                vector in 3D space.
+              </p>
+              <p>
+                The default value is (1,0,0)
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    x
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc"></td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    y
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc"></td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    z
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc"></td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+            <dt>
+              <dfn><code>setPosition</code></dfn>
+            </dt>
+            <dd>
+              <p>
+                This method is DEPRECATED. It is equivalent to setting
+                <code>positionX</code>, <code>positionY</code>, and
+                <code>positionZ</code> AudioParams directly.
+              </p>
+              <p>
+                Sets the position of the audio source relative to the
+                <a><code>listener</code></a> attribute. A 3D cartesian
+                coordinate system is used.
+              </p>
+              <p>
+                The <code>x, y, z</code> parameters represent the coordinates
+                in 3D space.
+              </p>
+              <p>
+                The default value is (0,0,0)
+              </p>
+              <table class="parameters">
+                <tr>
+                  <th>
+                    Parameter
+                  </th>
+                  <th>
+                    Type
+                  </th>
+                  <th>
+                    Nullable
+                  </th>
+                  <th>
+                    Optional
+                  </th>
+                  <th>
+                    Description
+                  </th>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    x
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc"></td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    y
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc"></td>
+                </tr>
+                <tr>
+                  <td class="prmName">
+                    z
+                  </td>
+                  <td class="prmType">
+                    <a><code>float</code></a>
+                  </td>
+                  <td class="prmNullFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmOptFalse">
+                    <span role="img" aria-label="False">✘</span>
+                  </td>
+                  <td class="prmDesc"></td>
+                </tr>
+              </table>
+              <div>
+                <em>Return type:</em> <code>void</code>
+              </div>
+            </dd>
+          </dl>
+        </section><!--
         <dl title="interface PannerNode : &lt;a&gt;AudioNode&lt;/a&gt;" class=
         "x-idl">
           <dt>
@@ -10211,7 +10813,8 @@ dictionary AudioProcessingEventInit : EventInit {
               <a><code>PannerNode</code></a>. Defaults to
               <a><code>"equalpower"</code></a>.
             </p>
-          </dd><!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
+          </dd>--><!--<dt> // Uses a 3D cartesian coordinate system </dt>-->
+        <!--
           <dt>
             readonly attribute AudioParam positionX
           </dt>
@@ -10292,7 +10895,8 @@ dictionary AudioProcessingEventInit : EventInit {
               <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
               range is \((-\infty, \infty)\).
             </p>
-          </dd><!--<dt> // Distance model and attributes </dt>-->
+          </dd>--><!--<dt> // Distance model and attributes </dt>-->
+        <!--
           <dt>
             attribute DistanceModelType distanceModel
           </dt>
@@ -10361,7 +10965,8 @@ dictionary AudioProcessingEventInit : EventInit {
                 The nominal range is \([0, \infty)\).
               </dd>
             </dl>
-          </dd><!--<dt> // Directional sound cone </dt>-->
+          </dd>--><!--<dt> // Directional sound cone </dt>-->
+        <!--
           <dt>
             attribute double coneInnerAngle
           </dt>
@@ -10444,6 +11049,7 @@ dictionary AudioProcessingEventInit : EventInit {
             </p>
           </dd>
         </dl>
+-->
         <section>
           <h2>
             PannerOptions
@@ -10453,6 +11059,156 @@ dictionary AudioProcessingEventInit : EventInit {
             <a><code>PannerNode</code></a>. All members are optional; if not
             specified, the normal default is used in constructing the node.
           </p>
+          <pre class="idl">
+dictionary PannerOptions : AudioNodeOptions {
+             PanningModelType  panningModel = "equalpower";
+             DistanceModelType distanceModel = "inverse";
+             float             positionX = 0;
+             float             positionY = 0;
+             float             positionZ = 0;
+             float             orientationX = 1;
+             float             orientationY = 0;
+             float             orientationZ = 0;
+             double            refDistance = 1;
+             double            maxDistance = 10000;
+             double            rolloffFactor = 1;
+             double            coneInnerAngle = 360;
+             double            coneOuterAngle = 360;
+             double            coneOuterGain = 0;
+};
+          </pre>
+          <section>
+            <h3>
+              Dictionary <a>PannerOptions</a> Members
+            </h3>
+            <dl class="attributes" data-dfn-for="PannerOptions" data-link-for=
+            "PannerOptions">
+              <dt>
+                <dfn><code>coneInnerAngle</code></dfn> of type <span class=
+                "idlAttrType"><code>double</code></span>, defaulting to 360
+              </dt>
+              <dd>
+                The initial value for the <a href=
+                "#widl-PannerNode-coneInnerAngle"><code>coneInnerAngle</code></a>
+                attribute of the node.
+              </dd>
+              <dt>
+                <dfn><code>coneOuterAngle</code></dfn> of type <span class=
+                "idlAttrType"><code>double</code></span>, defaulting to 360
+              </dt>
+              <dd>
+                The initial value for the <a href=
+                "#widl-PannerNode-coneOuterAngle"><code>coneOuterAngle</code></a>
+                attribute of the node.
+              </dd>
+              <dt>
+                <dfn><code>coneOuterGain</code></dfn> of type <span class=
+                "idlAttrType"><code>double</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The initial value for the <a href=
+                "#widl-PannerNode-coneOuterGain"><code>coneOuterGain</code></a>
+                attribute of the node.
+              </dd>
+              <dt>
+                <dfn><code>distanceModel</code></dfn> of type <span class=
+                "idlAttrType"><code>DistanceModel</code></span>, defaulting to
+                "inverse"
+              </dt>
+              <dd>
+                The distance model to use for the node.
+              </dd>
+              <dt>
+                <dfn><code>maxDistance</code></dfn> of type <span class=
+                "idlAttrType"><code>double</code></span>, defaulting to 10000
+              </dt>
+              <dd>
+                The initial value for the <a href=
+                "#widl-PannerNode-maxDistance"><code>maxDistance</code></a>
+                attribute of the node.
+              </dd>
+              <dt>
+                <dfn><code>orientationX</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 1
+              </dt>
+              <dd>
+                The initial X value for the <a href=
+                "#widl-PannerNode-orientationX"><code>orientationX</code></a>
+                AudioParam.
+              </dd>
+              <dt>
+                <dfn><code>orientationY</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The initial Y value for the <a href=
+                "#widl-PannerNode-orientationY"><code>orientationY</code></a>
+                AudioParam.
+              </dd>
+              <dt>
+                <dfn><code>orientationZ</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The initial Z value for the <a href=
+                "#widl-PannerNode-orientationZ"><code>orientationZ</code></a>
+                AudioParam.
+              </dd>
+              <dt>
+                <dfn><code>panningModel</code></dfn> of type <span class=
+                "idlAttrType"><code>PanningModelType</code></span>, defaulting
+                to "equalpower"
+              </dt>
+              <dd>
+                The panning model to use for the node.
+              </dd>
+              <dt>
+                <dfn><code>positionX</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The initial X value for the <a href=
+                "#widl-PannerNode-positionX"><code>positionX</code></a>
+                AudioParam.
+              </dd>
+              <dt>
+                <dfn><code>positionY</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The initial Y value for the <a href=
+                "#widl-PannerNode-positionY"><code>positionY</code></a>
+                AudioParam.
+              </dd>
+              <dt>
+                <dfn><code>positionZ</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The initial Z value for the <a href=
+                "#widl-PannerNode-positionZ"><code>positionZ</code></a>
+                AudioParam.
+              </dd>
+              <dt>
+                <dfn><code>refDistance</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 1
+              </dt>
+              <dd>
+                The initial value for the <a href=
+                "#widl-PannerNode-refDistance"><code>refDistance</code></a>
+                attribute of the node.
+              </dd>
+              <dt>
+                <dfn><code>rolloffFactor</code></dfn> of type <span class=
+                "idlAttrType"><code>float</code></span>, defaulting to 1
+              </dt>
+              <dd>
+                The initial value for the <a href=
+                "#widl-PannerNode-rolloffFactor"><code>rolloffFactor</code></a>
+                attribute of the node.
+              </dd>
+            </dl>
+          </section><!--
           <dl title="dictionary PannerOptions : AudioNodeOptions" class=
           "x-idl">
             <dt>
@@ -10564,6 +11320,7 @@ dictionary AudioProcessingEventInit : EventInit {
               attribute of the node.
             </dd>
           </dl>
+-->
         </section>
         <section class="informative">
           <h3 id="panner-channel-limitations">

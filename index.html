@@ -9867,6 +9867,46 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
   numberOfOutputChannels);
 </pre>
+        <pre class="idl">
+interface ScriptProcessorNode : AudioNode {
+                    attribute EventHandler onaudioprocess;
+    readonly        attribute long         bufferSize;
+};
+        </pre>
+        <section>
+          <h3>
+            Attributes
+          </h3>
+          <dl class="attributes" data-dfn-for="ScriptProcessorNode"
+          data-link-for="ScriptProcessorNode">
+            <dt>
+              <dfn><code>bufferSize</code></dfn> of type <span class=
+              "idlAttrType"><a><code>long</code></a></span>, readonly
+            </dt>
+            <dd>
+              The size of the buffer (in sample-frames) which needs to be
+              processed each time <a href=
+              "#widl-ScriptProcessorNode-onaudioprocess"><code>onaudioprocess</code></a>
+              is called. Legal values are (256, 512, 1024, 2048, 4096, 8192,
+              16384).
+            </dd>
+            <dt>
+              <dfn><code>onaudioprocess</code></dfn> of type <span class=
+              "idlAttrType"><code>EventHandler</code></span>
+            </dt>
+            <dd>
+              A property used to set the <code>EventHandler</code> (described
+              in <cite><a href=
+              "https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
+              HTML</a></cite>[[!HTML]]) for the <a href=
+              "#widl-ScriptProcessorNode-onaudioprocess"><code>audioprocess</code></a>
+              event that is dispatched to
+              <a><code>ScriptProcessorNode</code></a> node types. An event of
+              type <a><code>AudioProcessingEvent</code></a> will be dispatched
+              to the event handler.
+            </dd>
+          </dl>
+        </section><!--
         <dl title="interface ScriptProcessorNode : AudioNode" class="x-idl">
           <dt>
             attribute EventHandler onaudioprocess
@@ -9897,6 +9937,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             </p>
           </dd>
         </dl>
+-->
         <section class="informative">
           <h2>
             The AudioProcessingEvent Interface - DEPRECATED
@@ -9914,6 +9955,60 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
             the synthesized data if there are no inputs) is then placed into
             the <code>outputBuffer</code>.
           </p>
+          <pre class="idl">
+[Constructor(DOMString type, AudioProcessingEventInit eventInitDict)]
+interface AudioProcessingEvent : Event {
+    readonly        attribute double      playbackTime;
+    readonly        attribute AudioBuffer inputBuffer;
+    readonly        attribute AudioBuffer outputBuffer;
+};
+          </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioProcessingEvent"
+            data-link-for="AudioProcessingEvent">
+              <dt>
+                <dfn><code>inputBuffer</code></dfn> of type <span class=
+                "idlAttrType"><a><code>AudioBuffer</code></a></span>, readonly
+              </dt>
+              <dd>
+                An AudioBuffer containing the input audio data. It will have a
+                number of channels equal to the
+                <code>numberOfInputChannels</code> parameter of the
+                createScriptProcessor() method. This AudioBuffer is only valid
+                while in the scope of the <a href=
+                "#widl-ScriptProcessorNode-onaudioprocess"><code>onaudioprocess</code></a>
+                function. Its values will be meaningless outside of this scope.
+              </dd>
+              <dt>
+                <dfn><code>outputBuffer</code></dfn> of type <span class=
+                "idlAttrType"><code>AudioBuffer</code></span>, readonly
+              </dt>
+              <dd>
+                An AudioBuffer where the output audio data MUST be written. It
+                will have a number of channels equal to the
+                <code>numberOfOutputChannels</code> parameter of the
+                createScriptProcessor() method. Script code within the scope of
+                the <a href=
+                "#widl-ScriptProcessorNode-onaudioprocess"><code>onaudioprocess</code></a>
+                function is expected to modify the <code>Float32Array</code>
+                arrays representing channel data in this AudioBuffer. Any
+                script modifications to this AudioBuffer outside of this scope
+                will not produce any audible effects.
+              </dd>
+              <dt>
+                <dfn><code>playbackTime</code></dfn> of type <span class=
+                "idlAttrType"><code>double</code></span>, defaulting to 0
+              </dt>
+              <dd>
+                The time when the audio will be played in the same time
+                coordinate system as the <a><code>AudioContext</code></a>'s
+                <a href="#widl-BaseAudioContext-currentTime">currentTime</a>.
+              </dd>
+            </dl>
+          </section><!--
           <dl title=
           "[Constructor(DOMString type, &lt;a&gt;AudioProcessingEventInit&lt;/a&gt; eventInitDict)]interface AudioProcessingEvent : Event"
           class="x-idl">
@@ -9959,10 +10054,53 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
               </p>
             </dd>
           </dl>
+-->
           <section>
             <h3>
               AudioProcessingEventInit
             </h3>
+            <pre class="idl">
+dictionary AudioProcessingEventInit : EventInit {
+    required double      playbackTime;
+    required AudioBuffer inputBuffer;
+    required AudioBuffer outputBuffer;
+};
+            </pre>
+            <section>
+              <h3>
+                Dictionary <a>AudioProcessingEventInit</a> Members
+              </h3>
+              <dl class="attributes" data-dfn-for="AudioProcessingEventInit"
+              data-link-for="AudioProcessingEventInit">
+                <dt>
+                  <dfn><code>inputBuffer</code></dfn> of type <span class=
+                  "idlAttrType"><code>AudioBuffer</code></span>, required
+                </dt>
+                <dd>
+                  Value to be assigned to the <a href=
+                  "#widl-AudioProcessingEvent-inputBuffer"><code>inputBuffer</code></a>
+                  attribute of the event.
+                </dd>
+                <dt>
+                  <dfn><code>outputBuffer</code></dfn> of type <span class=
+                  "idlAttrType"><code>float</code></span>, required
+                </dt>
+                <dd>
+                  Value to be assigned to the <a href=
+                  "#widl-AudioProcessingEvent-outputBuffer"><code>outputBuffer</code></a>
+                  attribute of the event.
+                </dd>
+                <dt>
+                  <dfn><code>playbackTime</code></dfn> of type <span class=
+                  "idlAttrType"><code>double</code></span>, defaulting to 0
+                </dt>
+                <dd>
+                  Value to be assigned to the <a href=
+                  "#widl-AudioProcessingEvent-playbackTime"><code>playbackTime</code></a>
+                  attribute of the event.
+                </dd>
+              </dl>
+            </section><!--
             <dl title="dictionary AudioProcessingEventInit : EventInit" class=
             "x-idl">
               <dt>
@@ -9990,6 +10128,7 @@ var node = context.createScriptProcessor(bufferSize, numberOfInputChannels,
                 attribute of the event.
               </dd>
             </dl>
+-->
           </section>
         </section>
       </section>

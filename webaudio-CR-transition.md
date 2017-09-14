@@ -131,10 +131,11 @@ The issues list is on GitHub:
 
 https://github.com/WebAudio/web-audio-api/issues
 
-There are currently 74 open issues and 742 closed. 
+There are currently 91 open issues and 767 closed. Of those
 
-Of those, 58 were feature requests that were deferred to the next version
-https://github.com/WebAudio/web-audio-api/issues?utf8=%E2%9C%93&q=%20label%3A%22Feature%20Request%2FMissing%20Feature%22%20-label%3A%22V1%20(TPAC%202014)%22%20
+Of those, 67 were feature requests that were [deferred to the next version](https://github.com/WebAudio/web-audio-api/milestone/2)
+
+WebAudio v.1 has [13 open issues and 331 closed](https://github.com/WebAudio/web-audio-api/milestone/1)
 
 ## Formal Objections
 

@@ -7145,6 +7145,12 @@ interface AudioBuffer {
           node's <code>buffer</code>. If the operation fails, nothing is
           played.
           </li>
+          <li>When the <code>buffer</code> of an <a>AudioBufferSourceNode</a>
+          is set and <code>AudioBufferSourceNode.start</code> has been
+          previously called, the setter <a href="#acquire-the-content">acquires
+          the content</a> of the <a>AudioBuffer</a>. If the operation fails,
+          nothing is played.
+          </li>
           <li>When a <a>ConvolverNode</a>'s <code>buffer</code> is set to an
           <a>AudioBuffer</a> while the node is connected to an output node, or
           a <a>ConvolverNode</a> is connected to an output node while the
@@ -7394,6 +7400,11 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
                 </li>
                 <li>Assign <code>new buffer</code> to the <code>buffer</code>
                 attribute.
+                </li>
+                <li>If <code>start()</code> has previously been called on this
+                node, perform the operation <a href=
+                "#acquire-the-content">acquire the content</a> on
+                <code>buffer</code>.
                 </li>
               </ol>
             </dd>
@@ -7958,7 +7969,7 @@ function process(numberOfFrames) {
 
   // Determine loop endpoints as applicable
   let actualLoopStart, actualLoopEnd;
-  if (loop) {
+  if (loop &amp;& buffer != null) {
     if (loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;& loopStart &lt; loopEnd) {
       actualLoopStart = loopStart;
       actualLoopEnd = Math.min(loopEnd, buffer.duration);
@@ -7971,6 +7982,11 @@ function process(numberOfFrames) {
     enteredLoop = false;
   }
 
+  // Handle null buffer case
+  if (buffer == null) {
+    stop = currentTime; // force zero output for all time
+  }
+}
   // Render each sample frame in the quantum
   for (let index = 0; index &lt; numberOfFrames; index++) {
     // Check that currentTime is within allowable range for playback

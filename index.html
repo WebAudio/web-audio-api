@@ -2208,6 +2208,29 @@ interface AudioContext : BaseAudioContext {
                 <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered
                 list of promises.
                 </li>
+                <li>If <code>contextOptions</code> is given, apply the options:
+                  <ol>
+                    <li>Set the internal latency of this <a>AudioContext</a>
+                    according to <code>contextOptions.<a data-link-for=
+                    "AudioContextOptions">latencyHint</a></code>, as described
+                    in <a data-link-for="AudioContextOptions">latencyHint</a>.
+                    </li>
+                    <li>If <code>contextOptions.<a data-link-for=
+                    "AudioContextOptions">sampleRate</a></code> is specified,
+                    set the <a data-link-for="BaseAudioContext">sampleRate</a>
+                    of this <a>AudioContext</a> to this value. Otherwise, use
+                    the sample rate of the default output device. If the
+                    selected sample rate differs from the sample rate of the
+                    output device, this <a>AudioContext</a> MUST resample the
+                    audio output to match the sample rate of the output device.
+                      <p class="note">
+                        If resampling is required, the latency of the
+                        AudioContext may be affected, possibly by a large
+                        amount.
+                      </p>
+                    </li>
+                  </ol>
+                </li>
                 <li>If the <a>AudioContext</a> is not <a>allowed to start</a>,
                 abort these steps.
                 </li>
@@ -4982,17 +5005,13 @@ interface AudioDestinationNode : AudioNode {
             <code>NotSupportedError</code> exception MUST be thrown if any
             <a href="#dfn-automation-method">automation method</a> is called at
             a time which is inside of the time interval of a
-            <em>SetValueCurve</em> event at time T and duration D.</span>
+            <em>SetValueCurve</em> event at time \(T\) and duration
+            \(D\).</span>
           </li>
         </ul>
         <p class="note">
-          <code>AudioParam</code>s are read only and must be set using the
-          <a>automation methods</a> or the <a data-link-for=
-          "AudioParam">value</a> attribute. Using the <a data-link-for=
-          "AudioParam">value</a> attribute is equivalent to calling
-          <code>setValueAtTime()</code> with the current
-          <code>AudioContext</code>'s <code>currentTime</code> and the
-          requested value.
+          <code>AudioParam</code> attributes are read only, with the exception
+          of the <a data-link-for="AudioParam">value</a> attribute.
         </p>
         <p>
           Each <a>AudioParam</a> has an internal slot <var>[[current
@@ -5064,9 +5083,12 @@ interface AudioParam {
               <p>
                 Setting this attribute has the effect of assigning the
                 requested value to the <var>[[current value]]</var> slot, and
-                calling <code>setValueAtTime()</code> with the current
-                <code>AudioContext</code>'s <code>currentTime</code> and
-                <var>[[current value]]</var>.
+                calling the <a data-link-for="AudioParam">setValueAtTime()</a>
+                method with the current <code>AudioContext</code>'s
+                <code>currentTime</code> and <var>[[current value]]</var>. Any
+                exceptions that would be thrown by
+                <code>setValueAtTime()</code> will also be thrown by setting
+                this attribute.
               </p>
             </dd>
           </dl>
@@ -5968,7 +5990,7 @@ interface AudioParam {
             the <a>nominal range</a> for this parameter. <a>Compound
             parameters</a> have their final value clamped to their <a>nominal
             range</a> after having been computed from the different
-            <a>AudioParam</a> value they are composed of.
+            <a>AudioParam</a> values they are composed of.
           </p>
           <p>
             When automation methods are used, clamping is still applied.
@@ -6131,10 +6153,25 @@ interface AudioScheduledSourceNode : AudioNode {
             <dd>
               <p>
                 Schedules a sound to playback at an exact time.
-                <code>start</code> may only be called one time and <span class=
-                "synchronous">MUST be called before <code>stop</code> is called
-                or an InvalidStateError exception MUST be thrown.</span>
               </p>
+              <p>
+                <span class="synchronous">When this method is called, execute
+                these steps:</span>
+              </p>
+              <ol>
+                <li>If <code>stop</code> has been called on this node, or if an
+                earlier call to <code>start</code> has already occurred, an
+                <code>InvalidStateError</code> exception MUST be thrown.
+                </li>
+                <li>Check for any errors that must be thrown due to parameter
+                constraints described below.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to start the
+                  <a>AudioScheduledSourceNode</a>, including the parameter
+                  values in the messsage.
+                </li>
+              </ol>
               <table class="parameters">
                 <tr>
                   <th>
@@ -6202,6 +6239,24 @@ interface AudioScheduledSourceNode : AudioNode {
                 reached prior to the scheduled start time, the sound will not
                 play.
               </p>
+              <p>
+                <span class="synchronous">When this method is called, execute
+                these steps:</span>
+              </p>
+              <ol>
+                <li>If <code>stop</code> has been called on this node, or if an
+                earlier call to <code>start</code> has not already occurred, an
+                <code>InvalidStateError</code> exception MUST be thrown.
+                </li>
+                <li>Check for any errors that must be thrown due to parameter
+                constraints described below.
+                </li>
+                <li>
+                  <a href="#queue">Queue a control message</a> to stop the
+                  <a>AudioScheduledSourceNode</a>, including the parameter
+                  values in the messsage.
+                </li>
+              </ol>
               <table class="parameters">
                 <tr>
                   <th>
@@ -7109,6 +7164,12 @@ interface AudioBuffer {
           node's <code>buffer</code>. If the operation fails, nothing is
           played.
           </li>
+          <li>When the <code>buffer</code> of an <a>AudioBufferSourceNode</a>
+          is set and <code>AudioBufferSourceNode.start</code> has been
+          previously called, the setter <a href="#acquire-the-content">acquires
+          the content</a> of the <a>AudioBuffer</a>. If the operation fails,
+          nothing is played.
+          </li>
           <li>When a <a>ConvolverNode</a>'s <code>buffer</code> is set to an
           <a>AudioBuffer</a> while the node is connected to an output node, or
           a <a>ConvolverNode</a> is connected to an output node while the
@@ -7354,6 +7415,11 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
                 <li>Assign <code>new buffer</code> to the <code>buffer</code>
                 attribute.
                 </li>
+                <li>If <code>start()</code> has previously been called on this
+                node, perform the operation <a href=
+                "#acquire-the-content">acquire the content</a> on
+                <code>buffer</code>.
+                </li>
               </ol>
             </dd>
             <dt>
@@ -7579,7 +7645,7 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
               </p>
               <ol>
                 <li>If <code>stop</code> has been called on this node, or if an
-                earlier call to <code>start</code> has already occurred, an
+                earlier call to <code>start</code> has not already occurred, an
                 <code>InvalidStateError</code> exception MUST be thrown.
                 </li>
                 <li>Check for any errors that must be thrown due to parameter
@@ -7912,7 +7978,7 @@ function process(numberOfFrames) {
 
   // Determine loop endpoints as applicable
   let actualLoopStart, actualLoopEnd;
-  if (loop) {
+  if (loop &amp;& buffer != null) {
     if (loopStart &gt;= 0 &amp;& loopEnd &gt; 0 &amp;& loopStart &lt; loopEnd) {
       actualLoopStart = loopStart;
       actualLoopEnd = Math.min(loopEnd, buffer.duration);
@@ -7925,6 +7991,11 @@ function process(numberOfFrames) {
     enteredLoop = false;
   }
 
+  // Handle null buffer case
+  if (buffer == null) {
+    stop = currentTime; // force zero output for all time
+  }
+}
   // Render each sample frame in the quantum
   for (let index = 0; index &lt; numberOfFrames; index++) {
     // Check that currentTime is within allowable range for playback

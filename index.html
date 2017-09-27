@@ -1463,7 +1463,7 @@ interface BaseAudioContext : EventTarget {
               <a>Factory method</a> to create a
               <a><code>PeriodicWave</code></a>. When calling this method,
               execute these steps:
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>If <var>real</var> and <var>imag</var> are not of the same
                 length, an <var>IndexSizeError</var> MUST be thrown.
                 </li>
@@ -1758,7 +1758,7 @@ interface BaseAudioContext : EventTarget {
                 called, the following steps MUST be performed on the control
                 thread:</span>
               </p>
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>Let <var>promise</var> be a new promise.
                 </li>
                 <li>If the operation <a href=
@@ -1801,7 +1801,7 @@ interface BaseAudioContext : EventTarget {
                 Multiple <em>decoding threads</em> can run in parallel to
                 service multiple calls to <code>decodeAudioData</code>.
               </div>
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>Attempt to decode the encoded <a>audioData</a> into linear
                 PCM.
                 </li>
@@ -1937,7 +1937,7 @@ interface BaseAudioContext : EventTarget {
                 <span class="synchronous">When resume is called, execute these
                 steps:</span>
               </p>
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>Let <em>promise</em> be a new Promise.
                 </li>
                 <li>If the <em>control thread state</em> flag on the
@@ -1970,7 +1970,7 @@ interface BaseAudioContext : EventTarget {
                 <a>BaseAudioContext</a> means running these steps on the
                 <a>rendering thread</a>:
               </p>
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>Attempt to <a href="#acquiring">acquire system
                 resources</a>.
                 </li>
@@ -2223,7 +2223,7 @@ interface AudioContext : BaseAudioContext {
                 <span class="synchronous">When creating an <a>AudioContext</a>,
                 execute these steps:</span>
               </p>
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>Set a <code>control thread state</code> to
                 <code>suspended</code> on the <a>AudioContext</a>.
                 </li>
@@ -2266,7 +2266,7 @@ interface AudioContext : BaseAudioContext {
                 Sending a <a>control message</a> to start processing means
                 executing the following steps:
               </p>
-              <ol class="method-algorithm">
+              <ol class="algorithm">
                 <li>Attempt to <a href="#acquiring">acquire system
                 resources</a>.
                 </li>
@@ -8965,8 +8965,36 @@ partial interface Window {
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
     void registerProcessor (DOMString name, VoidFunction processorCtor);
+    readonly attribute double currentTime;
+    readonly attribute float  sampleRate;
 };
           </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioWorkletGlobalScope"
+            data-link-for="AudioWorkletGlobalScope">
+              <dt>
+                <code><dfn>currentTime</dfn></code> of type <span class=
+                "idlAttrType"><code>double</code></span>, readonly
+              </dt>
+              <dd>
+                The context time of the block of audio being processed. By
+                definition this will be equal to the value of
+                <a>BaseAudioContext</a>'s <a data-link-for=
+                "BaseAudioContext">currentTime</a> attribute that was most
+                recently observable in the <a>control thread</a>.
+              </dd>
+              <dt>
+                <code><dfn>sampleRate</dfn></code> of type <span class=
+                "idlAttrType"><code>float</code></span>, readonly
+              </dt>
+              <dd>
+                The sample rate of the associated <a>BaseAudioContext</a>.
+              </dd>
+            </dl>
+          </section>
           <section>
             <h3>
               Methods
@@ -9424,7 +9452,6 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
           <pre class="idl">
 [Exposed=AudioWorklet]
 interface AudioWorkletProcessor {
-    AudioContextInfo getContextInfo ();
     readonly        attribute MessagePort port;
 };
           </pre>
@@ -9446,29 +9473,6 @@ interface AudioWorkletProcessor {
                 corresponding <a>AudioWorkletProcessor</a> object allowing
                 bidirectional communication between a pair of
                 <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
-              </dd>
-            </dl>
-          </section>
-          <section>
-            <h3>
-              Methods
-            </h3>
-            <dl class="methods" data-dfn-for="AudioWorkletProcessor"
-            data-link-for="AudioWorkletProcessor">
-              <dt>
-                <code><dfn>getContextInfo</dfn></code>
-              </dt>
-              <dd>
-                <p>
-                  Returns an <code>AudioContextInfo</code> object that contains
-                  various states of the associated <a>BaseAudioContext</a>.
-                </p>
-                <div>
-                  <em>No parameters.</em>
-                </div>
-                <div>
-                  <em>Return type:</em> <a><code>AudioContextInfo</code></a>
-                </div>
               </dd>
             </dl>
           </section>
@@ -9604,10 +9608,11 @@ class MyProcessor extends AudioWorkletProcessor {
                 this case, <code>process()</code> SHOULD return
                 <code>true</code> for some period of time after
                 <code>inputs</code> is found to contain zero channels. The
-                current time may be obtained from the processor's
-                <code>contextInfo</code> to measure the start and end of this
-                tail-time interval, or the interval could be calculated
-                dynamically depending on the processor's internal state.
+                current time may be obtained from the global scope's
+                <a data-link-for="AudioWorkletGlobalScope">currentTime</a> to
+                measure the start and end of this tail-time interval, or the
+                interval could be calculated dynamically depending on the
+                processor's internal state.
                 </li>
                 <li>Nodes that act as sources of output, typically with a
                 lifetime. Such nodes SHOULD return <code>true</code> from
@@ -9695,47 +9700,6 @@ dictionary AudioParamDescriptor {
                   <code>NotSupportedError</code> exception MUST be thrown when
                   a duplicated name is found when registering the class
                   definition.
-                </dd>
-              </dl>
-            </section>
-          </section>
-          <section>
-            <h2 id="AudioContextInfo">
-              <dfn>AudioContextInfo</dfn>
-            </h2>
-            <p>
-              The <code>AudioContextInfo</code> dictionary provides an
-              <a>AudioWorkletGlobalScope</a> with a view of a
-              <a>BaseAudioContext</a>.
-            </p>
-            <pre class="idl">
-dictionary AudioContextInfo {
-             double currentTime;
-             float  sampleRate;
-};
-            </pre>
-            <section>
-              <h3>
-                Dictionary <a>AudioContextInfo</a> Members
-              </h3>
-              <dl class="attributes" data-dfn-for="AudioContextInfo"
-              data-link-for="AudioContextInfo">
-                <dt>
-                  <code><dfn>currentTime</dfn></code> of type <span class=
-                  "idlAttrType"><code>double</code></span>
-                </dt>
-                <dd>
-                  The context time of the block of audio being processed. By
-                  definition this will be equal to the value of
-                  <a>BaseAudioContext</a>'s <a>currentTime</a> attribute that
-                  was most recently observable in the <a>control thread</a>.
-                </dd>
-                <dt>
-                  <code><dfn>sampleRate</dfn></code> of type <span class=
-                  "idlAttrType"><code>float</code></span>
-                </dt>
-                <dd>
-                  The sample rate of the associated <a>BaseAudioContext</a>.
                 </dd>
               </dl>
             </section>
@@ -10132,7 +10096,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
   }
 
   get interval () {
-    return this._updatingInterval / 1000 * this.contextInfo.sampleRate;
+    return this._updatingInterval / 1000 * sampleRate;
   }
 
   process (inputs, outputs, parameters) {
@@ -13637,11 +13601,13 @@ dictionary AnalyserOptions : AudioNodeOptions {
               <a href="#channel-up-mixing-and-down-mixing">Down-mix</a> all
               channels of the time domain input data to mono assuming a
               <a data-link-for="AudioNode">channelCount</a> of 1,
-              <a>channelCountMode</a> of "max" and <a>channelInterpetation</a>
-              of "speakers". This is independent of the settings for the
-              <a>AnalyserNode</a> itself. The most recent <a data-link-for=
-              "AnalyserNode"><code>fftSize</code></a>frames are used for the
-              down-mixing operation.
+              <a data-link-for="AudioNode">channelCountMode</a> of
+              "<a data-link-for="ChannelCountMode">max</a>" and
+              <a data-link-for="AudioNode">channelInterpretation</a> of
+              "<a data-link-for="ChannelInterpretation">speakers</a>". This is
+              independent of the settings for the <a>AnalyserNode</a> itself.
+              The most recent <a data-link-for="AnalyserNode">fftSize</a>
+              frames are used for the down-mixing operation.
             </li>
             <li>
               <a href="#blackman-window">Apply a Blackman window</a> to the

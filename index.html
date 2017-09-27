@@ -8678,8 +8678,36 @@ partial interface Window {
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
     void registerProcessor (DOMString name, VoidFunction processorCtor);
+    readonly attribute double currentTime;
+    readonly attribute float  sampleRate;
 };
           </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioWorkletGlobalScope"
+            data-link-for="AudioWorkletGlobalScope">
+              <dt>
+                <code><dfn>currentTime</dfn></code> of type <span class=
+                "idlAttrType"><code>double</code></span>, readonly
+              </dt>
+              <dd>
+                The context time of the block of audio being processed. By
+                definition this will be equal to the value of
+                <a>BaseAudioContext</a>'s <a data-link-for=
+                "BaseAudioContext">currentTime</a> attribute that was most
+                recently observable in the <a>control thread</a>.
+              </dd>
+              <dt>
+                <code><dfn>sampleRate</dfn></code> of type <span class=
+                "idlAttrType"><code>float</code></span>, readonly
+              </dt>
+              <dd>
+                The sample rate of the associated <a>BaseAudioContext</a>.
+              </dd>
+            </dl>
+          </section>
           <section>
             <h3>
               Methods
@@ -9137,7 +9165,6 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
           <pre class="idl">
 [Exposed=AudioWorklet]
 interface AudioWorkletProcessor {
-    AudioContextInfo getContextInfo ();
     readonly        attribute MessagePort port;
 };
           </pre>
@@ -9159,29 +9186,6 @@ interface AudioWorkletProcessor {
                 corresponding <a>AudioWorkletProcessor</a> object allowing
                 bidirectional communication between a pair of
                 <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
-              </dd>
-            </dl>
-          </section>
-          <section>
-            <h3>
-              Methods
-            </h3>
-            <dl class="methods" data-dfn-for="AudioWorkletProcessor"
-            data-link-for="AudioWorkletProcessor">
-              <dt>
-                <code><dfn>getContextInfo</dfn></code>
-              </dt>
-              <dd>
-                <p>
-                  Returns an <code>AudioContextInfo</code> object that contains
-                  various states of the associated <a>BaseAudioContext</a>.
-                </p>
-                <div>
-                  <em>No parameters.</em>
-                </div>
-                <div>
-                  <em>Return type:</em> <a><code>AudioContextInfo</code></a>
-                </div>
               </dd>
             </dl>
           </section>
@@ -9317,10 +9321,11 @@ class MyProcessor extends AudioWorkletProcessor {
                 this case, <code>process()</code> SHOULD return
                 <code>true</code> for some period of time after
                 <code>inputs</code> is found to contain zero channels. The
-                current time may be obtained from the processor's
-                <code>contextInfo</code> to measure the start and end of this
-                tail-time interval, or the interval could be calculated
-                dynamically depending on the processor's internal state.
+                current time may be obtained from the global scope's
+                <a data-link-for="AudioWorkletGlobalScope">currentTime</a> to
+                measure the start and end of this tail-time interval, or the
+                interval could be calculated dynamically depending on the
+                processor's internal state.
                 </li>
                 <li>Nodes that act as sources of output, typically with a
                 lifetime. Such nodes SHOULD return <code>true</code> from
@@ -9408,47 +9413,6 @@ dictionary AudioParamDescriptor {
                   <code>NotSupportedError</code> exception MUST be thrown when
                   a duplicated name is found when registering the class
                   definition.
-                </dd>
-              </dl>
-            </section>
-          </section>
-          <section>
-            <h2 id="AudioContextInfo">
-              <dfn>AudioContextInfo</dfn>
-            </h2>
-            <p>
-              The <code>AudioContextInfo</code> dictionary provides an
-              <a>AudioWorkletGlobalScope</a> with a view of a
-              <a>BaseAudioContext</a>.
-            </p>
-            <pre class="idl">
-dictionary AudioContextInfo {
-             double currentTime;
-             float  sampleRate;
-};
-            </pre>
-            <section>
-              <h3>
-                Dictionary <a>AudioContextInfo</a> Members
-              </h3>
-              <dl class="attributes" data-dfn-for="AudioContextInfo"
-              data-link-for="AudioContextInfo">
-                <dt>
-                  <code><dfn>currentTime</dfn></code> of type <span class=
-                  "idlAttrType"><code>double</code></span>
-                </dt>
-                <dd>
-                  The context time of the block of audio being processed. By
-                  definition this will be equal to the value of
-                  <a>BaseAudioContext</a>'s <a>currentTime</a> attribute that
-                  was most recently observable in the <a>control thread</a>.
-                </dd>
-                <dt>
-                  <code><dfn>sampleRate</dfn></code> of type <span class=
-                  "idlAttrType"><code>float</code></span>
-                </dt>
-                <dd>
-                  The sample rate of the associated <a>BaseAudioContext</a>.
                 </dd>
               </dl>
             </section>
@@ -9845,7 +9809,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
   }
 
   get interval () {
-    return this._updatingInterval / 1000 * this.contextInfo.sampleRate;
+    return this._updatingInterval / 1000 * sampleRate;
   }
 
   process (inputs, outputs, parameters) {

@@ -9109,6 +9109,7 @@ interface AudioWorkletNode : AudioNode {
 dictionary AudioWorkletNodeOptions : AudioNodeOptions {
              unsigned long             numberOfInputs = 1;
              unsigned long             numberOfOutputs = 1;
+             sequence&lt;unsigned long&gt;    outputChannelCount;
              record&lt;DOMString, double&gt;  parameterData;
 };
             </pre>
@@ -9137,6 +9138,20 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
                   <a data-link-for="AudioNode">numberOfOutputs</a> attribute.
                 </dd>
                 <dt>
+                  <code><dfn>outputChannelCount</dfn></code> of type
+                  <span class="idlAttrType"><code>sequence&lt;unsigned
+                  long&gt;</code></span>
+                </dt>
+                <dd>
+                  This is used to configure the number of channels in each
+                  output. <code>IndexSizeError</code> MUST be thrown if the
+                  length of sequence does not match <a data-link-for=
+                  "AudioWorkletNodeOptions">numberOfOutputs</a>. A
+                  <code>NotSupportedError</code> exception MUST be thrown if a
+                  channel count is not in the valid range of <a data-link-for=
+                  "AudioNode">channelCount</a>.
+                </dd>
+                <dt>
                   <code><dfn>parameterData</dfn></code> of type <span class=
                   "idlAttrType"><code>record&lt;DOMString,
                   double&gt;</code></span>
@@ -9149,6 +9164,51 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
                   the node, it is ignored.
                 </dd>
               </dl>
+            </section>
+            <section>
+              <h3>
+                Configuring Channels with <a>AudioWorkletNodeOptions</a>
+              </h3>
+              <p>
+                With a combination of <a data-link-for=
+                "AudioWorkletNodeOptions">numberOfInputs</a>, <a data-link-for=
+                "AudioWorkletNodeOptions">numberOfOutputs</a> and
+                <a data-link-for=
+                "AudioWorkletNodeOptions">outputChannelCount</a>, various
+                channel configurations can be achieved.
+              </p>
+              <ol>
+                <li>
+                  <a data-link-for="AudioWorkletNodeOptions">numberOfInputs</a>
+                  = 0, <a data-link-for=
+                  "AudioWorkletNodeOptions">numberOfOutputs</a> = 0
+                  <ul>
+                    <li>
+                      <code>NotSupportedError</code> MUST be thrown.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <a data-link-for="AudioWorkletNodeOptions">numberOfInputs</a>
+                  = 1, <a data-link-for=
+                  "AudioWorkletNodeOptions">numberOfOutputs</a> = 1
+                  <ul>
+                    <li>If <a data-link-for=
+                    "AudioWorkletNodeOptions">outputChannelCount</a> is
+                    unspecified, the output channel count will match
+                    <a>computedNumberOfChannels</a> from the input.
+                    </li>
+                  </ul>
+                </li>
+                <li>All other cases
+                  <ul>
+                    <li>If <a data-link-for=
+                    "AudioWorkletNodeOptions">outputChannelCount</a> is
+                    unspecified, it will be mono for all outputs.
+                    </li>
+                  </ul>
+                </li>
+              </ol>
             </section>
           </section>
         </section>

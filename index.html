@@ -3628,6 +3628,16 @@ enum ChannelCountMode {
     "explicit"
 };
         </pre>
+        <p>
+          The <a>ChannelCountMode</a>, in conjuction with the node's <a
+          data-link-for="AudioNode">channelCount</a> and <a
+          data-link-for="AudioNode">channelInterpretation</a> values, is used to
+          determine the <dfn>computedNumberOfChannels</dfn> that controls how
+          inputs to a node are to be mixed.  The <a>computedNumberOfChannels</a>
+          is determined as shown below.  See <a
+          href="#channel-up-mixing-and-down-mixing"></a> for more information on
+          how mixing is to be done.
+        </p>
         <table class="simple" data-dfn-for="ChannelCountMode" data-link-for=
         "ChannelCountMode">
           <tr>
@@ -3640,9 +3650,9 @@ enum ChannelCountMode {
               <dfn>max</dfn>
             </td>
             <td>
-              <a><code>computedNumberOfChannels</code></a> is computed as the
-              maximum of the number of channels of all connections. In this
-              mode channelCount is ignored
+              <a>computedNumberOfChannels</a> is the
+              maximum of the number of channels of all connections to an input. In this
+              mode <a data-link-for="AudioNode">channelCount</a> is ignored.
             </td>
           </tr>
           <tr>
@@ -3650,7 +3660,9 @@ enum ChannelCountMode {
               <dfn>clamped-max</dfn>
             </td>
             <td>
-              Same as “max” up to a limit of the channelCount
+              <a>computedNumberOfChannels</a> is determined as for "<a>max</a>"
+              and then clamped to a maximum value of the given <a
+              data-link-for="AudioNode">channelCount</a>.
             </td>
           </tr>
           <tr>
@@ -3658,8 +3670,8 @@ enum ChannelCountMode {
               <dfn>explicit</dfn>
             </td>
             <td>
-              <a><code>computedNumberOfChannels</code></a> is the exact value
-              as specified in channelCount
+              <a>computedNumberOfChannels</a> is the exact value
+              as specified by the <a data-link-for="AudioNode">channelCount</a>.
             </td>
           </tr>
         </table>
@@ -3694,7 +3706,7 @@ enum ChannelInterpretation {
             </td>
             <td>
               Up-mix by filling channels until they run out then zero out
-              remaining channels. down-mix by filling as many channels as
+              remaining channels. Down-mix by filling as many channels as
               possible, then dropping remaining channels.
             </td>
           </tr>
@@ -17974,81 +17986,26 @@ function playSound() {
         converting it to a stream with a smaller number of channels.
       </p>
       <p>
-        An <a><code>AudioNode</code></a> input use three basic pieces of
-        information to determine how to mix all the outputs connected to it. As
-        part of this process it computes an internal value
-        <code><dfn>computedNumberOfChannels</dfn></code> representing the
-        actual number of channels of the input at any given time:
+        An <a><code>AudioNode</code></a> input needs to mix all the outputs
+        connected to this input. As part of this process it computes an internal
+        value <a>computedNumberOfChannels</a> representing the actual number of
+        channels of the input at any given time.
       </p>
-      <p>
-        The <a><code>AudioNode</code></a> attributes involved in channel
-        up-mixing and down-mixing rules are defined <a href=
-        "#the-audionode-interface">above</a>. The following is a more precise
-        specification on what each of them mean.
-      </p>
-      <ul>
-        <li>
-          <a data-link-for="AudioNode"><code>channelCount</code></a> is used to
-          help compute <a><code>computedNumberOfChannels</code></a>.
-        </li>
-        <li>
-          <a data-link-for="AudioNode"><code>channelCountMode</code></a>
-          determines how <a><code>computedNumberOfChannels</code></a> will be
-          computed. Once this number is computed, all of the connections will
-          be up or down-mixed to that many channels. For most nodes, the
-          default value is "<a data-link-for="ChannelCountMode">max</a>".
-          <ul>
-            <li>"<a data-link-for="ChannelCountMode">max</a>":
-            <a><code>computedNumberOfChannels</code></a> is computed as the
-            maximum of the number of channels of all connections. In this mode
-            <a data-link-for="AudioNode"><code>channelCount</code></a> is
-            ignored.
-            </li>
-            <li>"<a data-link-for="ChannelCountMode">clamped-max</a>": same as
-            “max” up to a limit of the <a data-link-for=
-            "AudioNode"><code>channelCount</code></a>
-            </li>
-            <li>"<a data-link-for="ChannelCountMode">explicit</a>":
-            <a><code>computedNumberOfChannels</code></a> is the exact value as
-            specified in <a data-link-for=
-            "AudioNode"><code>channelCount</code></a>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <a data-link-for="AudioNode"><code>channelInterpretation</code></a>
-          determines how the individual channels will be treated. For example,
-          will they be treated as speakers having a specific layout, or will
-          they be treated as simple discrete channels? This value influences
-          exactly how the up and down mixing is performed. The default value is
-          "speakers".
-          <ul>
-            <li>"<a data-link-for="ChannelInterpretation">speakers</a>": use
-            <a href="#ChannelLayouts">up-down-mix equations for
-            mono/stereo/quad/5.1</a>. In cases where the number of channels do
-            not match any of these basic speaker layouts, revert to "discrete".
-            </li>
-            <li>"<a data-link-for="ChannelInterpretation">discrete</a>": up-mix
-            by filling channels until they run out then zero out remaining
-            channels. down-mix by filling as many channels as possible, then
-            dropping remaining channels
-            </li>
-          </ul>
-        </li>
-      </ul>
       <p>
         For each input of an <a><code>AudioNode</code></a>, an implementation
         MUST:
       </p>
       <ol>
-        <li>Compute <a><code>computedNumberOfChannels</code></a>.
+        <li>Compute <a>computedNumberOfChannels</a>.
         </li>
         <li>For each connection to the input:
           <ul>
             <li>up-mix or down-mix the connection to
-            <a><code>computedNumberOfChannels</code></a> according to
+            <a>computedNumberOfChannels</a> according to the <a
+            data-link-for="ChannelInterpretation">ChannelInterpretation</a>
+            value given by the node's
             <a data-link-for=
-            "AudioNode"><code>channelInterpretation</code></a>.
+            "AudioNode"><code>channelInterpretation</code></a> attribute.
             </li>
             <li>Mix it together with all of the other mixed streams (from other
             connections). This is a straight-forward mixing together of each of

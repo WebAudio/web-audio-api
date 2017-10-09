@@ -197,6 +197,50 @@
     table.channels tr:nth-child(odd) {
       background: #FFF;
     }
+    div.node-info {
+      padding-left: 4em;
+      padding-right: 4em;
+    }                      
+    div.node-info > table {
+      border-collapse: collapse;
+      border-top: 2px solid #707070;
+      border-bottom: 2px solid #707070;
+      width: 100%;
+      margin: 2em 0;
+    }
+    div.node-info > table > tbody > tr > th,
+    div.node-info > table > tbody > tr > td {
+      padding: 0.2em 0.6em;
+      min-width: 150px;
+    }
+    div.node-info > table > tbody > tr > th {
+      line-height: 2em;
+      font-weight: 600;
+      color: #178217;
+      border-bottom: 1px solid #707070;
+    }
+    div.audioparam-info {
+      padding-left: 2em;
+      padding-right: 4em;
+    }                      
+    div.audioparam-info > table {
+      border-collapse: collapse;
+      border-top: 2px solid #707070;
+      border-bottom: 2px solid #707070;
+      width: 100%;
+      margin: 2em 0;
+    }
+    div.audioparam-info > table > tbody > tr > th,
+    div.audioparam-info > table > tbody > tr > td {
+      padding: 0.2em 0.6em;
+      min-width: 150px;
+    }
+    div.audioparam-info > table > tbody > tr > th {
+      line-height: 2em;
+      font-weight: 600;
+      color: #178217;
+      border-bottom: 1px solid #707070;
+    }
     </style>
   </head>
   <body>
@@ -4701,7 +4745,7 @@ dictionary AudioNodeOptions {
                 <span class="idlAttrType"><a>ChannelInterpretation</a></span>
               </dt>
               <dd>
-                Desired mode for the <a>channelCountMode</a> attribute.
+                Desired mode for the <a>channelInterpretation</a> attribute.
               </dd>
             </dl>
           </section>
@@ -4951,6 +4995,21 @@ interface AudioDestinationNode : AudioNode {
           value of the parameter is clamped to the range \([\mathrm{minValue},
           \mathrm{maxValue}]\). See the section <a href=
           "#computation-of-value">Computation of Value</a> for full details.
+        </p>
+        <p>
+          For many <a>AudioParam</a>s the <a data-link-for=
+          "AudioParam">minValue</a> and <a data-link-for=
+          "AudioParam">maxValue</a> is intended to be set to the maximum
+          possible range. In this case, <a data-link-for=
+          "AudioParam">maxValue</a> should be set to the
+          <dfn>most-positive-single-float</dfn> value, which is 3.4028235e38.
+          (However, in Javascript which only supports IEEE-754 double precision
+          float values, this must be written as 3.4028234663852886e38.)
+          Similarly, <a data-link-for="AudioParam">minValue</a> should be set
+          to the <dfn>most-negative-single-float</dfn> value, which is the
+          negative of the <a>most-positive-single-float</a>: -3.4028235e38.
+          (Similarly, this must be written in Javascript as
+          -3.4028234663852886e38)
         </p>
         <p>
           An <code>AudioParam</code> maintains a list of zero or more <dfn id=
@@ -6338,21 +6397,80 @@ interface AudioScheduledSourceNode : AudioNode {
           interface is an <a><code>AudioNode</code></a> with a single input and
           single output:
         </p>
-        <pre>
-  numberOfInputs  : 1
-  numberOfOutputs : 1
-
-  channelCountMode = "max";
-  channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           Each sample of each channel of the input data of the
           <a><code>GainNode</code></a> MUST be multiplied by the
           <a>computedValue</a> of the <a data-link-for=
           "GainNode"><code>gain</code></a> <a><code>AudioParam</code></a>.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <pre class="idl">
 [Exposed=Window,
@@ -6443,9 +6561,64 @@ interface GainNode : AudioNode {
               "idlAttrType"><code>AudioParam</code></span>, readonly
             </dt>
             <dd>
-              Represents the amount of gain to apply. This parameter is
-              <a>a-rate</a>. Its <a>nominal range</a> is (-\(\infty\),
-              +\(\infty\)).
+              <p>
+                Represents the amount of gain to apply.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -6488,15 +6661,80 @@ dictionary GainOptions : AudioNodeOptions {
         <p>
           A delay-line is a fundamental building block in audio applications.
           This interface is an <a><code>AudioNode</code></a> with a single
-          input and single output:
+          input and single output.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCountMode = "max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Yes
+              </td>
+              <td>
+                Continues to output non-silent audio with zero input up to the
+                <a>maxDelayTime</a> of the node.
+              </td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output always equals the number of
           channels of the input.
@@ -6518,12 +6756,6 @@ dictionary GainOptions : AudioNodeOptions {
           being combined with newly received input so that all internal
           delay-line mixing takes place using the single prevailing channel
           layout.
-        </p>
-        <p>
-          This node has a <a>tail-time</a> reference such that this node
-          continues to output non-silent audio with zero input up to the
-          <a data-link-for="DelayOptions"><code>maxDelayTime</code></a> of the
-          node.
         </p>
         <p class="note">
           By definition, a <a>DelayNode</a> introduces an audio processing
@@ -6632,18 +6864,57 @@ interface DelayNode : AudioNode {
                 then the value of the <a><code>delayTime</code></a> attribute
                 is clamped to a minimum of one <a>render quantum</a>.
               </p>
-              <p>
-                Its <a>nominal range</a> is [0, maxDelayTime], where
-                <code>maxDelayTime</code> is the value passed to the
-                <code>createDelay</code> method on the
-                <a><code>AudioContext</code></a> or the <a data-link-for=
-                "DelayOptions"><code>maxDelayTime</code></a> member of the
-                <a><code>DelayOptions</code></a> dictionary in the node
-                constructor.
-              </p>
-              <p>
-                This parameter is <a>a-rate</a>.
-              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a data-link-for="AudioNode">maxDelayTime</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -7288,19 +7559,54 @@ dictionary AudioBufferOptions {
           <a data-link-for="AudioScheduledSourceNode"><code>stop()</code></a>
           description.
         </p>
-        <pre>
-  numberOfInputs  : 0
-  numberOfOutputs : 1
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output always equals the number of
           channels of the AudioBuffer assigned to the <a data-link-for=
           "AudioBufferSourceNode"><code>buffer</code></a> attribute, or is one
           channel of silence if <a data-link-for=
           "AudioBufferSourceNode"><code>buffer</code></a> is <code>null</code>.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <p>
           A <dfn>playhead position</dfn> for an <a>AudioBufferSourceNode</a> is
@@ -7311,19 +7617,6 @@ dictionary AudioBufferOptions {
           In general, playhead positions may be subsample-accurate and need not
           refer to exact sample frame positions. They may assume valid values
           between 0 and the duration of the buffer.
-        </p>
-        <p>
-          The <a data-link-for="AudioBufferSourceNode">playbackRate</a> and
-          <a data-link-for="AudioBufferSourceNode">detune</a> attributes form a
-          <a>compound parameter</a>. They are used together to determine a
-          <dfn>computedPlaybackRate</dfn> value:
-        </p>
-        <pre class="highlight">
-computedPlaybackRate(t) = playbackRate(t) * pow(2, detune(t) / 1200)
-        </pre>
-        <p>
-          The <a>nominal range</a> for this <a>compound parameter</a> is
-          \([-\infty, \infty]\).
         </p>
         <p>
           <a>AudioBufferSourceNode</a>s are created with an internal boolean
@@ -7460,12 +7753,66 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              An additional parameter, in cents, to modulate the speed at which
-              is rendered the audio stream. Its default value is 0. This
-              parameter is <a>k-rate</a>. This parameter is a <a>compound
-              parameter</a> with <code>playbackRate</code> to form a
-              <a>computedPlaybackRate</a>. Its <a>nominal range</a> is
-              \((-\infty, \infty)\).
+              <p>
+                An additional parameter, in cents, to modulate the speed at
+                which is rendered the audio stream. This parameter is a
+                <a>compound parameter</a> with <code>playbackRate</code>.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>loop</dfn></code> of type <span class=
@@ -7508,11 +7855,65 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The speed at which to render the audio stream. Its default
-              <code>value</code> is 1. This parameter is <a>k-rate</a>. This is
-              a <a>compound parameter</a> with <code>detune</code> to form a
-              <a>computedPlaybackRate</a>. Its <a>nominal range</a> is
-              \([-\infty, \infty]\).
+              <p>
+                The speed at which to render the audio stream. This is a
+                <a>compound parameter</a> with <code>detune</code>.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -7845,9 +8246,20 @@ dictionary AudioBufferSourceOptions {
             <code>loopStart</code> and <code>loopEnd</code> to continue
             indefinitely, once any part of the looped region has been played.
             While <code>loop</code> remains true, looped playback will continue
-            until <code>stop()</code> is called, or the scheduled stop time has
-            been reached.
+            until one of the following occurs:
           </p>
+          <ul>
+            <li>
+              <a data-link-for="AudioBufferSourceNode">stop</a><code>()</code>
+              is called,
+            </li>
+            <li>the scheduled stop time has been reached,
+            </li>
+            <li>the <code>duration</code> has been exceeded, if
+            <a data-link-for="AudioBufferSourceNode">start</a><code>()</code>
+            was called with a <code>duration</code> value.
+            </li>
+          </ul>
           <p>
             The body of the loop is considered to occupy a region from
             <code>loopStart</code> up to, but not including,
@@ -8192,10 +8604,48 @@ function process(numberOfFrames) {
         <p>
           The single output of this node consists of one channel (mono).
         </p>
-        <pre>
-  numberOfInputs  : 0
-  numberOfOutputs : 1
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <pre class="idl">
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional ConstantSourceOptions options)]
@@ -8286,9 +8736,64 @@ interface ConstantSourceNode : AudioScheduledSourceNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The constant value of the source. Its default value is 1. This
-              parameter is <a>a-rate</a>. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                The constant value of the source.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -8334,19 +8839,54 @@ dictionary ConstantSourceOptions {
           This interface represents an audio source from an <code>audio</code>
           or <code>video</code> element.
         </p>
-        <pre>
-  numberOfInputs  : 0
-  numberOfOutputs : 1
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output corresponds to the number of
           channels of the media referenced by the
           <code>HTMLMediaElement</code>. Thus, changes to the media element's
           <code>src</code> attribute can change the number of channels output
           by this node.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <pre class="idl">
 [Exposed=Window,
@@ -9896,18 +10436,80 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
           <a>AudioWorkletNode</a>; this text is only here for informative
           purposes until implementations remove this node type.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCount = numberOfInputChannels;
-    channelCountMode = "explicit";
-    channelInterpretation = "speakers";
-</pre>
-        <p>
-          There are <a>channelCount constraints</a> and <a>channelCountMode
-          constraints</a> for this node.
-        </p>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                <a data-link-for="BaseAudioContext">numberOfInputChannels</a>
+              </td>
+              <td>
+                This is the number of channels specified when constructing this
+                node. There are <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">explicit</a>"
+              </td>
+              <td>
+                Has <a>channelCountMode constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The <a><code>ScriptProcessorNode</code></a> is constructed with a
           <dfn>bufferSize</dfn> which MUST be one of the following values: 256,
@@ -10102,24 +10704,91 @@ dictionary AudioProcessingEventInit : EventInit {
           to the <a>AudioContext</a>'s <a><code>AudioListener</code></a>
           (<code>listener</code> attribute).
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCount = 2;
-    channelCountMode = "clamped-max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td>
+                Has <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">clamped-max</a>"
+              </td>
+              <td>
+                Has <a>channelCountMode constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Maybe
+              </td>
+              <td>
+                If the <a data-link-for="PannerNode">panningModel</a> is set to
+                "<a data-link-for="PanningModelType">HRTF</a>", the node will
+                produce non-silent output for silent input due to the inherent
+                processing for head responses. Otherwise there are no tail-time
+                references.
+              </td>
+            </tr>
+          </table>
+        </div>
         <p>
           The input of this node is either mono (1 channel) or stereo (2
           channels) and cannot be increased. Connections from nodes with fewer
           or more channels will be <a href=
           "#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
           appropriately</a>.
-        </p>
-        <p>
-          There are <a>channelCount constraints</a> and <a>channelCountMode
-          constraints</a> for this node.
         </p>
         <p>
           The output of this node is hard-coded to stereo (2 channels) and
@@ -10129,12 +10798,6 @@ dictionary AudioProcessingEventInit : EventInit {
           The <a><code>PanningModelType</code></a> enum determines which
           spatialization algorithm will be used to position the audio in 3D
           space. The default is <code>"equalpower"</code>.
-        </p>
-        <p>
-          This node may have a <a>tail-time</a> reference. If the
-          <a data-link-for="PannerNode">panningModel</a> is set to "HRTF", the
-          node will produce non-silent output for silent input due to the
-          inherent processing for the head responses.
         </p>
         <pre class="idl">
 enum PanningModelType {
@@ -10432,39 +11095,204 @@ interface PannerNode : AudioNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Describes the x component of the vector of the direction the
-              audio source is pointing in 3D Cartesian coordinate space.
-              Depending on how directional the sound is (controlled by the
-              <b>cone</b> attributes), a sound pointing away from the listener
-              can be very quiet or completely silent. The default value is 1.
-              This parameter is <a>a-rate</a> when <a data-link-for=
-              "PannerNode">panningModel</a> is <code>"equalpower"</code>,
-              <a>k-rate</a> otherwise. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Describes the x component of the vector of the direction the
+                audio source is pointing in 3D Cartesian coordinate space.
+                Depending on how directional the sound is (controlled by the
+                <b>cone</b> attributes), a sound pointing away from the
+                listener can be very quiet or completely silent.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a>panningModel</a> is
+                      "<a data-link-for="PanningModelType">equalpower</a>" and
+                      <a>k-rate</a> otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>orientationY</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Describes the y component of the vector of the direction the
-              audio source is pointing in 3D cartesian coordinate space. The
-              default value is 0. This parameter is <a>a-rate</a> when
-              <a data-link-for="PannerNode">panningModel</a> is
-              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
-              range is \((-\infty, \infty)\).
+              <p>
+                Describes the y component of the vector of the direction the
+                audio source is pointing in 3D cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a>panningModel</a> is
+                      "<a data-link-for="PanningModelType">equalpower</a>" and
+                      <a>k-rate</a> otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>orientationZ</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Describes the Z component of the vector of the direction the
-              audio source is pointing in 3D cartesian coordinate space. The
-              default value is 0. This parameter is <a>a-rate</a> when
-              <a data-link-for="PannerNode">panningModel</a> is
-              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
-              range is \((-\infty, \infty)\).
+              <p>
+                Describes the Z component of the vector of the direction the
+                audio source is pointing in 3D cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a>panningModel</a> is
+                      "<a data-link-for="PanningModelType">equalpower</a>" and
+                      <a>k-rate</a> otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>panningModel</dfn></code> of type <span class=
@@ -10480,34 +11308,201 @@ interface PannerNode : AudioNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>
             </dt>
             <dd>
-              Sets the x coordinate position of the audio source in a 3D
-              Cartesian system. The default value is 0. This parameter is
-              <a>a-rate</a> when <a data-link-for="PannerNode">panningModel</a>
-              is <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its
-              nominal range is \((-\infty, \infty)\).
+              <p>
+                Sets the x coordinate position of the audio source in a 3D
+                Cartesian system. \infty)\).
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a>panningModel</a> is
+                      "<a data-link-for="PanningModelType">equalpower</a>" and
+                      <a>k-rate</a> otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
-              <code><dfn>positionY</dfn></code> of type <span class=
+              <dfn><code>positionY</code></dfn> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>
             </dt>
             <dd>
-              Sets the y coordinate position of the audio source in a 3D
-              Cartesian system. The default value is 0. This parameter is
-              <a>a-rate</a> when <a data-link-for="PannerNode">panningModel</a>
-              is <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its
-              nominal range is \((-\infty, \infty)\).
+              <p>
+                Sets the y coordinate position of the audio source in a 3D
+                Cartesian system.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a>panningModel</a> is
+                      "<a data-link-for="PanningModelType">equalpower</a>" and
+                      <a>k-rate</a> otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>positionZ</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>
             </dt>
             <dd>
-              Sets the z coordinate position of the audio source in a 3D
-              Cartesian system. The default value is 0. The default value is 0.
-              This parameter is <a>a-rate</a> when <a data-link-for=
-              "PannerNode">panningModel</a> is <code>"equalpower"</code>,
-              <a>k-rate</a> otherwise. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the z coordinate position of the audio source in a 3D
+                Cartesian system.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a>panningModel</a> is
+                      "<a data-link-for="PanningModelType">equalpower</a>" and
+                      <a>k-rate</a> otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>refDistance</dfn></code> of type <span class=
@@ -10969,105 +11964,612 @@ interface AudioListener {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the x coordinate component of the forward direction the
-              listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is <a>a-rate</a> when used
-              with a <a>PannerNode</a> that has a <a data-link-for=
-              "PannerNode">panningModel</a> set to <code>"equalpower"</code>,
-              <a>k-rate</a> otherwise. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the x coordinate component of the forward direction the
+                listener is pointing in 3D Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>forwardY</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the y coordinate component of the forward direction the
-              listener is pointing in 3D Cartesian coordinate space. The
-              default value is 0. This parameter is <a>a-rate</a> when used
-              with a <a>PannerNode</a> that has a <a data-link-for=
-              "PannerNode">panningModel</a> set to <code>"equalpower"</code>,
-              <a>k-rate</a> otherwise. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the y coordinate component of the forward direction the
+                listener is pointing in 3D Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>forwardZ</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the z coordinate component of the forward direction the
-              listener is pointing in 3D Cartesian coordinate space. The
-              default value is -1. This parameter is <a>a-rate</a> when used
-              with a <a>PannerNode</a> that has a <a data-link-for=
-              "PannerNode">panningModel</a> set to <code>"equalpower"</code>,
-              <a>k-rate</a> otherwise. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the z coordinate component of the forward direction the
+                listener is pointing in 3D Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      -1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>positionX</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the x coordinate position of the audio listener in a 3D
-              Cartesian coordinate space. The default value is 0. This
-              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
-              that has a <a data-link-for="PannerNode">panningModel</a> set to
-              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
-              range is \((-\infty, \infty)\).
+              <p>
+                Sets the x coordinate position of the audio listener in a 3D
+                Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>positionY</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the y coordinate position of the audio listener in a 3D
-              Cartesian coordinate space. The default value is 0. This
-              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
-              that has a <a data-link-for="PannerNode">panningModel</a> set to
-              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
-              range is \((-\infty, \infty)\).
+              <p>
+                Sets the y coordinate position of the audio listener in a 3D
+                Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>positionZ</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the z coordinate position of the audio listener in a 3D
-              Cartesian coordinate space. The default value is 0. This
-              parameter is <a>a-rate</a> when used with a <a>PannerNode</a>
-              that has a <a data-link-for="PannerNode">panningModel</a> set to
-              <code>"equalpower"</code>, <a>k-rate</a> otherwise. Its nominal
-              range is \((-\infty, \infty)\).
+              <p>
+                Sets the z coordinate position of the audio listener in a 3D
+                Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>upX</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the x coordinate component of the up direction the listener
-              is pointing in 3D Cartesian coordinate space. The default value
-              is 0. This parameter is a-rate. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the x coordinate component of the up direction the
+                listener is pointing in 3D Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>upY</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the y coordinate component of the up direction the listener
-              is pointing in 3D Cartesian coordinate space. The default value
-              is 1. This parameter is a-rate. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the y coordinate component of the up direction the
+                listener is pointing in 3D Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>upZ</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              Sets the z coordinate component of the up direction the listener
-              is pointing in 3D Cartesian coordinate space. The default value
-              is 0. This parameter is a-rate. Its nominal range is \((-\infty,
-              \infty)\).
+              <p>
+                Sets the z coordinate component of the up direction the
+                listener is pointing in 3D Cartesian coordinate space.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td></td>
+                    <td>
+                      <a>a-rate</a> when <a data-link-for=
+                      "PannerNode">panningModel</a> is "<a data-link-for=
+                      "PanningModelType">equalpower</a>" and <a>k-rate</a>
+                      otherwise.
+                    </td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -11328,14 +12830,79 @@ interface AudioListener {
           algorithm</a>. This panning effect is common in positioning audio
           components in a stereo stream.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCount = 2;
-    channelCountMode = "clamped-max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td>
+                Has <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">clamped-max</a>"
+              </td>
+              <td>
+                Has <a>channelCountMode constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The input of this node is stereo (2 channels) and cannot be
           increased. Connections from nodes with fewer or more channels will be
@@ -11343,15 +12910,8 @@ interface AudioListener {
           appropriately</a>.
         </p>
         <p>
-          There are <a>channelCount constraints</a> and <a>channelCountMode
-          constraints</a> for this node.
-        </p>
-        <p>
           The output of this node is hard-coded to stereo (2 channels) and
           cannot be configured.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <pre class="idl">
 [Exposed=Window,
@@ -11445,10 +13005,61 @@ interface StereoPannerNode : AudioNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The position of the input in the output's stereo image. -1
-              represents full left, +1 represents full right. Its default value
-              is 0, and its <a>nominal range</a> is [-1, 1]. This parameter is
-              <a>a-rate</a>.
+              <p>
+                The position of the input in the output's stereo image. -1
+                represents full left, +1 represents full right.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      -1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -11507,14 +13118,82 @@ dictionary StereoPannerOptions : AudioNodeOptions {
           This interface represents a processing node which applies a linear
           convolution effect given an impulse response.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCount = 2;
-    channelCountMode = "clamped-max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td>
+                Has <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">clamped-max</a>"
+              </td>
+              <td>
+                Has <a>channelCountMode constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Yes
+              </td>
+              <td>
+                Continues to output non-silent audio with zero input for the
+                length of the <a data-link-for="ConvolverNode">buffer</a>.
+              </td>
+            </tr>
+          </table>
+        </div>
         <p>
           The input of this node is either mono (1 channel) or stereo (2
           channels) and cannot be increased. Connections from nodes with more
@@ -11525,11 +13204,6 @@ dictionary StereoPannerOptions : AudioNodeOptions {
           There are <a>channelCount constraints</a> and <a>channelCountMode
           constraints</a> for this node. These constraints ensure that the
           input to the node is either mono or stereo.
-        </p>
-        <p>
-          This node has a <a>tail-time</a> reference such that this node
-          continues to output non-silent audio with zero input for the length
-          of the <a data-link-for="ConvolverNode"><code>buffer</code></a>.
         </p>
         <p>
           <a>ConvolverNode</a>s are created with an internal flag <code>buffer
@@ -11862,17 +13536,77 @@ dictionary ConvolverOptions : AudioNodeOptions {
           frequency and time-domain analysis information. The audio stream will
           be passed un-processed from input to output.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1    <em>Note that this output may be left unconnected.</em>
-
-    channelCount = 1;
-    channelCountMode = "max";
-    channelInterpretation = "speakers";
-</pre>
-        <p>
-          This node has no <a>tail-time</a> reference.
-        </p>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td>
+                This output may be left unconnected.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <pre class="idl">
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional AnalyserOptions options)]
@@ -12519,13 +14253,83 @@ dictionary AnalyserOptions : AudioNodeOptions {
           applications and would often be used in conjunction with
           <a><code>ChannelMergerNode</code></a>.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : Variable N (defaults to 6) // number of "active" (non-silent) outputs is determined by number of channels in the input
-
-    channelCountMode = "explicit";
-    channelInterpretation = "discrete";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td></td>
+              <td>
+                This defaults to 6, but is otherwise determined from
+                <a>ChannelSplitterOptions</a>.<a data-link-for=
+                "ChannelSplitterOptions">numberOfOutputs</a> or the value
+                specified by <a data-link-for=
+                "BaseAudioContext">createChannelSplitter</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                Has <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">explicit</a>"
+              </td>
+              <td>
+                Has <a>channelCountMode constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">discrete</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           This interface represents an <a><code>AudioNode</code></a> for
           accessing the individual channels of an audio stream in the routing
@@ -12541,15 +14345,6 @@ dictionary AnalyserOptions : AudioNodeOptions {
           default number is 6 if this value is not provided. Any outputs which
           are not "active" will output silence and would typically not be
           connected to anything.
-        </p>
-        <p>
-          The <code>channelCount</code> is set equal to
-          <code>numberOfOutputs</code>. There are <a>channelCount
-          constraints</a> and <a>channelCountMode constraints</a> for this
-          node.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <h3>
           Example:
@@ -12687,14 +14482,83 @@ dictionary ChannelSplitterOptions : AudioNodeOptions {
           applications and would often be used in conjunction with
           <a><code>ChannelSplitterNode</code></a>.
         </p>
-        <pre>
-  numberOfInputs  : Variable N (default to 6)
-  numberOfOutputs : 1
-
-  channelCount = 1;
-  channelCountMode = "explicit";
-  channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td></td>
+              <td>
+                Defaults to 6, but is determined by
+                <a>ChannelMergerOptions</a>,<a data-link-for=
+                "ChannelMergerOptions">numberOfInputs</a> or the value
+                specified by <a data-link-for=
+                "BaseAudioContext">createChannelMerger</a>.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td>
+                Has <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td>
+                Has <a>channelCountMode constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           This interface represents an <a><code>AudioNode</code></a> for
           combining channels from multiple audio streams into a single audio
@@ -12708,13 +14572,6 @@ dictionary ChannelSplitterOptions : AudioNodeOptions {
           unconnected input still counts as <b>one silent channel</b> in the
           output. Changing input streams does <b>not</b> affect the order of
           output channels.
-        </p>
-        <p>
-          There are <a>channelCount constraints</a> and <a>channelCountMode
-          constraints</a> for this node.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <h3 id="example-2">
           Example:
@@ -12866,22 +14723,81 @@ dictionary ChannelMergerOptions : AudioNodeOptions {
           and help avoid clipping (distorting) the audio output to the
           speakers.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCount = 2;
-    channelCountMode = "clamped-max";
-    channelInterpretation = "speakers";
-</pre>
-        <p>
-          There are <a>channelCount constraints</a> for this node.
-        </p>
-        <p>
-          This node has a <a>tail-time</a> reference such that this node
-          continues to output non-silent audio with zero input due to the
-          look-ahead delay.
-        </p>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td>
+                Has <a>channelCount constraints</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">clamped-max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Yes
+              </td>
+              <td>
+                This node has a <a>tail-time</a> reference such that this node
+                continues to output non-silent audio with zero input due to the
+                look-ahead delay.
+              </td>
+            </tr>
+          </table>
+        </div>
         <pre class="idl">
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional DynamicsCompressorOptions options)]
@@ -12982,28 +14898,181 @@ interface DynamicsCompressorNode : AudioNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The amount of time (in seconds) to reduce the gain by 10dB. Its
-              default <code>value</code> is 0.003. This parameter is
-              <a>k-rate</a>. Its <a>nominal range</a> is [0, 1].
+              <p>
+                The amount of time (in seconds) to reduce the gain by 10dB.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0.003
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>knee</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              A decibel value representing the range above the threshold where
-              the curve smoothly transitions to the "ratio" portion. Its
-              default <code>value</code> is 30. This parameter is
-              <a>k-rate</a>. Its <a>nominal range</a> is [0, 40].
+              <p>
+                A decibel value representing the range above the threshold
+                where the curve smoothly transitions to the "ratio" portion.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      30
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      40
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>ratio</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The amount of dB change in input for a 1 dB change in output. Its
-              default <code>value</code> is 12. This parameter is
-              <a>k-rate</a>. Its <a>nominal range</a> is [1, 20].
+              <p>
+                The amount of dB change in input for a 1 dB change in output.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      12
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      20
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>reduction</dfn></code> of type <span class=
@@ -13021,18 +15090,121 @@ interface DynamicsCompressorNode : AudioNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The amount of time (in seconds) to increase the gain by 10dB. Its
-              default <code>value</code> is 0.250. This parameter is
-              <a>k-rate</a>. Its <a>nominal range</a> is [0, 1].
+              <p>
+                The amount of time (in seconds) to increase the gain by 10dB.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0.25
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>threshold</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The decibel value above which the compression will start taking
-              effect. Its default <code>value</code> is -24. This parameter is
-              <a>k-rate</a>. Its <a>nominal range</a> is [-100, 0].
+              <p>
+                The decibel value above which the compression will start taking
+                effect.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      -24
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      -100
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>k-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
           </dl>
         </section>
@@ -13434,24 +15606,84 @@ dictionary DynamicsCompressorOptions : AudioNodeOptions {
           The <a>nominal range</a> for this <a>compound parameter</a> is [0,
           <a>Nyquist frequency</a>].
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCountMode = "max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Yes
+              </td>
+              <td>
+                Continues to output non-silent audio with zero input. Since
+                this is an IIR filter, the filter produces non-zero input
+                forever, but in practice, this can be limited after some finite
+                time where the output is sufficiently close to zero. The actual
+                time depends on the filter coefficients.
+              </td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output always equals the number of
           channels of the input.
-        </p>
-        <p>
-          This node has a <a>tail-time</a> reference such that this node
-          continues to output non-silent audio with zero input. Since this is
-          an IIR filter, the filter produces non-zero input forever, but in
-          practice, this can be limited after some finite time where the output
-          is sufficiently close to zero. The actual time depends on the filter
-          coefficients.
         </p>
         <pre class="idl">
 enum BiquadFilterType {
@@ -13878,42 +16110,265 @@ interface BiquadFilterNode : AudioNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a> factor
-              has a default value of 1. Its <a>nominal range</a> is \((-\infty,
-              \infty)\). This is not used for <a data-link-for=
-              "BiquadFilterType">lowshelf</a> or <a data-link-for=
-              "BiquadFilterType">highshelf</a> filters.
+              <p>
+                The <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a>
+                factor of the filter. This is not used for <a data-link-for=
+                "BiquadFilterType">lowshelf</a> or <a data-link-for=
+                "BiquadFilterType">highshelf</a> filters.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      1
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>detune</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              A detune value, in cents, for the frequency. Its default value is
-              0. It forms a <a>compound parameter</a> with
-              <code>frequency</code>. Its <a>nominal range</a> is \((-\infty,
-              \infty)\).
+              <p>
+                A detune value, in cents, for the frequency. It forms a
+                <a>compound parameter</a> with <code>frequency</code>.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>frequency</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The frequency at which the <a><code>BiquadFilterNode</code></a>
-              will operate, in Hz. Its default value is 350Hz. It forms a
-              <a>compound parameter</a> with <code>detune</code>. Its
-              <a>nominal range</a> is [0, <a>Nyquist frequency</a>].
+              <p>
+                The frequency at which the <a><code>BiquadFilterNode</code></a>
+                will operate, in Hz. It forms a <a>compound parameter</a> with
+                <code>detune</code>.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      350
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>gain</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The gain has a default value of 0. Its <a>nominal range</a> is
-              \((-\infty, \infty)\). Its value is in dB units. The gain is only
-              used for <a data-link-for="BiquadFilterType">lowshelf</a>,
-              <a data-link-for="BiquadFilterType">highshelf</a>, and
-              <a data-link-for="BiquadFilterType">peaking</a> filters.
+              <p>
+                The gain of the filter. Its value is in dB units. The gain is
+                only used for <a data-link-for="BiquadFilterType">lowshelf</a>,
+                <a data-link-for="BiquadFilterType">highshelf</a>, and
+                <a data-link-for="BiquadFilterType">peaking</a> filters.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>type</dfn></code> of type <span class=
@@ -14356,24 +16811,84 @@ $$
         <p>
           Once created, the coefficients of the IIR filter cannot be changed.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCountMode = "max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Yes
+              </td>
+              <td>
+                Continues to output non-silent audio with zero input. Since
+                this is an IIR filter, the filter produces non-zero input
+                forever, but in practice, this can be limited after some finite
+                time where the output is sufficiently close to zero. The actual
+                time depends on the filter coefficients.
+              </td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output always equals the number of
           channels of the input.
-        </p>
-        <p>
-          This node has a <a>tail-time</a> reference such that this node
-          continues to output non-silent audio with zero input. Since this is
-          an IIR filter, the filter produces non-zero input forever, but in
-          practice, this can be limited after some finite time where the output
-          is sufficiently close to zero. The actual time depends on the filter
-          coefficients.
         </p>
         <pre class="idl">
 [Exposed=Window,
@@ -14660,13 +17175,81 @@ dictionary IIRFilterOptions : AudioNodeOptions {
           non-linear warming, or more obvious distortion effects. Arbitrary
           non-linear shaping curves may be specified.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 1
-
-    channelCountMode = "max";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">max</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                Maybe
+              </td>
+              <td>
+                There is a <a>tail-time</a> reference only if the
+                <a data-link-for="WaveShaperNode">oversample</a> attribute is
+                set to "<a data-link-for="OverSampleType">2x</a>" or
+                "<a data-link-for="OverSampleType">4x</a>". The actual duration
+                of this <a>tail-time</a> depends on the implementation.
+              </td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output always equals the number of
           channels of the input.
@@ -14674,17 +17257,6 @@ dictionary IIRFilterOptions : AudioNodeOptions {
         <p>
           <a>WaveShaperNode</a>s are created with an internal flag <code>curve
           set</code>, initially set to false.
-        </p>
-        <p>
-          If the <a data-link-for="WaveShaperNode">oversample</a> attribute is
-          set to <a data-link-for="OverSampleType">none</a>, the
-          <a>WaveShaperNode</a> has no <a>tail-time</a>. If the
-          <a data-link-for="WaveShaperNode">oversample</a> attribute is set to
-          <a data-link-for="OverSampleType">2x</a> or <a data-link-for=
-          "OverSampleType">4x</a>, the <a>WaveShaperNode</a> can have
-          <a>tail-time</a> caused by the resampling technique used. The
-          duration of this <a>tail-time</a> is therefore
-          implementation-dependent.
         </p>
         <pre class="idl">
 enum OverSampleType {
@@ -15010,10 +17582,48 @@ dictionary WaveShaperOptions : AudioNodeOptions {
           of zero at the node's exact start time. Its <a>nominal range</a> is
           [-<a>Nyquist frequency</a>, <a>Nyquist frequency</a>].
         </p>
-        <pre>
-  numberOfInputs  : 0
-  numberOfOutputs : 1 (mono output)
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <pre class="idl">
 enum OscillatorType {
     "sine",
@@ -15165,22 +17775,127 @@ interface OscillatorNode : AudioScheduledSourceNode {
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              A detuning value (in cents) which will offset the
-              <a><code>frequency</code></a> by the given amount. Its default
-              <code>value</code> is 0. This parameter is <a>a-rate</a>. It
-              forms a <a>compound parameter</a> with <code>frequency</code>.
-              Its <a>nominal range</a> is \((-\infty, \infty)\).
+              <p>
+                A detuning value (in cents) which will offset the
+                <a><code>frequency</code></a> by the given amount. It forms a
+                <a>compound parameter</a> with <code>frequency</code>.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      0
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      <a>most-negative-single-float</a>
+                    </td>
+                    <td>
+                      Approximately -3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>most-positive-single-float</a>
+                    </td>
+                    <td>
+                      Approximately 3.4028235e38
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>frequency</dfn></code> of type <span class=
               "idlAttrType"><a><code>AudioParam</code></a></span>, readonly
             </dt>
             <dd>
-              The frequency (in Hertz) of the periodic waveform. Its default
-              <code>value</code> is 440. This parameter is <a>a-rate</a>. It
-              forms a <a>compound parameter</a> with <code>detune</code>. Its
-              <a>nominal range</a> is [-<a>Nyquist frequency</a>, <a>Nyquist
-              frequency</a>].
+              <p>
+                The frequency (in Hertz) of the periodic waveform. It forms a
+                <a>compound parameter</a> with <code>detune</code>.
+              </p>
+              <div class="audioparam-info">
+                <table>
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Value
+                    </th>
+                    <th>
+                      Notes
+                    </th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">defaultValue</a>
+                    </td>
+                    <td>
+                      440
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">minValue</a>
+                    </td>
+                    <td>
+                      -<a>Nyquist frequency</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a data-link-for="AudioParam">maxValue</a>
+                    </td>
+                    <td>
+                      <a>Nyquist frequency</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Rate
+                    </td>
+                    <td>
+                      <a>a-rate</a>
+                    </td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
             </dd>
             <dt>
               <code><dfn>type</dfn></code> of type <span class=
@@ -15793,18 +18508,53 @@ dictionary PeriodicWaveOptions : PeriodicWaveConstraints {
           reasons. <a>MediaStreamTrackAudioSourceNode</a> should be used
           instead.
         </p>
-        <pre>
-    numberOfInputs  : 0
-    numberOfOutputs : 1
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output corresponds to the number of
           channels of the <code>MediaStreamTrack</code>. If there is no valid
           audio track, then the number of channels output will be one silent
           channel.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <pre class="idl">
 [Exposed=Window,
@@ -15947,16 +18697,51 @@ dictionary MediaStreamAudioSourceOptions {
           This interface represents an audio source from a
           <code>MediaStreamTrack</code>.
         </p>
-        <pre>
-    numberOfInputs  : 0
-    numberOfOutputs : 1
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the output corresponds to the number of
           channels of the <code>MediaStreamTrack</code>.
-        </p>
-        <p>
-          This node has no <a>tail-time</a> reference.
         </p>
         <pre class="idl">
 [Exposed=Window,
@@ -16086,14 +18871,75 @@ dictionary MediaStreamTrackAudioSourceOptions {
           remote peer using the <code>RTCPeerConnection</code> (described in
           [[!webrtc]]) <code>addStream()</code> method.
         </p>
-        <pre>
-    numberOfInputs  : 1
-    numberOfOutputs : 0
-
-    channelCount = 2;
-    channelCountMode = "explicit";
-    channelInterpretation = "speakers";
-</pre>
+        <div class="node-info">
+          <table>
+            <tr>
+              <th>
+                Property
+              </th>
+              <th>
+                Value
+              </th>
+              <th>
+                Notes
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfInputs</a>
+              </td>
+              <td>
+                1
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">numberOfOutputs</a>
+              </td>
+              <td>
+                0
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCount</a>
+              </td>
+              <td>
+                2
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelCountMode</a>
+              </td>
+              <td>
+                "<a data-link-for="channelCountMode">explicit</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a data-link-for="AudioNode">channelInterpretation</a>
+              </td>
+              <td>
+                "<a data-link-for="channelInterpretation">speakers</a>"
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <a>tail-time</a> reference
+              </td>
+              <td>
+                No
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
         <p>
           The number of channels of the input is by default 2 (stereo).
         </p>
@@ -18248,12 +21094,12 @@ class Vec3 {
         Corporation); Mandyam, Giridhar (Qualcomm Innovation Center, Inc);
         Noble, Jer (Apple, Inc.); O'Callahan, Robert(Mozilla Foundation);
         Onumonu, Anthony (British Broadcasting Corporation); Paradis, Matthew
-        (British Broadcasting Corporation); Raman, T.V. (Google, Inc.);
-        Schepers, Doug (W3C/MIT); Shires, Glen (Google, Inc.); Smith, Michael
-        (W3C/Keio); Thereaux, Olivier (British Broadcasting Corporation); Toy,
-        Raymond (Google, Inc.); Verdie, Jean-Charles (MStar Semiconductor,
-        Inc.); Wilson, Chris (Google,Inc.) - Specification Co-editor; ZERGAOUI,
-        Mohamed (INNOVIMAX)
+        (British Broadcasting Corporation) - WG Chair; Raman, T.V. (Google,
+        Inc.); Schepers, Doug (W3C/MIT); Shires, Glen (Google, Inc.); Smith,
+        Michael (W3C/Keio); Thereaux, Olivier (British Broadcasting
+        Corporation); Toy, Raymond (Google, Inc.); Verdie, Jean-Charles (MStar
+        Semiconductor, Inc.); Wilson, Chris (Google,Inc.) - Specification
+        Co-editor; ZERGAOUI, Mohamed (INNOVIMAX)
       </p>
       <p>
         Former members of the Working Group and contributors to the

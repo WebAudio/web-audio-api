@@ -11464,7 +11464,7 @@ interface PannerNode : AudioNode {
             <dd>
               <p>
                 Sets the x coordinate position of the audio source in a 3D
-                Cartesian system. \infty)\).
+                Cartesian system.
               </p>
               <div class="audioparam-info">
                 <table>
@@ -12107,11 +12107,9 @@ dictionary PannerOptions : AudioNodeOptions {
           the listener. In simple human terms, the <code>forward</code> vector
           represents which direction the person's nose is pointing. The
           <code>up</code> vector represents the direction the top of a person's
-          head is pointing. These values are expected to be linearly
-          independent (at right angles to each other), and unpredictable
-          behavior may result if they are not. For normative requirements of
-          how these values are to be interpreted, see the
-          <a>Spatialization/Panning</a> section.
+          head is pointing. These two vectors are expected to be linearly
+          independent. For normative requirements of how these values are to be
+          interpreted, see the <a>Spatialization/Panning</a> section.
         </p>
         <pre class="idl">
 [Exposed=Window]
@@ -12786,10 +12784,9 @@ interface AudioListener {
                 <b>up</b> vector are provided. In simple human terms, the
                 <b>front</b> vector represents which direction the person's
                 nose is pointing. The <b>up</b> vector represents the direction
-                the top of a person's head is pointing. These values are
-                expected to be linearly independent (at right angles to each
-                other). For normative requirements of how these values are to
-                be interpreted, see the <a href=
+                the top of a person's head is pointing. These two vectors are
+                expected to be linearly independent. For normative requirements
+                of how these values are to be interpreted, see the <a href=
                 "#Spatialization">spatialization section</a>.
               </p>
               <p>
@@ -20480,7 +20477,7 @@ Quad up-mix:
           XACT Audio, etc. have this ability.
         </p>
         <p>
-          Using an <a><code>PannerNode</code></a>, an audio stream can be
+          Using a <a><code>PannerNode</code></a>, an audio stream can be
           spatialized or positioned in space relative to an
           <a><code>AudioListener</code></a>. An
           <a><code>AudioContext</code></a> will contain a single
@@ -20535,20 +20532,32 @@ Quad up-mix:
   }
 
   // Align axes.
-  let listenerFront =
-    new Vec3(listener.orientationX, listener.orientationY, listener.orientationZ);
+  let listenerForward =
+    new Vec3(listener.forwardX, listener.forwardY, listener.forwardZ);
   let listenerUp =
     new Vec3(listener.upX, listener.upY, listener.upZ);
-  let listenerRight = listenerFront.cross(listenerUp).normalize();
-  let listenerFrontNorm = listenerFront.normalize();
-  let up = listenerRight.cross(listenerFrontNorm);
+  let listenerRight = listenerForward.cross(listenerUp);
+
+  if (listenerRight.magnitude == 0) {
+    // Handle the case where listener's 'up' and 'forward' vectors are linearly dependent,
+    // in which case 'right' cannot be determined
+    azimuth = 0;
+    elevation = 0;
+    return;
+  }
+  
+  // Determine a unit vector orthogonal to listener's right, forward
+  let listenerRightNorm = listenerRight.normalize();
+  let listenerForwardNorm = listenerForward.normalize();
+  let up = listenerRightNorm.cross(listenerForwardNorm);
+
   let upProjection = sourceListener.dot(up);
   let projectedSource = sourceListener.diff(up.scale(upProjection)).normalize();
 
-  azimuth = 180 * Math.acos(projectedSource.dot(listenerRight)) / PI;
+  azimuth = 180 * Math.acos(projectedSource.dot(listenerRightNorm)) / PI;
 
   // Source in front or behind the listener.
-  let frontBack = projectedSource.dot(listenerFrontNorm);
+  let frontBack = projectedSource.dot(listenerForwardNorm);
   if (frontBack &lt; 0)
       azimuth = 360 - azimuth;
 

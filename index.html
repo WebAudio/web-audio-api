@@ -9820,1221 +9820,6 @@ dictionary AudioProcessingEventInit : EventInit {
         </section>
       </section>
       <section>
-        <h2 id="AudioWorklet">
-          The <dfn>AudioWorklet</dfn> Interface
-        </h2>
-        <section>
-          <h2 id="AudioWorklet-concepts">
-            Concepts
-          </h2>
-          <p>
-            The <a>AudioWorklet</a> object allows developers to supply scripts
-            (such as JavaScript or WebAssembly code) to process audio on the
-            <a>rendering thread</a>, supporting custom <a>AudioNode</a>s. This
-            processing mechanism ensures the synchronous execution of the
-            script code with other built-in <a>AudioNode</a>s in the audio
-            graph.
-          </p>
-          <p>
-            An associated pair of objects MUST be defined in order to realize
-            this mechanism: <a>AudioWorkletNode</a> and
-            <a>AudioWorkletProcessor</a>. The former represents the interface
-            for the main global scope similar to other <a>AudioNode</a>
-            objects, and the latter implements the internal audio processing
-            within a special scope named <a>AudioWorkletGlobalScope</a>.
-          </p>
-          <figure>
-            <img alt="AudioWorklet concept" src=
-            "images/audioworklet-concept.png" width="756" height="144">
-            <figcaption>
-              <a><code>AudioWorkletNode</code></a> and
-              <a><code>AudioWorkletProcessor</code></a>
-            </figcaption>
-          </figure>
-          <p>
-            Importing a script via the <a href=
-            "https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
-            method registers class definitions of <a>AudioWorkletProcessor</a>
-            under the <a>AudioWorkletGlobalScope</a>. There are two internal
-            storage areas for the imported class definitions and the active
-            instances created from the definition.
-          </p>
-          <dl>
-            <dt>
-              <dfn>node name to processor definition map</dfn>
-            </dt>
-            <dd>
-              Belongs to <a>AudioWorkletGlobalScope</a>. This map associates a
-              string key to the corresponding <a>AudioWorkletProcessor</a>
-              definition. Initially this map is empty and becomes populated
-              when <a data-link-for=
-              "AudioWorkletGlobalScope">registerProcessor</a> method is called.
-            </dd>
-            <dt>
-              <dfn>node name to parameter descriptor map</dfn>
-            </dt>
-            <dd>
-              Belongs to <a>BaseAudioContext</a>. This map contains an
-              identical set of string keys from <a>node name to processor
-              definition map</a> that are associated with the matching
-              <a>parameterDescriptors</a> values. This internal storage is
-              populated when a promise from <a href=
-              "https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule">addModule()</a>
-              on <a data-link-for="Window">audioWorklet</a> gets resolved.
-            </dd>
-          </dl>
-          <pre class="example" title=
-          "Registering an AudioWorkletProcessor class definition">
-// bypass.js script file, AudioWorkletGlobalScope
-registerProcessor("Bypass", class extends AudioWorkletProcessor {
-  process (inputs, outputs) {
-    // Single input, single channel.
-    var input = inputs[0], output = outputs[0];
-    output[0].set(input[0]);
-  }
-});
-</pre>
-          <pre class="example" title=
-          "Importing a script and creating AudioWorkletNode">
-// The main global scope
-window.audioWorklet.addModule("bypass.js").then(function () {
-  var context = new AudioContext();
-  var bypass = new AudioWorkletNode(context, "Bypass");
-});
-</pre>
-          <p>
-            At the instantiation of <a>AudioWorkletNode</a> in the main global
-            scope, the counterpart <a>AudioWorkletProcessor</a> will also be
-            created in <a>AudioWorkletGlobalScope</a>. These two objects
-            communicate via the asynchronous message passing described in the
-            <a href="#processing-model">processing model</a> section.
-          </p>
-        </section>
-        <pre class="idl">
-partial interface Window {
-    [SameObject]
-    readonly        attribute Worklet audioWorklet;
-};
-        </pre>
-        <section>
-          <h3>
-            Attributes
-          </h3>
-          <dl class="attributes" data-dfn-for="Window" data-link-for="Window">
-            <dt>
-              <code><dfn>audioWorklet</dfn></code> of type <span class=
-              "idlAttrType"><a><code>Worklet</code></a></span> readonly
-            </dt>
-            <dd>
-              The <code>audioWorklet</code> attributes allows access to the
-              <code>Worklet</code> object that can import a script containing
-              <a><code>AudioWorkletProcessor</code></a> class definitions via
-              the algorithm defined by [[!worklets-1]].
-            </dd>
-          </dl>
-        </section>
-        <section>
-          <h2 id="AudioWorkletGlobalScope">
-            The <dfn>AudioWorkletGlobalScope</dfn> Interface
-          </h2>
-          <p>
-            This special execution context is designed to enable the
-            generation, processing, and analysis of audio data directly using a
-            script in the audio <a>rendering thread</a>. The user-supplied
-            script code is evaluated in this scope to define one or more
-            <a>AudioWorkletProcessor</a> subclasses, which in turn are used to
-            instantiate <a>AudioWorkletProcessor</a>s, in a 1:1 association
-            with <a>AudioWorkletNode</a>s in the main scope.
-          </p>
-          <p>
-            At least one <a>AudioWorkletGlobalScope</a> exists for each
-            <a>AudioContext</a> that contains one or more
-            <a>AudioWorkletNode</a>s. The running of imported scripts is
-            performed by the UA as defined in [[!worklets-1]], in such a way
-            that all scripts are applied consistently to every global scope,
-            and all scopes thus exhibit identical behavior. Beyond these
-            guarantees, the creation of global scopes is transparent to the
-            author and cannot be observed from the main window scope.
-          </p>
-          <p>
-            <a>AudioWorkletGlobalScope</a> has a <a>node name to processor
-            definition map</a>. This map stores definitions of
-            <a>AudioWorkletProcessor</a> with the associated string key.
-            Initially it is empty and populated when
-            <code>registerProcessor</code> method is called, but this storage
-            is internal and is not directly exposed to the user.
-          </p>
-          <div class="note">
-            The <a>AudioWorkletGlobalScope</a> may also contain any other data
-            and code to be shared by these instances. As an example, multiple
-            processors might share an ArrayBuffer defining a wavetable or an
-            impulse response.
-          </div>
-          <div class="note">
-            Every <a>AudioWorkletGlobalScope</a> is associated with a single
-            <a>BaseAudioContext</a>, and with a single audio rendering thread
-            for that context. This prevents data races from occurring in global
-            scope code running within concurrent threads.
-          </div>
-          <pre class="idl">
-[Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
-interface AudioWorkletGlobalScope : WorkletGlobalScope {
-    void registerProcessor (DOMString name, VoidFunction processorCtor);
-    readonly attribute double currentTime;
-    readonly attribute float  sampleRate;
-};
-          </pre>
-          <section>
-            <h3>
-              Attributes
-            </h3>
-            <dl class="attributes" data-dfn-for="AudioWorkletGlobalScope"
-            data-link-for="AudioWorkletGlobalScope">
-              <dt>
-                <code><dfn>currentTime</dfn></code> of type <span class=
-                "idlAttrType"><code>double</code></span>, readonly
-              </dt>
-              <dd>
-                The context time of the block of audio being processed. By
-                definition this will be equal to the value of
-                <a>BaseAudioContext</a>'s <a data-link-for=
-                "BaseAudioContext">currentTime</a> attribute that was most
-                recently observable in the <a>control thread</a>.
-              </dd>
-              <dt>
-                <code><dfn>sampleRate</dfn></code> of type <span class=
-                "idlAttrType"><code>float</code></span>, readonly
-              </dt>
-              <dd>
-                The sample rate of the associated <a>BaseAudioContext</a>.
-              </dd>
-            </dl>
-          </section>
-          <section>
-            <h3>
-              Methods
-            </h3>
-            <dl class="methods" data-dfn-for="AudioWorkletGlobalScope"
-            data-link-for="AudioWorkletGlobalScope">
-              <dt>
-                <code><dfn>registerProcessor</dfn></code>
-              </dt>
-              <dd>
-                <p>
-                  Registers a class definition derived from
-                  <a>AudioWorkletProcessor</a>.
-                </p>
-                <p>
-                  When the <a><code>registerProcessor(<em>name</em>,
-                  <em>processorConstructor</em>)</code></a> method is called,
-                  the user agent MUST run the following steps:
-                </p>
-                <ol>
-                  <li>If the <code><em>name</em></code> is the empty string,
-                  <span class="synchronous">throw a
-                  <code>NotSupportedError</code> exception and abort these
-                  steps because the empty string is not a valid key</span>.
-                  </li>
-                  <li>If the <code><em>name</em></code> exists as a key in the
-                  <a>node name to processor definition map</a>, <span class=
-                  "synchronous">throw a <code>NotSupportedError</code>
-                  exception and abort these steps</span> because registering a
-                  definition with a duplicated key is not allowed.
-                  </li>
-                  <li>If the result of <code><a href=
-                  "http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
-                    IsConstructor</a>(argument=<em>processorConstructor</em>)</code>
-                    is false, <span class="synchronous">throw a
-                    <code>TypeError</code> and abort these steps</span>.
-                  </li>
-                  <li>Let <code><em>prototype</em></code> be the result of
-                  <code><a href=
-                  "http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
-                    Get</a>(O=<em>processorConstructor</em>,
-                    P="prototype")</code>.
-                  </li>
-                  <li>If the result of <code><a href=
-                  "http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
-                    Type</a>(argument=<em>prototype</em>)</code> is not
-                    <code>Object</code>, <span class="synchronous">throw a
-                    <code>TypeError</code> and abort all these steps</span>.
-                  </li>
-                  <li>If the result of <code><a href=
-                  "http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
-                    IsCallable</a>(argument=Get(O=<em>prototype</em>,
-                    P="process"))</code> is false, <span class=
-                    "synchronous">throw a <code>TypeError</code> and abort
-                    these steps</span>.
-                  </li>
-                  <li>If the result of <code><a href=
-                  "http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
-                    Get</a>(O=<em>processorConstructor</em>,
-                    P="parameterDescriptors")</code> is not an array or
-                    <code>undefined</code>, <span class="synchronous">throw a
-                    <code>TypeError</code> and abort these steps</span>.
-                  </li>
-                  <li>Let <em>definition</em> be a new
-                  <a>AudioWorkletProcessor</a> definition with:
-                    <ul>
-                      <li>node name being <em>name</em>
-                      </li>
-                      <li>processor class constructor being
-                      <em>processorConstructor</em>
-                      </li>
-                    </ul>
-                  </li>
-                  <li>d the key-value pair (<em>name</em> -
-                  <em>definition</em>) to the <a>node name to processor
-                  definition map</a> of the associated
-                  <a>AudioWorkletGlobalScope</a>.
-                  </li>
-                </ol>
-                <p class="note">
-                  The class constructor should only be looked up once, thus it
-                  does not have the opportunity to dynamically change its
-                  definition.
-                </p>
-                <table class="parameters">
-                  <tr>
-                    <th>
-                      Parameter
-                    </th>
-                    <th>
-                      Type
-                    </th>
-                    <th>
-                      Nullable
-                    </th>
-                    <th>
-                      Optional
-                    </th>
-                    <th>
-                      Description
-                    </th>
-                  </tr>
-                  <tr>
-                    <td class="prmName">
-                      name
-                    </td>
-                    <td class="prmType">
-                      <a><code>DOMString</code></a>
-                    </td>
-                    <td class="prmNullFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmOptFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmDesc">
-                      A string key that represents a class definition to be
-                      registered. This key is used to look up the constructor
-                      of <a>AudioWorkletProcessor</a> during construction of an
-                      <a>AudioWorkletNode</a>.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="prmName">
-                      processorCtr
-                    </td>
-                    <td class="prmType">
-                      <a><code>VoidFunction</code></a>
-                    </td>
-                    <td class="prmNullFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmOptFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmDesc">
-                      A class definition extended from
-                      <a>AudioWorkletProcessor</a>.
-                    </td>
-                  </tr>
-                </table>
-                <div>
-                  <em>Return type:</em> <code>void</code>
-                </div>
-              </dd>
-            </dl>
-          </section>
-        </section>
-        <section>
-          <h2 id="AudioWorkletNode-section">
-            The AudioWorkletNode Interface
-          </h2>
-          <p>
-            This interface represents a user-defined <a>AudioNode</a> which
-            lives on the <a>control thread</a>. The user can create an
-            <a>AudioWorkletNode</a> from an <a>BaseAudioContext</a>, and such a
-            node can be connected with other built-in <a>AudioNode</a>s to form
-            an audio graph.
-          </p>
-          <div class="node-info">
-            <table>
-              <tr>
-                <th>
-                  Property
-                </th>
-                <th>
-                  Value
-                </th>
-                <th>
-                  Notes
-                </th>
-              </tr>
-              <tr>
-                <td>
-                  <a data-link-for="AudioNode">numberOfInputs</a>
-                </td>
-                <td>
-                  1
-                </td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>
-                  <a data-link-for="AudioNode">numberOfOutputs</a>
-                </td>
-                <td>
-                  1
-                </td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>
-                  <a data-link-for="AudioNode">channelCount</a>
-                </td>
-                <td>
-                  2
-                </td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>
-                  <a data-link-for="AudioNode">channelCountMode</a>
-                </td>
-                <td>
-                  "<a data-link-for="channelCountMode">max</a>"
-                </td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>
-                  <a data-link-for="AudioNode">channelInterpretation</a>
-                </td>
-                <td>
-                  "<a data-link-for="channelInterpretation">speakers</a>"
-                </td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>
-                  <a>tail-time</a> reference
-                </td>
-                <td></td>
-                <td>
-                  Any <a>tail-time</a> is handled by the node itself
-                </td>
-              </tr>
-            </table>
-          </div>
-          <p>
-            Every <a>AudioWorkletNode</a> has an associated <dfn>processor
-            reference</dfn>, initially null, which refers to the
-            <a>AudioWorkletProcessor</a> handling the processing for this node.
-          </p>
-          <p>
-            Every <a>AudioWorkletProcessor</a> has an associated <dfn>active
-            source</dfn> flag, initially <code>true</code>. This flag causes
-            the node to be retained in memory and perform audio processing in
-            the absence of any connected inputs.
-          </p>
-          <pre class="idl">
-[Exposed=Window]
-interface AudioParamMap {
-    readonly maplike&lt;DOMString, AudioParam&gt;;
-};
-          </pre>
-          <p>
-            This interface has "entries", "forEach", "get", "has", "keys",
-            "values", @@iterator methods and a "size" getter brought by
-            <code>readonly maplike</code>.
-          </p>
-          <pre class="idl">
-enum AudioWorkletProcessorState {
-    "pending",
-    "running",
-    "stopped",
-    "error"
-};
-          </pre>
-          <table class="simple" data-dfn-for="AudioWorkletProcessorState"
-          data-link-for="AudioWorkletProcessorState">
-            <tr>
-              <th colspan="2">
-                Enumeration description
-              </th>
-            </tr>
-            <tr>
-              <td>
-                <dfn>pending</dfn>
-              </td>
-              <td>
-                The construction of associated processor has not been
-                completed. In this state, no audio processing can happen and
-                all messages to the processor will be queued.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <dfn>running</dfn>
-              </td>
-              <td>
-                Indicates that the <a>active source</a> flag on the
-                corresponding processor is <code>true</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <dfn>stopped</dfn>
-              </td>
-              <td>
-                Indicates that the <a>active source</a> flag on the
-                corresponding processor is <code>false</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <dfn>error</dfn>
-              </td>
-              <td>
-                When an exception is thrown from the processor's
-                <code>constructor</code>, <code>process</code> method, or any
-                user-defined class method throws an exception. Note that once
-                an <a>AudioWorkletNode</a> reaches to this state, the processor
-                will output silence throughout its lifetime.
-              </td>
-            </tr>
-          </table>
-          <pre class="idl">
-[Exposed=Window,
- Constructor (BaseAudioContext context, optional AudioWorkletOptions options)]
-interface AudioWorkletNode : AudioNode {
-    readonly        attribute AudioParamMap              parameters;
-    readonly        attribute MessagePort                port;
-    readonly        attribute AudioWorkletProcessorState processorState;
-                    attribute EventHandler               onprocessorstatechange;
-};
-          </pre>
-          <section>
-            <h3>
-              Constructors
-            </h3>
-            <dl class="methods" data-dfn-for="AudioWorkletNode" data-link-for=
-            "AudioWorkletNode">
-              <dt>
-                <code><dfn>AudioWorkletNode</dfn></code>
-              </dt>
-              <dd>
-                <p>
-                  Let <var>node</var> be a new <a>AudioWorkletNode</a> object.
-                  <a href="#audionode-constructor-init">Initialize</a>
-                  <var>node</var>. Perform the <a href=
-                  "#instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
-                  construction procedure</a> of an
-                  <a><code>AudioWorkletNode</code></a> and the corresponding
-                  <a><code>AudioWorkletProcessor</code></a> object. Return
-                  <var>node</var>.
-                </p>
-                <table class="parameters">
-                  <tr>
-                    <th>
-                      Parameter
-                    </th>
-                    <th>
-                      Type
-                    </th>
-                    <th>
-                      Nullable
-                    </th>
-                    <th>
-                      Optional
-                    </th>
-                    <th>
-                      Description
-                    </th>
-                  </tr>
-                  <tr>
-                    <td class="prmName">
-                      context
-                    </td>
-                    <td class="prmType">
-                      <a><code>BaseAudioContext</code></a>
-                    </td>
-                    <td class="prmNullFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmOptFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmDesc">
-                      The <a>BaseAudioContext</a> this new
-                      <a>AudioWorkletNode</a> will be <a href=
-                      "#associated">associated</a> with.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="prmName">
-                      options
-                    </td>
-                    <td class="prmType">
-                      <a><code>AudioWorkletOptions</code></a>
-                    </td>
-                    <td class="prmNullFalse">
-                      <span role="img" aria-label="False">✘</span>
-                    </td>
-                    <td class="prmOptTrue">
-                      <span role="img" aria-label="True">✔</span>
-                    </td>
-                    <td class="prmDesc">
-                      Optional initial parameters value for this
-                      <a>AudioWorkletNode</a>.
-                    </td>
-                  </tr>
-                </table>
-              </dd>
-            </dl>
-          </section>
-          <section>
-            <h3>
-              Attributes
-            </h3>
-            <dl class="attributes" data-dfn-for="AudioWorkletNode"
-            data-link-for="AudioWorkletNode">
-              <dt>
-                <code><dfn>onprocessorstatechange</dfn></code> of type
-                <span class=
-                "idlAttrType"><a><code>EventHandler</code></a></span>
-              </dt>
-              <dd>
-                Any state change on the processor will queue a task on the
-                control thread to fire <a>onprocessorstatechange</a> event to
-                the node.
-              </dd>
-              <dt>
-                <code><dfn>parameters</dfn></code> of type <span class=
-                "idlAttrType"><a><code>AudioParamMap</code></a></span>,
-                readonly
-              </dt>
-              <dd>
-                The <code>parameters</code> attribute is a collection of
-                <a>AudioParam</a> objects with associated names. This maplike
-                object is populated from a list of <a>AudioParamDescriptor</a>s
-                in the <a>AudioWorkletProcessor</a> class definition at the
-                instantiation.
-              </dd>
-              <dt>
-                <code><dfn>port</dfn></code> of type <span class=
-                "idlAttrType"><a><code>MessagePort</code></a></span>, readonly
-              </dt>
-              <dd>
-                Every <a>AudioWorkletNode</a> has an associated
-                <code>port</code> which is a <a href=
-                "https://html.spec.whatwg.org/multipage/comms.html#message-ports">
-                MessagePort</a>. It is connected to the port on the
-                corresponding <a>AudioWorkletProcessor</a> object allowing
-                bidirectional communication between a pair of
-                <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
-              </dd>
-              <dt>
-                <code><dfn>processorState</dfn></code> of type <span class=
-                "idlAttrType"><a><code>AudioWorkletProcessorState</code></a></span>,
-                readonly
-              </dt>
-              <dd>
-                Indicates the state of the associated processor. The
-                propagation from the actual processor's <a>active source</a>
-                flag to this property is done by queueing a task.
-              </dd>
-            </dl>
-          </section>
-          <section>
-            <h2 id="AudioWorkletNodeOptions">
-              <dfn>AudioWorkletNodeOptions</dfn>
-            </h2>
-            <p>
-              The <code>AudioWorkletNodeOptions</code> dictionary can be used
-              for the custom initialization of <a><code>AudioNode</code></a>
-              attributes in the <a><code>AudioWorkletNode</code></a>
-              constructor. Entries in this dictionary whose names correspond to
-              <a><code>AudioParam</code></a>s in the class definition of an
-              <a><code>AudioWorkletProcessor</code></a> are used to initialize
-              the parameter values upon the creation of a node.
-            </p>
-            <pre class="idl">
-dictionary AudioWorkletNodeOptions : AudioNodeOptions {
-             unsigned long             numberOfInputs = 1;
-             unsigned long             numberOfOutputs = 1;
-             sequence&lt;unsigned long&gt;    outputChannelCount;
-             record&lt;DOMString, double&gt;  parameterData;
-};
-            </pre>
-            <section>
-              <h3>
-                Dictionary <a>AudioWorkletNodeOptions</a> Members
-              </h3>
-              <dl class="attributes" data-dfn-for="AudioWorkletNodeOptions"
-              data-link-for="AudioWorkletNodeOptions">
-                <dt>
-                  <code><dfn>numberOfInputs</dfn></code> of type <span class=
-                  "idlAttrType"><code>unsigned long</code></span>, defaulting
-                  to 1
-                </dt>
-                <dd>
-                  This is used to initialize the value of <a>AudioNode</a>
-                  <a data-link-for="AudioNode">numberOfInputs</a> attribute.
-                </dd>
-                <dt>
-                  <code><dfn>numberOfOutputs</dfn></code> of type <span class=
-                  "idlAttrType"><code>unsigned long</code></span>, defaulting
-                  to 1
-                </dt>
-                <dd>
-                  This is used to initialize the value of <a>AudioNode</a>
-                  <a data-link-for="AudioNode">numberOfOutputs</a> attribute.
-                </dd>
-                <dt>
-                  <code><dfn>outputChannelCount</dfn></code> of type
-                  <span class="idlAttrType"><code>sequence&lt;unsigned
-                  long&gt;</code></span>
-                </dt>
-                <dd>
-                  This array is used to configure the number of channels in
-                  each output. For example, <code>outputChannelCount: [n,
-                  m]</code> specifies the number of channels in the first
-                  output to <code>n</code> and the second output to
-                  <code>m</code> respectively. <code>IndexSizeError</code> MUST
-                  be thrown if the length of sequence does not match
-                  <a data-link-for=
-                  "AudioWorkletNodeOptions">numberOfOutputs</a>. A
-                  <code>NotSupportedError</code> exception MUST be thrown if a
-                  channel count is not in the valid range of AudioNode's
-                  <a data-link-for="AudioNode">channelCount</a>.
-                </dd>
-                <dt>
-                  <code><dfn>parameterData</dfn></code> of type <span class=
-                  "idlAttrType"><code>record&lt;DOMString,
-                  double&gt;</code></span>
-                </dt>
-                <dd>
-                  This is a list of user-defined key-value pairs that are used
-                  to initialize <a>AudioParam</a> values in
-                  <a>AudioWorkletNode</a>. If the string key of an entry in the
-                  list does not match any name of <a>AudioParam</a> objects in
-                  the node, it is ignored.
-                </dd>
-              </dl>
-            </section>
-            <section>
-              <h3>
-                Configuring Channels with <a>AudioWorkletNodeOptions</a>
-              </h3>
-              <p>
-                With a combination of <a data-link-for=
-                "AudioWorkletNodeOptions">numberOfInputs</a>, <a data-link-for=
-                "AudioWorkletNodeOptions">numberOfOutputs</a> and
-                <a data-link-for=
-                "AudioWorkletNodeOptions">outputChannelCount</a>, various
-                channel configurations can be achieved.
-              </p>
-              <ol>
-                <li>
-                  <a data-link-for="AudioWorkletNodeOptions">numberOfInputs</a>
-                  = 0, <a data-link-for=
-                  "AudioWorkletNodeOptions">numberOfOutputs</a> = 0
-                  <ul>
-                    <li>
-                      <code>NotSupportedError</code> MUST be thrown by the
-                      constructor.
-                    </li>
-                  </ul>
-                </li>
-                <li>
-                  <a data-link-for="AudioWorkletNodeOptions">numberOfInputs</a>
-                  = 1, <a data-link-for=
-                  "AudioWorkletNodeOptions">numberOfOutputs</a> = 1
-                  <ul>
-                    <li>If <a data-link-for=
-                    "AudioWorkletNodeOptions">outputChannelCount</a> is
-                    unspecified, the output channel count will match
-                    <a>computedNumberOfChannels</a> from the input.
-                    </li>
-                  </ul>
-                </li>
-                <li>All other cases
-                  <ul>
-                    <li>If <a data-link-for=
-                    "AudioWorkletNodeOptions">outputChannelCount</a> is
-                    unspecified, it will be mono for all outputs.
-                    </li>
-                  </ul>
-                </li>
-              </ol>
-            </section>
-          </section>
-        </section>
-        <section>
-          <h2 id="instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
-            The instantiation of <a>AudioWorkletNode</a> and
-            <a>AudioWorkletProcessor</a>
-          </h2>
-          <p>
-            When the constructor of <a>AudioWorkletNode</a> is invoked in the
-            main global scope, the corresponding <a>AudioWorkletProcessor</a>
-            instance is automatically created in
-            <a>AudioWorkletGlobalScope</a>. After the construction, they
-            maintain the internal reference to each other until the
-            <a>AudioWorkletNode</a> instance is destroyed.
-          </p>
-          <p>
-            Note that the instantiation of these two objects spans the control
-            thread and the rendering thread.
-          </p>
-          <p>
-            When <a>AudioWorkletNode</a>(<var>context</var>,
-            <var>nodeName</var>, <var>options</var>) constructor is invoked,
-            the user agent MUST perform the following steps on the control
-            thread, where the constructor was called.
-          </p>
-          <ol>
-            <li>Let <var>this</var> be the instance being created by
-            constructor of <a>AudioWorkletNode</a> or its subclass.
-            </li>
-            <li>If <var>nodeName</var> does not exists as a key in the
-            <a>BaseAudioContext</a>’s <a>node name to parameter descriptor
-            map</a>, throw a <code>NotSupportedError</code> exception and abort
-            these steps.
-            </li>
-            <li>Let <var>node</var> be a new <a>AudioWorkletNode</a> object.
-            </li>
-            <li>Let <var>messageChannel</var> be a new <a href=
-            "https://html.spec.whatwg.org/multipage/#message-channels">MessageChannel</a>.
-            </li>
-            <li>Let <var>nodePort</var> be the value of
-            <var>messageChannel</var>'s <code>port1</code> attribute.
-            </li>
-            <li>Let <var>processorPortOnThisSide</var> be the value of
-            <var>messageChannel</var>'s <code>port2</code> attribute.
-            </li>
-            <li>Let <var>processorPortSerialization</var> be <a href=
-            "https://html.spec.whatwg.org/multipage/infrastructure.html#structuredserializewithtransfer">
-              StructuredSerializeWithTransfer</a>(<var>processorPortOnThisSide</var>,
-              « <var>processorPortOnThisSide</var> »).
-            </li>
-            <li>Set <var>node</var>'s <a data-link-for=
-            "AudioWorkletNode">port</a> to <var>nodePort</var>.
-            </li>
-            <li>Let <var>parameterDescriptors</var> be the result of retrieval
-            of <var>nodeName</var> from <a>node name to parameter descriptor
-            map</a>:
-              <ol>
-                <li>Let <var>audioParamMap</var> be a new <a>AudioParamMap</a>
-                object.
-                </li>
-                <li>For each <var>descriptor</var> of
-                <var>parameterDescriptors</var>:
-                  <ol>
-                    <li>Let <var>paramName</var> be the value of
-                    <var>descriptor</var>'s <a data-link-for=
-                    "AudioParamDescriptor">name</a>.
-                    </li>
-                    <li>Let <var>audioParam</var> be a new <a>AudioParam</a>
-                    instance.
-                    </li>
-                    <li>Append (<var>paramName</var>, <var>audioParam</var>) to
-                    <var>audioParamMap</var>'s entries.
-                    </li>
-                  </ol>
-                </li>
-                <li>For each <var>paramNameInOption</var> → <var>value</var> of
-                <var>options</var>:
-                  <ol>
-                    <li>If there exists an entry with name member equal to
-                    <var>paramNameInOption</var> inside
-                    <var>audioParamMap</var>, set that <a>AudioParam</a>'s
-                    value to <var>value</var>.
-                    </li>
-                    <li>
-                      <var>paramNameInOption</var> will be ignored when:
-                      <ul>
-                        <li>
-                          <var>audioParamMap</var> does not have any entry with
-                          the same name member.
-                        </li>
-                        <li>
-                          <var>value</var> is not a type of <code>Number</code>
-                          or out of the range specified in
-                          <a>AudioParamDescriptor</a>.
-                        </li>
-                      </ul>
-                    </li>
-                  </ol>
-                </li>
-                <li>Set <var>node</var>'s <a data-link-for="AudioWorkletNode">
-                  parameters</a> to <var>audioParamMap</var>.
-                </li>
-              </ol>
-            </li>
-            <li>
-              <a href="#queuing">Queue a control message</a> to create an
-              <a>AudioWorkletProcessor</a>, given <var>nodeName</var>,
-              <var>processorPortSerialization</var>, and <var>node</var>.
-            </li>
-            <li>Return <var>node</var>.
-            </li>
-          </ol>
-          <p>
-            In order to process a control message for the construction of an
-            <a>AudioWorkletProcessor</a>, given a string <var>nodeName</var>, a
-            serialization record <var>processorPortSerialization</var>, and an
-            <a>AudioWorkletNode</a> <var>node</var>, perform the following
-            steps on the <a>rendering thread</a>. If any of these steps throws
-            an exception (either explicitly or implicitly), abort the rest of
-            steps and queue a task on the <a>control thread</a> to fire
-            <a data-link-for=
-            "AudioWorkletNode"><code>onprocessorstatechange</code></a> event to
-            <var>node</var> with <code>error</code> state.
-          </p>
-          <ol>
-            <li>Let <var>processorPort</var> be <a href=
-            "https://html.spec.whatwg.org/multipage/infrastructure.html#structureddeserializewithtransfer">
-              StructuredDeserializeWithTransfer</a>(<var>processorPortSerialization</var>,
-              the current Realm).
-            </li>
-            <li>Let <var>processorConstructor</var> be the result of looking up
-            <var>nodeName</var> on the <a>AudioWorkletGlobalScope</a>'s <a>node
-            name to processor definition map</a>.
-            </li>
-            <li>If <var>processorConstructor</var> is <code>undefined</code>,
-            throw a <code>NotSupportedError</code> DOMException.
-            </li>
-            <li>Let <var>processor</var> be the result of
-            Construct(<var>processorConstructor</var>).
-            </li>
-            <li>If <var>processor</var> does not implement the
-            <a>AudioWorkletProcessor</a> interface, throw an
-            <code>"InvalidStateError"</code> DOMException.
-            </li>
-            <li>Set <var>processor</var>'s <a data-link-for=
-            "AudioWorkletProcessor">port</a> to <var>processorPort</var>.
-            </li>
-            <li>Set <var>processor</var>'s <a>node reference</a> to
-            <var>node</var>.
-            </li>
-            <li>Set <var>node</var>'s <a>processor reference</a> to
-            <var>processor</var>.
-            </li>
-            <li>Queue a task the <a>control thread</a> to set the associated
-            <a>AudioWorkletNode</a>'s state to <code>running</code>, then fire
-            a <code>statechange</code> event.
-            </li>
-          </ol>
-        </section>
-        <section class="informative">
-          <h2 id="AudioWorklet-Sequence">
-            AudioWorklet Sequence of Events
-          </h2>
-          <p>
-            The following figure illustrates an idealized sequence of events
-            occurring relative to an <a>AudioWorklet</a>:
-          </p>
-          <figure>
-            <img alt="AudioWorklet sequence" src=
-            "images/audioworklet-instantiation-sequence.png" width="784"
-            height="427">
-            <figcaption>
-              <a>AudioWorklet</a> sequence
-            </figcaption>
-          </figure>
-          <p>
-            The steps depicted in the diagram are one possible sequence of
-            events involving the creation of an <a>AudioContext</a> and an
-            associated <a>AudioWorkletGlobalScope</a>, followed by the creation
-            of an <a>AudioWorkletNode</a> and its associated
-            <a>AudioWorkletProcessor</a>.
-          </p>
-          <ol>
-            <li>In the main scope, <code>window.audioWorklet</code> is
-            requested to import a script. No <a>AudioWorkletGlobalScope</a>s
-            exist yet, so the script is fetched and added to the Worklet module
-            responses map.
-            </li>
-            <li>An <a>AudioContext</a> is created.
-            </li>
-            <li>An <a>AudioWorkletGlobalScope</a> is created in association
-            with the context's audio rendering thread. This is the global scope
-            in which <a>AudioWorkletProcessor</a> class definitions will be
-            evaluated.
-            </li>
-            <li>As part of the global scope's initialization, the set of
-            imported scripts is run, including the one that was previously
-            imported.
-            </li>
-            <li>As part of running the imported script, an
-            <a>AudioWorkletProcessor</a> is registered under the key
-            <code>"Custom1"</code> within the <a>AudioWorkletGlobalScope</a>.
-            </li>
-            <li>In the main scope, an <a>AudioWorkletNode</a> is created using
-            the key <code>"Custom1"</code> along with an <code>opts</code>
-            dictionary of options.
-            </li>
-            <li>As part of the node's creation, this key is used to look up the
-            correct <a>AudioWorkletProcessor</a> subclass for instantiation.
-            </li>
-            <li>An instance of the <a>AudioWorkletProcessor</a> subclass is
-            instantiated with a structured clone of the same <code>opts</code>
-            dictionary. This instance is paired with the previously created <a>
-              AudioWorkletNode</a>.
-            </li>
-          </ol>
-        </section>
-        <section class="informative">
-          <h2 id="AudioWorklet-Examples">
-            AudioWorklet Examples
-          </h2>
-          <section>
-            <h3>
-              The BitCrusher Node
-            </h3>
-            <p>
-              Bitcrushing is a mechanism by which the quality of an audio
-              stream is reduced both by quantizing the sample value (simulating
-              a lower bit-depth), and by quantizing in time resolution
-              (simulating a lower sample rate). This example shows how to use
-              <a><code>AudioParam</code></a>s (in this case, treated as
-              <a>a-rate</a>) inside an
-              <a><code>AudioWorkletProcessor</code></a>.
-            </p>
-            <pre class="example" title="BitCrusher - Global Scope">
-window.audioWorklet.addModule('bitcrusher.js').then(function () {
-  let context = new AudioContext();
-  let osc = new OscillatorNode(context);
-  let amp = new GainNode(context);
-
-  // Create a worklet node. 'BitCrusher' identifies the
-  // AudioWorkletProcessor previously registered when
-  // bitcrusher.js was imported. The options automatically
-  // initialize the correspondingly named AudioParams.
-  let bitcrusher = new AudioWorkletNode(context, 'BitCrusher', {
-    bitDepth: 8,
-    frequencyReduction: 0.5
-  });
-
-  osc.connect(bitcrusher).connect(amp).connect(context.destination);
-  osc.start();
-});
-</pre>
-            <pre class="example" title=
-            "BitCrusher - AudioWorkletGlobalScope (bitcrusher.js)">
-registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
-
-  static get parameterDescriptors () {
-    return [{
-      name: 'bitDepth',
-      defaultValue: 12,
-      minValue: 1,
-      maxValue: 16
-    }, {
-      name: 'frequencyReduction',
-      defaultValue: 0.5,
-      minValue: 0,
-      maxValue: 1
-    }];
-  }
-
-  constructor (options) {
-    // We don't need to look at options: only AudioParams are initialized,
-    // which were taken care of by the node.
-    super(options);
-    this._phase = 0;
-    this._lastSampleValue = 0;
-  }
-
-  process (inputs, outputs, parameters) {
-    let input = inputs[0];
-    let output = outputs[0];
-    let bitDepth = parameters.bitDepth;
-    let frequencyReduction = parameters.frequencyReduction;
-
-    for (let channel = 0; channel &lt; output.length; ++channel) {
-      for (let i = 0; i &lt; output[channel].length; ++i) {
-        let step = Math.pow(0.5, bitDepth[i]);
-        this._phase += frequencyReduction[i];
-        if (this._phase &gt;= 1.0) {
-          this._phase -= 1.0;
-          this._lastSampleValue =
-            step * Math.floor(input[channel][i] / step + 0.5);
-        }
-        output[channel][i] = this._lastSampleValue;
-      }
-    }
-
-    // No need to return a value; this node's lifetime is dependent only on its
-    // input connections.
-  }
-
-});
-</pre>
-            <div class="note">
-              <p>
-                In the definition of <a>AudioWorkletProcessor</a> class, an
-                <code>InvalidStateError</code> will be thrown if the
-                author-supplied constructor uses JavaScript's return-override
-                feature, or does not properly call <code>super()</code>.
-              </p>
-            </div>
-          </section>
-          <section>
-            <h3>
-              VU Meter Node
-            </h3>
-            <p>
-              This example of a simple sound level meter further illustrates
-              how to create an <a><code>AudioWorkletNode</code></a> subclass
-              that acts like a native <a><code>AudioNode</code></a>, accepting
-              constructor options and encapsulating the inter-thread
-              communication (asynchronous) between
-              <a><code>AudioWorkletNode</code></a> and
-              <a><code>AudioWorkletProcessor</code></a> in clean method calls
-              and attribute accesses. This node does not use any output.
-            </p>
-            <pre class="example" title=
-            "VUMeterNode - Global Scope (vumeternode.js)">
-class VUMeterNode extends AudioWorkletNode {
-
-  constructor (context, options) {
-    // Setting default values for the input, the output and the channel count.
-    options.numberOfInputs = 1;
-    options.numberOfOutputs = 0;
-    options.channelCount = 1;
-    options.updatingInterval = options.hasOwnProperty('updatingInterval')
-      ? options.updatingInterval
-      : 100;
-
-    super(context, 'VUMeter', options);
-
-    // States in AudioWorkletNode
-    this._updatingInterval = options.updatingInterval;
-    this._volume = 0;
-
-    // Handles updated values from AudioWorkletProcessor
-    this.port.onmessage = event =&gt; {
-      if (event.data.volume)
-        this._volume = event.data.volume;
-    }
-    this.port.start();
-  }
-
-  get updatingInterval() {
-    return this._updatingInterval;
-  }
-
-  set updatingInterval (intervalValue) {
-    this._updatingInterval = intervalValue;
-    this.port.postMessage({ updatingInterval: intervalValue });
-  }
-
-  draw () {
-    /* Draw the meter based on the volume value. */
-  }
-
-}
-
-// The application can use the node when this promise resolves.
-let importAudioWorkletNode = window.audioWorklet.addModule('vumeterprocessor.js');
-</pre>
-            <pre class="example" title=
-            "VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
-registerProcessor('VUMeter', class extends AudioWorkletProcessor {
-
-  static meterSmoothingFactor = 0.9;
-  static meterMinimum = 0.00001;
-
-  constructor (options) {
-    super(options);
-    this._volume = 0;
-    this._updatingInterval = options.updatingInterval;
-    this._nextUpdateFrames = this.interval;
-
-    this.port.onmessage = event =&gt; {
-      if (event.data.updatingInterval)
-        this._updatingInterval = event.data.updatingInterval;
-    }
-    this.port.start();
-  }
-
-  get interval () {
-    return this._updatingInterval / 1000 * sampleRate;
-  }
-
-  process (inputs, outputs, parameters) {
-    // Note that the input will be down-mixed to mono; however, if no inputs are
-    // connected then zero channels will be passed in.
-    if (inputs[0].length &gt; 0) {
-      let buffer = inputs[0][0];
-      let bufferLength = buffer.length;
-      let sum = 0, x = 0, rms = 0;
-
-      // Calculated the squared-sum.
-      for (let i = 0; i &lt; bufferLength; ++i) {
-        x = buffer[i];
-        sum += x * x;
-      }
-
-      // Calculate the RMS level and update the volume.
-      rms =  Math.sqrt(sum / bufferLength);
-      this.volume = Math.max(rms, this._volume * meterSmoothingFactor);
-
-      // Update and sync the volume property with the main thread.
-      this._nextUpdateFrame -= bufferLength;
-      if (this._nextUpdateFrame &lt; 0) {
-        this._nextUpdateFrame += this.interval;
-        this.port.postMessage({ volume: this._volume });
-      }
-    }
-
-    // Keep on processing if the volume is above a threshold, so that
-    // disconnecting inputs does not immediately cause the meter to stop
-    // computing its smoothed value.
-    return this._volume &gt;= meterMinimum;
-  }
-
-});
-</pre>
-            <pre class="example" title=
-            "VUMeterNode - Global Scope (main HTML file)">
-&lt;script src="vumeternode.js"&gt;&lt;/script&gt;
-&lt;script&gt;
-  importAudioWorkletNode.then(function () {
-    let context = new AudioContext();
-    let oscillator = new Oscillator(context);
-    let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
-
-    oscillator.connect(vuMeterNode);
-
-    function drawMeter () {
-      vuMeterNode.draw();
-      requestAnimationFrame(drawMeter);
-    }
-
-    drawMeter();
-  });
-&lt;/script&gt;
-</pre>
-          </section>
-        </section>
-      </section>
-      <section>
         <h2>
           The BiquadFilterNode Interface
         </h2>
@@ -18981,6 +17766,1221 @@ dictionary WaveShaperOptions : AudioNodeOptions {
                 The type of oversampling to use for the shaping curve.
               </dd>
             </dl>
+          </section>
+        </section>
+      </section>
+      <section>
+        <h2 id="AudioWorklet">
+          The <dfn>AudioWorklet</dfn> Interface
+        </h2>
+        <section>
+          <h2 id="AudioWorklet-concepts">
+            Concepts
+          </h2>
+          <p>
+            The <a>AudioWorklet</a> object allows developers to supply scripts
+            (such as JavaScript or WebAssembly code) to process audio on the
+            <a>rendering thread</a>, supporting custom <a>AudioNode</a>s. This
+            processing mechanism ensures the synchronous execution of the
+            script code with other built-in <a>AudioNode</a>s in the audio
+            graph.
+          </p>
+          <p>
+            An associated pair of objects MUST be defined in order to realize
+            this mechanism: <a>AudioWorkletNode</a> and
+            <a>AudioWorkletProcessor</a>. The former represents the interface
+            for the main global scope similar to other <a>AudioNode</a>
+            objects, and the latter implements the internal audio processing
+            within a special scope named <a>AudioWorkletGlobalScope</a>.
+          </p>
+          <figure>
+            <img alt="AudioWorklet concept" src=
+            "images/audioworklet-concept.png" width="756" height="144">
+            <figcaption>
+              <a><code>AudioWorkletNode</code></a> and
+              <a><code>AudioWorkletProcessor</code></a>
+            </figcaption>
+          </figure>
+          <p>
+            Importing a script via the <a href=
+            "https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
+            method registers class definitions of <a>AudioWorkletProcessor</a>
+            under the <a>AudioWorkletGlobalScope</a>. There are two internal
+            storage areas for the imported class definitions and the active
+            instances created from the definition.
+          </p>
+          <dl>
+            <dt>
+              <dfn>node name to processor definition map</dfn>
+            </dt>
+            <dd>
+              Belongs to <a>AudioWorkletGlobalScope</a>. This map associates a
+              string key to the corresponding <a>AudioWorkletProcessor</a>
+              definition. Initially this map is empty and becomes populated
+              when <a data-link-for=
+              "AudioWorkletGlobalScope">registerProcessor</a> method is called.
+            </dd>
+            <dt>
+              <dfn>node name to parameter descriptor map</dfn>
+            </dt>
+            <dd>
+              Belongs to <a>BaseAudioContext</a>. This map contains an
+              identical set of string keys from <a>node name to processor
+              definition map</a> that are associated with the matching
+              <a>parameterDescriptors</a> values. This internal storage is
+              populated when a promise from <a href=
+              "https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule">addModule()</a>
+              on <a data-link-for="Window">audioWorklet</a> gets resolved.
+            </dd>
+          </dl>
+          <pre class="example" title=
+          "Registering an AudioWorkletProcessor class definition">
+// bypass.js script file, AudioWorkletGlobalScope
+registerProcessor("Bypass", class extends AudioWorkletProcessor {
+  process (inputs, outputs) {
+    // Single input, single channel.
+    var input = inputs[0], output = outputs[0];
+    output[0].set(input[0]);
+  }
+});
+</pre>
+          <pre class="example" title=
+          "Importing a script and creating AudioWorkletNode">
+// The main global scope
+window.audioWorklet.addModule("bypass.js").then(function () {
+  var context = new AudioContext();
+  var bypass = new AudioWorkletNode(context, "Bypass");
+});
+</pre>
+          <p>
+            At the instantiation of <a>AudioWorkletNode</a> in the main global
+            scope, the counterpart <a>AudioWorkletProcessor</a> will also be
+            created in <a>AudioWorkletGlobalScope</a>. These two objects
+            communicate via the asynchronous message passing described in the
+            <a href="#processing-model">processing model</a> section.
+          </p>
+        </section>
+        <pre class="idl">
+partial interface Window {
+    [SameObject]
+    readonly        attribute Worklet audioWorklet;
+};
+        </pre>
+        <section>
+          <h3>
+            Attributes
+          </h3>
+          <dl class="attributes" data-dfn-for="Window" data-link-for="Window">
+            <dt>
+              <code><dfn>audioWorklet</dfn></code> of type <span class=
+              "idlAttrType"><a><code>Worklet</code></a></span> readonly
+            </dt>
+            <dd>
+              The <code>audioWorklet</code> attributes allows access to the
+              <code>Worklet</code> object that can import a script containing
+              <a><code>AudioWorkletProcessor</code></a> class definitions via
+              the algorithm defined by [[!worklets-1]].
+            </dd>
+          </dl>
+        </section>
+        <section>
+          <h2 id="AudioWorkletGlobalScope">
+            The <dfn>AudioWorkletGlobalScope</dfn> Interface
+          </h2>
+          <p>
+            This special execution context is designed to enable the
+            generation, processing, and analysis of audio data directly using a
+            script in the audio <a>rendering thread</a>. The user-supplied
+            script code is evaluated in this scope to define one or more
+            <a>AudioWorkletProcessor</a> subclasses, which in turn are used to
+            instantiate <a>AudioWorkletProcessor</a>s, in a 1:1 association
+            with <a>AudioWorkletNode</a>s in the main scope.
+          </p>
+          <p>
+            At least one <a>AudioWorkletGlobalScope</a> exists for each
+            <a>AudioContext</a> that contains one or more
+            <a>AudioWorkletNode</a>s. The running of imported scripts is
+            performed by the UA as defined in [[!worklets-1]], in such a way
+            that all scripts are applied consistently to every global scope,
+            and all scopes thus exhibit identical behavior. Beyond these
+            guarantees, the creation of global scopes is transparent to the
+            author and cannot be observed from the main window scope.
+          </p>
+          <p>
+            <a>AudioWorkletGlobalScope</a> has a <a>node name to processor
+            definition map</a>. This map stores definitions of
+            <a>AudioWorkletProcessor</a> with the associated string key.
+            Initially it is empty and populated when
+            <code>registerProcessor</code> method is called, but this storage
+            is internal and is not directly exposed to the user.
+          </p>
+          <div class="note">
+            The <a>AudioWorkletGlobalScope</a> may also contain any other data
+            and code to be shared by these instances. As an example, multiple
+            processors might share an ArrayBuffer defining a wavetable or an
+            impulse response.
+          </div>
+          <div class="note">
+            Every <a>AudioWorkletGlobalScope</a> is associated with a single
+            <a>BaseAudioContext</a>, and with a single audio rendering thread
+            for that context. This prevents data races from occurring in global
+            scope code running within concurrent threads.
+          </div>
+          <pre class="idl">
+[Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
+interface AudioWorkletGlobalScope : WorkletGlobalScope {
+    void registerProcessor (DOMString name, VoidFunction processorCtor);
+    readonly attribute double currentTime;
+    readonly attribute float  sampleRate;
+};
+          </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioWorkletGlobalScope"
+            data-link-for="AudioWorkletGlobalScope">
+              <dt>
+                <code><dfn>currentTime</dfn></code> of type <span class=
+                "idlAttrType"><code>double</code></span>, readonly
+              </dt>
+              <dd>
+                The context time of the block of audio being processed. By
+                definition this will be equal to the value of
+                <a>BaseAudioContext</a>'s <a data-link-for=
+                "BaseAudioContext">currentTime</a> attribute that was most
+                recently observable in the <a>control thread</a>.
+              </dd>
+              <dt>
+                <code><dfn>sampleRate</dfn></code> of type <span class=
+                "idlAttrType"><code>float</code></span>, readonly
+              </dt>
+              <dd>
+                The sample rate of the associated <a>BaseAudioContext</a>.
+              </dd>
+            </dl>
+          </section>
+          <section>
+            <h3>
+              Methods
+            </h3>
+            <dl class="methods" data-dfn-for="AudioWorkletGlobalScope"
+            data-link-for="AudioWorkletGlobalScope">
+              <dt>
+                <code><dfn>registerProcessor</dfn></code>
+              </dt>
+              <dd>
+                <p>
+                  Registers a class definition derived from
+                  <a>AudioWorkletProcessor</a>.
+                </p>
+                <p>
+                  When the <a><code>registerProcessor(<em>name</em>,
+                  <em>processorConstructor</em>)</code></a> method is called,
+                  the user agent MUST run the following steps:
+                </p>
+                <ol>
+                  <li>If the <code><em>name</em></code> is the empty string,
+                  <span class="synchronous">throw a
+                  <code>NotSupportedError</code> exception and abort these
+                  steps because the empty string is not a valid key</span>.
+                  </li>
+                  <li>If the <code><em>name</em></code> exists as a key in the
+                  <a>node name to processor definition map</a>, <span class=
+                  "synchronous">throw a <code>NotSupportedError</code>
+                  exception and abort these steps</span> because registering a
+                  definition with a duplicated key is not allowed.
+                  </li>
+                  <li>If the result of <code><a href=
+                  "http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
+                    IsConstructor</a>(argument=<em>processorConstructor</em>)</code>
+                    is false, <span class="synchronous">throw a
+                    <code>TypeError</code> and abort these steps</span>.
+                  </li>
+                  <li>Let <code><em>prototype</em></code> be the result of
+                  <code><a href=
+                  "http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+                    Get</a>(O=<em>processorConstructor</em>,
+                    P="prototype")</code>.
+                  </li>
+                  <li>If the result of <code><a href=
+                  "http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
+                    Type</a>(argument=<em>prototype</em>)</code> is not
+                    <code>Object</code>, <span class="synchronous">throw a
+                    <code>TypeError</code> and abort all these steps</span>.
+                  </li>
+                  <li>If the result of <code><a href=
+                  "http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+                    IsCallable</a>(argument=Get(O=<em>prototype</em>,
+                    P="process"))</code> is false, <span class=
+                    "synchronous">throw a <code>TypeError</code> and abort
+                    these steps</span>.
+                  </li>
+                  <li>If the result of <code><a href=
+                  "http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+                    Get</a>(O=<em>processorConstructor</em>,
+                    P="parameterDescriptors")</code> is not an array or
+                    <code>undefined</code>, <span class="synchronous">throw a
+                    <code>TypeError</code> and abort these steps</span>.
+                  </li>
+                  <li>Let <em>definition</em> be a new
+                  <a>AudioWorkletProcessor</a> definition with:
+                    <ul>
+                      <li>node name being <em>name</em>
+                      </li>
+                      <li>processor class constructor being
+                      <em>processorConstructor</em>
+                      </li>
+                    </ul>
+                  </li>
+                  <li>d the key-value pair (<em>name</em> -
+                  <em>definition</em>) to the <a>node name to processor
+                  definition map</a> of the associated
+                  <a>AudioWorkletGlobalScope</a>.
+                  </li>
+                </ol>
+                <p class="note">
+                  The class constructor should only be looked up once, thus it
+                  does not have the opportunity to dynamically change its
+                  definition.
+                </p>
+                <table class="parameters">
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      name
+                    </td>
+                    <td class="prmType">
+                      <a><code>DOMString</code></a>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                      A string key that represents a class definition to be
+                      registered. This key is used to look up the constructor
+                      of <a>AudioWorkletProcessor</a> during construction of an
+                      <a>AudioWorkletNode</a>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      processorCtr
+                    </td>
+                    <td class="prmType">
+                      <a><code>VoidFunction</code></a>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                      A class definition extended from
+                      <a>AudioWorkletProcessor</a>.
+                    </td>
+                  </tr>
+                </table>
+                <div>
+                  <em>Return type:</em> <code>void</code>
+                </div>
+              </dd>
+            </dl>
+          </section>
+        </section>
+        <section>
+          <h2 id="AudioWorkletNode-section">
+            The AudioWorkletNode Interface
+          </h2>
+          <p>
+            This interface represents a user-defined <a>AudioNode</a> which
+            lives on the <a>control thread</a>. The user can create an
+            <a>AudioWorkletNode</a> from an <a>BaseAudioContext</a>, and such a
+            node can be connected with other built-in <a>AudioNode</a>s to form
+            an audio graph.
+          </p>
+          <div class="node-info">
+            <table>
+              <tr>
+                <th>
+                  Property
+                </th>
+                <th>
+                  Value
+                </th>
+                <th>
+                  Notes
+                </th>
+              </tr>
+              <tr>
+                <td>
+                  <a data-link-for="AudioNode">numberOfInputs</a>
+                </td>
+                <td>
+                  1
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>
+                  <a data-link-for="AudioNode">numberOfOutputs</a>
+                </td>
+                <td>
+                  1
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>
+                  <a data-link-for="AudioNode">channelCount</a>
+                </td>
+                <td>
+                  2
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>
+                  <a data-link-for="AudioNode">channelCountMode</a>
+                </td>
+                <td>
+                  "<a data-link-for="channelCountMode">max</a>"
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>
+                  <a data-link-for="AudioNode">channelInterpretation</a>
+                </td>
+                <td>
+                  "<a data-link-for="channelInterpretation">speakers</a>"
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>
+                  <a>tail-time</a> reference
+                </td>
+                <td></td>
+                <td>
+                  Any <a>tail-time</a> is handled by the node itself
+                </td>
+              </tr>
+            </table>
+          </div>
+          <p>
+            Every <a>AudioWorkletNode</a> has an associated <dfn>processor
+            reference</dfn>, initially null, which refers to the
+            <a>AudioWorkletProcessor</a> handling the processing for this node.
+          </p>
+          <p>
+            Every <a>AudioWorkletProcessor</a> has an associated <dfn>active
+            source</dfn> flag, initially <code>true</code>. This flag causes
+            the node to be retained in memory and perform audio processing in
+            the absence of any connected inputs.
+          </p>
+          <pre class="idl">
+[Exposed=Window]
+interface AudioParamMap {
+    readonly maplike&lt;DOMString, AudioParam&gt;;
+};
+          </pre>
+          <p>
+            This interface has "entries", "forEach", "get", "has", "keys",
+            "values", @@iterator methods and a "size" getter brought by
+            <code>readonly maplike</code>.
+          </p>
+          <pre class="idl">
+enum AudioWorkletProcessorState {
+    "pending",
+    "running",
+    "stopped",
+    "error"
+};
+          </pre>
+          <table class="simple" data-dfn-for="AudioWorkletProcessorState"
+          data-link-for="AudioWorkletProcessorState">
+            <tr>
+              <th colspan="2">
+                Enumeration description
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <dfn>pending</dfn>
+              </td>
+              <td>
+                The construction of associated processor has not been
+                completed. In this state, no audio processing can happen and
+                all messages to the processor will be queued.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <dfn>running</dfn>
+              </td>
+              <td>
+                Indicates that the <a>active source</a> flag on the
+                corresponding processor is <code>true</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <dfn>stopped</dfn>
+              </td>
+              <td>
+                Indicates that the <a>active source</a> flag on the
+                corresponding processor is <code>false</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <dfn>error</dfn>
+              </td>
+              <td>
+                When an exception is thrown from the processor's
+                <code>constructor</code>, <code>process</code> method, or any
+                user-defined class method throws an exception. Note that once
+                an <a>AudioWorkletNode</a> reaches to this state, the processor
+                will output silence throughout its lifetime.
+              </td>
+            </tr>
+          </table>
+          <pre class="idl">
+[Exposed=Window,
+ Constructor (BaseAudioContext context, optional AudioWorkletOptions options)]
+interface AudioWorkletNode : AudioNode {
+    readonly        attribute AudioParamMap              parameters;
+    readonly        attribute MessagePort                port;
+    readonly        attribute AudioWorkletProcessorState processorState;
+                    attribute EventHandler               onprocessorstatechange;
+};
+          </pre>
+          <section>
+            <h3>
+              Constructors
+            </h3>
+            <dl class="methods" data-dfn-for="AudioWorkletNode" data-link-for=
+            "AudioWorkletNode">
+              <dt>
+                <code><dfn>AudioWorkletNode</dfn></code>
+              </dt>
+              <dd>
+                <p>
+                  Let <var>node</var> be a new <a>AudioWorkletNode</a> object.
+                  <a href="#audionode-constructor-init">Initialize</a>
+                  <var>node</var>. Perform the <a href=
+                  "#instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
+                  construction procedure</a> of an
+                  <a><code>AudioWorkletNode</code></a> and the corresponding
+                  <a><code>AudioWorkletProcessor</code></a> object. Return
+                  <var>node</var>.
+                </p>
+                <table class="parameters">
+                  <tr>
+                    <th>
+                      Parameter
+                    </th>
+                    <th>
+                      Type
+                    </th>
+                    <th>
+                      Nullable
+                    </th>
+                    <th>
+                      Optional
+                    </th>
+                    <th>
+                      Description
+                    </th>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      context
+                    </td>
+                    <td class="prmType">
+                      <a><code>BaseAudioContext</code></a>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmDesc">
+                      The <a>BaseAudioContext</a> this new
+                      <a>AudioWorkletNode</a> will be <a href=
+                      "#associated">associated</a> with.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="prmName">
+                      options
+                    </td>
+                    <td class="prmType">
+                      <a><code>AudioWorkletOptions</code></a>
+                    </td>
+                    <td class="prmNullFalse">
+                      <span role="img" aria-label="False">✘</span>
+                    </td>
+                    <td class="prmOptTrue">
+                      <span role="img" aria-label="True">✔</span>
+                    </td>
+                    <td class="prmDesc">
+                      Optional initial parameters value for this
+                      <a>AudioWorkletNode</a>.
+                    </td>
+                  </tr>
+                </table>
+              </dd>
+            </dl>
+          </section>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioWorkletNode"
+            data-link-for="AudioWorkletNode">
+              <dt>
+                <code><dfn>onprocessorstatechange</dfn></code> of type
+                <span class=
+                "idlAttrType"><a><code>EventHandler</code></a></span>
+              </dt>
+              <dd>
+                Any state change on the processor will queue a task on the
+                control thread to fire <a>onprocessorstatechange</a> event to
+                the node.
+              </dd>
+              <dt>
+                <code><dfn>parameters</dfn></code> of type <span class=
+                "idlAttrType"><a><code>AudioParamMap</code></a></span>,
+                readonly
+              </dt>
+              <dd>
+                The <code>parameters</code> attribute is a collection of
+                <a>AudioParam</a> objects with associated names. This maplike
+                object is populated from a list of <a>AudioParamDescriptor</a>s
+                in the <a>AudioWorkletProcessor</a> class definition at the
+                instantiation.
+              </dd>
+              <dt>
+                <code><dfn>port</dfn></code> of type <span class=
+                "idlAttrType"><a><code>MessagePort</code></a></span>, readonly
+              </dt>
+              <dd>
+                Every <a>AudioWorkletNode</a> has an associated
+                <code>port</code> which is a <a href=
+                "https://html.spec.whatwg.org/multipage/comms.html#message-ports">
+                MessagePort</a>. It is connected to the port on the
+                corresponding <a>AudioWorkletProcessor</a> object allowing
+                bidirectional communication between a pair of
+                <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
+              </dd>
+              <dt>
+                <code><dfn>processorState</dfn></code> of type <span class=
+                "idlAttrType"><a><code>AudioWorkletProcessorState</code></a></span>,
+                readonly
+              </dt>
+              <dd>
+                Indicates the state of the associated processor. The
+                propagation from the actual processor's <a>active source</a>
+                flag to this property is done by queueing a task.
+              </dd>
+            </dl>
+          </section>
+          <section>
+            <h2 id="AudioWorkletNodeOptions">
+              <dfn>AudioWorkletNodeOptions</dfn>
+            </h2>
+            <p>
+              The <code>AudioWorkletNodeOptions</code> dictionary can be used
+              for the custom initialization of <a><code>AudioNode</code></a>
+              attributes in the <a><code>AudioWorkletNode</code></a>
+              constructor. Entries in this dictionary whose names correspond to
+              <a><code>AudioParam</code></a>s in the class definition of an
+              <a><code>AudioWorkletProcessor</code></a> are used to initialize
+              the parameter values upon the creation of a node.
+            </p>
+            <pre class="idl">
+dictionary AudioWorkletNodeOptions : AudioNodeOptions {
+             unsigned long             numberOfInputs = 1;
+             unsigned long             numberOfOutputs = 1;
+             sequence&lt;unsigned long&gt;    outputChannelCount;
+             record&lt;DOMString, double&gt;  parameterData;
+};
+            </pre>
+            <section>
+              <h3>
+                Dictionary <a>AudioWorkletNodeOptions</a> Members
+              </h3>
+              <dl class="attributes" data-dfn-for="AudioWorkletNodeOptions"
+              data-link-for="AudioWorkletNodeOptions">
+                <dt>
+                  <code><dfn>numberOfInputs</dfn></code> of type <span class=
+                  "idlAttrType"><code>unsigned long</code></span>, defaulting
+                  to 1
+                </dt>
+                <dd>
+                  This is used to initialize the value of <a>AudioNode</a>
+                  <a data-link-for="AudioNode">numberOfInputs</a> attribute.
+                </dd>
+                <dt>
+                  <code><dfn>numberOfOutputs</dfn></code> of type <span class=
+                  "idlAttrType"><code>unsigned long</code></span>, defaulting
+                  to 1
+                </dt>
+                <dd>
+                  This is used to initialize the value of <a>AudioNode</a>
+                  <a data-link-for="AudioNode">numberOfOutputs</a> attribute.
+                </dd>
+                <dt>
+                  <code><dfn>outputChannelCount</dfn></code> of type
+                  <span class="idlAttrType"><code>sequence&lt;unsigned
+                  long&gt;</code></span>
+                </dt>
+                <dd>
+                  This array is used to configure the number of channels in
+                  each output. For example, <code>outputChannelCount: [n,
+                  m]</code> specifies the number of channels in the first
+                  output to <code>n</code> and the second output to
+                  <code>m</code> respectively. <code>IndexSizeError</code> MUST
+                  be thrown if the length of sequence does not match
+                  <a data-link-for=
+                  "AudioWorkletNodeOptions">numberOfOutputs</a>. A
+                  <code>NotSupportedError</code> exception MUST be thrown if a
+                  channel count is not in the valid range of AudioNode's
+                  <a data-link-for="AudioNode">channelCount</a>.
+                </dd>
+                <dt>
+                  <code><dfn>parameterData</dfn></code> of type <span class=
+                  "idlAttrType"><code>record&lt;DOMString,
+                  double&gt;</code></span>
+                </dt>
+                <dd>
+                  This is a list of user-defined key-value pairs that are used
+                  to initialize <a>AudioParam</a> values in
+                  <a>AudioWorkletNode</a>. If the string key of an entry in the
+                  list does not match any name of <a>AudioParam</a> objects in
+                  the node, it is ignored.
+                </dd>
+              </dl>
+            </section>
+            <section>
+              <h3>
+                Configuring Channels with <a>AudioWorkletNodeOptions</a>
+              </h3>
+              <p>
+                With a combination of <a data-link-for=
+                "AudioWorkletNodeOptions">numberOfInputs</a>, <a data-link-for=
+                "AudioWorkletNodeOptions">numberOfOutputs</a> and
+                <a data-link-for=
+                "AudioWorkletNodeOptions">outputChannelCount</a>, various
+                channel configurations can be achieved.
+              </p>
+              <ol>
+                <li>
+                  <a data-link-for="AudioWorkletNodeOptions">numberOfInputs</a>
+                  = 0, <a data-link-for=
+                  "AudioWorkletNodeOptions">numberOfOutputs</a> = 0
+                  <ul>
+                    <li>
+                      <code>NotSupportedError</code> MUST be thrown by the
+                      constructor.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <a data-link-for="AudioWorkletNodeOptions">numberOfInputs</a>
+                  = 1, <a data-link-for=
+                  "AudioWorkletNodeOptions">numberOfOutputs</a> = 1
+                  <ul>
+                    <li>If <a data-link-for=
+                    "AudioWorkletNodeOptions">outputChannelCount</a> is
+                    unspecified, the output channel count will match
+                    <a>computedNumberOfChannels</a> from the input.
+                    </li>
+                  </ul>
+                </li>
+                <li>All other cases
+                  <ul>
+                    <li>If <a data-link-for=
+                    "AudioWorkletNodeOptions">outputChannelCount</a> is
+                    unspecified, it will be mono for all outputs.
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+            </section>
+          </section>
+        </section>
+        <section>
+          <h2 id="instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
+            The instantiation of <a>AudioWorkletNode</a> and
+            <a>AudioWorkletProcessor</a>
+          </h2>
+          <p>
+            When the constructor of <a>AudioWorkletNode</a> is invoked in the
+            main global scope, the corresponding <a>AudioWorkletProcessor</a>
+            instance is automatically created in
+            <a>AudioWorkletGlobalScope</a>. After the construction, they
+            maintain the internal reference to each other until the
+            <a>AudioWorkletNode</a> instance is destroyed.
+          </p>
+          <p>
+            Note that the instantiation of these two objects spans the control
+            thread and the rendering thread.
+          </p>
+          <p>
+            When <a>AudioWorkletNode</a>(<var>context</var>,
+            <var>nodeName</var>, <var>options</var>) constructor is invoked,
+            the user agent MUST perform the following steps on the control
+            thread, where the constructor was called.
+          </p>
+          <ol>
+            <li>Let <var>this</var> be the instance being created by
+            constructor of <a>AudioWorkletNode</a> or its subclass.
+            </li>
+            <li>If <var>nodeName</var> does not exists as a key in the
+            <a>BaseAudioContext</a>’s <a>node name to parameter descriptor
+            map</a>, throw a <code>NotSupportedError</code> exception and abort
+            these steps.
+            </li>
+            <li>Let <var>node</var> be a new <a>AudioWorkletNode</a> object.
+            </li>
+            <li>Let <var>messageChannel</var> be a new <a href=
+            "https://html.spec.whatwg.org/multipage/#message-channels">MessageChannel</a>.
+            </li>
+            <li>Let <var>nodePort</var> be the value of
+            <var>messageChannel</var>'s <code>port1</code> attribute.
+            </li>
+            <li>Let <var>processorPortOnThisSide</var> be the value of
+            <var>messageChannel</var>'s <code>port2</code> attribute.
+            </li>
+            <li>Let <var>processorPortSerialization</var> be <a href=
+            "https://html.spec.whatwg.org/multipage/infrastructure.html#structuredserializewithtransfer">
+              StructuredSerializeWithTransfer</a>(<var>processorPortOnThisSide</var>,
+              « <var>processorPortOnThisSide</var> »).
+            </li>
+            <li>Set <var>node</var>'s <a data-link-for=
+            "AudioWorkletNode">port</a> to <var>nodePort</var>.
+            </li>
+            <li>Let <var>parameterDescriptors</var> be the result of retrieval
+            of <var>nodeName</var> from <a>node name to parameter descriptor
+            map</a>:
+              <ol>
+                <li>Let <var>audioParamMap</var> be a new <a>AudioParamMap</a>
+                object.
+                </li>
+                <li>For each <var>descriptor</var> of
+                <var>parameterDescriptors</var>:
+                  <ol>
+                    <li>Let <var>paramName</var> be the value of
+                    <var>descriptor</var>'s <a data-link-for=
+                    "AudioParamDescriptor">name</a>.
+                    </li>
+                    <li>Let <var>audioParam</var> be a new <a>AudioParam</a>
+                    instance.
+                    </li>
+                    <li>Append (<var>paramName</var>, <var>audioParam</var>) to
+                    <var>audioParamMap</var>'s entries.
+                    </li>
+                  </ol>
+                </li>
+                <li>For each <var>paramNameInOption</var> → <var>value</var> of
+                <var>options</var>:
+                  <ol>
+                    <li>If there exists an entry with name member equal to
+                    <var>paramNameInOption</var> inside
+                    <var>audioParamMap</var>, set that <a>AudioParam</a>'s
+                    value to <var>value</var>.
+                    </li>
+                    <li>
+                      <var>paramNameInOption</var> will be ignored when:
+                      <ul>
+                        <li>
+                          <var>audioParamMap</var> does not have any entry with
+                          the same name member.
+                        </li>
+                        <li>
+                          <var>value</var> is not a type of <code>Number</code>
+                          or out of the range specified in
+                          <a>AudioParamDescriptor</a>.
+                        </li>
+                      </ul>
+                    </li>
+                  </ol>
+                </li>
+                <li>Set <var>node</var>'s <a data-link-for="AudioWorkletNode">
+                  parameters</a> to <var>audioParamMap</var>.
+                </li>
+              </ol>
+            </li>
+            <li>
+              <a href="#queuing">Queue a control message</a> to create an
+              <a>AudioWorkletProcessor</a>, given <var>nodeName</var>,
+              <var>processorPortSerialization</var>, and <var>node</var>.
+            </li>
+            <li>Return <var>node</var>.
+            </li>
+          </ol>
+          <p>
+            In order to process a control message for the construction of an
+            <a>AudioWorkletProcessor</a>, given a string <var>nodeName</var>, a
+            serialization record <var>processorPortSerialization</var>, and an
+            <a>AudioWorkletNode</a> <var>node</var>, perform the following
+            steps on the <a>rendering thread</a>. If any of these steps throws
+            an exception (either explicitly or implicitly), abort the rest of
+            steps and queue a task on the <a>control thread</a> to fire
+            <a data-link-for=
+            "AudioWorkletNode"><code>onprocessorstatechange</code></a> event to
+            <var>node</var> with <code>error</code> state.
+          </p>
+          <ol>
+            <li>Let <var>processorPort</var> be <a href=
+            "https://html.spec.whatwg.org/multipage/infrastructure.html#structureddeserializewithtransfer">
+              StructuredDeserializeWithTransfer</a>(<var>processorPortSerialization</var>,
+              the current Realm).
+            </li>
+            <li>Let <var>processorConstructor</var> be the result of looking up
+            <var>nodeName</var> on the <a>AudioWorkletGlobalScope</a>'s <a>node
+            name to processor definition map</a>.
+            </li>
+            <li>If <var>processorConstructor</var> is <code>undefined</code>,
+            throw a <code>NotSupportedError</code> DOMException.
+            </li>
+            <li>Let <var>processor</var> be the result of
+            Construct(<var>processorConstructor</var>).
+            </li>
+            <li>If <var>processor</var> does not implement the
+            <a>AudioWorkletProcessor</a> interface, throw an
+            <code>"InvalidStateError"</code> DOMException.
+            </li>
+            <li>Set <var>processor</var>'s <a data-link-for=
+            "AudioWorkletProcessor">port</a> to <var>processorPort</var>.
+            </li>
+            <li>Set <var>processor</var>'s <a>node reference</a> to
+            <var>node</var>.
+            </li>
+            <li>Set <var>node</var>'s <a>processor reference</a> to
+            <var>processor</var>.
+            </li>
+            <li>Queue a task the <a>control thread</a> to set the associated
+            <a>AudioWorkletNode</a>'s state to <code>running</code>, then fire
+            a <code>statechange</code> event.
+            </li>
+          </ol>
+        </section>
+        <section class="informative">
+          <h2 id="AudioWorklet-Sequence">
+            AudioWorklet Sequence of Events
+          </h2>
+          <p>
+            The following figure illustrates an idealized sequence of events
+            occurring relative to an <a>AudioWorklet</a>:
+          </p>
+          <figure>
+            <img alt="AudioWorklet sequence" src=
+            "images/audioworklet-instantiation-sequence.png" width="784"
+            height="427">
+            <figcaption>
+              <a>AudioWorklet</a> sequence
+            </figcaption>
+          </figure>
+          <p>
+            The steps depicted in the diagram are one possible sequence of
+            events involving the creation of an <a>AudioContext</a> and an
+            associated <a>AudioWorkletGlobalScope</a>, followed by the creation
+            of an <a>AudioWorkletNode</a> and its associated
+            <a>AudioWorkletProcessor</a>.
+          </p>
+          <ol>
+            <li>In the main scope, <code>window.audioWorklet</code> is
+            requested to import a script. No <a>AudioWorkletGlobalScope</a>s
+            exist yet, so the script is fetched and added to the Worklet module
+            responses map.
+            </li>
+            <li>An <a>AudioContext</a> is created.
+            </li>
+            <li>An <a>AudioWorkletGlobalScope</a> is created in association
+            with the context's audio rendering thread. This is the global scope
+            in which <a>AudioWorkletProcessor</a> class definitions will be
+            evaluated.
+            </li>
+            <li>As part of the global scope's initialization, the set of
+            imported scripts is run, including the one that was previously
+            imported.
+            </li>
+            <li>As part of running the imported script, an
+            <a>AudioWorkletProcessor</a> is registered under the key
+            <code>"Custom1"</code> within the <a>AudioWorkletGlobalScope</a>.
+            </li>
+            <li>In the main scope, an <a>AudioWorkletNode</a> is created using
+            the key <code>"Custom1"</code> along with an <code>opts</code>
+            dictionary of options.
+            </li>
+            <li>As part of the node's creation, this key is used to look up the
+            correct <a>AudioWorkletProcessor</a> subclass for instantiation.
+            </li>
+            <li>An instance of the <a>AudioWorkletProcessor</a> subclass is
+            instantiated with a structured clone of the same <code>opts</code>
+            dictionary. This instance is paired with the previously created <a>
+              AudioWorkletNode</a>.
+            </li>
+          </ol>
+        </section>
+        <section class="informative">
+          <h2 id="AudioWorklet-Examples">
+            AudioWorklet Examples
+          </h2>
+          <section>
+            <h3>
+              The BitCrusher Node
+            </h3>
+            <p>
+              Bitcrushing is a mechanism by which the quality of an audio
+              stream is reduced both by quantizing the sample value (simulating
+              a lower bit-depth), and by quantizing in time resolution
+              (simulating a lower sample rate). This example shows how to use
+              <a><code>AudioParam</code></a>s (in this case, treated as
+              <a>a-rate</a>) inside an
+              <a><code>AudioWorkletProcessor</code></a>.
+            </p>
+            <pre class="example" title="BitCrusher - Global Scope">
+window.audioWorklet.addModule('bitcrusher.js').then(function () {
+  let context = new AudioContext();
+  let osc = new OscillatorNode(context);
+  let amp = new GainNode(context);
+
+  // Create a worklet node. 'BitCrusher' identifies the
+  // AudioWorkletProcessor previously registered when
+  // bitcrusher.js was imported. The options automatically
+  // initialize the correspondingly named AudioParams.
+  let bitcrusher = new AudioWorkletNode(context, 'BitCrusher', {
+    bitDepth: 8,
+    frequencyReduction: 0.5
+  });
+
+  osc.connect(bitcrusher).connect(amp).connect(context.destination);
+  osc.start();
+});
+</pre>
+            <pre class="example" title=
+            "BitCrusher - AudioWorkletGlobalScope (bitcrusher.js)">
+registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
+
+  static get parameterDescriptors () {
+    return [{
+      name: 'bitDepth',
+      defaultValue: 12,
+      minValue: 1,
+      maxValue: 16
+    }, {
+      name: 'frequencyReduction',
+      defaultValue: 0.5,
+      minValue: 0,
+      maxValue: 1
+    }];
+  }
+
+  constructor (options) {
+    // We don't need to look at options: only AudioParams are initialized,
+    // which were taken care of by the node.
+    super(options);
+    this._phase = 0;
+    this._lastSampleValue = 0;
+  }
+
+  process (inputs, outputs, parameters) {
+    let input = inputs[0];
+    let output = outputs[0];
+    let bitDepth = parameters.bitDepth;
+    let frequencyReduction = parameters.frequencyReduction;
+
+    for (let channel = 0; channel &lt; output.length; ++channel) {
+      for (let i = 0; i &lt; output[channel].length; ++i) {
+        let step = Math.pow(0.5, bitDepth[i]);
+        this._phase += frequencyReduction[i];
+        if (this._phase &gt;= 1.0) {
+          this._phase -= 1.0;
+          this._lastSampleValue =
+            step * Math.floor(input[channel][i] / step + 0.5);
+        }
+        output[channel][i] = this._lastSampleValue;
+      }
+    }
+
+    // No need to return a value; this node's lifetime is dependent only on its
+    // input connections.
+  }
+
+});
+</pre>
+            <div class="note">
+              <p>
+                In the definition of <a>AudioWorkletProcessor</a> class, an
+                <code>InvalidStateError</code> will be thrown if the
+                author-supplied constructor uses JavaScript's return-override
+                feature, or does not properly call <code>super()</code>.
+              </p>
+            </div>
+          </section>
+          <section>
+            <h3>
+              VU Meter Node
+            </h3>
+            <p>
+              This example of a simple sound level meter further illustrates
+              how to create an <a><code>AudioWorkletNode</code></a> subclass
+              that acts like a native <a><code>AudioNode</code></a>, accepting
+              constructor options and encapsulating the inter-thread
+              communication (asynchronous) between
+              <a><code>AudioWorkletNode</code></a> and
+              <a><code>AudioWorkletProcessor</code></a> in clean method calls
+              and attribute accesses. This node does not use any output.
+            </p>
+            <pre class="example" title=
+            "VUMeterNode - Global Scope (vumeternode.js)">
+class VUMeterNode extends AudioWorkletNode {
+
+  constructor (context, options) {
+    // Setting default values for the input, the output and the channel count.
+    options.numberOfInputs = 1;
+    options.numberOfOutputs = 0;
+    options.channelCount = 1;
+    options.updatingInterval = options.hasOwnProperty('updatingInterval')
+      ? options.updatingInterval
+      : 100;
+
+    super(context, 'VUMeter', options);
+
+    // States in AudioWorkletNode
+    this._updatingInterval = options.updatingInterval;
+    this._volume = 0;
+
+    // Handles updated values from AudioWorkletProcessor
+    this.port.onmessage = event =&gt; {
+      if (event.data.volume)
+        this._volume = event.data.volume;
+    }
+    this.port.start();
+  }
+
+  get updatingInterval() {
+    return this._updatingInterval;
+  }
+
+  set updatingInterval (intervalValue) {
+    this._updatingInterval = intervalValue;
+    this.port.postMessage({ updatingInterval: intervalValue });
+  }
+
+  draw () {
+    /* Draw the meter based on the volume value. */
+  }
+
+}
+
+// The application can use the node when this promise resolves.
+let importAudioWorkletNode = window.audioWorklet.addModule('vumeterprocessor.js');
+</pre>
+            <pre class="example" title=
+            "VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
+registerProcessor('VUMeter', class extends AudioWorkletProcessor {
+
+  static meterSmoothingFactor = 0.9;
+  static meterMinimum = 0.00001;
+
+  constructor (options) {
+    super(options);
+    this._volume = 0;
+    this._updatingInterval = options.updatingInterval;
+    this._nextUpdateFrames = this.interval;
+
+    this.port.onmessage = event =&gt; {
+      if (event.data.updatingInterval)
+        this._updatingInterval = event.data.updatingInterval;
+    }
+    this.port.start();
+  }
+
+  get interval () {
+    return this._updatingInterval / 1000 * sampleRate;
+  }
+
+  process (inputs, outputs, parameters) {
+    // Note that the input will be down-mixed to mono; however, if no inputs are
+    // connected then zero channels will be passed in.
+    if (inputs[0].length &gt; 0) {
+      let buffer = inputs[0][0];
+      let bufferLength = buffer.length;
+      let sum = 0, x = 0, rms = 0;
+
+      // Calculated the squared-sum.
+      for (let i = 0; i &lt; bufferLength; ++i) {
+        x = buffer[i];
+        sum += x * x;
+      }
+
+      // Calculate the RMS level and update the volume.
+      rms =  Math.sqrt(sum / bufferLength);
+      this.volume = Math.max(rms, this._volume * meterSmoothingFactor);
+
+      // Update and sync the volume property with the main thread.
+      this._nextUpdateFrame -= bufferLength;
+      if (this._nextUpdateFrame &lt; 0) {
+        this._nextUpdateFrame += this.interval;
+        this.port.postMessage({ volume: this._volume });
+      }
+    }
+
+    // Keep on processing if the volume is above a threshold, so that
+    // disconnecting inputs does not immediately cause the meter to stop
+    // computing its smoothed value.
+    return this._volume &gt;= meterMinimum;
+  }
+
+});
+</pre>
+            <pre class="example" title=
+            "VUMeterNode - Global Scope (main HTML file)">
+&lt;script src="vumeternode.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  importAudioWorkletNode.then(function () {
+    let context = new AudioContext();
+    let oscillator = new Oscillator(context);
+    let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
+
+    oscillator.connect(vuMeterNode);
+
+    function drawMeter () {
+      vuMeterNode.draw();
+      requestAnimationFrame(drawMeter);
+    }
+
+    drawMeter();
+  });
+&lt;/script&gt;
+</pre>
           </section>
         </section>
       </section>

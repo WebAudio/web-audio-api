@@ -53,7 +53,9 @@ This document is governed by the 1 September 2015 W3C Process Document.
 
 ## Link to group's decision to request transition
 
-@@ once decision taken @@
+RESOLUTION: move Web Audio 1.0 to Candidate Recommendation
+
+https://www.w3.org/2017/10/19-audio-minutes.html#item02
 
 ## Changes
 
@@ -131,11 +133,11 @@ The issues list is on GitHub:
 
 https://github.com/WebAudio/web-audio-api/issues
 
-There are currently 91 open issues and 767 closed. Of those
+There are currently 77 open issues and 833 closed. 
 
-Of those, 67 were feature requests that were [deferred to the next version](https://github.com/WebAudio/web-audio-api/milestone/2)
+Of those, 81 were feature requests that were [deferred to the next version](https://github.com/WebAudio/web-audio-api/milestone/2)
 
-WebAudio v.1 has [13 open issues and 331 closed](https://github.com/WebAudio/web-audio-api/milestone/1)
+WebAudio v.1 has [4 open issues and 364 closed](https://github.com/WebAudio/web-audio-api/milestone/1); the remaining 4 issues are all agreed by the WG, have PR, and are being merged in the next couple of days.
 
 ## Formal Objections
 
@@ -151,15 +153,19 @@ A draft implementation report is available:
 
 https://webaudio.github.io/web-audio-api/implementation-report.html
 
-The Working Group expects to demonstrate 2 implementations of the
-features listed in this specification by the end of the Candidate
-Recommendation phase.
-
 There are no features at risk.
 
 A test suite is in progress and available at
  https://github.com/w3c/web-platform-tests/tree/master/webaudio
 
+Mojitests from Mozilla are being converted to WPT format and will be pushed upstream to the WPR repo. These are all upstream reviewed.
+Google also has extensive tests; these have all been converted to WPT format and are being pushed to WPT. These are all upstream reviewed.
+
+During the CR period, the WG expects to remove any test duplication and look for any untested areas.
+
+The Working Group expects to demonstrate 2 implementations of the
+features listed in this specification by the end of the Candidate
+Recommendation phase.
 
 ## Patent disclosures
 

@@ -81,7 +81,7 @@ the majority of the use cases listed there are met by Web Audio API. Speed chang
 
 ## Dependencies met (or not)
 
-This specification depends on on the Worklets Working Draft and WebRTC. 
+This specification depends on on the [Worklets Working Draft](https://www.w3.org/TR/worklets-1/) and [WebRTC](https://www.w3.org/TR/webrtc/). 
 Worklets is being implemented in Blink and in Firefox, and is believed stable. 
 Web Audio tests for AudioWorklet will help test Worklet as well.
 

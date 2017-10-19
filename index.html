@@ -18534,6 +18534,279 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
           </section>
         </section>
         <section>
+          <h2 id="AudioWorkletProcessor">
+            The <dfn>AudioWorkletProcessor</dfn> Interface
+          </h2>
+          <p>
+            This interface represents an audio processing code that runs on the
+            audio <a>rendering thread</a>. It lives in an
+            <a><code>AudioWorkletGlobalScope</code></a> and the definition of
+            the class manifests the actual audio processing mechanism of a
+            custom audio node. <a><code>AudioWorkletProcessor</code></a> can
+            only be instantiated by the construction of an
+            <a><code>AudioWorkletNode</code></a> instance. Every
+            <a>AudioWorkletProcessor</a> has an associated <dfn>node
+            reference</dfn>, initially null.
+          </p>
+          <pre class="idl">
+[Exposed=AudioWorklet]
+interface AudioWorkletProcessor {
+    readonly        attribute MessagePort port;
+};
+          </pre>
+          <section>
+            <h3>
+              Attributes
+            </h3>
+            <dl class="attributes" data-dfn-for="AudioWorkletProcessor"
+            data-link-for="AudioWorkletProcessor">
+              <dt>
+                <code><dfn>port</dfn></code> of type <span class=
+                "idlAttrType"><a><code>MessagePort</code></a></span>, readonly
+              </dt>
+              <dd>
+                Every <a>AudioWorkletProcessor</a> has an associated
+                <code>port</code> which is a <a href=
+                "https://html.spec.whatwg.org/multipage/comms.html#message-ports">
+                MessagePort</a>. It is connected to the port on the
+                corresponding <a>AudioWorkletProcessor</a> object allowing
+                bidirectional communication between a pair of
+                <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
+              </dd>
+            </dl>
+          </section>
+          <section>
+            <h2 id="defining-a-valid-audioworkletprocessor">
+              Defining A Valid AudioWorkletProcessor
+            </h2>
+            <p>
+              User can define a custom audio processor by extending
+              <a>AudioWorkletProcessor</a>. The subclass MUST define a method
+              named <code>process()</code> that implements the audio processing
+              algorithm and have a valid static property named
+              <code><dfn>parameterDescriptors</dfn></code> which is an iterable
+              of <a>AudioParamDescriptor</a> that is looked up by the
+              <a>AudioWorkletProcessor</a> constructor to create instances of
+              <a>AudioParam</a> in the <code>parameters</code> maplike storage
+              in the node. The step 5 and 6 of <a data-link-for=
+              "AudioWorkletGlobalScope">registerProcessor()</a> ensure the
+              validity of a given <a>AudioWorkletProcessor</a> subclass.
+            </p>
+            <p>
+              An example of a valid subclass is as follows:
+            </p>
+            <pre class="example" title="Subclassing AudioWorkletProcessor">
+class MyProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [{
+      name: 'myParam',
+      defaultValue: 0.5,
+      minValue: 0,
+      maxValue: 1
+    }];
+  }
+
+  process(inputs, outputs, parameters) {
+    // Get the first input and output.
+    var input = inputs[0];
+    var output = outputs[0];
+    var myParam = parameters.myParam;
+
+    // A simple amplifier for single input and output.
+    for (var channel = 0; channel &lt; output.length; ++channel) {
+      for (var i = 0; i &lt; output[channel].length; ++i) {
+        output[channel][i] = input[channel][i] * myParam[i];
+      }
+    }
+  }
+}
+</pre>
+            <p>
+              The <code>process()</code> method is called synchronously by the
+              audio <a>rendering thread</a> at every <a>render quantum</a>, if
+              ANY of the following <dfn>active processing conditions</dfn> are
+              true:
+            </p>
+            <ol>
+              <li>The associated <a>AudioWorkletProcessor</a>'s <a>active
+              source</a> flag is equal to <code>true</code>.
+              </li>
+              <li>There are one or more connected inputs to the
+              <a>AudioWorkletNode</a>.
+              </li>
+            </ol>
+            <p>
+              The method is invoked with the following arguments:
+            </p>
+            <ol>
+              <li>
+                <p>
+                  <code>inputs</code> of type
+                  <code>sequence&lt;sequence&lt;Float32Array&gt;&gt;</code><br>
+                  The input audio buffer from the incoming connections provided
+                  by the user agent. <code>inputs[n][m]</code> is a
+                  <code>Float32Array</code> of audio samples for the
+                  <code>m</code>th channel of <code>n</code>th input. While the
+                  number of inputs is fixed at construction, the number of
+                  channels can be changed dynamically based on
+                  <a>computedNumberOfChannels</a>.
+                </p>
+                <p>
+                  If no connections exist to the <code>n</code>th input of the
+                  node during the current render quantum, then the content of
+                  <code>inputs[n]</code> is an empty array, indicating that
+                  zero channels of input are available. This is the only
+                  circumstance under which the number of elements of
+                  <code>inputs[n]</code> can be zero.
+                </p>
+              </li>
+              <li>
+                <code>outputs</code> of type
+                <code>sequence&lt;sequence&lt;Float32Array&gt;&gt;</code><br>
+                The output audio buffer that is to be consumed by the user
+                agent. <code>outputs[n][m]</code> is a
+                <code>Float32Array</code> object containing the audio samples
+                for <code>m</code>th channel of <code>n</code>th output. The
+                number of channels in the output will match
+                <a>computedNumberOfChannels</a> only when the node has single
+                output.
+              </li>
+              <li>
+                <code>parameters</code> of type <code>Object</code><br>
+                A map of string keys and associated <code>Float32Array</code>s.
+                <code>parameters["name"]</code> corresponds to the automation
+                values of the <a><code>AudioParam</code></a> named
+                <code>"name"</code>.
+              </li>
+            </ol>
+            <p>
+              The return value of this method controls the lifetime of the
+              <a>AudioWorkletProcessor</a>'s associated
+              <a>AudioWorkletNode</a>. At the conclusion of each call to the
+              <code>process()</code> method, if the result of applying <a href=
+              "https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a>
+              (described in [[!ECMASCRIPT]]) to the return value is assigned to
+              the associated <a>AudioWorkletProcessor</a>'s <a>active
+              source</a> flag. This in turn can affects whether subsequent
+              invocations of <code>process()</code> occur and also the flag
+              change is propagated by <a href="#queue">queueing a task</a> on
+              the control thread to update the corresponding
+              <a>AudioWorkletNode</a>'s <code>state</code> property
+              accordingly.
+            </p>
+            <div class="note">
+              This lifetime policy can support a variety of approaches found in
+              built-in nodes, including the following:
+              <ul>
+                <li>Nodes that transform their inputs, and are active only
+                while connected inputs and/or script references exist. Such
+                nodes SHOULD return <code>false</code> from
+                <code>process()</code> which allows the presence or absence of
+                connected inputs to determine whether active processing occurs.
+                </li>
+                <li>Nodes that transform their inputs, but which remain active
+                for a <a>tail-time</a> after their inputs are disconnected. In
+                this case, <code>process()</code> SHOULD return
+                <code>true</code> for some period of time after
+                <code>inputs</code> is found to contain zero channels. The
+                current time may be obtained from the global scope's
+                <a data-link-for="AudioWorkletGlobalScope">currentTime</a> to
+                measure the start and end of this tail-time interval, or the
+                interval could be calculated dynamically depending on the
+                processor's internal state.
+                </li>
+                <li>Nodes that act as sources of output, typically with a
+                lifetime. Such nodes SHOULD return <code>true</code> from
+                <code>process()</code> until the point at which they are no
+                longer producing an output.
+                </li>
+              </ul>Note that the preceding definition implies that when no
+              return value is provided from an implementation of
+              <code>process()</code>, the effect is identical to returning
+              <code>false</code> (since the effective return value is the falsy
+              value <code>undefined</code>). This is a reasonable behavior for
+              any <a>AudioWorkletProcessor</a> that is active only when it has
+              active inputs.
+            </div>
+            <p>
+              If <code>process()</code> is not called during some rendering
+              quantum due to the lack of any applicable <a>active processing
+              conditions</a>, the result is is as if the processor emitted
+              silence for this period.
+            </p>
+          </section>
+          <section>
+            <h2 id="AudioParamDescriptor">
+              <dfn>AudioParamDescriptor</dfn>
+            </h2>
+            <p>
+              The <code>AudioParamDescriptor</code> dictionary is used to
+              specify properties for an <a><code>AudioParam</code></a> object
+              that is used in an <a><code>AudioWorkletNode</code></a>.
+            </p>
+            <pre class="idl">
+dictionary AudioParamDescriptor {
+    required DOMString name;
+             float     defaultValue = 0;
+             float     minValue = -3.4028235e38;
+             float     maxValue = 3.4028235e38;
+};
+            </pre>
+            <section>
+              <h3>
+                Dictionary <a>AudioParamDescriptor</a> Members
+              </h3>
+              <dl class="attributes" data-dfn-for="AudioParamDescriptor"
+              data-link-for="AudioParamDescriptor">
+                <dt>
+                  <code><dfn>defaultValue</dfn></code> of type <span class=
+                  "idlAttrType"><code>float</code></span>, defaulting to 0
+                </dt>
+                <dd>
+                  Represents the default value of the parameter. If this value
+                  is out of the range of float data type or the range defined
+                  by <code>minValue</code> and <code>maxValue</code>, an
+                  <code>NotSupportedError</code> exception MUST be thrown.
+                </dd>
+                <dt>
+                  <code><dfn>maxValue</dfn></code> of type <span class=
+                  "idlAttrType"><code>float</code></span>, defaulting to
+                  3.4028235e38
+                </dt>
+                <dd>
+                  Represents the maximum value. An
+                  <code>NotSupportedError</code> exception MUST be thrown if
+                  this value is out of range of float data type or it is
+                  smaller than <code>minValue</code>. This value is the most
+                  positive finite single precision floating-point number.
+                </dd>
+                <dt>
+                  <code><dfn>minValue</dfn></code> of type <span class=
+                  "idlAttrType"><code>float</code></span>, defaulting to
+                  -3.4028235e38
+                </dt>
+                <dd>
+                  Represents the minimum value. An
+                  <code>NotSupportedError</code> exception MUST be thrown if
+                  this value is out of range of float data type or it is
+                  greater than <code>maxValue</code>. This value is the most
+                  negative finite single precision floating-point number.
+                </dd>
+                <dt>
+                  <code><dfn>name</dfn></code> of type <span class=
+                  "idlAttrType"><code>DOMString</code></span>, required
+                </dt>
+                <dd>
+                  Represents the name of a parameter. An
+                  <code>NotSupportedError</code> exception MUST be thrown when
+                  a duplicated name is found when registering the class
+                  definition.
+                </dd>
+              </dl>
+            </section>
+          </section>
+        </section>
+        <section>
           <h2 id="instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
             The instantiation of <a>AudioWorkletNode</a> and
             <a>AudioWorkletProcessor</a>

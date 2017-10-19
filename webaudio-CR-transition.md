@@ -137,7 +137,7 @@ There are currently 77 open issues and 833 closed.
 
 Of those, 81 were feature requests that were [deferred to the next version](https://github.com/WebAudio/web-audio-api/milestone/2)
 
-WebAudio v.1 has [4 open issues and 364 closed](https://github.com/WebAudio/web-audio-api/milestone/1); the remaining 4 issues are all agreed by the WG, have PR, and are being merged in the next couple of days.
+WebAudio v.1 has [3 open issues and 365 closed](https://github.com/WebAudio/web-audio-api/milestone/1); the remaining 3 issues are all agreed by the WG, have PR, and are being merged in the next couple of days.
 
 ## Formal Objections
 

@@ -1785,6 +1785,8 @@ interface BaseAudioContext : EventTarget {
                 (described in [[!ECMASCRIPT]]) on <a>audioData</a> is
                 <code>false</code>, execute the following steps:
                   <ol>
+                    <li>Append <var>promise</var> to <a>pendingPromises</a>.
+                    </li>
                     <li>
                       <a href=
                       "https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
@@ -1814,7 +1816,7 @@ interface BaseAudioContext : EventTarget {
                 When queuing a decoding operation to be performed on another
                 thread, the following steps MUST happen on a thread that is not
                 the <a>control thread</a> nor the <a>rendering thread</a>,
-                called the <em>decoding thread</em>.
+                called the <dfn>decoding thread</dfn>.
               </p>
               <div class="note">
                 Multiple <em>decoding threads</em> can run in parallel to
@@ -1969,8 +1971,8 @@ interface BaseAudioContext : EventTarget {
                 </li>
                 <li>If the <a>BaseAudioContext</a> is not <a>allowed to
                 start</a>, append <em>promise</em> to
-                <a>pendingResumePromises</a> and abort these steps, returning
-                <em>promise</em>.
+                <a>pendingResumePromises</a> and <a>pendingPromises</a> and
+                abort these steps, returning <em>promise</em>.
                 </li>
                 <li>Set the <em>control thread state</em> flag on the
                 <a>BaseAudioContext</a> to <code>running</code>.
@@ -2001,7 +2003,9 @@ interface BaseAudioContext : EventTarget {
                 thread</a> to execute the following, and abort these steps
                   <ol>
                     <li>Reject all promises from <a>pendingResumePromises</a>
-                    in order, then clear <a>pendingResumePromises</a>.
+                    in order, then clear <a>pendingResumePromises</a>
+                    Additionally, remove those promises from
+                    <a>pendingPromises</a>.
                     </li>
                     <li>Reject <em>promise</em>.
                     </li>
@@ -2012,6 +2016,8 @@ interface BaseAudioContext : EventTarget {
                   <ol>
                     <li>Resolve all promises from <a>pendingResumePromises</a>
                     in order, then clear <a>pendingResumePromises</a>.
+                    Additionally, remove those promises from
+                    <a>pendingPromises</a>.
                     </li>
                     <li>Resolve <em>promise</em>.
                     </li>
@@ -2236,6 +2242,16 @@ interface AudioContext : BaseAudioContext {
             </dt>
             <dd>
               <p>
+                If the <a href=
+                "https://html.spec.whatwg.org/#concept-current-everything">current
+                settings object</a>'s <a href=
+                "https://html.spec.whatwg.org/#responsible-document">responsible
+                document</a> is NOT <a href=
+                "https://html.spec.whatwg.org/multipage/browsers.html#fully-active">
+                fully active</a>, throw an <code>InvalidStateError</code> and
+                abort these steps.
+              </p>
+              <p>
                 <span class="synchronous">When creating an <a>AudioContext</a>,
                 execute these steps:</span>
               </p>
@@ -2248,6 +2264,9 @@ interface AudioContext : BaseAudioContext {
                 </li>
                 <li>Let <dfn>pendingResumePromises</dfn> be an empty ordered
                 list of promises.
+                </li>
+                <li>Let <dfn>pendingPromises</dfn> be an empty ordered list of
+                promises.
                 </li>
                 <li>If <code>contextOptions</code> is given, apply the options:
                   <ol>
@@ -2442,11 +2461,13 @@ interface AudioContext : BaseAudioContext {
                 of the <a>AudioContext</a> is already <code>closed</code>,
                 resolve <em>promise</em>, return it, and abort these steps.
                 </li>
+                <li>Append <em>promise</em> to <a>pendingPromises</a>.
+                </li>
                 <li>Set the <em>control thread state</em> flag on the
                 <a>AudioContext</a> to <code>closed</code>.
                 </li>
                 <li>
-                  <a href="#queue">Queue a control message</a> to the
+                  <a href="#queue">Queue a control message</a> to close the
                   <a>AudioContext</a>.
                 </li>
                 <li>Return <em>promise</em>.
@@ -2462,7 +2483,16 @@ interface AudioContext : BaseAudioContext {
                 </li>
                 <li>Set the <a>rendering thread state</a> to
                 <code>suspended</code>.
+                  <div class="note">
+                    This will stop rendering.
+                  </div>
                 </li>
+                <li>If this <a>control message</a> is being run in reaction to
+                the document is being unloaded, abort this algorithm
+                </li>
+                <div class="note">
+                  We don't have to notify the control thread in this case.
+                </div>
                 <li>Queue a task on the <a>control thread</a>'s event loop, to
                 execute these steps:
                   <ol>
@@ -2787,6 +2817,8 @@ interface AudioContext : BaseAudioContext {
                 of the <a>AudioContext</a> is already <code>suspended</code>,
                 resolve <em>promise</em>, return it, and abort these steps.
                 </li>
+                <li>Append <em>promise</em> to <a>pendingPromises</a>.
+                </li>
                 <li>Set the <em>control thread state</em> flag on the
                 <a>AudioContext</a> to <code>suspended</code>.
                 </li>
@@ -2993,6 +3025,16 @@ interface OfflineAudioContext : BaseAudioContext {
               <code><dfn>OfflineAudioContext</dfn></code>
             </dt>
             <dd>
+              <p>
+                If the <a href=
+                "https://html.spec.whatwg.org/#concept-current-everything">current
+                settings object</a>'s <a href=
+                "https://html.spec.whatwg.org/#responsible-document">responsible
+                document</a> is NOT <a href=
+                "https://html.spec.whatwg.org/multipage/browsers.html#fully-active">
+                fully active</a>, throw an <code>InvalidStateError</code> and
+                abort these steps.
+              </p>
               <p>
                 Let <var>c</var> be a new <a>OfflineAudioContext</a> object.
                 Initialize <var>c</var> as follows:
@@ -3226,6 +3268,8 @@ interface OfflineAudioContext : BaseAudioContext {
                 </li>
                 <li>Otherwise, in the case that the buffer was successfully
                 constructed, <a>begin offline rendering</a>.
+                </li>
+                <li>Append <var>promise</var> to <a>pendingPromises</a>.
                 </li>
                 <li>Return <var>promise</var>.
                 </li>
@@ -19632,6 +19676,30 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
               buffer</a> and the value(s) of the <a>AudioParam</a>(s) of this
               <a>AudioNode</a> as the input for this algorithm.
             </p>
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2>
+          Unloading a document
+        </h2>
+        <p>
+          Additional <a href=
+          "https://html.spec.whatwg.org/#unloading-document-cleanup-steps">unloading
+          document cleanup steps</a> are defined for document that uses
+          <a>BaseAudioContext</a>:
+        </p>
+        <ul>
+          <li>Reject all the promises of <a>pendingPromises</a> with
+          <code>InvalidStateError</code>, for each <a>AudioContext</a> and <a>
+            OfflineAudioContext</a> whose relevant global object is the same as
+            the document's associated Window.
+          </li>
+          <li>Stop all <a>decoding thread</a>s
+          </li>
+          <li>
+            <a href="#queue">Queue a control message</a> to close the
+            <a>AudioContext</a>.
           </li>
         </ul>
       </section>

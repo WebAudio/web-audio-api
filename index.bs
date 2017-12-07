@@ -678,6 +678,8 @@ interface BaseAudioContext : EventTarget {
 	readonly attribute double currentTime;
 	readonly attribute AudioListener listener;
 	readonly attribute AudioContextState state;
+	[SameObject, SecureContext]
+	readonly attribute AudioWorklet audioWorklet;
 	Promise<void> resume ();
 	attribute EventHandler onstatechange;
 	AudioBuffer createBuffer (unsigned long numberOfChannels, unsigned long length, float sampleRate);
@@ -710,6 +712,13 @@ interface BaseAudioContext : EventTarget {
 Attributes</h4>
 
 <dl dfn-type=attribute dfn-for=BaseAudioContext>
+	: <dfn>audioWorklet</dfn>
+	::
+		Allows access to the <code>Worklet</code> object that can import
+		a script containing {{AudioWorkletProcessor}}
+		class definitions via the algorithms defined by [[!worklets-1]]
+		and {{BaseAudioContext/AudioWorklet}}.
+
 	: <dfn>currentTime</dfn>
 	::
 		This is the time in seconds of the sample frame immediately
@@ -9169,6 +9178,12 @@ Dictionary {{WaveShaperOptions}} Members</h5>
 <h3 interface lt="AudioWorklet">
 The {{AudioWorklet}} Interface</h3>
 
+<pre class="idl">
+[Exposed=Window, SecureContext]
+interface AudioWorklet : Worklet {
+};
+</pre>
+
 <h4 id="AudioWorklet-concepts">
 Concepts</h4>
 
@@ -9194,6 +9209,12 @@ within a special scope named {{AudioWorkletGlobalScope}}.
 	</figcaption>
 </figure>
 
+Each {{BaseAudioContext}} possesses exactly one
+{{AudioWorklet}}. Scripts imported using this {{AudioWorklet}}
+are run in one or more {{AudioWorkletGlobalScope}}> global scopes,
+which are created to process audio associated with that
+{{BaseAudioContext}}.
+
 Importing a script via the <a href="https://drafts.css-houdini.org/worklets/#dom-worklet-import">import(moduleUrl)</a>
 method registers class definitions of {{AudioWorkletProcessor}}
 under the {{AudioWorkletGlobalScope}}. There are two internal
@@ -9213,16 +9234,19 @@ instances created from the definition.
 	identical set of string keys from <a>node name to processor
 	definition map</a> that are associated with the matching
 	<a>parameterDescriptors</a> values. This internal storage is
-	populated when a promise from <a href="https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule">addModule()</a>
-	on {{Window/audioWorklet}} gets resolved.
+	populated as a consequence of calling the {{registerProcessor}} method in the
+        <a>rendering thread</a>. The population is guaranteed to complete
+        prior to the resolution of the promise returned by 
+	<a href="https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule">addModule()</a>
+	on a context's {{BaseAudioContext/audioWorklet}}.
 
 
 <pre class="example" title="Registering an AudioWorkletProcessor class definition">
 // bypass.js script file, AudioWorkletGlobalScope
-registerProcessor("Bypass", class extends AudioWorkletProcessor {
+registerProcessor('Bypass', class extends AudioWorkletProcessor {
 	process (inputs, outputs) {
 		// Single input, single channel.
-		var input = inputs[0], output = outputs[0];
+		let input = inputs[0], output = outputs[0];
 		output[0].set(input[0]);
 	}
 });
@@ -9230,9 +9254,9 @@ registerProcessor("Bypass", class extends AudioWorkletProcessor {
 
 <pre class="example" title="Importing a script and creating AudioWorkletNode">
 // The main global scope
-window.audioWorklet.addModule("bypass.js").then(function () {
-	var context = new AudioContext();
-	var bypass = new AudioWorkletNode(context, "Bypass");
+let context = new AudioContext();
+context.audioWorklet.addModule('bypass.js').then(() =&gt; {
+	let bypass = new AudioWorkletNode(context, 'Bypass');
 });
 </pre>
 
@@ -9241,25 +9265,6 @@ scope, the counterpart {{AudioWorkletProcessor}} will also be
 created in {{AudioWorkletGlobalScope}}. These two objects
 communicate via the asynchronous message passing described in the
 <a href="#processing-model">processing model</a> section.
-
-<pre class="idl">
-partial interface Window {
-	[SameObject]
-	readonly attribute Worklet audioWorklet;
-};
-</pre>
-
-<h4 id="Window-attributes">
-Attributes</h4>
-
-<dl dfn-type=attribute dfn-for="Window">
-	: <dfn>audioWorklet</dfn>
-	::
-		The {{audioWorklet}} attributes allows access to the
-		<code>Worklet</code> object that can import a script containing
-		{{AudioWorkletProcessor}} class definitions via
-		the algorithm defined by [[!worklets-1]].
-</dl>
 
 <h4 interface lt="AudioWorkletGlobalScope">
 The {{AudioWorkletGlobalScope}} Interface</h4>
@@ -9366,12 +9371,13 @@ Methods</h5>
 				P="process"))</code> is false, <span class="synchronous">throw a {{TypeError}} and abort
 				these steps</span>.
 
-			7. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+			7. Let <var>descriptors</var> be the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 				Get</a>(O=<i>processorCtor</i>,
-				P="parameterDescriptors")</code> is not an array or
+				P="parameterDescriptors")</code>.
+
+			7. If <var>descriptors</var> is not an array or
 				<code>undefined</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
-
 			8. Let <em>definition</em> be a new
 				{{AudioWorkletProcessor}} definition with:
 
@@ -9383,10 +9389,15 @@ Methods</h5>
 				definition map</a> of the associated
 				{{AudioWorkletGlobalScope}}.
 
-			Note: The class constructor should only be looked up once, thus it
-			does not have the opportunity to dynamically change its
-			definition.
+			11. Queue a task to the <a>control thread</a> to add the
+				key-value pair (<em>name</em> - <em>descriptors</em>) to the
+				<a>node name to parameter descriptor map</a> of the
+				associated {{BaseAudioContext}}.
 		</div>
+
+		Note: The class constructor should only be looked up once, thus it
+		does not have the opportunity to dynamically change its
+		definition.
 
 		<pre class=argumentdef for="AudioWorkletGlobalScope/registerProcessor(name, processorCtor)">
 			name: A string key that represents a class definition to be registered. This key is used to look up the constructor of {{AudioWorkletProcessor}} during construction of an {{AudioWorkletNode}}.
@@ -9476,6 +9487,7 @@ enum AudioWorkletProcessorState {
 
 <pre class="idl">
 [Exposed=Window,
+ SecureContext,
  Constructor (BaseAudioContext context, optional AudioWorkletOptions options)]
 interface AudioWorkletNode : AudioNode {
 	readonly attribute AudioParamMap parameters;
@@ -9983,35 +9995,31 @@ associated {{AudioWorkletGlobalScope}}, followed by the creation
 of an {{AudioWorkletNode}} and its associated
 {{AudioWorkletProcessor}}.
 
-1. In the main scope, <code>window.audioWorklet</code> is
-	requested to import a script. No {{AudioWorkletGlobalScope}}s
-	exist yet, so the script is fetched and added to the Worklet module
-	responses map.
+1. An {{AudioContext}} is created.
 
-2. An {{AudioContext}} is created.
+2. In the main scope, <code>context.audioWorklet</code> is requested to add a script module.
 
-3. An {{AudioWorkletGlobalScope}} is created in association
-	with the context's audio rendering thread. This is the global scope
-	in which {{AudioWorkletProcessor}} class definitions will be
-	evaluated.
+2. Since none exists yet, a new {{AudioWorkletGlobalScope}} is created in association with the context'sThis is the global scope in which {{AudioWorkletProcessor}}
+class definitions will be evaluated. (On subsequent calls, this
+previously created scope will be used.)
 
-4. As part of the global scope's initialization, the set of
-	imported scripts is run, including the one that was previously
-	imported.
+2. The imported script is run in the newly created global scope.
 
-5. As part of running the imported script, an
-	{{AudioWorkletProcessor}} is registered under the key
-	<code>"Custom1"</code> within the {{AudioWorkletGlobalScope}}.
+3. As part of running the imported script, an {{AudioWorkletProcessor}} is registered under
+	a key (<code>"custom"</code> in the above diagram) within the {{AudioWorkletGlobalScope}}.
+	This populates maps both in the global scope and in the {{AudioContext}}.
+
+3. The promise for the <code>addModule()</code> call is resolved.
 
 6. In the main scope, an {{AudioWorkletNode}} is created using
-	the key <code>"Custom1"</code> along with an <code>opts</code>
+	the user-specified key along with a
 	dictionary of options.
 
 7. As part of the node's creation, this key is used to look up the
 	correct {{AudioWorkletProcessor}} subclass for instantiation.
 
 8. An instance of the {{AudioWorkletProcessor}} subclass is
-	instantiated with a structured clone of the same <code>opts</code>
+	instantiated with a structured clone of the same options
 	dictionary. This instance is paired with the previously created
 	{{AudioWorkletNode}}.
 
@@ -10030,7 +10038,8 @@ a lower bit-depth), and by quantizing in time resolution
 {{AudioWorkletProcessor}}.
 
 <pre class="example" title="BitCrusher - Global Scope">
-window.audioWorklet.addModule('bitcrusher.js').then(function () {
+let context = new AudioContext();
+context.audioWorklet.addModule('bitcrusher.js').then(() =&gt; {
 	let context = new AudioContext();
 	let osc = new OscillatorNode(context);
 	let amp = new GainNode(context);
@@ -10160,7 +10169,8 @@ class VUMeterNode extends AudioWorkletNode {
 }
 
 // The application can use the node when this promise resolves.
-let importAudioWorkletNode = window.audioWorklet.addModule('vumeterprocessor.js');
+let context = new AudioContext();
+let importAudioWorkletNode = context.audioWorklet.addModule('vumeterprocessor.js');
 </pre>
 
 <pre class="example" title="VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
@@ -10224,7 +10234,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 <pre class="example" title="VUMeterNode - Global Scope (main HTML file)">
 &lt;script src="vumeternode.js">&lt;/script>
 &lt;script>
-	importAudioWorkletNode.then(function () {
+	importAudioWorkletNode.then(() =&gt; {
 		let context = new AudioContext();
 		let oscillator = new Oscillator(context);
 		let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });

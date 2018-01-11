@@ -18118,21 +18118,24 @@ interface AudioWorklet : Worklet {
           </dl>
           <pre class="example" title=
           "Registering an AudioWorkletProcessor class definition">
-// bypass.js script file, AudioWorkletGlobalScope
-registerProcessor('Bypass', class extends AudioWorkletProcessor {
+// bypass-processor.js script file, runs on AudioWorkletGlobalScope
+class BypassProcessor extends AudioWorkletProcessor {
   process (inputs, outputs) {
-    // Single input, single channel.
-    let input = inputs[0], output = outputs[0];
+    // Single input and output with single channel.
+    let input = inputs[0];
+    let output = outputs[0];
     output[0].set(input[0]);
   }
 });
+
+registerProcessor('bypass-processor', BypassProcessor);
 </pre>
           <pre class="example" title=
           "Importing a script and creating AudioWorkletNode">
 // The main global scope
 let context = new AudioContext();
-context.audioWorklet.addModule('bypass.js').then(() =&gt; {
-  let bypass = new AudioWorkletNode(context, 'Bypass');
+context.audioWorklet.addModule('bypass-processor.js').then(() =&gt; {
+  let bypassNode = new AudioWorkletNode(context, 'bypass-processor');
 });
 </pre>
           <p>

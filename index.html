@@ -4793,10 +4793,10 @@ interface AudioNode : EventTarget {
                     <a><code>AudioNode</code></a> which creates a
                     <dfn>cycle</dfn>: an <a><code>AudioNode</code></a> may
                     connect to another <a><code>AudioNode</code></a>, which in
-                    turn connects back to the first
-                    <a><code>AudioNode</code></a>. This is allowed only if
-                    there is at least one <a><code>DelayNode</code></a> in the
-                    <em>cycle</em> <span class="synchronous">or a
+                    turn connects back to the input or <a>AudioParam</a> of the
+                    first <a><code>AudioNode</code></a>. This is allowed only
+                    if there is at least one <a><code>DelayNode</code></a> in
+                    the <em>cycle</em> <span class="synchronous">or a
                     <code>NotSupportedError</code> exception MUST be
                     thrown.</span>
                   </td>
@@ -18554,7 +18554,7 @@ enum AudioWorkletProcessorState {
           </table>
           <pre class="idl">
 [Exposed=Window, SecureContext,
- Constructor (BaseAudioContext context, optional AudioWorkletOptions options)]
+ Constructor (BaseAudioContext context, DOMString name, optional AudioWorkletNodeOptions options)]
 interface AudioWorkletNode : AudioNode {
     readonly        attribute AudioParamMap              parameters;
     readonly        attribute MessagePort                port;
@@ -18624,7 +18624,7 @@ interface AudioWorkletNode : AudioNode {
                       options
                     </td>
                     <td class="prmType">
-                      <a><code>AudioWorkletOptions</code></a>
+                      <a><code>AudioWorkletNodeOptions</code></a>
                     </td>
                     <td class="prmNullFalse">
                       <span role="img" aria-label="False">✘</span>
@@ -18713,6 +18713,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
              unsigned long             numberOfOutputs = 1;
              sequence&lt;unsigned long&gt;    outputChannelCount;
              record&lt;DOMString, double&gt;  parameterData;
+             Object processorOptions = null;
 };
             </pre>
             <section>
@@ -18768,6 +18769,15 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
                   <a>AudioWorkletNode</a>. If the string key of an entry in the
                   list does not match any name of <a>AudioParam</a> objects in
                   the node, it is ignored.
+                </dd>
+                <dt>
+                  <code><dfn>processorOptions</dfn></code> of type
+                  <code>Object</code>.
+                </dt>
+                <dd>
+                  This holds any additional user-defined data that may be used
+                  to initialize the corresponding <a>AudioWorkletProcessor</a>
+                  for this <a>AudioWorkletNode</a>.
                 </dd>
               </dl>
             </section>
@@ -18836,7 +18846,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
           </p>
           <pre class="idl">
 [Exposed=AudioWorklet,
- Constructor (optional AudioWorkletOptions options)]
+ Constructor (optional AudioWorkletNodeOptions options)]
 interface AudioWorkletProcessor {
     readonly        attribute MessagePort port;
 };

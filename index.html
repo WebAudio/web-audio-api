@@ -18488,69 +18488,12 @@ interface AudioParamMap {
             <code>readonly maplike</code>.
           </p>
           <pre class="idl">
-enum AudioWorkletProcessorState {
-    "pending",
-    "running",
-    "stopped",
-    "error"
-};
-          </pre>
-          <table class="simple" data-dfn-for="AudioWorkletProcessorState"
-          data-link-for="AudioWorkletProcessorState">
-            <tr>
-              <th colspan="2">
-                Enumeration description
-              </th>
-            </tr>
-            <tr>
-              <td>
-                <dfn>pending</dfn>
-              </td>
-              <td>
-                The construction of associated processor has not been
-                completed. In this state, no audio processing can happen and
-                all messages to the processor will be queued.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <dfn>running</dfn>
-              </td>
-              <td>
-                Indicates that the <a>active source</a> flag on the
-                corresponding processor is <code>true</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <dfn>stopped</dfn>
-              </td>
-              <td>
-                Indicates that the <a>active source</a> flag on the
-                corresponding processor is <code>false</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <dfn>error</dfn>
-              </td>
-              <td>
-                When an exception is thrown from the processor's
-                <code>constructor</code>, <code>process</code> method, or any
-                user-defined class method throws an exception. Note that once
-                an <a>AudioWorkletNode</a> reaches to this state, the processor
-                will output silence throughout its lifetime.
-              </td>
-            </tr>
-          </table>
-          <pre class="idl">
 [Exposed=Window, SecureContext,
  Constructor (BaseAudioContext context, DOMString name, optional AudioWorkletNodeOptions options)]
 interface AudioWorkletNode : AudioNode {
     readonly        attribute AudioParamMap              parameters;
     readonly        attribute MessagePort                port;
-    readonly        attribute AudioWorkletProcessorState processorState;
-                    attribute EventHandler               onprocessorstatechange;
+                    attribute EventHandler               onprocessorerror;
 };
           </pre>
           <section>
@@ -18639,14 +18582,17 @@ interface AudioWorkletNode : AudioNode {
             <dl class="attributes" data-dfn-for="AudioWorkletNode"
             data-link-for="AudioWorkletNode">
               <dt>
-                <code><dfn>onprocessorstatechange</dfn></code> of type
+                <code><dfn>onprocessorerror</dfn></code> of type
                 <span class=
                 "idlAttrType"><a><code>EventHandler</code></a></span>
               </dt>
               <dd>
-                Any state change on the processor will queue a task on the
-                control thread to fire <a>onprocessorstatechange</a> event to
-                the node.
+                When an exception is thrown from the processor's
+                <code>constructor</code>, <code>process</code> method, or any
+                user-defined class method, the processor will queue a task on
+                the control thread to fire <a>onprocessorstatechange</a> event
+                to the node. Note that once an exception is thrown, the
+                processor will output silence throughout its lifetime.
               </dd>
               <dt>
                 <code><dfn>parameters</dfn></code> of type <span class=
@@ -18672,16 +18618,6 @@ interface AudioWorkletNode : AudioNode {
                 corresponding <a>AudioWorkletProcessor</a> object allowing
                 bidirectional communication between a pair of
                 <a>AudioWorkletNode</a> and <a>AudioWorkletProcessor</a>.
-              </dd>
-              <dt>
-                <code><dfn>processorState</dfn></code> of type <span class=
-                "idlAttrType"><a><code>AudioWorkletProcessorState</code></a></span>,
-                readonly
-              </dt>
-              <dd>
-                Indicates the state of the associated processor. The
-                propagation from the actual processor's <a>active source</a>
-                flag to this property is done by queueing a task.
               </dd>
             </dl>
           </section>

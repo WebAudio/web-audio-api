@@ -1,15 +1,13 @@
 language: cpp
 sudo: false
-addons:
-  apt:
-    packages:
-      - cmake
 script:
-  # Run html tidy but ignore any failures
-  - make check || true
+  # run bikeshed and save the error output.  The sed command removes
+  # the ANSI color codes from the output to make it easier to read.
+  - curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 -F output=err 2>&1 | sed -r "s/\\033\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" > err
+
+  # Compare against our expected results.	
+  - diff -u err expected-errs.txt
+
 branches:
   only:
     - gh-pages
-cache:
-  directories:
-    - $TRAVIS_BUILD_DIR/.support/

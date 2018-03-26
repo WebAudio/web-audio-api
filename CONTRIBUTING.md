@@ -14,4 +14,8 @@ Feature requests are welcome, but a quick search in the [opened and closed issue
 
 Pull requests are also welcome, but any change to the standard (barring things like typos and the like) will have to be discussed in an issue (and possibly during a call, accessible only to W3C Audio Working Group members).
 
+After modifying index.bs, check it is still valid by running `curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 -F output=err -o err && cat err | sed -E 's/\\033\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g' | diff -u - expected-errs.txt`
+
+You can preview your changes by running `curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 > index.html` and opening index.html in your favorite browser.
+
 After having made a change to your local copy of this repository, tidy the document up with `tidy-html5`. The process is automated. On UNIX machines, simply running `make tidy` will do everything automatically (including downloading and compiling the correct version of `tidy-html5`). Pull requests that aren't clean won't be merged.

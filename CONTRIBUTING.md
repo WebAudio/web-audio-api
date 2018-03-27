@@ -14,8 +14,25 @@ Feature requests are welcome, but a quick search in the [opened and closed issue
 
 Pull requests are also welcome, but any change to the standard (barring things like typos and the like) will have to be discussed in an issue (and possibly during a call, accessible only to W3C Audio Working Group members).
 
-After modifying index.bs, check it is still valid by running `curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 -F output=err -o err && cat err | sed -E 's/\\033\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g' | diff -u - expected-errs.txt`
+[Bikeshed](https://github.com/tabatkins/bikeshed) is the tool used to write this
+specification. It can either be used via an HTTP API, or by running it locally.
 
-You can preview your changes by running `curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 > index.html` and opening index.html in your favorite browser.
+To use it via the HTTP API, run:
 
-After having made a change to your local copy of this repository, tidy the document up with `tidy-html5`. The process is automated. On UNIX machines, simply running `make tidy` will do everything automatically (including downloading and compiling the correct version of `tidy-html5`). Pull requests that aren't clean won't be merged.
+```
+curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 -F output=err -o err && cat err | sed -E 's/\\033\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g' | diff -u - expected-errs.txt
+```
+
+and preview your changes by doing: 
+```
+curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 > index.html
+```
+
+and opening `index.html` in your favorite browser.
+
+To run it locally, follow the [installation
+instructions](https://tabatkins.github.io/bikeshed/#installing).
+
+Then, `bikeshed serve` will run a web server [locally on port
+8000](http://localhost:8000).
+

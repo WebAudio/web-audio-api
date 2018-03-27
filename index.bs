@@ -153,7 +153,7 @@ div.node-info > table > thead > tr > th {
 div.audioparam-info {
 	padding-left: 4em;
 	padding-right: 4em;
-}    
+}
 div.audioparam-info > table {
 	border-collapse: collapse;
 	border-top: 2px solid #707070;
@@ -7544,7 +7544,7 @@ To prevent this, a {{MediaElementAudioSourceNode}} MUST output
 {{HTMLMediaElement}} for which the execution of the
 <a href="https://fetch.spec.whatwg.org/#fetching">fetch
 algorithm</a> labeled the resource as
-<a>CORS-cross-origin</a>.
+<a href="https://html.spec.whatwg.org/#cors-cross-origin">CORS-cross-origin</a>.
 
 
 <!-- Big Text: MediaStream -->
@@ -9262,7 +9262,7 @@ instances created from the definition.
 	<a>parameterDescriptors</a> values. This internal storage is
 	populated as a consequence of calling the {{registerProcessor()}} method in the
         <a>rendering thread</a>. The population is guaranteed to complete
-        prior to the resolution of the promise returned by 
+        prior to the resolution of the promise returned by
 	<a href="https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule">addModule()</a>
 	on a context's {{BaseAudioContext/audioWorklet}}.
 
@@ -9272,7 +9272,7 @@ instances created from the definition.
 class BypassProcessor extends AudioWorkletProcessor {
 	process (inputs, outputs) {
 		// Single input, single channel.
-		let input = inputs[
+		let input = inputs[0];
 		let output = outputs[0];
 		output[0].set(input[0]);
 	}
@@ -9822,12 +9822,19 @@ The method is invoked with the following arguments:
 	values of the {{AudioParam}} named
 	<code>"name"</code>.
 
+	For each array, the array contains the [=computedValue=] or
+	the parameter for all frames in the [=render quantum=].
+	However, if no automation is scheduled during
+	this [=render quantum=], the array MAY have length 1 with
+	the array element being the constant value of the
+	{{AudioParam}} for the [=render quantum=].
+
 The return value of this method controls the lifetime of the
 {{AudioWorkletProcessor}}'s associated
 {{AudioWorkletNode}}. At the conclusion of each call to the
 <code>process()</code> method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in [[!ECMASCRIPT]])
 is applied to the return value and the result is assigned to the associated AudioWorkletProcessor's <a>active source</a> flag. This in turn affects whether subsequent
-invocations of <code>process()</code> occur, and has an impact on the lifetime of the node. 
+invocations of <code>process()</code> occur, and has an impact on the lifetime of the node.
 To propagate the flag change <a>queue a task</a> on the control thread to update the corresponding {{AudioWorkletNode}}'s <code>state</code> property accordingly.
 
 <div class="note">
@@ -11621,7 +11628,10 @@ to Consider</a>
 
 1. Does this specification deal with personally-identifiable information?
 
-	 No.
+	It would be possible to perform a hearing test using Web Audio API, thus
+	revealing the range of frequencies audible to a person (this decreases
+	with age). It is difficult to see how this could be done without the
+	realization and consent of the user, as it requires active particpation.
 	<!-- assuming the audio context does not expose detailed information
 	on audio device inputs and outputs; revisit this question after the
 	fingerprinting analysis is done -->
@@ -11638,14 +11648,11 @@ to Consider</a>
 	persists across browsing sessions?
 
 	No. AudioWorklet does not persist across browsing sessions.
-	<em>right?</em>
 
 4. Does this specification expose persistent, cross-origin state to
 	the web?
 
-	<em>Not sure. If audio sample data is loaded cross-origin, it
-	exposes state (whether that sample data resolves or not) to the
-	script origin.</em>
+	Yes, the supported audio sample rate(s) are exposed.
 
 5. Does this specification expose any other data to an origin that it
 	doesn’t currently have access to?
@@ -11660,10 +11667,43 @@ to Consider</a>
 	{{ScriptProcessorNode}} interface. The information
 	could subsequently be used to create a fingerprint of the client.
 
+	Research by Princeton CITP's <a href="https://audiofingerprint.openwpm.com/"></a>
+	Web Transparency and Accountability Project</a>
+	has shown that {{DynamicsCompressorNode}} and {{OscillatorNode}} can
+	be used to gather entropy from a client to fingerprint a device.
+	This is due to small, and normally inaudible, differences in DSP
+	architecture, resampling strategies and rounding trade-offs between
+	differing implementations. The precise comiler flags used and also the
+	CPU architecture (Arm vs. x86) also contribute to this entropy.
+
+	In practice however, this merely allows deduction of information
+	already readilly available by easier means (User Agent string),
+	such as "this is Chrome running on an x86".
+
+	Fingerprinting via clock skew
+	<a href="http://sec.cs.ucl.ac.uk/users/smurdoch/talks/eurobsdcon07hotornot.pdf">has
+	been described by Steven J Murdoch and Sebastian Zander</a>. It might be possible
+	to determine this from {{getOutputTimestamp}}. Skew-based fingerprinting has also
+	been demonstrated
+	<a href="https://pdfs.semanticscholar.org/cfd2/6a17234696593919df3f880a235d6ac5871d.pdf">
+	by Nakibly et. al. for HTML</a>. The <a href="https://w3c.github.io/hr-time/#sec-privacy-security">
+	Security & Privacy appending of High Resolution Time</a> should be consulted for further
+	information on clock resolution and drift.
+
+    Fingerprinting via latency is also possible; it might be possible to deduce this
+	from {{baseLatency}} and {{outputLatency}}. Mitigation
+	strategies include adding jitter (dithering) and quantization so that the exact
+	skew is incorrectly reported. Note however that most audio systems aim
+	for <a href="https://padenot.github.io/web-audio-perf/#latency">low latency</a>,
+	to synchronise the audio generated by WebAudio to other
+	audio or video sources or to visual cues (for example in a game, or an audio
+	recording or music making environment). Excessive latency decreases usability and may be
+	an accessibility issue.
+
 6. Does this specification enable new script execution/loading
 	mechanisms?
 
-	No. However, it does use the worker script execution method,
+	No. It does use the worker script execution method,
 	defined in that specification.
 
 7. Does this specification allow an origin access to a user’s
@@ -11674,7 +11714,7 @@ to Consider</a>
 8. Does this specification allow an origin access to sensors on a
 	user’s device?
 
-	Not directly. Currently audio input is not specified in this
+	Not directly. Currently, audio input is not specified in this
 	document, but it will involve gaining access to the client
 	machine's audio input or microphone. This will require asking the
 	user for permission in an appropriate way, probably via the
@@ -11683,20 +11723,47 @@ to Consider</a>
 
 9. Does this specification allow an origin access to aspects of a
 	user’s local computing environment?
+<!-- from f2f -->
+	Not directly; all requested sample rates are supported, with upsampling if needed.
+	It is possible to use Media Capture and Streams to
+	probe for supported audio sample rates with
+	<a href="https://www.w3.org/TR/mediacapture-streams/#media-track-supported-constraints">MediaTrackSupportedConstraints</a>.
+	This requires explicit user consent.
+	This does provide a small measure of fingerprinting. However,
+	in practice most consumer and prosumer devices use one of two
+	standardized sample rates: 44.1kHz (originally used by CD) and 48kHz
+	(originally used by DAT). Highly resource constrained devices may
+	support the speech-quality 11kHz sample rate, and higher-end devices often
+	support 88.2, 96, or even the audiophile 192kHz rate.
 
-	<em>Not sure. Does it allow probing of supported sample rates?
-	Supported audio codecs? We should mention denial of service attack
-	by consuming CPU cycles.</em>
+	Requiring all implementations to upsample to a single, commonly-supported
+	rate such as 48kHz would increase CPU cost for no particular benefit, and
+	requiring higher-end devices to use a lower rate would merely result in
+	Web Audio being labelled as unsuitable for professional use.
 
 10. Does this specification allow an origin access to other devices?
 
-	No.
+	It typically does not allow access to other networked devices (an
+	exception in a high-end recording studio might be Dante networked
+	devices, although these typically use a separate, dedicated network).
+	It does of necessity allow access to the users audio output device
+	or devices, which are sometimes separate units to the computer.
+
+	For voice or sound-actuated devices, Web Audio API might be used
+	to control other devices. In addition, if the sound-operated device is sensitive
+	to near ultrasonic frequencies, such control might not be audible.
+	This possibility also exists with HTML, through
+	the &lt;audio&gt; element. At common audio sampling rates, there is (by design)
+	insufficient headroom for much ultrasonic information.
 
 11. Does this specification allow an origin some measure of control
 	over a user agent’s native UI?
 
-	No?. <em>Though it could be used to emulate system sounds to make
-	an attack seem more like a local system event?</em>
+	If the UI has audio components, such as a voice assistant or screenreader,
+	Web Audio API might be used to emulate emulate aspects of the native UI to make
+	an attack seem more like a local system event.
+	This possibility also exists with HTML, through
+	the &lt;audio&gt; element.
 
 12. Does this specification expose temporary identifiers to the web?
 
@@ -11714,19 +11781,17 @@ to Consider</a>
 
 15. Does this specification persist data to a user’s local device?
 
-	<em>Maybe? Cached impulses or audio sample data stored
-	locally?</em>
+	No.
 
 16. Does this specification have a "Security Considerations" and
 	"Privacy Considerations" section?
 
-	Yes.
+	Yes (you are reading it).
 
 17. Does this specification allow downgrading default security
 	characteristics?
 
 	No.
-
 
 <h2 id="requirements">
 Requirements and Use Cases</h2>

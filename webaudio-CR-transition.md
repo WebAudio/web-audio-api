@@ -108,6 +108,7 @@ https://github.com/WebAudio/web-audio-api/issues
 
 There is a security and privacy appendix
   https://webaudio.github.io/web-audio-api/#Security-Privacy-Considerations
+This benefitted from review from the Privacy Interest Group.
   
 ### Accessibility:
 
@@ -124,8 +125,11 @@ a problem for Internationalization.
 
 ### TAG:
 
-This specification has benefitted from extensive review by the TAG. Domenic Denicola was the lead 
-reviewer. Changes were made in response to this review, and the TAG appears satisfied.
+This specification benefitted from extensive review by the TAG. Domenic Denicola was the lead 
+reviewer. Changes were made in response to this review, and the TAG appeared satisfied.
+
+To verify this, a [second round of TAG review](https://github.com/w3ctag/design-reviews/issues/212)  
+was initiated in Nov 2017. The spec was discussed with the TAG at their London f2f, and TAG confirmed they were satisfied.
 
 ## Issues addressed
 

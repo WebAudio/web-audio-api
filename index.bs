@@ -10400,8 +10400,8 @@ queue</dfn>, that is a list of <dfn lt="control message">control
 messages</dfn> that are operations running on the <a>control
 thread</a>.
 
-<dfn id="queuing" lt="queue a control message">Queuing a control message</dfn> means adding the
-message to the end of the <a>control message queue</a> of an
+<dfn id="queuing" lt="queue a control message">Queuing a control message</dfn>
+means adding the message to the end of the <a>control message queue</a> of an
 {{AudioContext}}.
 
 <a>Control messages</a> in a <a>control message queue</a> are ordered
@@ -10467,177 +10467,195 @@ asynchronous sections can't be reordered.
 <h3 id="rendering-loop">
 Rendering an audio graph</h3>
 
-Rendering an audio graph is done in blocks of 128 samples-frames. A
+Rendering an audio graph is done by processing blocks of 128 samples-frames. A
 block of 128 samples-frames is called a <dfn>render quantum</dfn>.
 
-Operations that happen <dfn>atomically</dfn> on a
-given thread can only be executed when no other [=Atomically|atomic=]
-operation is running on another thread.
+Operations that happen <dfn>atomically</dfn> on a given thread can only be
+executed when no other [=Atomically|atomic=] operation is running on another
+thread.
 
-The algorithm for rendering a block of audio from an
-{{AudioContext}} <em>G</em> with a <a href="#control-message-queue">control message queue</a> <em>Q</em> is as
-follows.
+The algorithm for rendering a block of audio from an {{AudioContext}} <em>G</em>
+with a <a href="#control-message-queue">control message queue</a> <em>Q</em> is
+comprised of 3 steps:
+	1. Process the control message queue.
+	2. Process a render quantum.
+	3. Perform a microtask check point.
 
-If the algorithm returns true then it MUST be executed again in the
-future, to render the next block of audio. Else, the <a>rendering
-thread</a> yields and the processing stops. The <a>control thread</a>
-can restart executing this algoritm if needed.
+The order of these steps cannot be altered or interrupted. If the second step
+returns true then it MUST be executed again in the future, to render the
+subsequent block of audio. Otherwise, the <a>rendering thread</a> yields and the
+processing stops. The <a>control thread</a> can restart executing these steps if
+needed.
 
 <div class="note">
-	In practice, the {{AudioContext}} <a>rendering thread</a> is
-	often running off a system level audio callback, that executes in
-	an isochronous fashion. This callback passes in a buffer that has
-	to be filled with the audio that will be output. The size of the
-	buffer is often larger than a rendering quantum. In this case,
-	multiple invocations of the rendering algorithm will be called in a
-	rapid succession, in the same callback, before returning. After
-	some time, the underlying audio system will call the callback
-	again, and the algorithm will be executed again. This is an
-	implementation detail that should not be observable, apart from the
-	latency implications.
+	In practice, the {{AudioContext}} <a>rendering thread</a> is often running off
+	a system level audio callback, that executes in an isochronous fashion. This
+	callback passes in a buffer that has to be filled with the audio that will be
+	output. The size of the buffer is often larger than a rendering quantum. In
+	this case, multiple invocations of the rendering algorithm will be called in a
+	rapid succession, in the same callback, before returning. After some time, the
+	underlying audio system will call the callback again, and the algorithm will
+	be executed again. This is an implementation detail that should not be
+	observable, apart from the latency implications.
 
-	{{OfflineAudioContext}} will execute the algorithm continuously,
-	until {{OfflineAudioContext/length}} frames have been rendered.
+	{{OfflineAudioContext}} will execute the algorithm continuously, until
+	{{OfflineAudioContext/length}} frames have been rendered.
 </div>
+
+The system level audio callback is also queued as a task in the
+<a href="#control-message-queue">control message queue</a>. UA must perform the
+following sequence to process render quanta to fulfill such task by filling up
+the requested buffer size. Along with the primary message queue, the
+<a>rendering thread</a> has another task queue for microtasks for any microtask
+operation such as resolution of {{Promise}} in the
+{{AudioWorkletGlobalScope}}.
 
 <div algorithm="rendering a graph">
-	1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
-		queue</a>. <a>Atomically</a> <a>swap</a>
-		<em>Q<sub>rendering</sub></em> and <em>Q</em>
 
-	2. While there are messages in <em>Q<sub>rendering</sub></em>,
-		execute the following steps:
+	1. Process the <a>control message queue</a>.
 
-		1. Execute the asynchronous section of the <a>oldest message</a>
-			of <em>Q<sub>rendering</sub></em>.
+		1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
+			queue</a>. <a>Atomically</a> <a>swap</a> <em>Q<sub>rendering</sub></em>
+			and <em>Q</em>.
 
-		2. Remove the <a>oldest message</a> of
-			<em>Q<sub>rendering</sub></em>.
+		2. While there are messages in <em>Q<sub>rendering</sub></em>, execute the
+			following steps:
 
-	3. If the <a>rendering thread state</a> of the {{AudioContext}}
-		is not <code>running</code>, return false.
+			1. Execute the asynchronous section of the <a>oldest message</a> of
+				<em>Q<sub>rendering</sub></em>.
 
-	4. Order the {{AudioNode}}s of the {{AudioContext}} to be
-		processed.
+			2. Remove the <a>oldest message</a> of <em>Q<sub>rendering</sub></em>.
 
-		1. Let <em>ordered</em> be an empty list of {{AudioNode}}s.
-			It will contain an ordered list of {{AudioNode}}s when this
-			ordering algorithm terminates.
+	2. Process a render quantum.
 
-		2. Let <em>nodes</em> be the set of all nodes created by this
-			{{AudioContext}}, and still alive.
+		1. If the <a>rendering thread state</a> of the {{AudioContext}} is not
+			<code>running</code>, return false.
 
-		3. Let <em>cycle breakers</em> be an empty set of
-			{{DelayNode}}s. It will contain all the {{DelayNode}}s that
-			are part of a cycle.
+		2. Order the {{AudioNode}}s of the {{AudioContext}} to be processed.
 
-		4. For each {{AudioNode}} <em>node</em> in <em>nodes</em>:
+			1. Let <em>ordered</em> be an empty list of {{AudioNode}}s. It will
+				contain an ordered list of {{AudioNode}}s when this ordering algorithm
+				terminates.
 
-			1. If <em>node</em> is a {{DelayNode}} that is part of a
-				cycle, add it to <em>cycle breakers</em> and remove it from
+			2. Let <em>nodes</em> be the set of all nodes created by this
+				{{AudioContext}}, and still alive.
+
+			3. Let <em>cycle breakers</em> be an empty set of {{DelayNode}}s. It will
+				contain all the {{DelayNode}}s that are part of a cycle.
+
+			4. For each {{AudioNode}} <em>node</em> in <em>nodes</em>:
+
+				1. If <em>node</em> is a {{DelayNode}} that is part of a cycle, add it
+					to <em>cycle breakers</em> and remove it from <em>nodes</em>.
+
+			5. If <em>nodes</em> contains cycles, <a href="#mute">mute</a> all the
+				{{AudioNode}}s that are part of this cycle, and remove them from
 				<em>nodes</em>.
 
-		5. If <em>nodes</em> contains cycles, <a href="#mute">mute</a>
-			all the {{AudioNode}}s that are part of this cycle, and remove
-			them from <em>nodes</em>.
+			6. While there are unmarked {{AudioNode}}s in <em>nodes</em>:
 
-		6. While there are unmarked {{AudioNode}}s in <em>nodes</em>:
+				1. Choose an {{AudioNode}} <em>node</em> in <em>nodes</em>.
 
-			1. Choose an {{AudioNode}} <em>node</em> in
-				<em>nodes</em>
+				2. <a>Visit</a> <em>node</em>.
 
-			2. <a>Visit</a> <em>node</em>.
+				<div algorithm="visiting a node">
+					<dfn lt="Visit">Visiting a node</dfn> <em>node</em> means performing
+					the following steps:
 
-			<div algorithm="visiting a node">
-				<dfn lt="Visit">Visiting a node</dfn> <em>node</em>
-				means performing the following steps:
+					1. If <em>node</em> is marked, abort these steps.
 
-				1. If <em>node</em> is marked, abort these steps.
+					2. Mark <em>node</em>.
 
-				2. Mark <em>node</em>.
+					3. For each {{AudioNode}} <em>input</em> connected to <em>node</em>:
 
-				3. For each {{AudioNode}} <em>input</em> connected to
-					<em>node</em>:
-					1. <a>Visit</a> <em>input</em>.
-			</div>
+						1. <a>Visit</a> <em>input</em>.
+				</div>
 
-		7. Add <em>node</em> to the beginning of <em>ordered</em>.
+			7. Add <em>node</em> to the beginning of <em>ordered</em>.
 
-	5. Reverse the order of <em>nodes</em>.
+			8. Reverse the order of <em>nodes</em>.
 
-	6. For each {{DelayNode}} in a cycle, <a href="#available">make
-		available for reading</a> a block of audio from the {{DelayNode}}
-		buffer, available for reading.
+		3. For each {{DelayNode}} in a cycle, <a href="#available-for-reading">make
+			available for reading</a> a block of audio from the {{DelayNode}} buffer.
 
-	7. <a href="#computation-of-value">Compute the value(s)</a> of the
-		{{AudioListener}}'s {{AudioParam}}s for this block.
+		4. <a href="#computation-of-value">Compute the value(s)</a> of the
+			{{AudioListener}}'s {{AudioParam}}s for this block.
 
-	8. For each {{AudioNode}}, in the order determined previously:
-		1. For each {{AudioParam}} of this {{AudioNode}}, execute
-			these steps:
+		5. For each {{AudioNode}}, in the order determined previously:
 
-			1. If this {{AudioParam}} has any {{AudioNode}}
-				connected to it, <a href="#SummingJunction">sum</a> the
-				buffers <a href="#available">made available for reading</a>
-				by all {{AudioNode}} connected to this {{AudioParam}},
-				<a href="#down-mix">down mix</a> the resulting buffer down to
-				Mono, and call this buffer the <dfn id="input-audioparam-buffer">input AudioParam
-				buffer</dfn>.
+			1. For each {{AudioParam}} of this {{AudioNode}}, execute these steps:
 
-			2. <a href="#computation-of-value">Compute the value(s)</a> of
-				this {{AudioParam}} for this block.
+				1. If this {{AudioParam}} has any {{AudioNode}} connected to it,
+					<a href="#SummingJunction">sum</a> the buffers
+					<a href="#available-for-reading"> made available for reading</a> by
+					all {{AudioNode}} connected to this {{AudioParam}},
+					<a href="#down-mix">down mix</a> the resulting buffer down to mono
+					channel, and call this buffer the <dfn id="input-audioparam-buffer">
+					input AudioParam buffer</dfn>.
 
-			3. <a>Queue a control message</a> to set the
-				{{[[current value]]}} slot of this {{AudioParam}}
-				to the last value computed in the preceding step.
+				2. <a href="#computation-of-value">Compute the value(s)</a> of this
+					{{AudioParam}} for this block.
 
-		2. If this {{AudioNode}} has any {{AudioNode}}s connected
-			to its input, <a href="#SummingJunction">sum</a> the buffers
-			<a href="#available">made available for reading</a> by all
-			{{AudioNode}}s connected to this {{AudioNode}}. The
-			resulting buffer is called the <dfn>input buffer</dfn>.
-			<a href="#channel-up-mixing-and-down-mixing">Up or down-mix</a>
-			it to match if number of input channels of this
-			{{AudioNode}}.
+				3. <a>Queue a control message</a> to set the {{[[current value]]}} slot
+					of this {{AudioParam}} to the last value computed in the preceding
+					step.
 
-		3. If this {{AudioNode}} is a <a>source node</a>, <a href="computing">compute a block of audio</a>,
-			and <a href="#available">make it available for reading</a>.
+			2. If this {{AudioNode}} has any {{AudioNode}}s connected to its input,
+				<a href="#SummingJunction">sum</a> the buffers
+				<a href="#available-for-reading">made available for reading</a> by all
+				{{AudioNode}}s connected to this {{AudioNode}}. The resulting buffer is
+				called the <dfn>input buffer</dfn>.
+				<a href="#channel-up-mixing-and-down-mixing">Up or down-mix</a> it to
+				match if number of input channels of this {{AudioNode}}.
 
-		4. Else, if this {{AudioNode}} is a <a>destination node</a>,
-			<a href="record">record the input</a> of this {{AudioNode}}.
+			3. If this {{AudioNode}} is a <a>source node</a>,
+				<a href="computing-block"> compute a block of audio</a>, and
+				<a href="#available-for-reading">make it available for reading</a>.
 
-		5. Else, <a>process</a> the <a>input buffer</a>,
-			and <a href="#available">make available for reading</a> the resulting buffer.
+			4. Else, if this {{AudioNode}} is a <a>destination node</a>,
+				<a href="record-input">record the input</a> of this {{AudioNode}}.
 
-	9. <a>Atomically</a> increment {{BaseAudioContext/currentTime}} by 128 / {{BaseAudioContext/sampleRate}}.
+		  5. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
+				{{AudioWorkletProcessor}}'s {{process}} method to
+				<a href="computing-block">compute a block of audio</a> with the argument
+				of <a href="#">input buffer</a>, output buffer and
+				<a href="#input-audioparam-buffer">input AudioParam buffer</a>.
 
-	10. Return true.
+				1. Any {{Promise}} resolved within the execution of process method will
+					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
+
+			6. Else, <a>process</a> the <a>input buffer</a>, and
+				<a href="#available-for-reading">make available for reading</a> the
+				resulting buffer.
+
+		6. <a>Atomically</a> increment {{BaseAudioContext/currentTime}} by 128 /
+			{{BaseAudioContext/sampleRate}}.
+
+		7. Return true.
+
+	3. <a href="https://html.spec.whatwg.org/multipage/webappapis.html#perform-a-microtask-checkpoint">
+		Perform a microtask checkpoint</a>.
 </div>
 
-<dfn id="mute">Muting</dfn> an {{AudioNode}} means that its
-output MUST be silence for the rendering of this audio block.
+<dfn id="mute">Muting</dfn> an {{AudioNode}} means that its output MUST be
+silence for the rendering of this audio block.
 
-<dfn id="available">Making a buffer available for reading</dfn>
-from an {{AudioNode}} means putting it in a state where other
-{{AudioNode}}s connected to this {{AudioNode}} can safely
-read from it.
+<dfn id="available-for-reading">Making a buffer available for reading</dfn> from
+an {{AudioNode}} means putting it in a state where other {{AudioNode}}s
+connected to this {{AudioNode}} can safely read from it.
 
-Note: For example, implementations can choose to allocate a new buffer,
-or have a more elaborate mechanism, reusing an existing buffer
-that is now unused.
+Note: For example, implementations can choose to allocate a new buffer, or have
+a more elaborate mechanism, reusing an existing buffer that is now unused.
 
-<dfn id="record">Recording the input</dfn> of an {{AudioNode}}
-means copying the input data of this {{AudioNode}} for future
-usage.
+<dfn id="record-input">Recording the input</dfn> of an {{AudioNode}} means
+copying the input data of this {{AudioNode}} for future usage.
 
-<dfn id="computing">Computing a block of audio</dfn> means
-running the algorithm for this {{AudioNode}} to produce 128
-sample-frames.
+<dfn id="computing">Computing a block of audio</dfn> means running the algorithm
+for this {{AudioNode}} to produce 128 sample-frames.
 
-<dfn lt="process">Processing an input buffer</dfn> means
-running the algorithm for an {{AudioNode}}, using an <a>input
-buffer</a> and the value(s) of the {{AudioParam}}(s) of this
-{{AudioNode}} as the input for this algorithm.
+<dfn lt="process">Processing an input buffer</dfn> means running the algorithm
+for an {{AudioNode}}, using an <a>input buffer</a> and the value(s) of the
+{{AudioParam}}(s) of this {{AudioNode}} as the input for this algorithm.
 
 <h2 id="mixer-gain-structure">
 Mixer Gain Structure</h2>

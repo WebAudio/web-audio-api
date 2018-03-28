@@ -3081,16 +3081,12 @@ There are several types of references:
 	<em>playing</em> reference to themselves while they are currently
 	playing.
 
-3. An <dfn>active reference</dfn> for {{AudioWorkletNode}}s
-	whose {{AudioWorkletNode/processorState}}
-	property is set to <code>running</code>.
-
-4. A <em>connection</em> reference which occurs if another
+3. A <em>connection</em> reference which occurs if another
 	{{AudioNode}} is connected to one or more of its inputs.
 	Connections to a node's {{AudioParam}}s do not imply a
 	connection reference.
 
-5. A <em><dfn>tail-time</dfn></em> reference which an
+4. A <em><dfn>tail-time</dfn></em> reference which an
 	{{AudioNode}} maintains on itself as long as it has
 	any internal processing state which has not yet been emitted. For
 	example, a {{ConvolverNode}} has a tail which
@@ -3100,13 +3096,13 @@ There are several types of references:
 	{{AudioNode}}s have this property. Please see
 	details for specific nodes.
 
-6. [[mediacapture-streams#mediastream|MediaStream]]s keep a
+5. [[mediacapture-streams#mediastream|MediaStream]]s keep a
 	{{MediaStreamAudioSourceNode}} alive as long as the underlying
 	[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] that is playing through the
 	{{MediaStreamAudioSourceNode}} has not <a href="https://w3c.github.io/mediacapture-main/#track-ended">ended</a>
 	(as per [[!mediacapture-streams]]).
 
-7. {{HTMLMediaElement}}s keep their associated
+6. {{HTMLMediaElement}}s keep their associated
 	{{MediaElementAudioSourceNode}} alive as long as the
 	{{HTMLMediaElement}} is in a state where audio could
 	ever be played in the future.
@@ -9479,49 +9475,13 @@ This interface has "entries", "forEach", "get", "has", "keys",
 <code>readonly maplike</code>.
 
 <pre class="idl">
-enum AudioWorkletProcessorState {
-	"pending",
-	"running",
-	"stopped",
-	"error"
-};
-</pre>
-
-<table class="simple" dfn-type="enum-value" dfn-for="AudioWorkletProcessorState">
-	<thead>
-		<tr><th colspan="2">Enumeration description
-	<tbody>
-		<tr><td><dfn>pending</dfn>
-			<td>
-				The construction of associated processor has not been
-				completed. In this state, no audio processing can happen and
-				all messages to the processor will be queued.
-		<tr><td><dfn>running</dfn>
-			<td>
-				Indicates that the <a>active source</a> flag on the
-				corresponding processor is `true`.
-		<tr><td><dfn>stopped</dfn>
-			<td>
-				Indicates that the <a>active source</a> flag on the
-				corresponding processor is <code>false</code>.
-		<tr><td><dfn>error</dfn>
-			<td>
-				When an exception is thrown from the processor's
-				<code>constructor</code>, <code>process</code> method, or any
-				user-defined class method throws an exception. Note that once
-				an {{AudioWorkletNode}} reaches to this state, the processor
-				will output silence throughout its lifetime.
-</table>
-
-<pre class="idl">
 [Exposed=Window,
  SecureContext,
  Constructor (BaseAudioContext context, DOMString name, optional AudioWorkletNodeOptions options)]
 interface AudioWorkletNode : AudioNode {
 	readonly attribute AudioParamMap parameters;
 	readonly attribute MessagePort port;
-	readonly attribute AudioWorkletProcessorState processorState;
-	attribute EventHandler onprocessorstatechange;
+	attribute EventHandler onprocessorerror;
 };
 </pre>
 
@@ -9550,11 +9510,15 @@ Constructors</h5>
 Attributes</h5>
 
 <dl dfn-type=attribute dfn-for="AudioWorkletNode">
-	: <dfn>onprocessorstatechange</dfn>
+	: <dfn>onprocessorerror</dfn>
 	::
-		Any state change on the processor will queue a task on the
-		control thread to fire {{onprocessorstatechange}} event to
-		the node.
+		When an exception is thrown from the processor's
+		<code>constructor</code>, <code>process</code> method,
+		or any user-defined class method, the processor will
+		queue a task on the control thread to fire
+		{{onprocessorerror}} event to the node. Note that
+		once an exception is thrown, the processor will output
+		silence throughout its lifetime.
 
 	: <dfn>parameters</dfn>
 	::
@@ -9573,11 +9537,6 @@ Attributes</h5>
 		bidirectional communication between a pair of
 		{{AudioWorkletNode}} and {{AudioWorkletProcessor}}.
 
-	: <dfn>processorState</dfn>
-	::
-		Indicates the state of the associated processor. The
-		propagation from the actual processor's <a>active source</a>
-		flag to this property is done by queueing a task.
 </dl>
 
 <h5 dictionary lt="AudioWorkletNodeOptions">
@@ -10019,8 +9978,8 @@ serialization record <var>processorPortSerialization</var>, and an
 steps on the <a>rendering thread</a>. If any of these steps throws
 an exception (either explicitly or implicitly), abort the rest of
 steps and queue a task on the <a>control thread</a> to fire
-{{AudioWorkletNode/onprocessorstatechange}} event to
-<var>node</var> with <code>error</code> state.
+{{AudioWorkletNode/onprocessorerror}} event to
+<var>node</var>.
 
 <div algorithm="process control message">
 	1. Let <var>processorPort</var> be

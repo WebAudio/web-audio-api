@@ -9345,15 +9345,9 @@ Attributes</h5>
 	: <dfn>currentFrame</dfn>
 	::
 		The current frame of the block of audio being
-		processed. This must be equal to {{AudioWorkletGlobalScope/currentTime}}
-		multiplied by {{AudioWorkletGlobalScope/sampleRate}}.
-
-		Note: Implementations typically count time by frames
-		to reduce round-off,
-		and {{BaseAudioContext/currentTime}} is computed from
-		this current frame value and the
-		{{BaseAudioContext/sampleRate}}.
-		This attribute just exposes the internal counter.
+		processed. This must be equal to the value of the
+		{{[[current frame]]}} internal slot of the
+		{{BaseAudioContext}}.
 
 	: <dfn>currentTime</dfn>
 	::
@@ -10441,7 +10435,8 @@ asynchronous sections can't be reordered.
 Rendering an audio graph</h3>
 
 Rendering an audio graph is done in blocks of 128 samples-frames. A
-block of 128 samples-frames is called a <dfn>render quantum</dfn>.
+block of 128 samples-frames is called a <dfn>render quantum</dfn>, and
+the <dfn>render quantum size</dfn> is 128.
 
 Operations that happen <dfn>atomically</dfn> on a
 given thread can only be executed when no other [=Atomically|atomic=]
@@ -10474,6 +10469,9 @@ can restart executing this algoritm if needed.
 </div>
 
 <div algorithm="rendering a graph">
+	1. Set the internal slot <dfn attribute
+		for="BaseAudioContext">[[current frame]]</dfn> of the
+		{{BaseAudioContext}} to 0.
 	1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
 		queue</a>. <a>Atomically</a> <a>swap</a>
 		<em>Q<sub>rendering</sub></em> and <em>Q</em>
@@ -10582,7 +10580,9 @@ can restart executing this algoritm if needed.
 		5. Else, <a>process</a> the <a>input buffer</a>,
 			and <a href="#available">make available for reading</a> the resulting buffer.
 
-	9. <a>Atomically</a> increment {{BaseAudioContext/currentTime}} by 128 / {{BaseAudioContext/sampleRate}}.
+	9. <a>Atomically</a> perform the following steps:
+		1. Increment {{[[current frame]]}} by the [=render quantum size=].
+		1. Set {{BaseAudioContext/currentTime}} to {{[[current frame]]}} divided by {{BaseAudioContext/sampleRate}}.
 
 	10. Return true.
 </div>

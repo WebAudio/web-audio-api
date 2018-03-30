@@ -1,15 +1,20 @@
-language: cpp
+language: python
 sudo: false
+python:
+  - "2.7"
+install:
+  # Setup bikeshed. See https://tabatkins.github.io/bikeshed/#install-linux
+  - git clone https://github.com/tabatkins/bikeshed.git
+  - pip install --editable $PWD/bikeshed
+  - bikeshed update
+
 script:
-  # run bikeshed and save the error output.  
-  - curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 -F output=err -o err
-  # Compare against our expected results. The sed command removes
-  # the ANSI color codes from the output to make it easier to read.
-  # If expected-errs.txt ever needs to be updated, run the following
-  # commands, but save the output from sed to expected-errs.txt and
-  # check in the file.  The first sed makes sure there's a newline
-  # character at the end of the file.
-  - sed -e '$a\'  err | sed -E 's/\\033\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g' | diff -u expected-errs.txt -
+  # Run bikeshed and save the output, but remove the line numbers from
+  # the log. Then compare with the expected results.  Any differences
+  # need to be fixed.
+  - bikeshed --print=plain -f spec 2>&1 | sed 's;^LINE [0-9]*:;LINE:;' | tee bs.log
+  # Make sure bs.log ends with a newline and compare with expected results.
+  - sed -e '$a\'  bs.log | diff -u expected-errs.txt -
 
 branches:
   only:

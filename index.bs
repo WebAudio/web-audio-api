@@ -10174,8 +10174,22 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 	process (inputs, outputs, parameters) {
 		let input = inputs[0];
 		let output = outputs[0];
+
+		// Handle the case where the AudioParam has a constant
+		// value, indicated by the fact that the array has length
+		// 1.  This can be done in multiple ways.
+
 		let bitDepth = parameters.bitDepth;
+		if (parameters.bitDepth.length === 1) {
+			bitDepth = new Float32Array(output[0].length);
+			bitDepth.fill(bitDepth[0]);
+		}
+
 		let frequencyReduction = parameters.frequencyReduction;
+		if (parameters.frequencyReduction.length === 1) {
+			frequencyReduction = new Float32Array(output[0].length);
+			frequencyReduction.fill(bitDepth[0]);
+		}
 
 		for (let channel = 0; channel &lt; output.length; ++channel) {
 			for (let i = 0; i &lt; output[channel].length; ++i) {

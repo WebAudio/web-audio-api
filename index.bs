@@ -3218,6 +3218,10 @@ the value of a <dfn id="k-rate">k-rate</dfn> parameter MUST be sampled at the ti
 very first sample-frame, and that value MUST be used for the entire
 block. <dfn id="a-rate">a-rate</dfn> parameters MUST be sampled for
 each sample-frame of the block.
+Depending on the {{AudioParam}}, its rate can be controlled by setting
+the {{AudioParam/automationRate}} attribute to either
+"{{AutomationRate/a-rate}}" or "{{AutomationRate/k-rate}}".  See the
+description of the individual {{AudioParam}}s for further details.
 
 Each {{AudioParam}} includes {{AudioParam/minValue}} and {{AudioParam/maxValue}} attributes that together form
 the <dfn>simple nominal range</dfn> for the parameter. In effect,
@@ -3284,6 +3288,46 @@ The following rules will apply when calling these methods:
 Note: {{AudioParam}} attributes are read only, with the exception
 of the {{AudioParam/value}} attribute.
 
+The automation rate of an {{AudioParam}} can be selected setting the
+{{AudioParam/automationRate}} attribute with one of the following
+values.  However, some {{AudioParam}}s have constraints on whether the
+automation rate can be changed.
+
+<pre class="idl">
+enum AutomationRate {
+	"a-rate",
+	"k-rate"
+};
+</pre>
+
+<div class="enum-description">
+<table class="simple" dfn-type=enum-value dfn-for="AutomationRate">
+	<thead>
+		<tr>
+		<th colspan="2">
+			Enumeration description
+		</th>
+		</tr>
+	<tbody>
+	<tr>
+		<td>
+			"<dfn>a-rate</dfn>"
+		</td>
+		<td>
+			This {{AudioParam}} is set for [=a-rate=] processing.
+		</td>
+	</tr>
+	<tr>
+		<td>
+			"<dfn>k-rate</dfn>"
+		</td>
+		<td>
+			This {{AudioParam}} is set for [=k-rate=] processing.
+		</td>
+	</tr>
+</table>
+</div>
+
 Each {{AudioParam}} has an internal slot <dfn attribute for=AudioParam>[[current value]]</dfn>,
 initially set to the {{AudioParam}}'s {{AudioParam/defaultValue}}.
 
@@ -3291,6 +3335,7 @@ initially set to the {{AudioParam}}'s {{AudioParam/defaultValue}}.
 [Exposed=Window]
 interface AudioParam {
 	attribute float value;
+	attribute AutomationRate automationRate;
 	readonly attribute float defaultValue;
 	readonly attribute float minValue;
 	readonly attribute float maxValue;
@@ -3308,6 +3353,45 @@ interface AudioParam {
 Attributes</h4>
 
 <dl dfn-type=attribute dfn-for="AudioParam">
+	: <dfn>automationRate</dfn>
+	::
+		The automation rate for the {{AudioParam}}.  The
+		default value depends on the actual {{AudioParam}};
+		see the description of the {{AudioParam}} for the
+		default value.
+
+		Some nodes have additional <dfn dfn>automation rate constraints</dfn> as follows:
+
+		: {{AudioBufferSourceNode}}
+		::
+			The {{AudioParam}}s
+			{{AudioBufferSourceNode/playbackRate}} and
+			{{AudioBufferSourceNode/detune}} MUST be
+			"{{AutomationRate/k-rate}}" and cannot be changed.
+
+		: {{DynamicsCompressorNode}}
+		::
+			The {{AudioParam}}s
+			{{DynamicsCompressorNode/threshold}}
+			{{DynamicsCompressorNode/knee}},
+			{{DynamicsCompressorNode/ratio}},
+			{{DynamicsCompressorNode/attack}}, and
+			{{DynamicsCompressorNode/release}}
+			MUST be "{{AutomationRate/k-rate}}" and cannot be changed.
+
+		: {{PannerNode}}
+		::
+			If the {{PannerNode/panningModel}} is
+			"{{PanningModelType/HRTF}}", the setting of
+			the {{automationRate}} for any
+			{{AudioParam}} of the {{PannerNode}} is ignored.
+			Likewise, the setting of the
+			{{automationRate}} for any {{AudioParam}}
+			of the {{AudioListener}} is ignored.  In this
+			case, the {{AudioParam}} behaves as if the
+			{{automationRate}} were set to
+			"{{AutomationRate/k-rate}}".
+
 	: <dfn>defaultValue</dfn>
 	::
 		Initial value for the <code>value</code> attribute.
@@ -4475,7 +4559,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>loop</dfn>
@@ -4518,7 +4603,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 </dl>
 
@@ -5126,11 +5212,6 @@ interface AudioListener {
 <h4 id="AudioListener-attributes">
 Attributes</h4>
 
-For all of the following {{AudioParam}}s, the {{AudioParam}}
-rate is specified by the <dfn>listener AudioParam rate</dfn>
-which is <a>a-rate</a> when any connected {{PannerNode}} is
-<a>a-rate</a> and is <a>k-rate</a> otherwise.
-
 <dl dfn-type=attribute dfn-for="AudioListener">
 	: <dfn>forwardX</dfn>
 	::
@@ -5145,8 +5226,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>forwardY</dfn>
@@ -5162,8 +5242,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>forwardZ</dfn>
@@ -5179,8 +5258,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>positionX</dfn>
@@ -5196,8 +5274,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>positionY</dfn>
@@ -5213,8 +5290,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>positionZ</dfn>
@@ -5230,8 +5306,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>upX</dfn>
@@ -5247,8 +5322,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>upY</dfn>
@@ -5264,8 +5338,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>upZ</dfn>
@@ -5281,8 +5354,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -6834,7 +6906,8 @@ Attributes</h4>
 			default: .003
 			min: 0
 			max: 1
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>knee</dfn>
@@ -6848,7 +6921,8 @@ Attributes</h4>
 			default: 30
 			min: 0
 			max: 40
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>ratio</dfn>
@@ -6861,7 +6935,8 @@ Attributes</h4>
 			default: 12
 			min: 1
 			max: 20
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>reduction</dfn>
@@ -6882,7 +6957,8 @@ Attributes</h4>
 			default: .25
 			min: 0
 			max: 1
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>threshold</dfn>
@@ -6895,7 +6971,8 @@ Attributes</h4>
 			default: -24
 			min: -100
 			max: 0
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 </dl>
 
@@ -8160,6 +8237,15 @@ enum PanningModelType {
 </table>
 </div>
 
+The <dfn>effective automation rate</dfn> for an {{AudioParam}} of a
+{{PannerNode}} is determined by the {{PannerNode/panningModel}} and
+{{AudioParam/automationRate}} of the {{AudioParam}}.  If the
+{{PannerNode/panningModel}} is "{{PanningModelType/HRTF}}", the
+[=effective automation rate=] is "{{AutomationRate/k-rate}}",
+independent of the setting of the {{AudioParam/automationRate}}.
+Otherwise the [=effective automation rate=] is the value of
+{{AudioParam/automationRate}}.
+
 The {{DistanceModelType}} enum determines which
 algorithm will be used to reduce the volume of an audio source as it
 moves away from the listener. The default is "inverse".
@@ -8332,8 +8418,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>orientationY</dfn>
@@ -8349,8 +8435,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>orientationZ</dfn>
@@ -8366,8 +8452,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>panningModel</dfn>
@@ -8389,8 +8475,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>positionY</dfn>
@@ -8406,8 +8492,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>positionZ</dfn>
@@ -8423,8 +8509,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>refDistance</dfn>

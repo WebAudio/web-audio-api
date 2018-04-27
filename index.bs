@@ -706,31 +706,33 @@ interface BaseAudioContext : EventTarget {
 	readonly attribute AudioContextState state;
 	[SameObject, SecureContext]
 	readonly attribute AudioWorklet audioWorklet;
-	Promise<void> resume ();
 	attribute EventHandler onstatechange;
+
+	AnalyserNode createAnalyser ();
+	BiquadFilterNode createBiquadFilter ();
 	AudioBuffer createBuffer (unsigned long numberOfChannels, unsigned long length, float sampleRate);
-	Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
-	                                      optional DecodeSuccessCallback successCallback,
-	                                      optional DecodeErrorCallback errorCallback);
 	AudioBufferSourceNode createBufferSource ();
+	ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
+	ChannelSplitterNode createChannelSplitter (optional unsigned long numberOfOutputs = 6);
 	ConstantSourceNode createConstantSource ();
+	ConvolverNode createConvolver ();
+	DelayNode createDelay (optional double maxDelayTime = 1.0);
+	DynamicsCompressorNode createDynamicsCompressor ();
+	GainNode createGain ();
+	IIRFilterNode createIIRFilter (sequence<double> feedforward, sequence<double> feedback);
+	OscillatorNode createOscillator ();
+	PannerNode createPanner ();
+	PeriodicWave createPeriodicWave (sequence<float> real, sequence<float> imag, optional PeriodicWaveConstraints constraints);
 	ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
 	                                          optional unsigned long numberOfInputChannels = 2,
 	                                          optional unsigned long numberOfOutputChannels = 2);
-	AnalyserNode createAnalyser ();
-	GainNode createGain ();
-	DelayNode createDelay (optional double maxDelayTime = 1.0);
-	BiquadFilterNode createBiquadFilter ();
-	IIRFilterNode createIIRFilter (sequence<double> feedforward, sequence<double> feedback);
-	WaveShaperNode createWaveShaper ();
-	PannerNode createPanner ();
 	StereoPannerNode createStereoPanner ();
-	ConvolverNode createConvolver ();
-	ChannelSplitterNode createChannelSplitter (optional unsigned long numberOfOutputs = 6);
-	ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
-	DynamicsCompressorNode createDynamicsCompressor ();
-	OscillatorNode createOscillator ();
-	PeriodicWave createPeriodicWave (sequence<float> real, sequence<float> imag, optional PeriodicWaveConstraints constraints);
+	WaveShaperNode createWaveShaper ();
+
+	Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
+	                                      optional DecodeSuccessCallback successCallback,
+	                                      optional DecodeErrorCallback errorCallback);
+	Promise<void> resume ();
 };
 </xmp>
 
@@ -3509,7 +3511,7 @@ Methods</h4>
 			5. Remove all events with time greater than \(t_c\).
 
 			If no events are added, then the automation value after
-			{{AudioParam/cancelAndHoldAtTime()}} is the the constant value that
+			{{AudioParam/cancelAndHoldAtTime()}} is the constant value that
 			the original timeline would have had at time \(t_c\).
 		</div>
 
@@ -5759,7 +5761,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>detune</dfn>
@@ -5775,7 +5777,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>frequency</dfn>
@@ -5792,7 +5794,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>gain</dfn>
@@ -5810,7 +5812,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>type</dfn>
@@ -6366,7 +6368,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -6753,7 +6755,7 @@ Attributes</h4>
 			default: 0
 			min: 0
 			max: <l>{{DelayOptions/maxDelayTime}}</l>
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -6826,6 +6828,7 @@ macros:
 	cc: 2
 	cc-notes: Has <a>channelCount constraints</a>
 	cc-mode: clamped-max
+	cc-mode-notes: Has <a>channelCountMode constraints</a>
 	cc-interp: speakers
 	tail-time: Yes
 	tail-time-notes:  This node has a <a>tail-time</a> reference such that this node continues to output non-silent audio with zero input due to the look-ahead delay.
@@ -7231,7 +7234,7 @@ of the same shape.
 
 <div algorithm="convert linear to db">
 	Converting a value \(v\) in <dfn id="linear-to-decibel">linear gain
-	unit to decibel means</dfn> executing the following steps:
+	unit to decibel</dfn> means executing the following steps:
 
 	1. If \(v\) is equal to zero, return -1000.
 
@@ -7318,7 +7321,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -7477,8 +7480,8 @@ $$
 </pre>
 
 where \(M + 1\) is the length of the \(b\) array and \(N + 1\) is
-the length of the \(a\) array. The coefficient \(a_0\) cannot be 0.
-At least one of \(b_m\) MUST be non-zero.
+the length of the \(a\) array. The coefficient \(a_0\) MUST not be 0 (see {{BaseAudioContext/createIIRFilter()/feedback|feedback parameter}} for {{BaseAudioContext/createIIRFilter()}}).
+At least one of \(b_m\) MUST be non-zero (see {{BaseAudioContext/createIIRFilter()/feedforward|feedforward parameter}} for {{BaseAudioContext/createIIRFilter()}}).
 
 Equivalently, the time-domain equation is:
 
@@ -7978,7 +7981,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>frequency</dfn>
@@ -7995,7 +7998,7 @@ Attributes</h4>
 			default: 440
 			min: -<a>Nyquist frequency</a>
 			max: <a>Nyquist frequency</a>
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>type</dfn>
@@ -9065,7 +9068,7 @@ Attributes</h4>
 			default: 0
 			min: -1
 			max: 1
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -9434,6 +9437,7 @@ scope code running within concurrent threads.
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
 	void registerProcessor (DOMString name, VoidFunction processorCtor);
+	readonly attribute unsigned long long currentFrame;
 	readonly attribute double currentTime;
 	readonly attribute float sampleRate;
 };
@@ -9443,6 +9447,13 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
 Attributes</h5>
 
 <dl dfn-type=attribute dfn-for="AudioWorkletGlobalScope">
+	: <dfn>currentFrame</dfn>
+	::
+		The current frame of the block of audio being
+		processed. This must be equal to the value of the
+		{{[[current frame]]}} internal slot of the
+		{{BaseAudioContext}}.
+
 	: <dfn>currentTime</dfn>
 	::
 		The context time of the block of audio being processed. By
@@ -9798,7 +9809,7 @@ Defining A Valid AudioWorkletProcessor</h5>
 
 User can define a custom audio processor by extending
 {{AudioWorkletProcessor}}. The subclass MUST define a method
-named <code>process()</code> that implements the audio processing
+named <code><dfn id="audioworkletprocessor-process">process()</dfn></code> that implements the audio processing
 algorithm and have a valid static property named
 <code><dfn>parameterDescriptors</dfn></code> which is an iterable
 of {{AudioParamDescriptor}} that is looked up by the
@@ -9936,7 +9947,7 @@ To propagate the flag change <a>queue a task</a> on the control thread to update
 
 If <code>process()</code> is not called during some rendering
 quantum due to the lack of any applicable <a>active processing
-conditions</a>, the result is is as if the processor emitted
+conditions</a>, the result is as if the processor emitted
 silence for this period.
 
 <h5 dictionary lt="AudioParamDescriptor">
@@ -10556,7 +10567,8 @@ asynchronous sections can't be reordered.
 Rendering an audio graph</h3>
 
 Rendering an audio graph is done in blocks of 128 samples-frames. A
-block of 128 samples-frames is called a <dfn>render quantum</dfn>.
+block of 128 samples-frames is called a <dfn>render quantum</dfn>, and
+the <dfn>render quantum size</dfn> is 128.
 
 Operations that happen <dfn>atomically</dfn> on a
 given thread can only be executed when no other [=Atomically|atomic=]
@@ -10564,13 +10576,15 @@ operation is running on another thread.
 
 The algorithm for rendering a block of audio from an {{AudioContext}} <em>G</em>
 with a <a href="#control-message-queue">control message queue</a> <em>Q</em> is
-comprised of 3 steps and the order of these steps cannot be altered or
+comprised of multiple steps and the order of these steps cannot be altered or
 interrupted:
-	1. Process the control message queue.
-	2. Process a render quantum.
-	3. Perform a microtask check point.
+	1. Prepare the rendering.
+	2. Process the control message queue.
+	3. Process a render quantum.
+	4. Perform a microtask check point.
+	5. Return the result of the rendering.
 
-If the second step returns true then it MUST be executed again in the future, to
+If the step 5 returns true then it MUST be executed again in the future, to
 render the subsequent block of audio. Otherwise, the <a>rendering thread</a>
 yields and the processing stops. The <a>control thread</a> can restart executing
 these steps if needed.
@@ -10600,8 +10614,19 @@ up the requested buffer size. Along with the primary message queue, the
 operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 <div algorithm="rendering a graph">
+  1. Prepare the rendering.
 
-	1. Process the <a>control message queue</a>.
+  	1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
+			queue</a>. <a>Atomically</a> <a>swap</a>
+			<em>Q<sub>rendering</sub></em> and <em>Q</em>.
+
+		2. Set the internal slot <dfn attribute
+			for="BaseAudioContext">[[current frame]]</dfn> of the
+			{{BaseAudioContext}} to 0.
+
+		3. Let <var>RenderResult</var> be false.
+
+	2. Process the <a>control message queue</a>.
 
 		1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
 			queue</a>. <a>Atomically</a> <a>swap</a> <em>Q<sub>rendering</sub></em>
@@ -10615,7 +10640,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 			2. Remove the <a>oldest message</a> of <em>Q<sub>rendering</sub></em>.
 
-	2. Process a render quantum.
+	3. Process a render quantum.
 
 		1. If the <a>rendering thread state</a> of the {{AudioContext}} is not
 			<code>running</code>, return false.
@@ -10702,10 +10727,11 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				<a href="#available-for-reading">make it available for reading</a>.
 
 			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
-				{{AudioWorkletProcessor}}'s {{process}} method to
-				<a href="computing-block">compute a block of audio</a> with the argument
-				of <a href="#">input buffer</a>, output buffer and
-				<a href="#input-audioparam-buffer">input AudioParam buffer</a>.
+				{{AudioWorkletProcessor}}'s <a href="#audioworkletprocessor-process">
+				process</a> method to <a href="computing-block">compute a block of
+				audio</a> with the argument of <a href="#">input buffer</a>, output
+				buffer and <a href="#input-audioparam-buffer">input AudioParam buffer
+				</a>.
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
@@ -10717,13 +10743,19 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				<a href="#available-for-reading">make available for reading</a> the
 				resulting buffer.
 
-		6. <a>Atomically</a> increment {{BaseAudioContext/currentTime}} by 128 /
-			{{BaseAudioContext/sampleRate}}.
+		6. <a>Atomically</a> perform the following steps:
 
-		7. Return true.
+			1. Increment {{[[current frame]]}} by the [=render quantum size=].
 
-	3. <a href="https://html.spec.whatwg.org/multipage/webappapis.html#perform-a-microtask-checkpoint">
+			2. Set {{BaseAudioContext/currentTime}} to {{[[current frame]]}} divided
+			  by {{BaseAudioContext/sampleRate}}.
+
+		7. Set <var>RenderResult</var> to true.
+
+	4. <a href="https://html.spec.whatwg.org/multipage/webappapis.html#perform-a-microtask-checkpoint">
 		Perform a microtask checkpoint</a>.
+
+	5. Return <var>RenderResult</var>.
 </div>
 
 <dfn id="mute">Muting</dfn> an {{AudioNode}} means that its
@@ -11764,7 +11796,7 @@ to Consider</a>
 4. Does this specification expose persistent, cross-origin state to
 	the web?
 
-	Yes, the supported audio sample rate(s) are exposed.
+	Yes, the supported audio sample rate(s) and the output device channel count are exposed.
 
 5. Does this specification expose any other data to an origin that it
 	doesn’t currently have access to?

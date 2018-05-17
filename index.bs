@@ -10552,25 +10552,31 @@ of <a href="#rendering-a-graph">rendering a graph</a>.
 
 The system level audio callback is also queued as a task in the
 <a href="#control-message-queue">control message queue</a>. The UA MUST perform
-the following sequence to process render quanta to fulfill such task by filling
-up the requested buffer size. Along with the primary message queue, the
+the following algorithms to process render quanta to fulfill such task by
+filling up the requested buffer size. Along with the primary message queue, the
 <a>rendering thread</a> has another task queue for microtasks for any microtask
 operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
+Before the actual rendering starts, UA MUST perform the following steps for the
+initialization:
+
+<div id="prepare-rendering" algorithm="prepare the rendering">
+	1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
+		queue</a>. <a>Atomically</a> <a>swap</a>
+		<em>Q<sub>rendering</sub></em> and <em>Q</em>.
+
+	2. Set the internal slot <dfn attribute
+		for="BaseAudioContext">[[current frame]]</dfn> of the
+		{{BaseAudioContext}} to 0.
+
+	3. Let <var>RenderResult</var> be false.
+</div>
+
+Once the preparation is completed, UA can start the rendering loop by performing
+the following steps whenever the system level audio callback is invoked:
+
 <div id="rendering-a-graph" algorithm="rendering a graph">
-	1. Prepare the rendering.
-
-		1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
-			queue</a>. <a>Atomically</a> <a>swap</a>
-			<em>Q<sub>rendering</sub></em> and <em>Q</em>.
-
-		2. Set the internal slot <dfn attribute
-			for="BaseAudioContext">[[current frame]]</dfn> of the
-			{{BaseAudioContext}} to 0.
-
-		3. Let <var>RenderResult</var> be false.
-
-	2. Process the <a>control message queue</a>.
+	1. Process the <a>control message queue</a>.
 
 		1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
 			queue</a>. <a>Atomically</a> <a>swap</a> <em>Q<sub>rendering</sub></em>
@@ -10584,7 +10590,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 			2. Remove the <a>oldest message</a> of <em>Q<sub>rendering</sub></em>.
 
-	3. Process a render quantum.
+	2. Process a render quantum.
 
 		1. If the <a>rendering thread state</a> of the {{AudioContext}} is not
 			<code>running</code>, return false.
@@ -10695,10 +10701,10 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 		7. Set <var>RenderResult</var> to true.
 
-	4. <a href="https://html.spec.whatwg.org/multipage/webappapis.html#perform-a-microtask-checkpoint">
+	3. <a href="https://html.spec.whatwg.org/multipage/webappapis.html#perform-a-microtask-checkpoint">
 		Perform a microtask checkpoint</a>.
 
-	5. Return <var>RenderResult</var>.
+	4. Return <var>RenderResult</var>.
 </div>
 
 <dfn id="mute">Muting</dfn> an {{AudioNode}} means that its

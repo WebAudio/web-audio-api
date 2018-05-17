@@ -9480,59 +9480,60 @@ Methods</h5>
 		<div algorithm="AudioWorkletGlobalScope.registerProcess()">
 			When the {{AudioWorkletGlobalScope/registerProcessor(name, processorCtor)}} method is called,
 			the user agent MUST run the following steps:
-
-			1. If the <code><em>name</em></code> is the empty string,
+			<ol>
+			<li> If the <code><em>name</em></code> is the empty string,
 				<span class="synchronous">throw a
 				{{NotSupportedError}} exception and abort these
 				steps because the empty string is not a valid key</span>.
 
-			2. If the <code><em>name</em></code> exists as a key in the
+			<li> If the <code><em>name</em></code> exists as a key in the
 				<a>node name to processor definition map</a>, <span class="synchronous">throw a {{NotSupportedError}}
 				exception and abort these steps</span> because registering a
 				definition with a duplicated key is not allowed.
 
-			3. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
+			<li> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
 				IsConstructor</a>(argument=<i>processorCtor</i>)</code>
 				is false, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
 
-			4. Let <code><em>prototype</em></code> be the result of
+			<li> Let <code><em>prototype</em></code> be the result of
 				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 				Get</a>(O=<i>processorCtor</i>,
 				P="prototype")</code>.
 
-			5. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
+			<li id="check-prototype-type"> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
 				Type</a>(argument=<i>prototype</i>)</code> is not
 				<code>Object</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort all these steps</span>.
 
-			6. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+			<li id="check-is-callable"> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
 				IsCallable</a>(argument=Get(O=<i>prototype</i>,
 				P="process"))</code> is false, <span class="synchronous">throw a {{TypeError}} and abort
 				these steps</span>.
 
-			7. Let <var>descriptors</var> be the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+			<li> Let <var>descriptors</var> be the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 				Get</a>(O=<i>processorCtor</i>,
 				P="parameterDescriptors")</code>.
 
-			7. If <var>descriptors</var> is not an array or
+			<li> If <var>descriptors</var> is not an array or
 				<code>undefined</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
-			8. Let <em>definition</em> be a new
+			<li> Let <em>definition</em> be a new
 				{{AudioWorkletProcessor}} definition with:
 
 				* node name being <em>name</em>
 				* processor class constructor being <em>processorCtor</em>
 
-			9. Add the key-value pair (<em>name</em> -
+			<li> Add the key-value pair (<em>name</em> -
 				<em>definition</em>) to the <a>node name to processor
 				definition map</a> of the associated
 				{{AudioWorkletGlobalScope}}.
 
-			11. Queue a task to the <a>control thread</a> to add the
+			<li> Queue a task to the <a>control thread</a> to add the
 				key-value pair (<em>name</em> - <em>descriptors</em>) to the
 				<a>node name to parameter descriptor map</a> of the
 				associated {{BaseAudioContext}}.
+			</ol>
 		</div>
 
 		Note: The class constructor should only be looked up once, thus it
@@ -9806,155 +9807,103 @@ Attributes</h5>
 		{{AudioWorkletNode}} and {{AudioWorkletProcessor}}.
 </dl>
 
-<h5 id="defining-a-valid-audioworkletprocessor">
-Defining A Valid AudioWorkletProcessor</h5>
+<h5 id="AudioWorkletProcessor-methods">
+Methods</h5>
 
 User can define a custom audio processor by extending
 {{AudioWorkletProcessor}}. The subclass MUST define a method
-named <code><dfn id="audioworkletprocessor-process">process()</dfn></code> that implements the audio processing
+named {{process()}} that implements the audio processing
 algorithm and have a valid static property named
 <code><dfn>parameterDescriptors</dfn></code> which is an iterable
 of {{AudioParamDescriptor}} that is looked up by the
 {{AudioWorkletProcessor}} constructor to create instances of
 {{AudioParam}} in the <code>parameters</code> maplike storage
-in the node. The step 5 and 6 of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
+in the node. The <a href="#check-prototype-type">prototype type check step</a> and the <a href="#check-is-callable">process method is callable step</a> of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
 validity of a given {{AudioWorkletProcessor}} subclass.
 
-An example of a valid subclass is as follows:
+<dl dfn-type=method dfn-for="AudioWorkletProcessor">
+	: <dfn>process(inputs, outputs, parameters)</dfn>
+	::
+		Implements the audio processing algorithm for the
+		{{AudioWorkletProcessor}}.
 
-<pre line-numbers class="example" highlight="js" title="Subclassing AudioWorkletProcessor">
-class MyProcessor extends AudioWorkletProcessor {
-	static get parameterDescriptors() {
-		return [{
-			name: 'myParam',
-			defaultValue: 0.5,
-			minValue: 0,
-			maxValue: 1,
-			automationRate: "k-rate"
-		}];
-	}
+		The {{process()}} method is called
+		synchronously by the audio <a>rendering thread</a> at
+		every <a>render quantum</a>, if ANY of the following
+		<dfn dfn>active processing conditions</dfn> are true:
 
-	process(inputs, outputs, parameters) {
-		// Get the first input and output.
-		let input = inputs[0];
-		let output = outputs[0];
-		let myParam = parameters.myParam;
+		1. The associated {{AudioWorkletProcessor}}'s
+			<a>active source</a> flag is equal to `true`.
 
-		// A simple amplifier for single input and output.
-		for (let channel = 0; channel &lt; output.length; ++channel) {
-			for (let i = 0; i &lt; output[channel].length; ++i) {
-				output[channel][i] = input[channel][i] * myParam[0];
-			}
-		}
+		2. There are one or more connected inputs to the {{AudioWorkletNode}}.
 
-		// To keep this processor alive.
-		return true;
-	}
-}
-</pre>
+		The return value of this method controls the lifetime of the
+		{{AudioWorkletProcessor}}'s associated
+		{{AudioWorkletNode}}. At the conclusion of each call to the
+		{{process()}} method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in [[!ECMASCRIPT]])
+		is applied to the return value and the result is assigned to the associated AudioWorkletProcessor's <a>active source</a> flag. This in turn affects whether subsequent
+		invocations of {{process()}} occur, and has an impact on the lifetime of the node.
+		To propagate the flag change <a>queue a task</a> on the control thread to update the corresponding {{AudioWorkletNode}}'s <code>state</code> property accordingly.
 
-The <code>process()</code> method is called synchronously by the
-audio <a>rendering thread</a> at every <a>render quantum</a>, if
-ANY of the following <dfn>active processing conditions</dfn> are
-true:
+		<div class="note">
+			This lifetime policy can support a variety of approaches found in
+			built-in nodes, including the following:
 
-1. The associated {{AudioWorkletProcessor}}'s <a>active
-	source</a> flag is equal to `true`.
+			* Nodes that transform their inputs, and are active only
+				while connected inputs and/or script references exist. Such
+				nodes SHOULD return <code>false</code> from
+				{{process()}} which allows the presence or absence of
+				connected inputs to determine whether active processing occurs.
 
-2. There are one or more connected inputs to the
-	{{AudioWorkletNode}}.
+			* Nodes that transform their inputs, but which remain active
+				for a <a>tail-time</a> after their inputs are disconnected. In
+				this case, {{process()}} SHOULD return
+				`true` for some period of time after
+				<code>inputs</code> is found to contain zero channels. The
+				current time may be obtained from the global scope's
+				{{AudioWorkletGlobalScope/currentTime}} to
+				measure the start and end of this tail-time interval, or the
+				interval could be calculated dynamically depending on the
+				processor's internal state.
 
-The method is invoked with the following arguments:
+			* Nodes that act as sources of output, typically with a
+				lifetime. Such nodes SHOULD return `true` from
+				{{process()}} until the point at which they are no
+				longer producing an output.
 
-:  <code>inputs</code> of type <code>sequence&lt;sequence&lt;Float32Array>></code>
-::
-	The input audio buffer from the incoming connections provided
-	by the user agent. <code>inputs[n][m]</code> is a
-	{{Float32Array}} of audio samples for the
-	<code>m</code>th channel of <code>n</code>th input. While the
-	number of inputs is fixed at construction, the number of
-	channels can be changed dynamically based on
-	<a>computedNumberOfChannels</a>.
+			Note that the preceding definition implies that when no
+			return value is provided from an implementation of
+			{{process()}}, the effect is identical to returning
+			<code>false</code> (since the effective return value is the falsy
+			value <code>undefined</code>). This is a reasonable behavior for
+			any {{AudioWorkletProcessor}} that is active only when it has
+			active inputs.
+		</div>
 
-	If no connections exist to the <code>n</code>th input of the
-	node during the current render quantum, then the content of
-	<code>inputs[n]</code> is an empty array, indicating that
-	zero channels of input are available. This is the only
-	circumstance under which the number of elements of
-	<code>inputs[n]</code> can be zero.
+		If {{process()}} is not called during some rendering
+		quantum due to the lack of any applicable [=active processing conditions=], the result is as if the processor emitted
+		silence for this period.
 
-: <code>outputs</code> of type <code>sequence&lt;sequence&lt;Float32Array>></code>
-::
-	The output audio buffer that is to be consumed by the user
-	agent. <code>outputs[n][m]</code> is a
-	{{Float32Array}} object containing the audio samples
-	for <code>m</code>th channel of <code>n</code>th output. The
-	number of channels in the output will match
-	<a>computedNumberOfChannels</a> only when the node has single
-	output.
+		<pre class=argumentdef for="AudioWorkletProcessor/process(inputs, outputs, parameters))">
+			inputs:
+				The input audio buffer from the incoming connections provided by the user agent. It has type <code>&lt;sequence&lt;sequence&lt;Float32Array>></code>. <code>inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on computedNumberOfChannels.
 
-: <code>parameters</code> of type <code>Object</code>
-::
-	A map of string keys and associated {{Float32Array}}s.
-	<code>parameters["name"]</code> corresponds to the automation
-	values of the {{AudioParam}} named
-	<code>"name"</code>.
+				If no connections exist to the \(n\)th input of the node during the current render quantum, then the content of <code>inputs[n]</code> is an empty array, indicating that zero channels of input are available. This is the only circumstance under which the number of elements of <code>inputs[n]</code> can be zero.
 
-	For each array, the array contains the [=computedValue=] or
-	the parameter for all frames in the [=render quantum=].
-	However, if no automation is scheduled during
-	this [=render quantum=], the array MAY have length 1 with
-	the array element being the constant value of the
-	{{AudioParam}} for the [=render quantum=].
+			outputs:
+				The output audio buffer that is to be consumed by the user agent. It has type <code>&lt;sequence&lt;sequence&lt;Float32Array>></code>. <code>outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has single output.
 
-The return value of this method controls the lifetime of the
-{{AudioWorkletProcessor}}'s associated
-{{AudioWorkletNode}}. At the conclusion of each call to the
-<code>process()</code> method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in [[!ECMASCRIPT]])
-is applied to the return value and the result is assigned to the associated AudioWorkletProcessor's <a>active source</a> flag. This in turn affects whether subsequent
-invocations of <code>process()</code> occur, and has an impact on the lifetime of the node.
-To propagate the flag change <a>queue a task</a> on the control thread to update the corresponding {{AudioWorkletNode}}'s <code>state</code> property accordingly.
+			parameters:
+				A map of string keys and associated {{Float32Array}}s. <code>parameters["name"]</code> corresponds to the automation values of the AudioParam named <code>"name"</code>.
 
-<div class="note">
-	This lifetime policy can support a variety of approaches found in
-	built-in nodes, including the following:
+				For each array, the array contains the [=computedValue=] or the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
+		</pre>
 
-	* Nodes that transform their inputs, and are active only
-		while connected inputs and/or script references exist. Such
-		nodes SHOULD return <code>false</code> from
-		<code>process()</code> which allows the presence or absence of
-		connected inputs to determine whether active processing occurs.
-
-	* Nodes that transform their inputs, but which remain active
-		for a <a>tail-time</a> after their inputs are disconnected. In
-		this case, <code>process()</code> SHOULD return
-		`true` for some period of time after
-		<code>inputs</code> is found to contain zero channels. The
-		current time may be obtained from the global scope's
-		{{AudioWorkletGlobalScope/currentTime}} to
-		measure the start and end of this tail-time interval, or the
-		interval could be calculated dynamically depending on the
-		processor's internal state.
-
-	* Nodes that act as sources of output, typically with a
-		lifetime. Such nodes SHOULD return `true` from
-		<code>process()</code> until the point at which they are no
-		longer producing an output.
-
-	Note that the preceding definition implies that when no
-	return value is provided from an implementation of
-	<code>process()</code>, the effect is identical to returning
-	<code>false</code> (since the effective return value is the falsy
-	value <code>undefined</code>). This is a reasonable behavior for
-	any {{AudioWorkletProcessor}} that is active only when it has
-	active inputs.
-</div>
-
-If <code>process()</code> is not called during some rendering
-quantum due to the lack of any applicable <a>active processing
-conditions</a>, the result is as if the processor emitted
-silence for this period.
-
+		<div>
+			<em>Return type:</em> {{boolean}}
+		</div>
+</dl>
+	
 <h5 dictionary lt="AudioParamDescriptor">
 {{AudioParamDescriptor}}</h5>
 
@@ -10722,8 +10671,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				[=Making a buffer available for reading|make it available for reading=].
 
 			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
-				{{AudioWorkletProcessor}}'s <a href="#audioworkletprocessor-process">
-				process</a> method to [=Computing a block of audio|compute a block of
+				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method to [=Computing a block of audio|compute a block of
 				audio=] with the argument of [=input buffer=], output
 				buffer and <a href="#input-audioparam-buffer">input AudioParam buffer
 				</a>.

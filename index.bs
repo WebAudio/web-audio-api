@@ -10552,29 +10552,27 @@ of <a href="#rendering-a-graph">rendering a graph</a>.
 
 The system level audio callback is also queued as a task in the
 <a href="#control-message-queue">control message queue</a>. The UA MUST perform
-the following sequence to process render quanta to fulfill such task by filling
-up the requested buffer size. Along with the primary message queue, the
+the following algorithms to process render quanta to fulfill such task by
+filling up the requested buffer size. Along with the primary message queue, the
 <a>rendering thread</a> has another task queue for microtasks for any microtask
 operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
+<div id="rendering-initialization" algorithm="initialize rendering loop">
+	The following step MUST be performance once before the rendering loop starts.
+
+	1. Set the internal slot <dfn attribute
+		for="BaseAudioContext">[[current frame]]</dfn> of the
+		{{BaseAudioContext}} to 0. Also set {{BaseAudioContext/currentTime}} to 0.
+</div>
+
 <div id="rendering-a-graph" algorithm="rendering a graph">
-	1. Prepare the rendering.
-
-		1. Let <var>Q<sub>rendering</sub></var> be an empty [=control message
-			queue=]. [=Atomically=] [=swap=]
-			<var>Q<sub>rendering</sub></var> and <var>Q</var>.
-
-		2. Set the internal slot <dfn attribute
-			for="BaseAudioContext">[[current frame]]</dfn> of the
-			{{BaseAudioContext}} to 0.
-
-		3. Let <var>RenderResult</var> be false.
+	1. Let <var>RenderResult</var> be <code>false</code>.
 
 	2. Process the [=control message queue=].
 
 		1. Let <var>Q<sub>rendering</sub></var> be an empty [=control message
 			queue=]. [=Atomically=] [=swap=] <var>Q<sub>rendering</sub></var>
-			and <var>Q</var>.
+			with the current [=control message queue=].
 
 		2. While there are messages in <var>Q<sub>rendering</sub></var>, execute the
 			following steps:
@@ -10671,9 +10669,10 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				[=Making a buffer available for reading|make it available for reading=].
 
 			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
-				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method to [=Computing a block of audio|compute a block of
-				audio=] with the argument of [=input buffer=], output
-				buffer and [=input AudioParam buffer=].
+				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method
+				to [=Computing a block of audio|compute a block of audio=] with
+				the argument of [=input buffer=], output buffer and
+				[=input AudioParam buffer=].
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
@@ -10692,7 +10691,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 			2. Set {{BaseAudioContext/currentTime}} to {{[[current frame]]}} divided
 				by {{BaseAudioContext/sampleRate}}.
 
-		7. Set <var>RenderResult</var> to true.
+		7. Set <var>RenderResult</var> to <code>true</code>.
 
 	4. [=Perform a microtask checkpoint=].
 

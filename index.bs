@@ -173,6 +173,25 @@ div.audioparam-info > table > thead > tr > th {
 	color: #178217;
 	border-bottom: 1px solid #707070;
 }
+div.enum-description > table {
+	border-collapse: collapse;
+	border-top: 2px solid #707070;
+	border-bottom: 2px solid #707070;
+	width: 100%;
+	margin: 2em 0;
+}
+div.enum-description > table > tbody > tr > th,
+div.enum-description > table > tbody > tr > td {
+	padding: 0.2em 0.6em;
+	min-width: 150px;
+	border-top: 1px solid #ddd
+}
+div.enum-description > table > thead > tr > th {
+	line-height: 2em;
+	font-weight: 600;
+	color: #178217;
+	border-bottom: 1px solid #707070;
+}
 </style>
 
 <h2 id="introductory" class=no-num>
@@ -331,7 +350,7 @@ reverb send with a dynamics compressor at the final output stage:
 	</figcaption>
 </figure>
 
-<pre class="example" highlight="js">
+<pre class="example" highlight="js" line-numbers>
 var context = 0;
 var compressor = 0;
 var reverb = 0;
@@ -438,7 +457,7 @@ input signal.
 	</figcaption>
 </figure>
 
-<pre class="example" highlight="js">
+<pre class="example" highlight="js" line-numbers>
 function setupRoutingGraph() {
 	var context = new AudioContext();
 
@@ -640,25 +659,27 @@ enum AudioContextState {
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-for="AudioContextState" dfn-type="enum-value">
-	<tbody>
+	<thead>
 		<tr>
 			<th colspan="2">
 				Enumeration description
+	<tbody>
 		<tr>
 			<td>
-				<code><dfn>suspended</dfn></code>
+				"<dfn>suspended</dfn>"
 			<td>
 				This context is currently suspended (context time is not
 				proceeding, audio hardware may be powered down/released).
 		<tr>
 			<td>
-				<code><dfn>running</dfn></code>
+				"<dfn>running</dfn>"
 			<td>
 				Audio is being processed.
 		<tr>
 			<td>
-				<code><dfn>closed</dfn></code>
+				"<dfn>closed</dfn>"
 			<td>
 				This context has been released, and can no longer be used to
 				process audio. All system audio resources have been released.
@@ -669,6 +690,7 @@ enum AudioContextState {
 				{{BaseAudioContext/decodeAudioData()}},
 				or the {{AudioBuffer}} constructor.)
 </table>
+</div>
 
 <xmp class="idl">
 callback DecodeErrorCallback = void (DOMException error);
@@ -684,31 +706,33 @@ interface BaseAudioContext : EventTarget {
 	readonly attribute AudioContextState state;
 	[SameObject, SecureContext]
 	readonly attribute AudioWorklet audioWorklet;
-	Promise<void> resume ();
 	attribute EventHandler onstatechange;
+
+	AnalyserNode createAnalyser ();
+	BiquadFilterNode createBiquadFilter ();
 	AudioBuffer createBuffer (unsigned long numberOfChannels, unsigned long length, float sampleRate);
-	Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
-	                                      optional DecodeSuccessCallback successCallback,
-	                                      optional DecodeErrorCallback errorCallback);
 	AudioBufferSourceNode createBufferSource ();
+	ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
+	ChannelSplitterNode createChannelSplitter (optional unsigned long numberOfOutputs = 6);
 	ConstantSourceNode createConstantSource ();
+	ConvolverNode createConvolver ();
+	DelayNode createDelay (optional double maxDelayTime = 1.0);
+	DynamicsCompressorNode createDynamicsCompressor ();
+	GainNode createGain ();
+	IIRFilterNode createIIRFilter (sequence<double> feedforward, sequence<double> feedback);
+	OscillatorNode createOscillator ();
+	PannerNode createPanner ();
+	PeriodicWave createPeriodicWave (sequence<float> real, sequence<float> imag, optional PeriodicWaveConstraints constraints);
 	ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
 	                                          optional unsigned long numberOfInputChannels = 2,
 	                                          optional unsigned long numberOfOutputChannels = 2);
-	AnalyserNode createAnalyser ();
-	GainNode createGain ();
-	DelayNode createDelay (optional double maxDelayTime = 1.0);
-	BiquadFilterNode createBiquadFilter ();
-	IIRFilterNode createIIRFilter (sequence<double> feedforward, sequence<double> feedback);
-	WaveShaperNode createWaveShaper ();
-	PannerNode createPanner ();
 	StereoPannerNode createStereoPanner ();
-	ConvolverNode createConvolver ();
-	ChannelSplitterNode createChannelSplitter (optional unsigned long numberOfOutputs = 6);
-	ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
-	DynamicsCompressorNode createDynamicsCompressor ();
-	OscillatorNode createOscillator ();
-	PeriodicWave createPeriodicWave (sequence<float> real, sequence<float> imag, optional PeriodicWaveConstraints constraints);
+	WaveShaperNode createWaveShaper ();
+
+	Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
+	                                      optional DecodeSuccessCallback successCallback,
+	                                      optional DecodeErrorCallback errorCallback);
+	Promise<void> resume ();
 };
 </xmp>
 
@@ -1256,7 +1280,7 @@ Once created, an {{AudioContext}} will continue to play
 sound until it has no more sound to play, or the page goes away.
 
 <h4 id="lack-of-introspection-or-serialization-primitives" class=informative>
-Lack of introspection or serialization primitives</h4>
+Lack of Introspection or Serialization Primitives</h4>
 
 The Web Audio API takes a <em>fire-and-forget</em> approach to
 audio source scheduling. That is, <a>source nodes</a> are created
@@ -1269,7 +1293,7 @@ Moreover, having an introspection API would allow content script to
 be able to observe garbage collections.
 
 <h4 id="system-resources-associated-with-baseaudiocontext-subclasses">
-System resources associated with {{BaseAudioContext}} subclasses</h4>
+System Resources Associated with {{BaseAudioContext}} Subclasses</h4>
 
 The subclasses {{AudioContext}} and {{OfflineAudioContext}}
 should be considered expensive objects. Creating these objects may
@@ -1331,36 +1355,38 @@ Note: For example, a user agent could require that an
 running is <a>triggered by user activation</a> (as described in [[HTML]]).
 
 <pre class="idl">
-[Exposed=Window]
 enum AudioContextLatencyCategory {
 		"balanced",
 		"interactive",
 		"playback"
 };
 </pre>
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="AudioContextLatencyCategory">
-	<tbody>
+	<thead>
 		<tr>
 			<th colspan="2">
 				Enumeration description
+	<tbody>
 		<tr>
 			<td>
-				<code><dfn>balanced</dfn></code>
+				"<dfn>balanced</dfn>"
 			<td>
 				Balance audio output latency and power consumption.
 		<tr>
 			<td>
-				<code><dfn>interactive</dfn></code>
+				"<dfn>interactive</dfn>"
 			<td>
 				Provide the lowest audio output latency possible without
 				glitching. This is the default.
 		<tr>
 			<td>
-				<code><dfn>playback</dfn></code>
+				"<dfn>playback</dfn>"
 			<td>
 				Prioritize sustained playback without interruption over audio
 				output latency. Lowest power consumption.
 </table>
+</div>
 
 <pre class="idl">
 [Exposed=Window,
@@ -1756,7 +1782,6 @@ The {{AudioContextOptions}} dictionary is used to
 specify user-specified options for an {{AudioContext}}.
 
 <pre class="idl">
-[Exposed=Window]
 dictionary AudioContextOptions {
 	(AudioContextLatencyCategory or double) latencyHint = "interactive";
 	float sampleRate;
@@ -1798,7 +1823,6 @@ Dictionary {{AudioContextOptions}} Members</h5>
 {{AudioTimestamp}}</h4>
 
 <pre class="idl">
-[Exposed=Window]
 dictionary AudioTimestamp {
 	double contextTime;
 	DOMHighResTimeStamp performanceTime;
@@ -2043,7 +2067,6 @@ This specifies the options to use in constructing an
 {{OfflineAudioContext}}.
 
 <pre class="idl">
-[Exposed=Window]
 dictionary OfflineAudioContextOptions {
 	unsigned long numberOfChannels = 1;
 	required unsigned long length;
@@ -2095,7 +2118,6 @@ Attributes</h5>
 {{OfflineAudioCompletionEventInit}}</h5>
 
 <pre class="idl">
-[Exposed=Window]
 dictionary OfflineAudioCompletionEventInit : EventInit {
 	required AudioBuffer renderedBuffer;
 };
@@ -2383,6 +2405,8 @@ dictionary AudioBufferOptions {
 <h5 id="dictionary-audiobufferoptions-members">
 Dictionary {{AudioBufferOptions}} Members</h5>
 
+The allowed values for the members of this dictionary are constrained.  See {{BaseAudioContext/createBuffer()}}.
+
 <dl dfn-type=dict-member dfn-for="AudioBufferOptions">
 	: <dfn>length</dfn>
 	::
@@ -2587,7 +2611,6 @@ This means that it is possible to dispatch events to
 accept events.
 
 <pre class="idl">
-[Exposed=Window]
 enum ChannelCountMode {
 	"max",
 	"clamped-max",
@@ -2602,54 +2625,61 @@ node are to be mixed. The <a>computedNumberOfChannels</a> is
 determined as shown below. See <a href="#channel-up-mixing-and-down-mixing"></a> for more information on how
 mixing is to be done.
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="ChannelCountMode">
+	<thead>
 	<tr>
 		<th colspan="2">
 			Enumeration description
+	<tbody>
 	<tr>
-		<td><dfn>max</dfn>
+		<td>"<dfn>max</dfn>"
 		<td>
 			<a>computedNumberOfChannels</a> is the maximum of the number of
 			channels of all connections to an input. In this mode
 			{{AudioNode/channelCount}} is ignored.
 	<tr>
-		<td><dfn>clamped-max</dfn>
+		<td>"<dfn>clamped-max</dfn>"
 		<td>
 			<a>computedNumberOfChannels</a> is determined as for "{{ChannelCountMode/max}}"
 			and then clamped to a maximum value of the given
 			{{AudioNode/channelCount}}.
 	<tr>
-		<td><dfn>explicit</dfn>
+		<td>"<dfn>explicit</dfn>"
 		<td>
 			<a>computedNumberOfChannels</a> is the exact value as specified
 			by the {{AudioNode/channelCount}}.
 </table>
+</div>
 
 <pre class="idl">
-[Exposed=Window]
 enum ChannelInterpretation {
 	"speakers",
 	"discrete"
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="ChannelInterpretation">
+	<thead>
 	<tr>
 		<th colspan="2">
 			Enumeration description
+	<tbody>
 	<tr>
-		<td><dfn>speakers</dfn>
+		<td>"<dfn>speakers</dfn>"
 		<td>
 			use <a href="#UpMix-sub">up-mix equations</a> or <a href="#down-mix">down-mix equations</a>. In cases where the number of
 			channels do not match any of these basic speaker layouts, revert
 			to "{{ChannelInterpretation/discrete}}".
 	<tr>
-		<td><dfn>discrete</dfn>
+		<td>"<dfn>discrete</dfn>"
 		<td>
 			Up-mix by filling channels until they run out then zero out
 			remaining channels. Down-mix by filling as many channels as
 			possible, then dropping remaining channels.
 </table>
+</div>
 
 <h4 id="AudioNode-attributes">
 Attributes</h4>
@@ -2687,12 +2717,12 @@ Attributes</h4>
 				MUST be thrown for any attempt to change the
 				value.</span>
 
-		: {{ChannelSplitterNode}}
+		: {{ChannelMergerNode}}
 		::
 			The channel count cannot be changed, and an <span class="synchronous">{{InvalidStateError}} exception MUST
 			be thrown for any attempt to change the value.</span>
 
-		: {{ChannelMergerNode}}
+		: {{ChannelSplitterNode}}
 		::
 			The channel count cannot be changed, and an <span class="synchronous">{{InvalidStateError}} exception MUST
 			be thrown for any attempt to change the value.</span>
@@ -2746,15 +2776,15 @@ Attributes</h4>
 			{{OfflineAudioContext}}, then the channel count mode
 			cannot be changed. An <span class="synchronous">{{InvalidStateError}} exception MUST
 			be thrown for any attempt to change the value.</span>
-
-		: {{ChannelSplitterNode}}
+		: {{ChannelMergerNode}}
 		::
 			The channel count mode cannot be changed from "{{ChannelCountMode/explicit}}" and
 			an <span class="synchronous">{{InvalidStateError}}
 			exception MUST be thrown for any attempt to change the
 			value.</span>
 
-		: {{ChannelMergerNode}}
+
+		: {{ChannelSplitterNode}}
 		::
 			The channel count mode cannot be changed from "{{ChannelCountMode/explicit}}" and
 			an <span class="synchronous">{{InvalidStateError}}
@@ -3185,6 +3215,10 @@ the value of a <dfn id="k-rate">k-rate</dfn> parameter MUST be sampled at the ti
 very first sample-frame, and that value MUST be used for the entire
 block. <dfn id="a-rate">a-rate</dfn> parameters MUST be sampled for
 each sample-frame of the block.
+Depending on the {{AudioParam}}, its rate can be controlled by setting
+the {{AudioParam/automationRate}} attribute to either
+"{{AutomationRate/a-rate}}" or "{{AutomationRate/k-rate}}".  See the
+description of the individual {{AudioParam}}s for further details.
 
 Each {{AudioParam}} includes {{AudioParam/minValue}} and {{AudioParam/maxValue}} attributes that together form
 the <dfn>simple nominal range</dfn> for the parameter. In effect,
@@ -3251,6 +3285,46 @@ The following rules will apply when calling these methods:
 Note: {{AudioParam}} attributes are read only, with the exception
 of the {{AudioParam/value}} attribute.
 
+The automation rate of an {{AudioParam}} can be selected setting the
+{{AudioParam/automationRate}} attribute with one of the following
+values.  However, some {{AudioParam}}s have constraints on whether the
+automation rate can be changed.
+
+<pre class="idl">
+enum AutomationRate {
+	"a-rate",
+	"k-rate"
+};
+</pre>
+
+<div class="enum-description">
+<table class="simple" dfn-type=enum-value dfn-for="AutomationRate">
+	<thead>
+		<tr>
+		<th colspan="2">
+			Enumeration description
+		</th>
+		</tr>
+	<tbody>
+	<tr>
+		<td>
+			"<dfn>a-rate</dfn>"
+		</td>
+		<td>
+			This {{AudioParam}} is set for [=a-rate=] processing.
+		</td>
+	</tr>
+	<tr>
+		<td>
+			"<dfn>k-rate</dfn>"
+		</td>
+		<td>
+			This {{AudioParam}} is set for [=k-rate=] processing.
+		</td>
+	</tr>
+</table>
+</div>
+
 Each {{AudioParam}} has an internal slot <dfn attribute for=AudioParam>[[current value]]</dfn>,
 initially set to the {{AudioParam}}'s {{AudioParam/defaultValue}}.
 
@@ -3258,6 +3332,7 @@ initially set to the {{AudioParam}}'s {{AudioParam/defaultValue}}.
 [Exposed=Window]
 interface AudioParam {
 	attribute float value;
+	attribute AutomationRate automationRate;
 	readonly attribute float defaultValue;
 	readonly attribute float minValue;
 	readonly attribute float maxValue;
@@ -3275,6 +3350,51 @@ interface AudioParam {
 Attributes</h4>
 
 <dl dfn-type=attribute dfn-for="AudioParam">
+	: <dfn>automationRate</dfn>
+	::
+		The automation rate for the {{AudioParam}}.  The
+		default value depends on the actual {{AudioParam}};
+		see the description of the {{AudioParam}} for the
+		default value.
+
+		Some nodes have additional <dfn dfn>automation rate constraints</dfn> as follows:
+
+		: {{AudioBufferSourceNode}}
+		::
+			The {{AudioParam}}s
+			{{AudioBufferSourceNode/playbackRate}} and
+			{{AudioBufferSourceNode/detune}} MUST be
+			"{{AutomationRate/k-rate}}". <span
+			class="synchronous">An {{InvalidStateError}}
+			must be thrown if the rate is changed to
+			"{{AutomationRate/a-rate}}"</span>.
+
+		: {{DynamicsCompressorNode}}
+		::
+			The {{AudioParam}}s
+			{{DynamicsCompressorNode/threshold}}
+			{{DynamicsCompressorNode/knee}},
+			{{DynamicsCompressorNode/ratio}},
+			{{DynamicsCompressorNode/attack}}, and
+			{{DynamicsCompressorNode/release}}
+			MUST be "{{AutomationRate/k-rate}}".  <span
+			class="synchronous">An {{InvalidStateError}}
+			must be thrown if the rate is changed to
+			"{{AutomationRate/a-rate}}"</span>.
+
+		: {{PannerNode}}
+		::
+			If the {{PannerNode/panningModel}} is
+			"{{PanningModelType/HRTF}}", the setting of
+			the {{AudioParam/automationRate}} for any
+			{{AudioParam}} of the {{PannerNode}} is ignored.
+			Likewise, the setting of the
+			{{AudioParam/automationRate}} for any {{AudioParam}}
+			of the {{AudioListener}} is ignored.  In this
+			case, the {{AudioParam}} behaves as if the
+			{{AudioParam/automationRate}} were set to
+			"{{AutomationRate/k-rate}}".
+
 	: <dfn>defaultValue</dfn>
 	::
 		Initial value for the <code>value</code> attribute.
@@ -3386,7 +3506,7 @@ Methods</h4>
 			5. Remove all events with time greater than \(t_c\).
 
 			If no events are added, then the automation value after
-			{{AudioParam/cancelAndHoldAtTime()}} is the the constant value that
+			{{AudioParam/cancelAndHoldAtTime()}} is the constant value that
 			the original timeline would have had at time \(t_c\).
 		</div>
 
@@ -3740,7 +3860,7 @@ http://googlechrome.github.io/web-audio-samples/samples/audio/timeline.html -->
 		An example of parameter automation.
 	</figcaption>
 </figure>
-<pre class="example" highlight="js">
+<pre class="example" highlight="js" line-numbers>
 	var curveLength = 44100;
 	var curve = new Float32Array(curveLength);
 	for (var i = 0; i &lt; curveLength; ++i)
@@ -3891,6 +4011,13 @@ Methods</h4>
 			3. <a>Queue a control message</a> to stop the
 				{{AudioScheduledSourceNode}}, including the parameter
 				values in the messsage.
+		</div>
+
+		<div algorithm="run a control message to stop the AudioBufferSourceNode">
+			If the node is an {{AudioBufferSourceNode}},
+			running a <a>control message</a> to stop the
+			{{AudioBufferSourceNode}} means invoking the
+			<code>handleStop()</code> function in the <a href="#playback-AudioBufferSourceNode">playback algorithm</a>.
 		</div>
 
 		<pre class=argumentdef for="AudioScheduledSourceNode/stop(when)">
@@ -4182,7 +4309,7 @@ Time-Domain Down-Mixing</h4>
 	down-mixing operation.
 
 <h4 id="fft-windowing-and-smoothing-over-time">
-FFT Windowing and smoothing over time</h4>
+FFT Windowing and Smoothing over Time</h4>
 
 When the <dfn id="current-frequency-data">current frequency
 data</dfn> are computed, the following operations are to be
@@ -4378,7 +4505,6 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
 	void start (optional double when = 0,
 	            optional double offset,
 	            optional double duration);
-	void stop (optional double when = 0);
 };
 </pre>
 
@@ -4442,7 +4568,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>loop</dfn>
@@ -4485,7 +4612,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 </dl>
 
@@ -4529,47 +4657,6 @@ Methods</h4>
 			<em>Return type:</em> {{void}}
 		</div>
 
-	: <dfn>stop(when)</dfn>
-	::
-		Schedules a sound to stop playback at an exact time. If
-		<code>stop</code> is called again after already having been
-		called, the last invocation will be the only one applied; stop
-		times set by previous calls will not be applied, unless the
-		buffer has already stopped prior to any subsequent calls. If
-		the buffer has already stopped, further calls to
-		<code>stop</code> will have no effect. If a stop time is
-		reached prior to the scheduled start time, the sound will not
-		play.
-
-		<div algorithm="AudioBufferSourceNode.stop()">
-			<span class="synchronous">When this method is called, execute these steps:</span>
-
-			1. If an earlier call to <code>start</code> has not already
-				occurred, an {{InvalidStateError}} exception MUST be
-				thrown.
-
-			2. Check for any errors that must be thrown due to parameter
-				constraints described below.
-
-			3. <a>Queue a control message</a> to stop the
-				{{AudioBufferSourceNode}}, including the parameter values
-				in the messsage.
-		</div>
-
-		<div algorithm="run a control message to stop the AudioBufferSourceNode">
-			Running a <a>control message</a> to stop the
-			{{AudioBufferSourceNode}} means invoking the
-			<code>handleStop()</code> function in the <a href="#playback-AudioBufferSourceNode">playback algorithm</a> which
-			follows.
-		</div>
-
-		<pre class=argumentdef for="AudioBufferSourceNode/stop(when)">
-			when: The {{AudioBufferSourceNode/stop(when)/when}} parameter describes at what time (in seconds) the source should stop playing. It is in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. If 0 is passed in for this value or if the value is less than {{BaseAudioContext/currentTime}}, then the sound will stop playing immediately. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>when</code> is negative</span>.
-		</pre>
-
-		<div>
-			<em>Return type:</em> {{void}}
-		</div>
 </dl>
 
 <h4 dictionary lt="AudioBufferSourceOptions">
@@ -4635,7 +4722,7 @@ any part of the looped region has been played. While
 {{AudioBufferSourceNode/loop}} remains true,
 looped playback will continue until one of the following occurs:
 
-* {{AudioBufferSourceNode/stop()}} is called,
+* {{AudioScheduledSourceNode/stop()}} is called,
 
 * the scheduled stop time has been reached,
 
@@ -4716,7 +4803,7 @@ The algorithm to be followed internally to generate output from an
 
 The description of the algorithm is as follows:
 
-<pre highlight="js">
+<pre highlight="js" line-numbers>
 let buffer; // AudioBuffer employed by this node
 let context; // AudioContext employed by this node
 
@@ -5093,11 +5180,6 @@ interface AudioListener {
 <h4 id="AudioListener-attributes">
 Attributes</h4>
 
-For all of the following {{AudioParam}}s, the {{AudioParam}}
-rate is specified by the <dfn>listener AudioParam rate</dfn>
-which is <a>a-rate</a> when any connected {{PannerNode}} is
-<a>a-rate</a> and is <a>k-rate</a> otherwise.
-
 <dl dfn-type=attribute dfn-for="AudioListener">
 	: <dfn>forwardX</dfn>
 	::
@@ -5112,8 +5194,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>forwardY</dfn>
@@ -5129,8 +5210,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>forwardZ</dfn>
@@ -5146,8 +5226,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>positionX</dfn>
@@ -5163,8 +5242,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>positionY</dfn>
@@ -5180,8 +5258,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>positionZ</dfn>
@@ -5197,8 +5274,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>upX</dfn>
@@ -5214,8 +5290,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>upY</dfn>
@@ -5231,8 +5306,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>upZ</dfn>
@@ -5248,8 +5322,7 @@ which is <a>a-rate</a> when any connected {{PannerNode}} is
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: See <a>listener AudioParam rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -5495,12 +5568,15 @@ enum BiquadFilterType {
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="BiquadFilterType">
+	<thead>
 	<tr>
 		<th colspan="2">
 			Enumeration description
+	<tbody>
 	<tr>
-		<td><dfn>lowpass</dfn>
+		<td>"<dfn>lowpass</dfn>"
 		<td>
 			A <a href="https://en.wikipedia.org/wiki/Low-pass_filter">lowpass
 			filter</a> allows frequencies below the cutoff frequency to
@@ -5518,7 +5594,7 @@ enum BiquadFilterType {
 			: gain
 			:: Not used in this filter type
 	<tr>
-		<td><dfn>highpass</dfn>
+		<td>"<dfn>highpass</dfn>"
 		<td>
 			A <a href="https://en.wikipedia.org/wiki/High-pass_filter">highpass
 			filter</a> is the opposite of a lowpass filter. Frequencies
@@ -5537,7 +5613,7 @@ enum BiquadFilterType {
 			: gain
 			:: Not used in this filter type
 	<tr>
-		<td><dfn>bandpass</dfn>
+		<td>"<dfn>bandpass</dfn>"
 		<td>
 			A <a href="https://en.wikipedia.org/wiki/Band-pass_filter">bandpass
 			filter</a> allows a range of frequencies to pass through and
@@ -5552,7 +5628,7 @@ enum BiquadFilterType {
 			: gain
 			:: Not used in this filter type
 	<tr>
-		<td><dfn>lowshelf</dfn>
+		<td>"<dfn>lowshelf</dfn>"
 		<td>
 			The lowshelf filter allows all frequencies through, but adds a
 			boost (or attenuation) to the lower frequencies. It implements
@@ -5567,7 +5643,7 @@ enum BiquadFilterType {
 			:: The boost, in dB, to be applied. If the value is negative,
 				the frequencies are attenuated.
 	<tr>
-		<td><dfn>highshelf</dfn>
+		<td>"<dfn>highshelf</dfn>"
 		<td>
 			The highshelf filter is the opposite of the lowshelf filter and
 			allows all frequencies through, but adds a boost to the higher
@@ -5582,7 +5658,7 @@ enum BiquadFilterType {
 			:: The boost, in dB, to be applied. If the value is negative,
 				the frequencies are attenuated.
 	<tr>
-		<td><dfn>peaking</dfn>
+		<td>"<dfn>peaking</dfn>"
 		<td>
 			The peaking filter allows all frequencies through, but adds a
 			boost (or attenuation) to a range of frequencies.
@@ -5596,7 +5672,7 @@ enum BiquadFilterType {
 			:: The boost, in dB, to be applied. If the value is negative,
 				the frequencies are attenuated.
 	<tr>
-		<td><dfn>notch</dfn>
+		<td>"<dfn>notch</dfn>"
 		<td>
 			The notch filter (also known as a <a href="https://en.wikipedia.org/wiki/Band-stop_filter">band-stop or
 			band-rejection filter</a>) is the opposite of a bandpass
@@ -5611,7 +5687,7 @@ enum BiquadFilterType {
 			: gain
 			:: Not used in this filter type.
 	<tr>
-		<td><dfn>allpass</dfn>
+		<td>"<dfn>allpass</dfn>"
 		<td>
 			An <a href="https://en.wikipedia.org/wiki/All-pass_filter#Digital_Implementation">
 			allpass filter</a> allows all frequencies through, but changes
@@ -5630,6 +5706,7 @@ enum BiquadFilterType {
 			: gain
 			:: Not used in this filter type.
 </table>
+</div>
 
 All attributes of the {{BiquadFilterNode}} are <a>a-rate</a> {{AudioParam}}s.
 
@@ -5679,7 +5756,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>detune</dfn>
@@ -5695,7 +5772,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>frequency</dfn>
@@ -5712,7 +5789,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>gain</dfn>
@@ -5730,7 +5807,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>type</dfn>
@@ -6090,7 +6167,7 @@ Dictionary {{ChannelMergerOptions}} Members</h5>
 
 <dl dfn-type=dict-member dfn-for="ChannelMergerOptions">
 	: <dfn>numberOfInputs</dfn>
-	:: The number inputs for the {{ChannelSplitterNode}}.
+	:: The number inputs for the {{ChannelMergerNode}}.  See {{BaseAudioContext/createChannelMerger()}} for constraints on this value.
 </dl>
 
 
@@ -6167,7 +6244,7 @@ desired.
 
 <pre class="idl">
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional ChannelSplitterNode options)]
+ Constructor (BaseAudioContext context, optional ChannelSplitterOptions options)]
 interface ChannelSplitterNode : AudioNode {
 };
 </pre>
@@ -6202,7 +6279,7 @@ Dictionary {{ChannelSplitterOptions}} Members</h5>
 
 <dl dfn-type=dict-member dfn-for="ChannelSplitterOptions">
 	: <dfn>numberOfOutputs</dfn>
-	:: The number outputs for the {{ChannelSplitterNode}}.
+	:: The number outputs for the {{ChannelSplitterNode}}.  See {{BaseAudioContext/createChannelSplitter()}} for constraints on this value.
 </dl>
 
 
@@ -6286,7 +6363,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -6455,7 +6532,7 @@ Attributes</h4>
 		{{ConvolverNode/buffer}} to calculate a <var>normalizationScale</var>
 		given this algorithm:
 
-		<pre highlight="js">
+		<pre highlight="js" line-numbers>
 		function calculateNormalizationScale(buffer) {
 			var GainCalibration = 0.00125;
 			var GainCalibrationSampleRate = 44100;
@@ -6673,7 +6750,7 @@ Attributes</h4>
 			default: 0
 			min: 0
 			max: <l>{{DelayOptions/maxDelayTime}}</l>
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -6696,10 +6773,10 @@ Dictionary {{DelayOptions}} Members</h5>
 
 <dl dfn-type=dict-member dfn-for="DelayOptions">
 	: <dfn>delayTime</dfn>
-	:: The maximum delay time for the node.
+	:: The initial delay time for the node.
 
 	: <dfn>maxDelayTime</dfn>
-	:: The initial delay time for the node.
+	:: The maximum delay time for the node.  See {{BaseAudioContext/createDelay(maxDelayTime)/maxDelayTime!!argument|createDelay(maxDelayTime)}} for constraints.
 </dl>
 
 
@@ -6746,6 +6823,7 @@ macros:
 	cc: 2
 	cc-notes: Has <a>channelCount constraints</a>
 	cc-mode: clamped-max
+	cc-mode-notes: Has <a>channelCountMode constraints</a>
 	cc-interp: speakers
 	tail-time: Yes
 	tail-time-notes:  This node has a <a>tail-time</a> reference such that this node continues to output non-silent audio with zero input due to the look-ahead delay.
@@ -6797,7 +6875,8 @@ Attributes</h4>
 			default: .003
 			min: 0
 			max: 1
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>knee</dfn>
@@ -6811,7 +6890,8 @@ Attributes</h4>
 			default: 30
 			min: 0
 			max: 40
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>ratio</dfn>
@@ -6824,7 +6904,8 @@ Attributes</h4>
 			default: 12
 			min: 1
 			max: 20
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>reduction</dfn>
@@ -6845,7 +6926,8 @@ Attributes</h4>
 			default: .25
 			min: 0
 			max: 1
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>threshold</dfn>
@@ -6858,7 +6940,8 @@ Attributes</h4>
 			default: -24
 			min: -100
 			max: 0
-			rate: <a>k-rate</a>
+			rate: "{{AutomationRate/k-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 </dl>
 
@@ -6992,25 +7075,18 @@ values. Those values persist accros invocation of this algorithm.
 	<var>reduction gain</var>, for each sample of input, for a render
 	quantum of audio.
 
-	1. Let <var>threshold</var>, <var>knee</var> have the value of the
-		{{AudioParam}} of the same name, <a href="#db-to-linear">converted to linear unit</a> sampled at the time of
-		processing of this block (as <a>k-rate</a> parameters).
 
-	2. Let <var>ratio</var> have the value of the <code>ratio</code>
-		{{AudioParam}}, sampled at the time of processing of this block
-		(as a <a>k-rate</a> parameter).
-
-	3. Let <var>attack</var> and <var>release</var> have the value of
-		the {{AudioParam}} of the same name, sampled at the time of
+	1. Let <var>attack</var> and <var>release</var> have the values of
+		{{DynamicsCompressorNode/attack}} and {{DynamicsCompressorNode/release}}, respectively, sampled at the time of
 		processing (those are <a>k-rate</a> parameters), mutiplied by the
 		sample-rate of the {{BaseAudioContext}} this
 		{{DynamicsCompressorNode}} is <a href="#associated">associated</a> with.
 
-	4. Let <var>detector average</var> be the value of the slot {{[[detector average]]}}.
+	1. Let <var>detector average</var> be the value of the slot {{[[detector average]]}}.
 
-	5. Let <var>compressor gain</var> be the value of the slot {{[[compressor gain]]}}.
+	1. Let <var>compressor gain</var> be the value of the slot {{[[compressor gain]]}}.
 
-	6. For each sample <var>input</var> of the render quantum to be
+	1. For each sample <var>input</var> of the render quantum to be
 		processed, execute the following steps:
 
 		1. Let <var>releasing</var> be `true` if
@@ -7029,8 +7105,7 @@ values. Those values persist accros invocation of this algorithm.
 
 		4. Substract <var>detector average</var> to
 			<var>attenuation</var>, and multiply the result by
-			<var>detector rate</var>. Add this new result to <var>detector
-			average</var>.
+			<var>detector rate</var>. Add this new result to <var>detector average</var>.
 
 		5. Clamp <var>detector average</var> to a maximum of 1.0.
 
@@ -7054,13 +7129,13 @@ values. Those values persist accros invocation of this algorithm.
 		10. Compute <var>metering gain</var> to be <var>final gain</var>, <a href="#linear-to-decibel">converted to
 			decibel</a>.
 
-	7. Set {{[[compressor gain]]}} to <var>compressor
+	1. Set {{[[compressor gain]]}} to <var>compressor
 		gain</var>.
 
-	8. Set {{[[detector average]]}} to <var>detector
+	1. Set {{[[detector average]]}} to <var>detector
 		average</var>.
 
-	9. <a>Atomically</a> set the internal slot {{[[internal reduction]]}}
+	1. <a>Atomically</a> set the internal slot {{[[internal reduction]]}}
 		to the value of <var>metering gain</var>.
 
 		Note: This step makes the metering gain update once per block, at the
@@ -7129,24 +7204,36 @@ of the same shape.
 	the computed value. This function MUST respect the following
 	characteristics:
 
-	1. This function is the identity up to the value of the linear
-		<code>threshold</code> (i.e., \(f(x) = x\)).
+	1. Let <var>threshold</var> and <var>knee</var> have the
+		values of {{DynamicsCompressorNode/threshold}} and
+		{{DynamicsCompressorNode/knee}}, respectively,
+		[=decibels to linear gain unit|converted to linear
+		units=] sampled at the time of processing of this
+		block (as [=k-rate=] parameters).
 
-	2. From the <code>threshold</code> up to the <code>threshold +
-		knee</code>, User-Agents can choose the curve shape. The whole
+	1. Let <var>ratio</var> have the value of the
+		{{DynamicsCompressorNode/ratio}}, sampled at the time
+		of processing of this block (as a [=k-rate=]
+		parameter).
+
+	1. This function is the identity up to the value of the linear
+		<var>threshold</var> (i.e., \(f(x) = x\)).
+
+	1. From the <var>threshold</var> up to the <var>threshold</var> +
+		<var>knee</var>, User-Agents can choose the curve shape. The whole
 		function MUST be monotonically increasing and continuous.
 
-		Note: If the <code>knee</code> is 0, the
+		Note: If the <var>knee</var> is 0, the
 		{{DynamicsCompressorNode}} is called a hard-knee compressor.
 
-	3. This function is linear, based on the ratio, after the
-		<code>threshold</code> and the soft knee (i.e., \(f(x) =
+	1. This function is linear, based on the <var>ratio</var>, after the
+		<var>threshold</var> and the soft knee (i.e., \(f(x) =
 		\frac{1}{ratio} \cdot x \)).
 </div>
 
 <div algorithm="convert linear to db">
 	Converting a value \(v\) in <dfn id="linear-to-decibel">linear gain
-	unit to decibel means</dfn> executing the following steps:
+	unit to decibel</dfn> means executing the following steps:
 
 	1. If \(v\) is equal to zero, return -1000.
 
@@ -7154,7 +7241,7 @@ of the same shape.
 </div>
 
 <div algorithm="convert db to linear">
-	Converting a value \(v\) in <dfn id="db-to-linear">decibels to
+	Converting a value \(v\) in <dfn>decibels to
 	linear gain unit</dfn> means returning \(10^\frac{v}{20}\)
 </div>
 
@@ -7233,7 +7320,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -7368,13 +7455,13 @@ Dictionary {{IIRFilterOptions}} Members</h5>
 	::
 		The feedforward coefficients for the
 		{{IIRFilterNode}}. This member is required. If
-		not specifed, a {{NotFoundError}} MUST be thrown.
+		not specifed, a {{NotFoundError}} MUST be thrown.  See {{BaseAudioContext/createIIRFilter()/feedforward}} argument of {{BaseAudioContext/createIIRFilter()}} for other constraints.
 
 	: <dfn>feedback</dfn>
 	::
 		The feedback coefficients for the
 		{{IIRFilterNode}}. This member is required. If
-		not specifed, a {{NotFoundError}} MUST be thrown.
+		not specifed, a {{NotFoundError}} MUST be thrown. See {{BaseAudioContext/createIIRFilter()/feedback}} argument of {{BaseAudioContext/createIIRFilter()}} for other constraints.
 </dl>
 
 <h4 id="IIRFilterNode-filter-definition">
@@ -7392,8 +7479,8 @@ $$
 </pre>
 
 where \(M + 1\) is the length of the \(b\) array and \(N + 1\) is
-the length of the \(a\) array. The coefficient \(a_0\) cannot be 0.
-At least one of \(b_m\) MUST be non-zero.
+the length of the \(a\) array. The coefficient \(a_0\) MUST not be 0 (see {{BaseAudioContext/createIIRFilter()/feedback|feedback parameter}} for {{BaseAudioContext/createIIRFilter()}}).
+At least one of \(b_m\) MUST be non-zero (see {{BaseAudioContext/createIIRFilter()/feedforward|feedforward parameter}} for {{BaseAudioContext/createIIRFilter()}}).
 
 Equivalently, the time-domain equation is:
 
@@ -7446,7 +7533,7 @@ by this node.
 
 <pre class="idl">
 [Exposed=Window,
- Constructor (BaseAudioContext context, MediaElementAudioSourceOptions options)]
+ Constructor (AudioContext context, MediaElementAudioSourceOptions options)]
 interface MediaElementAudioSourceNode : AudioNode {
 	[SameObject] readonly attribute HTMLMediaElement mediaElement;
 };
@@ -7524,7 +7611,7 @@ Dictionary {{MediaElementAudioSourceOptions}} Members</h5>
 </dl>
 
 <h4 id="MediaElementAudioSourceOptions-security">
-Security with MediaElementAudioSourceNode and cross-origin resources</h4>
+Security with MediaElementAudioSourceNode and Cross-Origin Resources</h4>
 
 {{HTMLMediaElement}} allows the playback of cross-origin
 resources. Because Web Audio allows inspection of the content of
@@ -7575,7 +7662,7 @@ The number of channels of the input is by default 2 (stereo).
 
 <pre class="idl">
 [Exposed=Window,
- Constructor (BaseAudioContext context, optional AudioNodeOptions options)]
+ Constructor (AudioContext context, optional AudioNodeOptions options)]
 interface MediaStreamAudioDestinationNode : AudioNode {
 	readonly attribute MediaStream stream;
 };
@@ -7642,7 +7729,7 @@ channel.
 
 <pre class="idl">
 [Exposed=Window,
- Constructor (BaseAudioContext context, MediaStreamAudioSourceOptions options)]
+ Constructor (AudioContext context, MediaStreamAudioSourceOptions options)]
 interface MediaStreamAudioSourceNode : AudioNode {
 	[SameObject] readonly attribute MediaStream mediaStream;
 };
@@ -7833,16 +7920,18 @@ enum OscillatorType {
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="OscillatorType">
 	<thead>
 		<tr><th colspan="2">Enumeration description
 	<tbody>
-		<tr><td><dfn>sine</dfn> <td>A sine wave
-		<tr><td><dfn>square</dfn> <td>A square wave of duty period 0.5
-		<tr><td><dfn>sawtooth</dfn> <td>A sawtooth wave
-		<tr><td><dfn>triangle</dfn> <td>A triangle wave
-		<tr><td><dfn>custom</dfn> <td>A custom periodic wave
+		<tr><td>"<dfn>sine</dfn>" <td>A sine wave
+		<tr><td>"<dfn>square</dfn>" <td>A square wave of duty period 0.5
+		<tr><td>"<dfn>sawtooth</dfn>" <td>A sawtooth wave
+		<tr><td>"<dfn>triangle</dfn>" <td>A triangle wave
+		<tr><td>"<dfn>custom</dfn>" <td>A custom periodic wave
 </table>
+</div>
 
 <pre class="idl">
 [Exposed=Window,
@@ -7891,7 +7980,7 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>frequency</dfn>
@@ -7908,7 +7997,7 @@ Attributes</h4>
 			default: 440
 			min: -<a>Nyquist frequency</a>
 			max: <a>Nyquist frequency</a>
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
 	: <dfn>type</dfn>
@@ -8097,11 +8186,12 @@ enum PanningModelType {
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="PanningModelType">
 	<thead>
 		<tr><th colspan="2">Enumeration description
 	<tbody>
-		<tr><td><dfn>equalpower</dfn>
+		<tr><td>"<dfn>equalpower</dfn>"
 		<td>
 			A simple and efficient spatialization algorithm using equal-power
 			panning.
@@ -8109,7 +8199,7 @@ enum PanningModelType {
 			Note: When this panning model is used, all the {{AudioParam}}s
 			used to compute the output of this node are <a>a-rate</a>.
 
-		<tr><td><dfn>HRTF</dfn>
+		<tr><td>"<dfn>HRTF</dfn>"
 		<td>
 			A higher quality spatialization algorithm using a convolution
 			with measured impulse responses from human subjects. This panning
@@ -8118,6 +8208,16 @@ enum PanningModelType {
 			Note:When this panning model is used, all the {{AudioParam}}s
 			used to compute the output of this node are <a>k-rate</a>.
 </table>
+</div>
+
+The <dfn>effective automation rate</dfn> for an {{AudioParam}} of a
+{{PannerNode}} is determined by the {{PannerNode/panningModel}} and
+{{AudioParam/automationRate}} of the {{AudioParam}}.  If the
+{{PannerNode/panningModel}} is "{{PanningModelType/HRTF}}", the
+[=effective automation rate=] is "{{AutomationRate/k-rate}}",
+independent of the setting of the {{AudioParam/automationRate}}.
+Otherwise the [=effective automation rate=] is the value of
+{{AudioParam/automationRate}}.
 
 The {{DistanceModelType}} enum determines which
 algorithm will be used to reduce the volume of an audio source as it
@@ -8137,12 +8237,13 @@ enum DistanceModelType {
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="DistanceModelType">
 	<thead>
 		<tr><th colspan="2">Enumeration description
 	<tbody>
 		<tr>
-			<td><dfn>linear</dfn>
+			<td>"<dfn>linear</dfn>"
 			<td>
 				A linear distance model which calculates <em>distanceGain</em>
 				according to:
@@ -8162,7 +8263,7 @@ enum DistanceModelType {
 				d'_{max}]\).
 
 		<tr>
-			<td><dfn>inverse</dfn>
+			<td>"<dfn>inverse</dfn>"
 			<td>
 				An inverse distance model which calculates
 				<em>distanceGain</em> according to:
@@ -8178,7 +8279,7 @@ enum DistanceModelType {
 				is taken to be 0, independent of the value of \(d\) and \(f\).
 
 		<tr>
-			<td><dfn>exponential</dfn>
+			<td>"<dfn>exponential</dfn>"
 			<td>
 				An exponential distance model which calculates
 				<em>distanceGain</em> according to:
@@ -8193,6 +8294,7 @@ enum DistanceModelType {
 				\infty)\). If \(d_{ref} = 0\), the value of the exponential
 				model is taken to be 0, independent of \(d\) and \(f\).
 </table>
+</div>
 
 <pre class="idl">
 [Exposed=Window,
@@ -8289,8 +8391,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>orientationY</dfn>
@@ -8306,8 +8408,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>orientationZ</dfn>
@@ -8323,8 +8425,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>panningModel</dfn>
@@ -8346,8 +8448,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>positionY</dfn>
@@ -8363,8 +8465,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>positionZ</dfn>
@@ -8380,8 +8482,8 @@ Attributes</h4>
 			min-notes: Approximately -3.4028235e38
 			max: <a>most-positive-single-float</a>
 			max-notes: Approximately 3.4028235e38
-			rate:
-			rate-notes: <a>a-rate</a> when {{PannerNode/panningModel}} is "{{PanningModelType/equalpower}}" and <a>k-rate</a> otherwise.
+			rate: "{{AutomationRate/a-rate}}"
+			rate-notes: Has [=automation rate constraints=]
 		</pre>
 
 	: <dfn>refDistance</dfn>
@@ -8848,7 +8950,7 @@ macros:
 </pre>
 
 The {{ScriptProcessorNode}} is constructed with a
-<dfn>bufferSize</dfn> which MUST be one of the following values: 256,
+{{BaseAudioContext/createScriptProcessor(bufferSize, numberOfInputChannels, numberOfOutputChannels)/bufferSize}} which MUST be one of the following values: 256,
 512, 1024, 2048, 4096, 8192, 16384. This value controls how
 frequently the {{ScriptProcessorNode/onaudioprocess}} event is dispatched and how
 many sample-frames need to be processed each call. {{ScriptProcessorNode/onaudioprocess}} events are only
@@ -8965,7 +9067,7 @@ Attributes</h4>
 			default: 0
 			min: -1
 			max: 1
-			rate: <a>a-rate</a>
+			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 </dl>
 
@@ -9043,19 +9145,21 @@ enum OverSampleType {
 };
 </pre>
 
+<div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="OverSampleType">
 	<thead>
 		<tr><th colspan="2">Enumeration description
 	<tbody>
-		<tr><td><dfn>none</dfn>
+		<tr><td>"<dfn>none</dfn>"
 			<td>Don't oversample
 
-		<tr><td><dfn>2x</dfn>
+		<tr><td>"<dfn>2x</dfn>"
 			<td>Oversample two times
 
-		<tr><td><dfn>4x</dfn>
+		<tr><td>"<dfn>4x</dfn>"
 			<td>Oversample four times
 </table>
+</div>
 
 <pre class="idl">
 [Exposed=Window,
@@ -9271,6 +9375,9 @@ class BypassProcessor extends AudioWorkletProcessor {
 		let input = inputs[0];
 		let output = outputs[0];
 		output[0].set(input[0]);
+
+		// Process only while there are inputs.
+		return false;
 	}
 });
 
@@ -9332,6 +9439,7 @@ scope code running within concurrent threads.
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
 	void registerProcessor (DOMString name, VoidFunction processorCtor);
+	readonly attribute unsigned long long currentFrame;
 	readonly attribute double currentTime;
 	readonly attribute float sampleRate;
 };
@@ -9341,6 +9449,13 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
 Attributes</h5>
 
 <dl dfn-type=attribute dfn-for="AudioWorkletGlobalScope">
+	: <dfn>currentFrame</dfn>
+	::
+		The current frame of the block of audio being
+		processed. This must be equal to the value of the
+		{{[[current frame]]}} internal slot of the
+		{{BaseAudioContext}}.
+
 	: <dfn>currentTime</dfn>
 	::
 		The context time of the block of audio being processed. By
@@ -9365,59 +9480,60 @@ Methods</h5>
 		<div algorithm="AudioWorkletGlobalScope.registerProcess()">
 			When the {{AudioWorkletGlobalScope/registerProcessor(name, processorCtor)}} method is called,
 			the user agent MUST run the following steps:
-
-			1. If the <code><em>name</em></code> is the empty string,
+			<ol>
+			<li> If the <code><em>name</em></code> is the empty string,
 				<span class="synchronous">throw a
 				{{NotSupportedError}} exception and abort these
 				steps because the empty string is not a valid key</span>.
 
-			2. If the <code><em>name</em></code> exists as a key in the
+			<li> If the <code><em>name</em></code> exists as a key in the
 				<a>node name to processor definition map</a>, <span class="synchronous">throw a {{NotSupportedError}}
 				exception and abort these steps</span> because registering a
 				definition with a duplicated key is not allowed.
 
-			3. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
+			<li> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
 				IsConstructor</a>(argument=<i>processorCtor</i>)</code>
 				is false, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
 
-			4. Let <code><em>prototype</em></code> be the result of
+			<li> Let <code><em>prototype</em></code> be the result of
 				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 				Get</a>(O=<i>processorCtor</i>,
 				P="prototype")</code>.
 
-			5. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
+			<li id="check-prototype-type"> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
 				Type</a>(argument=<i>prototype</i>)</code> is not
 				<code>Object</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort all these steps</span>.
 
-			6. If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+			<li id="check-is-callable"> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
 				IsCallable</a>(argument=Get(O=<i>prototype</i>,
 				P="process"))</code> is false, <span class="synchronous">throw a {{TypeError}} and abort
 				these steps</span>.
 
-			7. Let <var>descriptors</var> be the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+			<li> Let <var>descriptors</var> be the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 				Get</a>(O=<i>processorCtor</i>,
 				P="parameterDescriptors")</code>.
 
-			7. If <var>descriptors</var> is not an array or
+			<li> If <var>descriptors</var> is not an array or
 				<code>undefined</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
-			8. Let <em>definition</em> be a new
+			<li> Let <em>definition</em> be a new
 				{{AudioWorkletProcessor}} definition with:
 
 				* node name being <em>name</em>
 				* processor class constructor being <em>processorCtor</em>
 
-			9. Add the key-value pair (<em>name</em> -
+			<li> Add the key-value pair (<em>name</em> -
 				<em>definition</em>) to the <a>node name to processor
 				definition map</a> of the associated
 				{{AudioWorkletGlobalScope}}.
 
-			11. Queue a task to the <a>control thread</a> to add the
+			<li> Queue a task to the <a>control thread</a> to add the
 				key-value pair (<em>name</em> - <em>descriptors</em>) to the
 				<a>node name to parameter descriptor map</a> of the
 				associated {{BaseAudioContext}}.
+			</ol>
 		</div>
 
 		Note: The class constructor should only be looked up once, thus it
@@ -9556,7 +9672,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
 	unsigned long numberOfOutputs = 1;
 	sequence<unsigned long> outputChannelCount;
 	record<DOMString, double> parameterData;
-	object processorOptions = null;
+	object? processorOptions = null;
 };
 </xmp>
 
@@ -9691,151 +9807,103 @@ Attributes</h5>
 		{{AudioWorkletNode}} and {{AudioWorkletProcessor}}.
 </dl>
 
-<h5 id="defining-a-valid-audioworkletprocessor">
-Defining A Valid AudioWorkletProcessor</h5>
+<h5 id="AudioWorkletProcessor-methods">
+Methods</h5>
 
 User can define a custom audio processor by extending
 {{AudioWorkletProcessor}}. The subclass MUST define a method
-named <code>process()</code> that implements the audio processing
+named {{process()}} that implements the audio processing
 algorithm and have a valid static property named
 <code><dfn>parameterDescriptors</dfn></code> which is an iterable
 of {{AudioParamDescriptor}} that is looked up by the
 {{AudioWorkletProcessor}} constructor to create instances of
 {{AudioParam}} in the <code>parameters</code> maplike storage
-in the node. The step 5 and 6 of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
+in the node. The <a href="#check-prototype-type">prototype type check step</a> and the <a href="#check-is-callable">process method is callable step</a> of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
 validity of a given {{AudioWorkletProcessor}} subclass.
 
-An example of a valid subclass is as follows:
+<dl dfn-type=method dfn-for="AudioWorkletProcessor">
+	: <dfn>process(inputs, outputs, parameters)</dfn>
+	::
+		Implements the audio processing algorithm for the
+		{{AudioWorkletProcessor}}.
 
-<pre class="example" highlight="js" title="Subclassing AudioWorkletProcessor">
-class MyProcessor extends AudioWorkletProcessor {
-	static get parameterDescriptors() {
-		return [{
-			name: 'myParam',
-			defaultValue: 0.5,
-			minValue: 0,
-			maxValue: 1
-		}];
-	}
+		The {{process()}} method is called
+		synchronously by the audio <a>rendering thread</a> at
+		every <a>render quantum</a>, if ANY of the following
+		<dfn dfn>active processing conditions</dfn> are true:
 
-	process(inputs, outputs, parameters) {
-		// Get the first input and output.
-		let input = inputs[0];
-		let output = outputs[0];
-		let myParam = parameters.myParam;
+		1. The associated {{AudioWorkletProcessor}}'s
+			<a>active source</a> flag is equal to `true`.
 
-		// A simple amplifier for single input and output.
-		for (let channel = 0; channel &lt; output.length; ++channel) {
-			for (let i = 0; i &lt; output[channel].length; ++i) {
-				output[channel][i] = input[channel][i] * myParam[i];
-			}
-		}
-	}
-}
-</pre>
+		2. There are one or more connected inputs to the {{AudioWorkletNode}}.
 
-The <code>process()</code> method is called synchronously by the
-audio <a>rendering thread</a> at every <a>render quantum</a>, if
-ANY of the following <dfn>active processing conditions</dfn> are
-true:
+		The return value of this method controls the lifetime of the
+		{{AudioWorkletProcessor}}'s associated
+		{{AudioWorkletNode}}. At the conclusion of each call to the
+		{{process()}} method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in [[!ECMASCRIPT]])
+		is applied to the return value and the result is assigned to the associated AudioWorkletProcessor's <a>active source</a> flag. This in turn affects whether subsequent
+		invocations of {{process()}} occur, and has an impact on the lifetime of the node.
+		To propagate the flag change <a>queue a task</a> on the control thread to update the corresponding {{AudioWorkletNode}}'s <code>state</code> property accordingly.
 
-1. The associated {{AudioWorkletProcessor}}'s <a>active
-	source</a> flag is equal to `true`.
+		<div class="note">
+			This lifetime policy can support a variety of approaches found in
+			built-in nodes, including the following:
 
-2. There are one or more connected inputs to the
-	{{AudioWorkletNode}}.
+			* Nodes that transform their inputs, and are active only
+				while connected inputs and/or script references exist. Such
+				nodes SHOULD return <code>false</code> from
+				{{process()}} which allows the presence or absence of
+				connected inputs to determine whether active processing occurs.
 
-The method is invoked with the following arguments:
+			* Nodes that transform their inputs, but which remain active
+				for a <a>tail-time</a> after their inputs are disconnected. In
+				this case, {{process()}} SHOULD return
+				`true` for some period of time after
+				<code>inputs</code> is found to contain zero channels. The
+				current time may be obtained from the global scope's
+				{{AudioWorkletGlobalScope/currentTime}} to
+				measure the start and end of this tail-time interval, or the
+				interval could be calculated dynamically depending on the
+				processor's internal state.
 
-:  <code>inputs</code> of type <code>sequence&lt;sequence&lt;Float32Array>></code>
-::
-	The input audio buffer from the incoming connections provided
-	by the user agent. <code>inputs[n][m]</code> is a
-	{{Float32Array}} of audio samples for the
-	<code>m</code>th channel of <code>n</code>th input. While the
-	number of inputs is fixed at construction, the number of
-	channels can be changed dynamically based on
-	<a>computedNumberOfChannels</a>.
+			* Nodes that act as sources of output, typically with a
+				lifetime. Such nodes SHOULD return `true` from
+				{{process()}} until the point at which they are no
+				longer producing an output.
 
-	If no connections exist to the <code>n</code>th input of the
-	node during the current render quantum, then the content of
-	<code>inputs[n]</code> is an empty array, indicating that
-	zero channels of input are available. This is the only
-	circumstance under which the number of elements of
-	<code>inputs[n]</code> can be zero.
+			Note that the preceding definition implies that when no
+			return value is provided from an implementation of
+			{{process()}}, the effect is identical to returning
+			<code>false</code> (since the effective return value is the falsy
+			value <code>undefined</code>). This is a reasonable behavior for
+			any {{AudioWorkletProcessor}} that is active only when it has
+			active inputs.
+		</div>
 
-: <code>outputs</code> of type <code>sequence&lt;sequence&lt;Float32Array>></code>
-::
-	The output audio buffer that is to be consumed by the user
-	agent. <code>outputs[n][m]</code> is a
-	{{Float32Array}} object containing the audio samples
-	for <code>m</code>th channel of <code>n</code>th output. The
-	number of channels in the output will match
-	<a>computedNumberOfChannels</a> only when the node has single
-	output.
+		If {{process()}} is not called during some rendering
+		quantum due to the lack of any applicable [=active processing conditions=], the result is as if the processor emitted
+		silence for this period.
 
-: <code>parameters</code> of type <code>Object</code>
-::
-	A map of string keys and associated {{Float32Array}}s.
-	<code>parameters["name"]</code> corresponds to the automation
-	values of the {{AudioParam}} named
-	<code>"name"</code>.
+		<pre class=argumentdef for="AudioWorkletProcessor/process(inputs, outputs, parameters))">
+			inputs:
+				The input audio buffer from the incoming connections provided by the user agent. It has type <code>&lt;sequence&lt;sequence&lt;Float32Array>></code>. <code>inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on computedNumberOfChannels.
 
-	For each array, the array contains the [=computedValue=] or
-	the parameter for all frames in the [=render quantum=].
-	However, if no automation is scheduled during
-	this [=render quantum=], the array MAY have length 1 with
-	the array element being the constant value of the
-	{{AudioParam}} for the [=render quantum=].
+				If no connections exist to the \(n\)th input of the node during the current render quantum, then the content of <code>inputs[n]</code> is an empty array, indicating that zero channels of input are available. This is the only circumstance under which the number of elements of <code>inputs[n]</code> can be zero.
 
-The return value of this method controls the lifetime of the
-{{AudioWorkletProcessor}}'s associated
-{{AudioWorkletNode}}. At the conclusion of each call to the
-<code>process()</code> method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in [[!ECMASCRIPT]])
-is applied to the return value and the result is assigned to the associated AudioWorkletProcessor's <a>active source</a> flag. This in turn affects whether subsequent
-invocations of <code>process()</code> occur, and has an impact on the lifetime of the node.
-To propagate the flag change <a>queue a task</a> on the control thread to update the corresponding {{AudioWorkletNode}}'s <code>state</code> property accordingly.
+			outputs:
+				The output audio buffer that is to be consumed by the user agent. It has type <code>&lt;sequence&lt;sequence&lt;Float32Array>></code>. <code>outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has single output.
 
-<div class="note">
-	This lifetime policy can support a variety of approaches found in
-	built-in nodes, including the following:
+			parameters:
+				A map of string keys and associated {{Float32Array}}s. <code>parameters["name"]</code> corresponds to the automation values of the AudioParam named <code>"name"</code>.
 
-	* Nodes that transform their inputs, and are active only
-		while connected inputs and/or script references exist. Such
-		nodes SHOULD return <code>false</code> from
-		<code>process()</code> which allows the presence or absence of
-		connected inputs to determine whether active processing occurs.
+				For each array, the array contains the [=computedValue=] or the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
+		</pre>
 
-	* Nodes that transform their inputs, but which remain active
-		for a <a>tail-time</a> after their inputs are disconnected. In
-		this case, <code>process()</code> SHOULD return
-		`true` for some period of time after
-		<code>inputs</code> is found to contain zero channels. The
-		current time may be obtained from the global scope's
-		{{AudioWorkletGlobalScope/currentTime}} to
-		measure the start and end of this tail-time interval, or the
-		interval could be calculated dynamically depending on the
-		processor's internal state.
-
-	* Nodes that act as sources of output, typically with a
-		lifetime. Such nodes SHOULD return `true` from
-		<code>process()</code> until the point at which they are no
-		longer producing an output.
-
-	Note that the preceding definition implies that when no
-	return value is provided from an implementation of
-	<code>process()</code>, the effect is identical to returning
-	<code>false</code> (since the effective return value is the falsy
-	value <code>undefined</code>). This is a reasonable behavior for
-	any {{AudioWorkletProcessor}} that is active only when it has
-	active inputs.
-</div>
-
-If <code>process()</code> is not called during some rendering
-quantum due to the lack of any applicable <a>active processing
-conditions</a>, the result is is as if the processor emitted
-silence for this period.
-
+		<div>
+			<em>Return type:</em> {{boolean}}
+		</div>
+</dl>
+	
 <h5 dictionary lt="AudioParamDescriptor">
 {{AudioParamDescriptor}}</h5>
 
@@ -9849,6 +9917,7 @@ dictionary AudioParamDescriptor {
 	float defaultValue = 0;
 	float minValue = -3.4028235e38;
 	float maxValue = 3.4028235e38;
+	AutomationRate automationRate = "a-rate";
 };
 </pre>
 
@@ -9856,6 +9925,10 @@ dictionary AudioParamDescriptor {
 Dictionary {{AudioParamDescriptor}} Members</h6>
 
 <dl dfn-type=dict-member dfn-for="AudioParamDescriptor">
+	: <dfn>automationRate</dfn>
+	::
+		Represents the default automation rate.
+
 	: <dfn>defaultValue</dfn>
 	::
 		Represents the default value of the parameter. If this value
@@ -10078,7 +10151,7 @@ a lower bit-depth), and by quantizing in time resolution
 <a>a-rate</a>) inside an
 {{AudioWorkletProcessor}}.
 
-<pre class="example" highlight="js" title="BitCrusher - Global Scope">
+<pre line-numbers class="example" highlight="js" title="BitCrusher - Global Scope">
 let context = new AudioContext();
 context.audioWorklet.addModule('bitcrusher.js').then(() =&gt; {
 	let context = new AudioContext();
@@ -10099,7 +10172,7 @@ context.audioWorklet.addModule('bitcrusher.js').then(() =&gt; {
 });
 </pre>
 
-<pre class="example" highlight="js" title="BitCrusher - AudioWorkletGlobalScope (bitcrusher.js)">
+<pre line-numbers class="example" highlight="js" title="BitCrusher - AudioWorkletGlobalScope (bitcrusher.js)">
 registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
 	static get parameterDescriptors () {
@@ -10127,22 +10200,43 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 	process (inputs, outputs, parameters) {
 		let input = inputs[0];
 		let output = outputs[0];
-		let bitDepth = parameters.bitDepth;
-		let frequencyReduction = parameters.frequencyReduction;
+		let bitDepthLength = parameters.bitDepth.length;
+		let reductionLength = parameters.frequencyReduction.length;
 
-		for (let channel = 0; channel &lt; output.length; ++channel) {
-			for (let i = 0; i &lt; output[channel].length; ++i) {
-				let step = Math.pow(0.5, bitDepth[i]);
-				this._phase += frequencyReduction[i];
-				if (this._phase >= 1.0) {
-					this._phase -= 1.0;
-					this._lastSampleValue =
-						step * Math.floor(input[channel][i] / step + 0.5);
+		if (bitDepthLength > 1) {
+			// General case
+			for (let channel = 0; channel &lt; output.length; ++channel) {
+				for (let i = 0; i &lt; output[channel].length; ++i) {
+					let step = Math.pow(0.5, bitDepth[i]);
+
+					// Use modulo for indexing to handle the case where
+					// the length of the frequencyReduction array is 1.
+					this._phase += frequencyReduction[i % reductionLength];
+					if (this._phase >= 1.0) {
+						this._phase -= 1.0;
+						this._lastSampleValue =
+							step * Math.floor(input[channel][i] / step + 0.5);
+					}
+					output[channel][i] = this._lastSampleValue;
 				}
-				output[channel][i] = this._lastSampleValue;
+			}
+		} else {
+			// Because we know bitDepth is constant for this call,
+			// we can lift the computation of step outside the loop,
+			// saving many operations.
+			let step = Math.pow(0.5, bitDepth[0]);
+			for (let channel = 0; channel &lt; output.length; ++channel) {
+				for (let i = 0; i &lt; output[channel].length; ++i) {
+					this._phase += frequencyReduction[i % reductionLength];
+					if (this._phase >= 1.0) {
+						this._phase -= 1.0;
+						this._lastSampleValue =
+							step * Math.floor(input[channel][i] / step + 0.5);
+					}
+					output[channel][i] = this._lastSampleValue;
+				}
 			}
 		}
-
 		// No need to return a value; this node's lifetime is dependent only on its
 		// input connections.
 	}
@@ -10167,7 +10261,7 @@ communication (asynchronous) between
 {{AudioWorkletNode}} and
 {{AudioWorkletProcessor}}. This node does not use any output.
 
-<pre class="example" highlight="js" title="VUMeterNode - Global Scope (vumeternode.js)">
+<pre line-numbers class="example" highlight="js" title="VUMeterNode - Global Scope (vumeternode.js)">
 class VUMeterNode extends AudioWorkletNode {
 
 	constructor (context, options) {
@@ -10213,7 +10307,7 @@ let context = new AudioContext();
 let importAudioWorkletNode = context.audioWorklet.addModule('vumeterprocessor.js');
 </pre>
 
-<pre class="example" highlight="js" title="VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
+<pre line-numbers class="example" highlight="js" title="VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
 registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 
 	static meterSmoothingFactor = 0.9;
@@ -10271,7 +10365,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 });
 </pre>
 
-<pre class="example" highlight="js" title="VUMeterNode - Global Scope (main HTML file)">
+<pre line-numbers class="example" highlight="js" title="VUMeterNode - Global Scope (main HTML file)">
 &lt;script src="vumeternode.js">&lt;/script>
 &lt;script>
 	importAudioWorkletNode.then(() =&gt; {
@@ -10325,7 +10419,7 @@ queue, implementors can use memory that is shared between threads, as
 long as the memory operations are not reordered.
 
 <h3 id="control-thread-and-rendering-thread">
-Control thread and rendering thread</h3>
+Control Thread and Rendering Thread</h3>
 
 The Web Audio API MUST be implemented using a <a>control thread</a>,
 and a <a>rendering thread</a>.
@@ -10389,7 +10483,7 @@ one at the front of the <a>control message queue</a>.
 </div>
 
 <h3 id="asynchronous-operations">
-Asynchronous operations</h3>
+Asynchronous Operations</h3>
 
 Calling methods on {{AudioNode}}s is effectively asynchronous, and
 MUST to be done in two phases, a synchronous part and an asynchronous
@@ -10422,23 +10516,20 @@ before <var>B<sub>Async</sub></var>. In other words, synchronous and
 asynchronous sections can't be reordered.
 
 <h3 id="rendering-loop">
-Rendering an audio graph</h3>
+Rendering an Audio Graph</h3>
 
 Rendering an audio graph is done in blocks of 128 samples-frames. A
-block of 128 samples-frames is called a <dfn>render quantum</dfn>.
+block of 128 samples-frames is called a <dfn>render quantum</dfn>, and
+the <dfn>render quantum size</dfn> is 128.
 
 Operations that happen <dfn>atomically</dfn> on a
 given thread can only be executed when no other [=Atomically|atomic=]
 operation is running on another thread.
 
-The algorithm for rendering a block of audio from an
-{{AudioContext}} <em>G</em> with a <a href="#control-message-queue">control message queue</a> <em>Q</em> is as
-follows.
-
-If the algorithm returns true then it MUST be executed again in the
-future, to render the next block of audio. Else, the <a>rendering
-thread</a> yields and the processing stops. The <a>control thread</a>
-can restart executing this algoritm if needed.
+The algorithm for rendering a block of audio from an {{AudioContext}} <em>G</em>
+with a <a href="#control-message-queue">control message queue</a> <em>Q</em> is
+comprised of multiple steps and explained in further detail in the algorithm
+of <a href="#rendering-a-graph">rendering a graph</a>.
 
 <div class="note">
 	In practice, the {{AudioContext}} <a>rendering thread</a> is
@@ -10457,124 +10548,157 @@ can restart executing this algoritm if needed.
 	until {{OfflineAudioContext/length}} frames have been rendered.
 </div>
 
-<div algorithm="rendering a graph">
-	1. Let <em>Q<sub>rendering</sub></em> be an empty <a>control message
-		queue</a>. <a>Atomically</a> <a>swap</a>
-		<em>Q<sub>rendering</sub></em> and <em>Q</em>
+The system level audio callback is also queued as a task in the
+<a href="#control-message-queue">control message queue</a>. The UA MUST perform
+the following algorithms to process render quanta to fulfill such task by
+filling up the requested buffer size. Along with the primary message queue, the
+<a>rendering thread</a> has another task queue for microtasks for any microtask
+operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
-	2. While there are messages in <em>Q<sub>rendering</sub></em>,
-		execute the following steps:
+<div id="rendering-initialization" algorithm="initialize rendering loop">
+	The following step MUST be performed once before the rendering loop starts.
 
-		1. Execute the asynchronous section of the <a>oldest message</a>
-			of <em>Q<sub>rendering</sub></em>.
+	1. Set the internal slot <dfn attribute
+		for="BaseAudioContext">[[current frame]]</dfn> of the
+		{{BaseAudioContext}} to 0. Also set {{BaseAudioContext/currentTime}} to 0.
+</div>
 
-		2. Remove the <a>oldest message</a> of
-			<em>Q<sub>rendering</sub></em>.
+<div id="rendering-a-graph" algorithm="rendering a graph">
+	1. Let <var>render result</var> be <code>false</code>.
 
-	3. If the <a>rendering thread state</a> of the {{AudioContext}}
-		is not <code>running</code>, return false.
+	2. Process the [=control message queue=].
 
-	4. Order the {{AudioNode}}s of the {{AudioContext}} to be
-		processed.
+		1. Let <var>Q<sub>rendering</sub></var> be an empty [=control message
+			queue=]. [=Atomically=] [=swap=] <var>Q<sub>rendering</sub></var>
+			with the current [=control message queue=].
 
-		1. Let <em>ordered</em> be an empty list of {{AudioNode}}s.
-			It will contain an ordered list of {{AudioNode}}s when this
-			ordering algorithm terminates.
+		2. While there are messages in <var>Q<sub>rendering</sub></var>, execute the
+			following steps:
 
-		2. Let <em>nodes</em> be the set of all nodes created by this
-			{{AudioContext}}, and still alive.
+			1. Execute the asynchronous section of the [=oldest message=] of
+				<var>Q<sub>rendering</sub></var>.
 
-		3. Let <em>cycle breakers</em> be an empty set of
-			{{DelayNode}}s. It will contain all the {{DelayNode}}s that
-			are part of a cycle.
+			2. Remove the [=oldest message=] of <var>Q<sub>rendering</sub></var>.
 
-		4. For each {{AudioNode}} <em>node</em> in <em>nodes</em>:
+	3. Process a render quantum.
 
-			1. If <em>node</em> is a {{DelayNode}} that is part of a
-				cycle, add it to <em>cycle breakers</em> and remove it from
-				<em>nodes</em>.
+		1. If the [=rendering thread state=] of the {{AudioContext}} is not
+			<code>running</code>, return false.
 
-		5. If <em>nodes</em> contains cycles, <a href="#mute">mute</a>
-			all the {{AudioNode}}s that are part of this cycle, and remove
-			them from <em>nodes</em>.
+		2. Order the {{AudioNode}}s of the {{AudioContext}} to be processed.
 
-		6. While there are unmarked {{AudioNode}}s in <em>nodes</em>:
+			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s. It will
+				contain an ordered list of {{AudioNode}}s when this ordering algorithm
+				terminates.
 
-			1. Choose an {{AudioNode}} <em>node</em> in
-				<em>nodes</em>
+			2. Let <var>nodes</var> be the set of all nodes created by this
+				{{AudioContext}}, and still alive.
 
-			2. <a>Visit</a> <em>node</em>.
+			3. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
+				contain all the {{DelayNode}}s that are part of a cycle.
 
-			<div algorithm="visiting a node">
-				<dfn lt="Visit">Visiting a node</dfn> <em>node</em>
-				means performing the following steps:
+			4. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
 
-				1. If <em>node</em> is marked, abort these steps.
+				1. If <var>node</var> is a {{DelayNode}} that is part of a cycle, add it
+					to <var>cycle breakers</var> and remove it from <var>nodes</var>.
 
-				2. Mark <em>node</em>.
+			5. If <var>nodes</var> contains cycles, [=mute=] all the
+				{{AudioNode}}s that are part of this cycle, and remove them from
+				<var>nodes</var>.
 
-				3. For each {{AudioNode}} <em>input</em> connected to
-					<em>node</em>:
-					1. <a>Visit</a> <em>input</em>.
-			</div>
+			6. While there are unmarked {{AudioNode}}s in <var>nodes</var>:
 
-		7. Add <em>node</em> to the beginning of <em>ordered</em>.
+				1. Choose an {{AudioNode}} <var>node</var> in <var>nodes</var>.
 
-	5. Reverse the order of <em>nodes</em>.
+				2. [=Visit=] <var>node</var>.
 
-	6. For each {{DelayNode}} in a cycle, <a href="#available">make
-		available for reading</a> a block of audio from the {{DelayNode}}
-		buffer, available for reading.
+				<div algorithm="visiting a node">
+					<dfn lt="Visit">Visiting a node</dfn> means performing
+					the following steps:
 
-	7. <a href="#computation-of-value">Compute the value(s)</a> of the
-		{{AudioListener}}'s {{AudioParam}}s for this block.
+					1. If <var>node</var> is marked, abort these steps.
 
-	8. For each {{AudioNode}}, in the order determined previously:
-		1. For each {{AudioParam}} of this {{AudioNode}}, execute
-			these steps:
+					2. Mark <var>node</var>.
 
-			1. If this {{AudioParam}} has any {{AudioNode}}
-				connected to it, <a href="#SummingJunction">sum</a> the
-				buffers <a href="#available">made available for reading</a>
-				by all {{AudioNode}} connected to this {{AudioParam}},
-				<a href="#down-mix">down mix</a> the resulting buffer down to
-				Mono, and call this buffer the <dfn id="input-audioparam-buffer">input AudioParam
-				buffer</dfn>.
+					3. [=Visit=] each {{AudioNode}} connected to the input of
+						<var>node</var>.
+				</div>
 
-			2. <a href="#computation-of-value">Compute the value(s)</a> of
-				this {{AudioParam}} for this block.
+			7. Add <var>node</var> to the beginning of <var>ordered node list</var>.
 
-			3. <a>Queue a control message</a> to set the
-				{{[[current value]]}} slot of this {{AudioParam}}
-				to the last value computed in the preceding step.
+			8. Reverse the order of <var>ordered node list</var>.
 
-		2. If this {{AudioNode}} has any {{AudioNode}}s connected
-			to its input, <a href="#SummingJunction">sum</a> the buffers
-			<a href="#available">made available for reading</a> by all
-			{{AudioNode}}s connected to this {{AudioNode}}. The
-			resulting buffer is called the <dfn>input buffer</dfn>.
-			<a href="#channel-up-mixing-and-down-mixing">Up or down-mix</a>
-			it to match if number of input channels of this
-			{{AudioNode}}.
+		3. For each {{DelayNode}} in a cycle, [=Making a buffer available for reading|make
+			available for reading=] a block of audio from the {{DelayNode}} buffer.
 
-		3. If this {{AudioNode}} is a <a>source node</a>, [=Computing a block of audio|compute a block of audio=],
-			and <a href="#available">make it available for reading</a>.
+		4. [[#computation-of-value|Compute the value(s)]] of the
+			{{AudioListener}}'s {{AudioParam}}s for this block.
 
-		4. Else, if this {{AudioNode}} is a <a>destination node</a>,
-			[=Recording the input|record the input=] of this {{AudioNode}}.
+		5. For each {{AudioNode}}, in the order determined previously:
 
-		5. Else, <a>process</a> the <a>input buffer</a>,
-			and <a href="#available">make available for reading</a> the resulting buffer.
+			1. For each {{AudioParam}} of this {{AudioNode}}, execute these steps:
 
-	9. <a>Atomically</a> increment {{BaseAudioContext/currentTime}} by 128 / {{BaseAudioContext/sampleRate}}.
+				1. If this {{AudioParam}} has any {{AudioNode}} connected to it,
+					[[#SummingJunction|sum]] the buffers
+					[=Making a buffer available for reading|made available for reading=] by
+					all {{AudioNode}} connected to this {{AudioParam}},
+					[[#down-mix|down mix]] the resulting buffer down to a mono
+					channel, and call this buffer the <dfn id="input-audioparam-buffer">
+					input AudioParam buffer</dfn>.
 
-	10. Return true.
+				2. [[#computation-of-value|Compute the value(s)]] of this
+					{{AudioParam}} for this block.
+
+				3. [=Queue a control message=] to set the {{[[current value]]}} slot
+					of this {{AudioParam}} to the last value computed in the preceding
+					step.
+
+			2. If this {{AudioNode}} has any {{AudioNode}}s connected to its input,
+				[[#SummingJunction|sum]] the buffers
+				[=Making a buffer available for reading|made available for reading=] by all
+				{{AudioNode}}s connected to this {{AudioNode}}. The resulting buffer is
+				called the <dfn>input buffer</dfn>.
+				[[#channel-up-mixing-and-down-mixing|Up or down-mix]] it to
+				match if number of input channels of this {{AudioNode}}.
+
+			3. If this {{AudioNode}} is a <a>source node</a>,
+				[=Computing a block of audio|compute a block of audio=], and
+				[=Making a buffer available for reading|make it available for reading=].
+
+			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
+				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method
+				to [=Computing a block of audio|compute a block of audio=] with
+				the argument of [=input buffer=], output buffer and
+				[=input AudioParam buffer=].
+
+				1. Any {{Promise}} resolved within the execution of process method will
+					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
+
+			5. Else, if this {{AudioNode}} is a <a>destination node</a>,
+				[=Recording the input|record the input=] of this {{AudioNode}}.
+
+			6. Else, <a>process</a> the <a>input buffer</a>, and
+				[=Making a buffer available for reading|make available for reading=] the
+				resulting buffer.
+
+		6. [=Atomically=] perform the following steps:
+
+			1. Increment {{[[current frame]]}} by the [=render quantum size=].
+
+			2. Set {{BaseAudioContext/currentTime}} to {{[[current frame]]}} divided
+				by {{BaseAudioContext/sampleRate}}.
+
+		7. Set <var>render result</var> to <code>true</code>.
+
+	4. [=Perform a microtask checkpoint=].
+
+	5. Return <var>render result</var>.
 </div>
 
 <dfn id="mute">Muting</dfn> an {{AudioNode}} means that its
 output MUST be silence for the rendering of this audio block.
 
-<dfn id="available">Making a buffer available for reading</dfn>
+<dfn id="available-for-reading">Making a buffer available for reading</dfn>
 from an {{AudioNode}} means putting it in a state where other
 {{AudioNode}}s connected to this {{AudioNode}} can safely
 read from it.
@@ -10680,7 +10804,7 @@ on the given mixer. In order to expose this gain, a
 
 Here's how the above diagram could be constructed in JavaScript:
 
-<pre class="example" highlight="js">
+<pre line-numbers class="example" highlight="js">
 	var context = 0;
 	var compressor = 0;
 	var reverb = 0;
@@ -10823,7 +10947,7 @@ the graph and deleted. The streaming source, has a global reference
 and will remain connected until it is explicitly disconnected. Here's
 how it might look in JavaScript:
 
-<pre class="example" highlight="js">
+<pre line-numbers class="example" highlight="js">
 var context = 0;
 var compressor = 0;
 var gainNode1 = 0;
@@ -10868,7 +10992,7 @@ function playSound() {
 </pre>
 
 <h2 id="channel-up-mixing-and-down-mixing">
-Channel up-mixing and down-mixing</h2>
+Channel Up-Mixing and Down-Mixing</h2>
 
 <em>This section is normative.</em>
 
@@ -10929,7 +11053,7 @@ Mono (one channel), stereo (two channels), quad (four channels), and
 supported in future version of this specification.
 
 <h3 id="ChannelOrdering">
-Channel ordering</h3>
+Channel Ordering</h3>
 
 Channel ordering is defined by the following table. Individual
 multichannel formats MAY not support all intermediate channels.
@@ -10967,7 +11091,7 @@ defined below, skipping over those channels not present.
 </table>
 
 <h3 id="UpMix-sub">
-Up Mixing speaker layouts</h3>
+Up Mixing Speaker Layouts</h3>
 
 <pre>
 Mono up-mix:
@@ -11018,7 +11142,7 @@ Quad up-mix:
 </pre>
 
 <h3 id="down-mix">
-Down Mixing speaker layouts</h3>
+Down Mixing Speaker Layouts</h3>
 
 A down-mix will be necessary, for example, if processing 5.1 source
 material, but playing back stereo.
@@ -11057,7 +11181,7 @@ Quad down-mix:
 <h3 id="ChannelRules-section">
 Channel Rules Examples</h3>
 
-<pre class="example" highlight="js">
+<pre line-numbers class="example" highlight="js">
 	// Set gain node to explicit 2-channels (stereo).
 	gain.channelCount = 2;
 	gain.channelCountMode = "explicit";
@@ -11137,7 +11261,7 @@ The following algorithm MUST be used to calculate the
 <em>azimuth</em> and <em>elevation</em> for the
 {{PannerNode}}:
 
-<pre highlight="js">
+<pre highlight="js" line-numbers>
 	// Calculate the source-listener vector.
 	let listener = context.listener;
 	let sourcePosition =
@@ -11282,7 +11406,7 @@ value is ignored. This algorithm MUST be implemented using
 </div>
 
 <h4 id="Spatialization-hrtf-panning">
-PannerNode "HRTF" Panning (stereo only)</h4>
+PannerNode "HRTF" Panning (Stereo Only)</h4>
 
 This requires a set of <a href="https://en.wikipedia.org/wiki/Head-related_transfer_function">HRTF</a>
 (Head-related Transfer Function) impulse responses recorded at a
@@ -11408,7 +11532,7 @@ The following algorithm MUST be used to calculate the gain
 contribution due to the cone effect, given the source (the
 {{PannerNode}}) and the listener:
 
-<pre highlight="js">
+<pre highlight="js" line-numbers>
 function coneGain() {
 	let sourceOrientation = new Vec3(source.orientationX, source.orientationY, source.orientationZ);
 	if (sourceOrientation.magnitude == 0 || ((source.coneInnerAngle ==
@@ -11609,7 +11733,7 @@ to Consider</a>
 4. Does this specification expose persistent, cross-origin state to
 	the web?
 
-	Yes, the supported audio sample rate(s) are exposed.
+	Yes, the supported audio sample rate(s) and the output device channel count are exposed.
 
 5. Does this specification expose any other data to an origin that it
 	doesn’t currently have access to?
@@ -11706,12 +11830,22 @@ to Consider</a>
 	It does of necessity allow access to the users audio output device
 	or devices, which are sometimes separate units to the computer.
 
-	For voice or sound-actuated devices, Web Audio API might be used
+	For voice or sound-actuated devices, Web Audio API <em>might</em> be used
 	to control other devices. In addition, if the sound-operated device is sensitive
 	to near ultrasonic frequencies, such control might not be audible.
 	This possibility also exists with HTML, through
 	the &lt;audio&gt; element. At common audio sampling rates, there is (by design)
-	insufficient headroom for much ultrasonic information.
+	insufficient headroom for much ultrasonic information:
+
+	The limit of human hearing is usually stated as 20kHz. For a 44.1kHz
+	sampling rate, the Nyquist limit is 22.05kHz. Given that a true
+	brickwall filter cannot be physically realized, the space between
+	20kHz and 22.05kHz is used for a rapid rolloff filter to strongly
+	attenuate all frequencies above Nyquist.
+
+	At 48kHz sampling rate, there is still rapid attenuation in the
+	20kHz to 24kHz band (but it is easier to avoid phase ripple
+	errors in the passband).
 
 11. Does this specification allow an origin some measure of control
 	over a user agent’s native UI?
@@ -11762,7 +11896,7 @@ Common Definitions for Specification Code</h2>
 This section describes common functions and classes employed by
 JavaScript code used within this specification.
 
-<pre highlight="js">
+<pre highlight="js" line-numbers>
 // Three dimensional vector class.
 class Vec3 {
 	// Construct from 3 coordinates.
@@ -11847,8 +11981,8 @@ Since Working Draft of 08 December 2015</h3>
 * Added a list of nodes and reason why they can add latency, in an informative section.
 * Speced nominal ranges, nyquist, and behavior when outside the range.
 * Spec the processing model for the Web Audio API.
-* Merge the SpatialPannerNode into the PannerNode, undeprecating the PannerNode. 
-* Merge the SpatialListener into the AudioListener, undeprecating the AudioListener. 
+* Merge the SpatialPannerNode into the PannerNode, undeprecating the PannerNode.
+* Merge the SpatialListener into the AudioListener, undeprecating the AudioListener.
 * Added latencyHint(s).
 * Move the constructor from BaseAudioContext to AudioContext where it belongs; BaseAudioContext is not constructible.
 * Specified the Behavior of automations and nominal ranges.

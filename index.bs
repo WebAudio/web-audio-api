@@ -11502,14 +11502,17 @@ attribute.
 During audio rendering, a <em>distance</em> value will be calculated
 based on the panner and listener positions according to:
 
-<pre highlight="js">
+<xmp highlight="js" line-numbers>
 function distance(panner) {
-	let pannerPosition = new Vec3(panner.positionX, panner.positionY, panner.positionZ);
-	let listener = context.listener;
-	let listenerPosition = new Vec3(listener.positionX, listener.positionY, listener.positionZ);
-	return pannerPosition.diff(listenerPosition).magnitude;
+  let pannerPosition = new Vec3(panner.positionX.value, panner.positionY.value,
+                                panner.positionZ.value);
+  let listener = context.listener;
+  let listenerPosition =
+      new Vec3(listener.positionX.value, listener.positionY.value,
+               listener.positionZ.value);
+  return pannerPosition.diff(listenerPosition).magnitude;
 }
-</pre>
+</xmp>
 
 <em>distance</em> will then be used to calculate
 <em>distanceGain</em> which depends on the <em>distanceModel</em>
@@ -11538,47 +11541,51 @@ The following algorithm MUST be used to calculate the gain
 contribution due to the cone effect, given the source (the
 {{PannerNode}}) and the listener:
 
-<pre highlight="js" line-numbers>
+<xmp highlight="js" line-numbers>
 function coneGain() {
-	let sourceOrientation = new Vec3(source.orientationX, source.orientationY, source.orientationZ);
-	if (sourceOrientation.magnitude == 0 || ((source.coneInnerAngle ==
-			360) &amp;& (source.coneOuterAngle == 360)))
-		return 1; // no cone specified - unity gain
+  let sourceOrientation =
+      new Vec3(source.orientationX, source.orientationY, source.orientationZ);
+  if (sourceOrientation.magnitude == 0 ||
+      ((source.coneInnerAngle == 360) && (source.coneOuterAngle == 360)))
+    return 1; // no cone specified - unity gain
 
-	// Normalized source-listener vector
-	let sourcePosition =
-		new Vec3(panner.positionX, panner.positionY, panner.positionZ);
-	let listenerPosition =
-		new Vec3(listener.positionX, listener.positionY, listener.positionZ);
-	let sourceToListener = sourcePosition.diff(listenerPosition).normalize();
+  // Normalized source-listener vector
+  let sourcePosition = new Vec3(panner.positionX.value, panner.positionY.value,
+                                panner.positionZ.value);
+  let listenerPosition =
+      new Vec3(listener.positionX.value, listener.positionY.value,
+               listener.positionZ.value);
+  let sourceToListener = sourcePosition.diff(listenerPosition).normalize();
 
-	let normalizedSourceOrientation = sourceOrientation.normalize();
+  let normalizedSourceOrientation = sourceOrientation.normalize();
 
-	// Angle between the source orientation vector and the source-listener vector
-	let angle = 180 * Math.acos(sourceToListener.dot(normalizedSourceOrientation)) / Math.PI;
-	let absAngle = Math.abs(angle);
+  // Angle between the source orientation vector and the source-listener vector
+  let angle = 180 *
+              Math.acos(sourceToListener.dot(normalizedSourceOrientation)) /
+              Math.PI;
+  let absAngle = Math.abs(angle);
 
-	// Divide by 2 here since API is entire angle (not half-angle)
-	let absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
-	let absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
-	let gain = 1;
+  // Divide by 2 here since API is entire angle (not half-angle)
+  let absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
+  let absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
+  let gain = 1;
 
-	if (absAngle &lt;= absInnerAngle) {
-		// No attenuation
-		gain = 1;
-	} else if (absAngle >= absOuterAngle) {
-		// Max attenuation
-		gain = source.coneOuterGain;
-	} else {
-		// Between inner and outer cones
-		// inner -> outer, x goes from 0 -> 1
-		var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
-		gain = (1 - x) + source.coneOuterGain * x;
-	}
+  if (absAngle <= absInnerAngle) {
+    // No attenuation
+    gain = 1;
+  } else if (absAngle >= absOuterAngle) {
+    // Max attenuation
+    gain = source.coneOuterGain;
+  } else {
+    // Between inner and outer cones
+    // inner -> outer, x goes from 0 -> 1
+    var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+    gain = (1 - x) + source.coneOuterGain * x;
+  }
 
-	return gain;
+  return gain;
 }
-</pre>
+</xmp>
 
 
 <!-- Big Text: Perf -->

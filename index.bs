@@ -11263,65 +11263,69 @@ The following algorithm MUST be used to calculate the
 <em>azimuth</em> and <em>elevation</em> for the
 {{PannerNode}}:
 
-<pre highlight="js" line-numbers>
-	// Calculate the source-listener vector.
-	let listener = context.listener;
-	let sourcePosition =
-		new Vec3(panner.positionX, panner.positionY, panner.positionZ);
-	let listenerPosition =
-		new Vec3(listener.positionX, listener.positionY, listener.positionZ);
-	let sourceListener = sourcePosition.diff(listenerPosition).normalize();
+<xmp highlight="js" line-numbers>
+// Let |context| be a BaseAudioContext and let |panner| be a
+// PannerNode created in |context|.
 
-	if (sourceListener.magnitude == 0) {
-			// Handle degenerate case if source and listener are at the same point.
-			azimuth = 0;
-			elevation = 0;
-			return;
-	}
+// Calculate the source-listener vector.
+let listener = context.listener;
+let sourcePosition = new Vec3(panner.positionX.value, panner.positionY.value,
+                              panner.positionZ.value);
+let listenerPosition =
+    new Vec3(listener.positionX.value, listener.positionY.value,
+             listener.positionZ.value);
+let sourceListener = sourcePosition.diff(listenerPosition).normalize();
 
-	// Align axes.
-	let listenerForward =
-		new Vec3(listener.forwardX, listener.forwardY, listener.forwardZ);
-	let listenerUp =
-		new Vec3(listener.upX, listener.upY, listener.upZ);
-	let listenerRight = listenerForward.cross(listenerUp);
+if (sourceListener.magnitude == 0) {
+  // Handle degenerate case if source and listener are at the same point.
+  azimuth = 0;
+  elevation = 0;
+  return;
+}
 
-	if (listenerRight.magnitude == 0) {
-		// Handle the case where listener's 'up' and 'forward' vectors are linearly dependent,
-		// in which case 'right' cannot be determined
-		azimuth = 0;
-		elevation = 0;
-		return;
-	}
+// Align axes.
+let listenerForward = new Vec3(listener.forwardX.value, listener.forwardY.value,
+                               listener.forwardZ.value);
+let listenerUp =
+    new Vec3(listener.upX.value, listener.upY.value, listener.upZ.value);
+let listenerRight = listenerForward.cross(listenerUp);
 
-	// Determine a unit vector orthogonal to listener's right, forward
-	let listenerRightNorm = listenerRight.normalize();
-	let listenerForwardNorm = listenerForward.normalize();
-	let up = listenerRightNorm.cross(listenerForwardNorm);
+if (listenerRight.magnitude == 0) {
+  // Handle the case where listener's 'up' and 'forward' vectors are linearly
+  // dependent, in which case 'right' cannot be determined
+  azimuth = 0;
+  elevation = 0;
+  return;
+}
 
-	let upProjection = sourceListener.dot(up);
-	let projectedSource = sourceListener.diff(up.scale(upProjection)).normalize();
+// Determine a unit vector orthogonal to listener's right, forward
+let listenerRightNorm = listenerRight.normalize();
+let listenerForwardNorm = listenerForward.normalize();
+let up = listenerRightNorm.cross(listenerForwardNorm);
 
-	azimuth = 180 * Math.acos(projectedSource.dot(listenerRightNorm)) / Math.PI;
+let upProjection = sourceListener.dot(up);
+let projectedSource = sourceListener.diff(up.scale(upProjection)).normalize();
 
-	// Source in front or behind the listener.
-	let frontBack = projectedSource.dot(listenerForwardNorm);
-	if (frontBack &lt; 0)
-			azimuth = 360 - azimuth;
+azimuth = 180 * Math.acos(projectedSource.dot(listenerRightNorm)) / Math.PI;
 
-	// Make azimuth relative to "front" and not "right" listener vector.
-	if ((azimuth >= 0) &amp;& (azimuth &lt;= 270))
-			azimuth = 90 - azimuth;
-	else
-			azimuth = 450 - azimuth;
+// Source in front or behind the listener.
+let frontBack = projectedSource.dot(listenerForwardNorm);
+if (frontBack < 0)
+  azimuth = 360 - azimuth;
 
-	elevation = 90 - 180 * Math.acos(sourceListener.dot(up)) / Math.PI;
+// Make azimuth relative to "front" and not "right" listener vector.
+if ((azimuth >= 0) && (azimuth <= 270))
+  azimuth = 90 - azimuth;
+else
+  azimuth = 450 - azimuth;
 
-	if (elevation > 90)
-			elevation = 180 - elevation;
-	else if (elevation &lt; -90)
-			elevation = -180 - elevation;
-</pre>
+elevation = 90 - 180 * Math.acos(sourceListener.dot(up)) / Math.PI;
+
+if (elevation > 90)
+  elevation = 180 - elevation;
+else if (elevation < -90)
+  elevation = -180 - elevation;
+</xmp>
 
 <h3 id="Spatialization-panning-algorithm">
 Panning Algorithm</h3>
@@ -11498,14 +11502,17 @@ attribute.
 During audio rendering, a <em>distance</em> value will be calculated
 based on the panner and listener positions according to:
 
-<pre highlight="js">
+<xmp highlight="js" line-numbers>
 function distance(panner) {
-	let pannerPosition = new Vec3(panner.positionX, panner.positionY, panner.positionZ);
-	let listener = context.listener;
-	let listenerPosition = new Vec3(listener.positionX, listener.positionY, listener.positionZ);
-	return pannerPosition.diff(listenerPosition).magnitude;
+  let pannerPosition = new Vec3(panner.positionX.value, panner.positionY.value,
+                                panner.positionZ.value);
+  let listener = context.listener;
+  let listenerPosition =
+      new Vec3(listener.positionX.value, listener.positionY.value,
+               listener.positionZ.value);
+  return pannerPosition.diff(listenerPosition).magnitude;
 }
-</pre>
+</xmp>
 
 <em>distance</em> will then be used to calculate
 <em>distanceGain</em> which depends on the <em>distanceModel</em>
@@ -11534,47 +11541,51 @@ The following algorithm MUST be used to calculate the gain
 contribution due to the cone effect, given the source (the
 {{PannerNode}}) and the listener:
 
-<pre highlight="js" line-numbers>
+<xmp highlight="js" line-numbers>
 function coneGain() {
-	let sourceOrientation = new Vec3(source.orientationX, source.orientationY, source.orientationZ);
-	if (sourceOrientation.magnitude == 0 || ((source.coneInnerAngle ==
-			360) &amp;& (source.coneOuterAngle == 360)))
-		return 1; // no cone specified - unity gain
+  let sourceOrientation =
+      new Vec3(source.orientationX, source.orientationY, source.orientationZ);
+  if (sourceOrientation.magnitude == 0 ||
+      ((source.coneInnerAngle == 360) && (source.coneOuterAngle == 360)))
+    return 1; // no cone specified - unity gain
 
-	// Normalized source-listener vector
-	let sourcePosition =
-		new Vec3(panner.positionX, panner.positionY, panner.positionZ);
-	let listenerPosition =
-		new Vec3(listener.positionX, listener.positionY, listener.positionZ);
-	let sourceToListener = sourcePosition.diff(listenerPosition).normalize();
+  // Normalized source-listener vector
+  let sourcePosition = new Vec3(panner.positionX.value, panner.positionY.value,
+                                panner.positionZ.value);
+  let listenerPosition =
+      new Vec3(listener.positionX.value, listener.positionY.value,
+               listener.positionZ.value);
+  let sourceToListener = sourcePosition.diff(listenerPosition).normalize();
 
-	let normalizedSourceOrientation = sourceOrientation.normalize();
+  let normalizedSourceOrientation = sourceOrientation.normalize();
 
-	// Angle between the source orientation vector and the source-listener vector
-	let angle = 180 * Math.acos(sourceToListener.dot(normalizedSourceOrientation)) / Math.PI;
-	let absAngle = Math.abs(angle);
+  // Angle between the source orientation vector and the source-listener vector
+  let angle = 180 *
+              Math.acos(sourceToListener.dot(normalizedSourceOrientation)) /
+              Math.PI;
+  let absAngle = Math.abs(angle);
 
-	// Divide by 2 here since API is entire angle (not half-angle)
-	let absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
-	let absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
-	let gain = 1;
+  // Divide by 2 here since API is entire angle (not half-angle)
+  let absInnerAngle = Math.abs(source.coneInnerAngle) / 2;
+  let absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
+  let gain = 1;
 
-	if (absAngle &lt;= absInnerAngle) {
-		// No attenuation
-		gain = 1;
-	} else if (absAngle >= absOuterAngle) {
-		// Max attenuation
-		gain = source.coneOuterGain;
-	} else {
-		// Between inner and outer cones
-		// inner -> outer, x goes from 0 -> 1
-		var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
-		gain = (1 - x) + source.coneOuterGain * x;
-	}
+  if (absAngle <= absInnerAngle) {
+    // No attenuation
+    gain = 1;
+  } else if (absAngle >= absOuterAngle) {
+    // Max attenuation
+    gain = source.coneOuterGain;
+  } else {
+    // Between inner and outer cones
+    // inner -> outer, x goes from 0 -> 1
+    var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
+    gain = (1 - x) + source.coneOuterGain * x;
+  }
 
-	return gain;
+  return gain;
 }
-</pre>
+</xmp>
 
 
 <!-- Big Text: Perf -->

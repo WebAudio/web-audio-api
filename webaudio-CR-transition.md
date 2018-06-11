@@ -160,7 +160,7 @@ https://webaudio.github.io/web-audio-api/implementation-report.html
 There are no features at risk.
 
 A test suite is in progress and available at
- https://github.com/w3c/web-platform-tests/tree/master/webaudio
+ https://github.com/web-platform-tests/wpt/tree/master/webaudio
 
 Mojitests from Mozilla are being converted to WPT format and will be pushed upstream to the WPR repo. These are all upstream reviewed.
 Google also has extensive tests; these have all been converted to WPT format and are being pushed to WPT. These are all upstream reviewed.

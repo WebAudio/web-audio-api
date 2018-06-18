@@ -3,11 +3,13 @@ name: Bug Report
 about: Create a report to fix the specification
 
 ---
+
 **Describe the issue**
 A clear and concise description of what the problem is in the spec.
 
 If you need help on how to use WebAudio, ask on your favorite forum or consider visiting
-the (WebAudio Slack Channel)[https://web-audio.slack.com/] or (StackOverflow)[https://stackoverflow.com/].
+the [WebAudio Slack Channel](https://web-audio.slack.com/) or
+[StackOverflow](https://stackoverflow.com/).
 
 **Where Is It**
 Provide a link to where the problem is in the spec

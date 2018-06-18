@@ -1,6 +1,8 @@
+---
 name: Bug Report
 about: Create a report to fix the specification
 
+---
 **Describe the issue**
 A clear and concise description of what the problem is in the spec.
 

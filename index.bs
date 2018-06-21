@@ -4650,7 +4650,7 @@ Methods</h4>
 		<pre class=argumentdef for="AudioBufferSourceNode/start(when, offset, duration)">
 			when: The <code>when</code> parameter describes at what time (in seconds) the sound should start playing. It is in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. If 0 is passed in for this value or if the value is less than <b>currentTime</b>, then the sound will start playing immediately. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>when</code> is negative.</span>
 			offset: The <code>offset</code> parameter supplies a <a>playhead position</a> where playback will begin. If 0 is passed in for this value, then playback will start from the beginning of the buffer. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>offset</code> is negative.</span> If <code>offset</code> is greater than {{AudioBufferSourceNode/loopEnd}}, playback will begin at {{AudioBufferSourceNode/loopEnd}} (and immediately loop to {{AudioBufferSourceNode/loopStart}}). <code>offset</code> is silently clamped to [0, <code>duration</code>], when <code>startTime</code> is reached, where <code>duration</code> is the value of the <code>duration</code> attribute of the {{AudioBuffer}} set to the {{AudioBufferSourceNode/buffer}} attribute of this <code>AudioBufferSourceNode</code>.
-			duration: The {{AudioBufferSourceNode/start(when, offset, duration)/duration}} parameter describes the duration of the sound (in seconds) to be played. If this parameter is passed, this method has exactly the same effect as the invocation of <code>start(when, offset)</code> followed by <code>stop(when + duration)</code>. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>duration</code> is negative.</span>
+			duration: The {{AudioBufferSourceNode/start(when, offset, duration)/duration}} parameter describes the duration of sound to be played, expressed as seconds of total buffer content to be output, including any whole or partial loop iterations. The units of {{AudioBufferSourceNode/start(when, offset, duration)/duration}} are independent of the effects of {{AudioBufferSourceNode/playbackRate}}. This behavior contrasts with the absolute time units employed by {{AudioScheduledSourceNode/stop()}}. Thus, a {{AudioBufferSourceNode/start(when, offset, duration)/duration}} of 5 seconds with a playback rate of 0.5 will output 5 seconds of buffer content at half speed, producing 10 seconds of audible output. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>duration</code> is negative.</span>
 		</pre>
 
 		<div>
@@ -4816,21 +4816,22 @@ let loopEnd;
 let playbackRate;
 
 // Variables for the node's playback parameters
-let start = 0, offset = 0; // Set by start()
-let stop = Infinity; // Set by stop(), or by start() with a supplied duration
+let start = 0, offset = 0, duration = Infinity; // Set by start()
+let stop = Infinity; // Set by stop()
+
 
 // Variables for tracking node's playback state
 let bufferTime = 0, started = false, enteredLoop = false;
 let dt = 1 / context.sampleRate;
 
 // Handle invocation of start method call
-function handleStart(when, pos, duration) {
+function handleStart(when, pos, dur) {
 	if (arguments.length >= 1) {
 		start = when;
 	}
 	offset = pos;
 	if (arguments.length >= 3) {
-		stop = when + duration;
+		duration = dur;
 	}
 }
 
@@ -4867,6 +4868,7 @@ function playbackSignal(position) {
 // of |numberOfFrames| sample frames to be output.
 function process(numberOfFrames) {
 	let currentTime = context.currentTime; // context time of next rendered frame
+	let bufferDuration = 0; // cumulative duration in "buffer time" (not adjusted for playback rate)
 	let output = []; // accumulates rendered sample frames
 
 	// Combine the two k-rate parameters affecting playback rate
@@ -4894,8 +4896,8 @@ function process(numberOfFrames) {
 
 	// Render each sample frame in the quantum
 	for (let index = 0; index &lt; numberOfFrames; index++) {
-		// Check that currentTime is within allowable range for playback
-		if (currentTime &lt; start || currentTime >= stop) {
+		// Check that currentTime and bufferDuration are within allowable range for playback
+		if (currentTime &lt; start || currentTime >= stop || bufferDuration >= duration) {
 			output.push(0); // this sample frame is silent
 			currentTime += dt;
 			continue;
@@ -4903,7 +4905,7 @@ function process(numberOfFrames) {
 
 		if (!started) {
 			// Take note that buffer has started playing and get initial playhead position.
-			bufferTime = offset + ((currentTime - start) * computedPlaybackRate);
+			bufferTime = offset + bufferDuration;
 			started = true;
 		}
 
@@ -4940,6 +4942,7 @@ function process(numberOfFrames) {
 		}
 
 		bufferTime += dt * computedPlaybackRate;
+		bufferDuration += dt * computedPlaybackRate;
 		currentTime += dt;
 	} // End of render quantum loop
 
@@ -4969,6 +4972,8 @@ apply:
 
 * linear interpolation is depicted throughout, although a UA
 	could employ other interpolation techniques.
+
+* the <code>duration</code> values noted in the figures refer to the <code>buffer</code>, not arguments to {{AudioBufferSourceNode/start()}}
 
 This figure illustrates basic playback of a buffer, with a simple
 loop that ends after the last sample frame in the buffer:

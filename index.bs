@@ -4822,7 +4822,7 @@ let stop = Infinity; // Set by stop()
 
 // Variables for tracking node's playback state
 let bufferTime = 0, started = false, enteredLoop = false;
-let bufferDuration = 0;
+let bufferTimeElapsed = 0;
 let dt = 1 / context.sampleRate;
 
 // Handle invocation of start method call
@@ -4896,8 +4896,8 @@ function process(numberOfFrames) {
 
 	// Render each sample frame in the quantum
 	for (let index = 0; index &lt; numberOfFrames; index++) {
-		// Check that currentTime and bufferDuration are within allowable range for playback
-		if (currentTime &lt; start || currentTime >= stop || bufferDuration >= duration) {
+		// Check that currentTime and bufferTimeElapsed are within allowable range for playback
+		if (currentTime &lt; start || currentTime >= stop || bufferTimeElapsed >= duration) {
 			output.push(0); // this sample frame is silent
 			currentTime += dt;
 			continue;
@@ -4905,7 +4905,7 @@ function process(numberOfFrames) {
 
 		if (!started) {
 			// Take note that buffer has started playing and get initial playhead position.
-			bufferTime = offset + bufferDuration;
+			bufferTime = offset;
 			started = true;
 		}
 
@@ -4942,7 +4942,7 @@ function process(numberOfFrames) {
 		}
 
 		bufferTime += dt * computedPlaybackRate;
-		bufferDuration += dt * computedPlaybackRate;
+		bufferTimeElapsed += dt * computedPlaybackRate;
 		currentTime += dt;
 	} // End of render quantum loop
 

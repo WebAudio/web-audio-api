@@ -20,3 +20,14 @@ sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG
 # Do the same for the expected errors and compare the two.  Any
 # differences need to be fixed.
 sed 's;^LINE [0-9]*:;LINE:;' expected-errs.txt | sed -e '$a\' | diff -u - $ERRLOG
+
+# If the out directory exists, copy everything needed for the HTML
+# version of the spec to the out directory.
+
+if [ -d out ]; then
+    if [ ! -d out/images ]; then
+	mkdir out/images || exit 1
+    fi
+    cp index.html out
+    cp images/*.png out/images
+fi

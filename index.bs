@@ -9821,7 +9821,7 @@ Methods</h5>
 User can define a custom audio processor by extending
 {{AudioWorkletProcessor}}. The subclass MUST define a method
 named {{process()}} that implements the audio processing
-algorithm and have a valid static property named
+algorithm and may have a valid static property named
 <code><dfn>parameterDescriptors</dfn></code> which is an iterable
 of {{AudioParamDescriptor}} that is looked up by the
 {{AudioWorkletProcessor}} constructor to create instances of
@@ -9911,7 +9911,40 @@ validity of a given {{AudioWorkletProcessor}} subclass.
 			<em>Return type:</em> {{boolean}}
 		</div>
 </dl>
-	
+
+The example below shows how {{AudioParam}} can be defined and used in an
+{{AudioWorkletProcessor}}.
+
+<xmp class="example" highlight="js" title="Subclassing AudioWorkletProcessor">
+class MyProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [{
+      name: 'myParam',
+      defaultValue: 0.5,
+      minValue: 0,
+      maxValue: 1,
+      automationRate: "k-rate"
+    }];
+  }
+
+  process(inputs, outputs, parameters) {
+    // Get the first input and output.
+    let input = inputs[0];
+    let output = outputs[0];
+    let myParam = parameters.myParam;
+
+    // A simple amplifier for single input and output. Note that the
+    // automationRate is "k-rate", so it will have a single value at index [0]
+    // for each render quantum.
+    for (let channel = 0; channel < output.length; ++channel) {
+      for (let i = 0; i < output[channel].length; ++i) {
+        output[channel][i] = input[channel][i] * myParam[0];
+      }
+    }
+  }
+}
+</xmp>
+
 <h5 dictionary lt="AudioParamDescriptor">
 {{AudioParamDescriptor}}</h5>
 

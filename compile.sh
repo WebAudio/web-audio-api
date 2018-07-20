@@ -30,4 +30,5 @@ if [ -d out ]; then
     fi
     cp index.html out
     cp images/*.png out/images
+    cp images/*.svg out/images
 fi

@@ -18,8 +18,9 @@ bikeshed --print=plain -f spec 2>&1 | tee $BSLOG
 # newline.
 sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG
 # Do the same for the expected errors and compare the two.  Any
-# differences need to be fixed.
-sed 's;^LINE [0-9]*:;LINE:;' expected-errs.txt | sed -e '$a\' | diff -u - $ERRLOG
+# differences need to be fixed.  Exit with a non-zero exit code if
+# there are any differences.
+(sed 's;^LINE [0-9]*:;LINE:;' expected-errs.txt | sed -e '$a\' | diff -u - $ERRLOG) || exit 1
 
 # If the out directory exists, copy everything needed for the HTML
 # version of the spec to the out directory.

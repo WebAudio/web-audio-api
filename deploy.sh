@@ -38,7 +38,9 @@ cd ..
 # Clean out existing contents
 rm -rf out/**/* || exit 0
 
-echo PWD = $PWD
+echo target = $TARGET_BRANCH source = $SOURCE_BRANCH
+git branch
+
 # Run our compile script; quit if it fails.
 doCompile || exit 1
 

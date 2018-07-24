@@ -68,7 +68,6 @@ ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
 ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
 
 # Can't push anything if we don't have an encrpted key, so skip it.
-
 if [ "X$ENCRYPTED_KEY" != "X" ]; then
     openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -in ../deploy_key.enc -out ../deploy_key -d
     chmod 600 ../deploy_key

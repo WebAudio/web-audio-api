@@ -11,10 +11,6 @@ ERRLOG="actual-errs.txt"
 # Remove it when we're done with this script.
 trap "rm $BSLOG $ERRLOG" 0
 
-echo $PWD
-ls
-git co $TRAVIS_BRANCH
-
 # Run bikeshed and save the output.  You can use this output as is
 # to update expected-errs.txt.
 bikeshed --print=plain -f spec 2>&1 | tee $BSLOG

@@ -38,9 +38,7 @@ cd ..
 # Clean out existing contents
 rm -rf out/**/* || exit 0
 
-echo travis branch = ${TRAVIS_BRANCH}  source = $SOURCE_BRANCH
-git branch
-
+echo PWD = $PWD
 # Run our compile script; quit if it fails.
 doCompile || exit 1
 
@@ -68,14 +66,10 @@ ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
 ENCRYPTED_IV_VAR="encrypted_${ENCRYPTION_LABEL}_iv"
 ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
 ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
+openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -in ../deploy_key.enc -out ../deploy_key -d
+chmod 600 ../deploy_key
+eval `ssh-agent -s`
+ssh-add ../deploy_key
 
-# Can't push anything if we don't have an encrpted key, so skip it.
-if [ "X$ENCRYPTED_KEY" != "X" ]; then
-    openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -in ../deploy_key.enc -out ../deploy_key -d
-    chmod 600 ../deploy_key
-    eval `ssh-agent -s`
-    ssh-add ../deploy_key
-
-    # Now that we're all set up, we can push.
-    git push $SSH_REPO $TARGET_BRANCH
-fi
+# Now that we're all set up, we can push.
+git push $SSH_REPO $TARGET_BRANCH

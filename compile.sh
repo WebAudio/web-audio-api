@@ -12,6 +12,8 @@ ERRLOG="actual-errs.txt"
 # can update the expected errors.
 trap "rm $ERRLOG" 0
 
+echo $PWD
+ls
 # Run bikeshed and save the output.  You can use this output as is
 # to update expected-errs.txt.
 bikeshed --print=plain -f spec 2>&1 | tee $BSLOG

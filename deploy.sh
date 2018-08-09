@@ -38,9 +38,7 @@ cd ..
 # Clean out existing contents
 rm -rf out/**/* || exit 0
 
-echo travis branch = ${TRAVIS_BRANCH}  source = $SOURCE_BRANCH
-git branch
-
+echo PWD = $PWD
 # Run our compile script; quit if it fails.
 doCompile || exit 1
 

@@ -8,8 +8,9 @@ set -x
 BSLOG="bs.log"
 ERRLOG="actual-errs.txt"
 
-# Remove it when we're done with this script.
-trap "rm $BSLOG $ERRLOG" 0
+# Remove ERRLOG when we're done with this script, but keep BSLOG so we
+# can update the expected errors.
+trap "rm $ERRLOG" 0
 
 echo $PWD
 ls

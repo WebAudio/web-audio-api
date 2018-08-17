@@ -25,6 +25,7 @@ sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG
 
 # If the out directory exists, copy everything needed for the HTML
 # version of the spec to the out directory.
+
 if [ -d out ]; then
     if [ ! -d out/images ]; then
 	mkdir out/images || exit 1

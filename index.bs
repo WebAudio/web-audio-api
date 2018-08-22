@@ -6,7 +6,7 @@ Group: audiowg
 Status: ED
 ED: https://webaudio.github.io/web-audio-api/
 TR: https://www.w3.org/TR/webaudio/
-Previous Version: https://www.w3.org/TR/2015/WD-webaudio-20180619/
+Previous Version: https://www.w3.org/TR/2018/WD-webaudio-20180619/
 Previous Version: https://www.w3.org/TR/2015/WD-webaudio-20151208/
 Previous Version: https://www.w3.org/TR/2013/WD-webaudio-20131010/
 Previous Version: https://www.w3.org/TR/2012/WD-webaudio-20121213/
@@ -7092,15 +7092,15 @@ values. Those values persist accros invocation of this algorithm.
 	1. For each sample <var>input</var> of the render quantum to be
 		processed, execute the following steps:
 
-		1. Let <var>releasing</var> be `true` if
-			<var>target gain</var> is greater than <var>compressor
-			gain</var>, <code>false</code> otherwise.
-
-		2. If the absolute value of <var>input</var> is less than
+		1. If the absolute value of <var>input</var> is less than
 			0.0001, let <var>attenuation</var> be 1.0. Else, let
 			<var>shaped input</var> be the value of applying the <a href="#compression-curve">compression curve</a> to the absolute
 			value of <var>input</var>. Let <var>attenuation</var> be
 			<var>shaped input</var> divided by the absolute value of <var>input</var>.
+
+		2. Let <var>releasing</var> be `true` if
+			<var>attenuation</var> is greater than <var>compressor
+			gain</var>, <code>false</code> otherwise.
 
 		3. Let <var>detector rate</var> be the result of applying the
 			<a href="#detector-curve">detector curve</a> to
@@ -7129,7 +7129,7 @@ values. Those values persist accros invocation of this algorithm.
 			gain</var> multiplied by the return value of <a>computing the
 			makeup gain</a>.
 
-		10. Compute <var>metering gain</var> to be <var>final gain</var>, <a href="#linear-to-decibel">converted to
+		10. Compute <var>metering gain</var> to be <var>reduction gain</var>, <a href="#linear-to-decibel">converted to
 			decibel</a>.
 
 	1. Set {{[[compressor gain]]}} to <var>compressor
@@ -7973,16 +7973,19 @@ Attributes</h4>
 		{{OscillatorNode/frequency}} by the given amount. Its default
 		<code>value</code> is 0. This parameter is <a>a-rate</a>. It
 		forms a <a>compound parameter</a> with {{OscillatorNode/frequency}}
-		to form the <a>computedOscFrequency</a>.
+		to form the <a>computedOscFrequency</a>.  The nominal
+		range listed below allows this parameter to detune the
+		{{OscillatorNode/frequency}} over the entire possible
+		range of frequencies.
 
 		<pre class=include>
 		path: audioparam.include
 		macros:
 			default: 0
-			min: <a>most-negative-single-float</a>
-			min-notes: Approximately -3.4028235e38
-			max: <a>most-positive-single-float</a>
-			max-notes: Approximately 3.4028235e38
+			min: \(-1200 \log_2(F_s)\)
+			min-notes: \(F_s\) is the {{BaseAudioContext/sampleRate}} of the context
+			max: \(1200 \log_2(F_s)\)
+			max-notes: 
 			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
@@ -9520,7 +9523,7 @@ Methods</h5>
 				Get</a>(O=<i>processorCtor</i>,
 				P="parameterDescriptors")</code>.
 
-			<li> If <var>descriptors</var> is not an array or
+			<li> If <var>descriptors</var> is neither an array nor
 				<code>undefined</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
 			<li> Let <em>definition</em> be a new
@@ -11443,6 +11446,20 @@ value is ignored. This algorithm MUST be implemented using
 				outputR = inputR + inputL * gainR;
 			}
 			</pre>
+		6. Apply the distance gain and cone gain where the
+			computation of the distance is described in
+			[[#Spatialization-distance-effects|Distance
+			Effects]] and the cone gain is described in
+			[[#Spatialization-sound-cones|Sound Cones]]:
+
+			<pre highlight="js">
+			let distance = distance();
+			let distanceGain = distanceModel(distance);
+			let totalGain = coneGain() * distanceGain();
+			outputL = totalGain * outputL;
+			outputR = totalGain * outputR;
+			</pre>
+
 </div>
 
 <h4 id="Spatialization-hrtf-panning">

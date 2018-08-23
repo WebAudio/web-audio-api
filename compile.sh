@@ -30,7 +30,7 @@ if [ -d out ]; then
     if [ ! -d out/images ]; then
 	mkdir out/images || exit 1
     fi
-    cp index.html out
+    cp index.html implementation-report.html out
     cp images/*.png out/images
     cp images/*.svg out/images
 fi

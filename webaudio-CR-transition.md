@@ -53,15 +53,15 @@ This document is governed by the 1 September 2015 W3C Process Document.
 
 ## Link to group's decision to request transition
 
-RESOLUTION: move Web Audio 1.0 to Candidate Recommendation
+Expected on 6 Sept 2018 telcon.
 
-https://www.w3.org/2017/10/19-audio-minutes.html#item02
+(previously: RESOLUTION: move Web Audio 1.0 to Candidate Recommendation
+
+https://www.w3.org/2017/10/19-audio-minutes.html#item02 )
 
 ## Changes
 
-https://github.com/WebAudio/web-audio-api/commits/gh-pages
-
-The last Working Draft on 8 December 2015 introduced a substantive 
+The Working Draft of 8 December 2015 introduced a substantive 
 change: the deprecation of the old extensibility point, ScriptProcessorNode and its replacement 
 with AudioWorker.
 
@@ -69,6 +69,15 @@ Since then, substantial effort has gone into fleshing out details of the AudioWo
 https://webaudio.github.io/web-audio-api/#AudioWorklet
 
 This was done in coordination with the Houdini taskforce, which specified Worklet and also PaintWorklet.
+
+An updated draft was published on 19 June 2018 for wide review.
+
+Changes between the 8 December 2015 Working Draft and the 19 June 2018 draft are listed in the changes section
+https://webaudio.github.io/web-audio-api/#changestart
+
+More recent changes are listed here
+https://github.com/WebAudio/web-audio-api/commits/gh-pages
+and will be added to a separate changes subsection
 
 The remainder of Web Audio API is stable, has multiple implementations, and is widely used.
 
@@ -87,8 +96,12 @@ Web Audio tests for AudioWorklet will help test Worklet as well.
 
 ## Wide Review
 
+The most recent Working Draft was published on 19 June 2018
+https://www.w3.org/TR/2018/WD-webaudio-20180619/
+
 The specification has received wide review, including presentation and active discussion 
-at three sucessful Web Audio conferences and uptake by an entusiastic developer community. 
+at three sucessful Web Audio conferences (fourth conference to take place September 2018)
+and uptake by an entusiastic developer community. 
 These conferences have included public plenary sessions with the working group. 
 
 [WAC 2015 http://wac.ircam.fr/](http://wac.ircam.fr/)
@@ -108,7 +121,7 @@ https://github.com/WebAudio/web-audio-api/issues
 
 There is a security and privacy appendix
   https://webaudio.github.io/web-audio-api/#Security-Privacy-Considerations
-This benefitted from review from the Privacy Interest Group.
+This benefitted from review and contributions of the Privacy Interest Group.
   
 ### Accessibility:
 
@@ -137,11 +150,11 @@ The issues list is on GitHub:
 
 https://github.com/WebAudio/web-audio-api/issues
 
-There are currently 77 open issues and 833 closed. 
+There are currently 80 open issues and 978 closed. 
 
-Of those, 81 were feature requests that were [deferred to the next version](https://github.com/WebAudio/web-audio-api/milestone/2)
+Of those, 95 were feature requests that were [deferred to the next version](https://github.com/WebAudio/web-audio-api/milestone/2)
 
-WebAudio v.1 has [3 open issues and 365 closed](https://github.com/WebAudio/web-audio-api/milestone/1); the remaining 3 issues are all agreed by the WG, have PR, and are being merged in the next couple of days.
+WebAudio v.1 has [13 open issues and 433 closed](https://github.com/WebAudio/web-audio-api/milestone/1); these are primarily editorial clarifications.
 
 ## Formal Objections
 
@@ -161,9 +174,13 @@ There are no features at risk.
 
 A test suite is in progress and available at
  https://github.com/web-platform-tests/wpt/tree/master/webaudio
+ 
+WPT.fy results are available (with the usual caveats regarding browser versions, etc)
+  https://wpt.fyi/results/webaudio/the-audio-api
 
 Mojitests from Mozilla are being converted to WPT format and will be pushed upstream to the WPR repo. These are all upstream reviewed.
-Google also has extensive tests; these have all been converted to WPT format and are being pushed to WPT. These are all upstream reviewed.
+Google also has extensive tests; these have now all been converted to WPT format, and have been pushed to WPT. These are all upstream reviewed. The tracking issue for test migration is 
+https://github.com/WebAudio/web-audio-api/issues/1388
 
 During the CR period, the WG expects to remove any test duplication and look for any untested areas.
 

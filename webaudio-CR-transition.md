@@ -81,6 +81,8 @@ These conferences have included public plenary sessions with the working group.
 
 [WAC 2017 http://wac.eecs.qmul.ac.uk/](http://wac.eecs.qmul.ac.uk/)
 
+[WAC 2018 https://webaudioconf.com/](https://webaudioconf.com/)
+
 
 
 The specification was developed on GitHub, see the issues list

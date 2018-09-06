@@ -23,11 +23,12 @@ See https://www.w3.org/TR/webaudio/#sotd (as WD)
 
 ## Link to group's decision to request transition
 
-Expected on 6 Sept 2018 telcon.
+[12:12] <mdjp> Agreement on transition request https://github.com/WebAudio/web-audio-api/blob/master/webaudio-CR-transition.md
 
-(previously: RESOLUTION: move Web Audio 1.0 to Candidate Recommendation
+[12:13] <mdjp> All in favour
+   
+[6 Sept 2018 telcon](https://www.w3.org/2018/09/06-audio-irc#T16-13-12-53).
 
-https://www.w3.org/2017/10/19-audio-minutes.html#item02 )
 
 ## Changes
 

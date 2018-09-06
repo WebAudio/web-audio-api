@@ -15,41 +15,11 @@ Date:
 
 ## Abstract
 
-See https://webaudio.github.io/web-audio-api/#h-abstract
+See https://www.w3.org/TR/webaudio/#abstract
 
 ## Status
 
-The Working Group expects to demonstrate 2 implementations of the
-features listed in this specification by the end of the Candidate
-Recommendation phase.
-
-This document was published by the Web Audio Working Group as a
-Candidate Recommendation. This document is intended to become a W3C
-Recommendation. If you wish to make comments regarding this document,
-please send them to the GitHub repository. You may also use the mailing
-list public-audiof@w3.org (subscribe, archives) with [WebAudio] 
-at the start of your email's subject. W3C publishes a
-Candidate Recommendation to indicate that the document is believed 
-to be  stable and to encourage implementation by the developer community. 
-This Candidate Recommendation is expected to advance to Proposed
-Recommendation no earlier than 1 July 2017. All comments are welcome.
-
-Please see the Working Group's draft implementation report.
-
-Publication as a Candidate Recommendation does not imply endorsement by
-the W3C Membership. This is a draft document and may be updated,
-replaced or obsoleted by other documents at any time. It is
-inappropriate to cite this document as other than work in progress.
-
-This document was produced by a group operating under the 5 February
-2004 W3C Patent Policy. W3C maintains a public list of any patent
-disclosures made in connection with the deliverables of the group; that
-page also includes instructions for disclosing a patent. An individual
-who has actual knowledge of a patent which the individual believes
-contains Essential Claim(s) must disclose the information in accordance
-with section 6 of the W3C Patent Policy.
-
-This document is governed by the 1 September 2015 W3C Process Document.
+See https://www.w3.org/TR/webaudio/#sotd (as WD)
 
 ## Link to group's decision to request transition
 

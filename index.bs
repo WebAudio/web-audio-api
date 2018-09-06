@@ -857,7 +857,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="BaseAudioContext/createBuffer()">
 		numberOfChannels: Determines how many channels the buffer will have. An implementation MUST support at least 32 channels.
-		length: Determines the size of the buffer in sample-frames.
+		length: Determines the size of the buffer in sample-frames.  This MUST be at least 1.
 		sampleRate: Describes the sample-rate of the linear PCM audio data in the buffer in sample-frames per second. An implementation MUST support sample rates in at least the range 8000 to 96000.
 		</pre>
 		<div>
@@ -2189,20 +2189,23 @@ Constructors</h4>
 <dl dfn-type="constructor" dfn-for="AudioBuffer">
 	: <dfn>AudioBuffer(options)</dfn>
 	::
-		Let <var>b</var> be a new {{AudioBuffer}} object.
-		Respectively assign the values of the attributes
-		{{AudioBufferOptions/numberOfChannels}}, {{AudioBufferOptions/length}},
-		{{AudioBufferOptions/sampleRate}} of the {{AudioBufferOptions}} passed
-		in the constructor to the internal slots {{[[number of channels]]}}, {{[[length]]}}, {{[[sample rate]]}}.
+		<div algorithm="new AudioBuffer()">
+			1. <span class="synchronous">If any of the values in {{AudioBuffer/AudioBuffer()/options}} lie outside its nominal range, throw a {{NotSupportedError}} exception and abort the following steps.</span>
 
-		Set the internal slot {{[[internal data]]}} of this
-		{{AudioBuffer}} to the result of calling <a href="https://tc39.github.io/ecma262/#sec-createbytedatablock"><code>
-		CreateByteDataBlock</a>({{[[length]]}} * {{[[number of channels]]}})</code>.
+			1. Let <var>b</var> be a new {{AudioBuffer}} object.
+			1. Respectively assign the values of the attributes
+				{{AudioBufferOptions/numberOfChannels}}, {{AudioBufferOptions/length}},
+				{{AudioBufferOptions/sampleRate}} of the {{AudioBufferOptions}} passed
+				in the constructor to the internal slots {{[[number of channels]]}}, {{[[length]]}}, {{[[sample rate]]}}.
 
-		Note: This initializes the underlying storage to zero.
+			1. Set the internal slot {{[[internal data]]}} of this
+				{{AudioBuffer}} to the result of calling <a href="https://tc39.github.io/ecma262/#sec-createbytedatablock"><code>
+				CreateByteDataBlock</a>({{[[length]]}} * {{[[number of channels]]}})</code>.
 
-		Return <var>b</var>.
+				Note: This initializes the underlying storage to zero.
 
+			1. Return <var>b</var>.
+		</div>
 		<pre class=argumentdef for="AudioBuffer/AudioBuffer()">
 		options:
 		</pre>
@@ -2407,15 +2410,15 @@ The allowed values for the members of this dictionary are constrained.  See {{Ba
 <dl dfn-type=dict-member dfn-for="AudioBufferOptions">
 	: <dfn>length</dfn>
 	::
-		The length in sample frames of the buffer.
+		The length in sample frames of the buffer. See {{BaseAudioContext/createBuffer()/length}} for constraints.
 
 	: <dfn>numberOfChannels</dfn>
 	::
-		The number of channels for the buffer.
+		The number of channels for the buffer.  See {{BaseAudioContext/createBuffer()/numberOfChannels}} for constraints.
 
 	: <dfn>sampleRate</dfn>
 	::
-		The sample rate in Hz for the buffer.
+		The sample rate in Hz for the buffer.  See {{BaseAudioContext/createBuffer()/sampleRate}} for constraints.
 </dl>
 
 
@@ -2705,7 +2708,7 @@ Attributes</h4>
 			: {{AudioContext}}
 			::
 				The channel count MUST be between 1 and
-				{{AudioDestinationNode/maxChannelCount}}. An <span class="synchronous">{{IndexSizeError}} exception MUST
+o				{{AudioDestinationNode/maxChannelCount}}. An <span class="synchronous">{{IndexSizeError}} exception MUST
 				be thrown for any attempt to set the count outside this
 				range</span>.
 			: {{OfflineAudioContext}}

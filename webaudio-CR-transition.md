@@ -1,5 +1,7 @@
 # Transition request, Web Audio API to Candidate Recommendation
 
+see https://github.com/w3c/transitions/issues/89
+
 ## Document title, URLs, estimated publication date
 
 Web Audio API

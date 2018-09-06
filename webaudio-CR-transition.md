@@ -71,7 +71,7 @@ https://www.w3.org/TR/2018/WD-webaudio-20180619/
 
 The specification has received wide review, including presentation and active discussion 
 at three sucessful Web Audio conferences (fourth conference to take place September 2018)
-and uptake by an entusiastic developer community. 
+and uptake by an enthusiastic developer community. 
 These conferences have included public plenary sessions with the working group. 
 
 [WAC 2015 http://wac.ircam.fr/](http://wac.ircam.fr/)

@@ -46,7 +46,7 @@ Changes between the 8 December 2015 Working Draft and the 19 June 2018 draft are
 https://webaudio.github.io/web-audio-api/#changestart
 
 More recent changes are listed here
-https://github.com/WebAudio/web-audio-api/commits/gh-pages
+https://github.com/WebAudio/web-audio-api/commits/master
 and will be added to a separate changes subsection
 
 The remainder of Web Audio API is stable, has multiple implementations, and is widely used.

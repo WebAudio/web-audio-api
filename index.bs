@@ -3382,7 +3382,7 @@ Attributes</h4>
 		: {{DynamicsCompressorNode}}
 		::
 			The {{AudioParam}}s
-			{{DynamicsCompressorNode/threshold}}
+			{{DynamicsCompressorNode/threshold}},
 			{{DynamicsCompressorNode/knee}},
 			{{DynamicsCompressorNode/ratio}},
 			{{DynamicsCompressorNode/attack}}, and
@@ -5850,7 +5850,7 @@ Methods</h4>
 <dl dfn-type=method dfn-for="BiquadFilterNode">
 	: <dfn>getFrequencyResponse(frequencyHz, magResponse, phaseResponse)</dfn>
 	::
-		<span class="sychronous">Given the current filter parameter
+		<span class="synchronous">Given the current filter parameter
 		settings, synchronously calculates the frequency response for
 		the specified frequencies.</span> The three parameters MUST be
 		{{Float32Array}}s of the same length, or an
@@ -6227,7 +6227,7 @@ path: audionode.include
 macros:
 	noi: 1
 	noo: see notes
-	noo-notes:  This defaults to 6, but is otherwise determined from {{ChannelSplitterOptions/numberOfOutputs|ChannelSplitterOptions.numberOfOutputs}} or the value specified by {{BaseAudioContext/createChannelSplitter}}
+	noo-notes:  This defaults to 6, but is otherwise determined from {{ChannelSplitterOptions/numberOfOutputs|ChannelSplitterOptions.numberOfOutputs}} or the value specified by {{BaseAudioContext/createChannelSplitter}} or the {{ChannelSplitterOptions/numberOfOutputs}} member of the {{ChannelSplitterOptions}} dictionary for the {{ChannelSplitterNode/ChannelSplitterNode()|constructor}}.
 	cc: {{AudioNode/numberOfOutputs}}
 	cc-notes: Has <a>channelCount constraints</a>
 	cc-mode: explicit
@@ -6653,16 +6653,10 @@ Implementations MUST support the following allowable configurations
 of impulse response channels in a {{ConvolverNode}}
 to achieve various reverb effects with 1 or 2 channels of input.
 
-The first image in the diagram illustrates the general case, where
-the source has N input channels, the impulse response has K
-channels, and the playback system has M output channels. Because
-{{ConvolverNode}} is limited to 1 or 2 channels of
-input, not every case can be handled.
-
-Single channel convolution operates on a mono audio input, using a
+As shown in the diagram below, single channel convolution operates on a mono audio input, using a
 mono impulse response, and generating a mono output. The remaining
 images in the diagram illustrate the supported cases for mono and
-stereo playback where N and M are 1 or 2 and K is 1, 2, or 4.
+stereo playback where the number of channels of the input is 1 or 2, and the number of channels in the {{ConvolverNode/buffer}} is 1, 2, or 4.
 Developers desiring more complex and arbitrary matrixing can use a
 {{ChannelSplitterNode}}, multiple single-channel
 {{ConvolverNode}}s and a
@@ -6763,7 +6757,7 @@ Attributes</h4>
 		<code>value</code> is 0 (no delay). The minimum value is 0 and
 		the maximum value is determined by the
 		{{maxDelayTime!!argument}} argument to the
-		{{AudioContext}} method {{createDelay()}}.
+		{{AudioContext}} method {{createDelay()}} or the {{DelayOptions/maxDelayTime}} member of the {{DelayOptions}} dictionary for the {{DelayNode/DelayNode()|constructor}}.
 
 		If {{DelayNode}} is part of a <a>cycle</a>,
 		then the value of the {{DelayNode/delayTime}} attribute
@@ -7494,7 +7488,7 @@ Filter Definition</h4>
 
 Let \(b_m\) be the <code>feedforward</code> coefficients and
 \(a_n\) be the <code>feedback</code> coefficients specified by
-{{BaseAudioContext/createIIRFilter()}}. Then the
+{{BaseAudioContext/createIIRFilter()}} or the {{IIRFilterOptions}} dictionary for the {{IIRFilterNode/IIRFilterNode()|constructor}}. Then the
 transfer function of the general IIR filter is given by
 
 <pre nohighlight>
@@ -7592,7 +7586,7 @@ Attributes</h4>
 
 A {{MediaElementAudioSourceNode}} is created given an
 {{HTMLMediaElement}} using the {{AudioContext}}
-{{createMediaElementSource()}} method.
+{{createMediaElementSource()}} method or the {{MediaElementAudioSourceOptions/mediaElement}} member of the {{MediaElementAudioSourceOptions}} dictionary for the {{MediaElementAudioSourceNode/MediaElementAudioSourceNode()|constructor}}.
 
 The number of channels of the single output equals the number of
 channels of the audio referenced by the {{HTMLMediaElement}}
@@ -7641,7 +7635,7 @@ Security with MediaElementAudioSourceNode and Cross-Origin Resources</h4>
 {{HTMLMediaElement}} allows the playback of cross-origin
 resources. Because Web Audio allows inspection of the content of
 the resource (e.g. using a {{MediaElementAudioSourceNode}}, and
-a {{ScriptProcessorNode}} to read the samples), information
+an {{AudioWorkletNode}} or {{ScriptProcessorNode}} to read the samples), information
 leakage can occur if scripts from one [[html#origin|origin]]
 inspect the content of a resource from another
 [[html#origin|origin]].
@@ -11315,7 +11309,7 @@ example, the sound could be omnidirectional, in which case it would
 be heard anywhere regardless of its orientation, or it can be more
 directional and heard only if it is facing the listener.
 {{AudioListener}} objects (representing a person's
-ears) have an <em>orientation</em> and <em>up</em> vector
+ears) have <em>forward</em> and <em>up</em> vectors
 representing in which direction the person is facing.
 
 During rendering, the {{PannerNode}} calculates an
@@ -11879,7 +11873,7 @@ to Consider</a>
 6. Does this specification enable new script execution/loading
 	mechanisms?
 
-	No. It does use the worker script execution method,
+	No. It does use the [[worklets-1]] script execution method,
 	defined in that specification.
 
 7. Does this specification allow an origin access to a user’s
@@ -11899,6 +11893,7 @@ to Consider</a>
 
 9. Does this specification allow an origin access to aspects of a
 	user’s local computing environment?
+
 <!-- from f2f -->
 	Not directly; all requested sample rates are supported, with upsampling if needed.
 	It is possible to use Media Capture and Streams to

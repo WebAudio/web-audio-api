@@ -727,7 +727,6 @@ interface BaseAudioContext : EventTarget {
 	Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
 	                                      optional DecodeSuccessCallback? successCallback,
 	                                      optional DecodeErrorCallback? errorCallback);
-	Promise<void> resume ();
 };
 </xmp>
 
@@ -1177,74 +1176,6 @@ Methods</h4>
 			<em>Return type:</em> {{Promise}}&lt;{{AudioBuffer}}&gt;
 		</div>
 
-	: <dfn>resume()</dfn>
-	::
-		Resumes the progression of the {{BaseAudioContext}}'s
-		{{BaseAudioContext/currentTime}} when it has
-		been suspended.
-
-		<div algorithm="resume()">
-			<span class="synchronous">When resume is called, execute these steps:</span>
-
-			1. Let <var>promise</var> be a new Promise.
-
-			2. If the <em>control thread state</em> flag on the
-				{{BaseAudioContext}} is <code>closed</code> reject the
-				promise with {{InvalidStateError}}, abort these steps,
-				returning <var>promise</var>.
-
-			3. If the {{BaseAudioContext}} is not <a>allowed to
-				start</a>, append <var>promise</var> to
-				<a>pendingResumePromises</a> and abort these steps, returning
-				<var>promise</var>.
-
-			4. Set the <em>control thread state</em> flag on the
-				{{BaseAudioContext}} to <code>running</code>.
-
-			5. <a>Queue a control message</a> to resume the {{BaseAudioContext}}.
-
-			6. Return <var>promise</var>.
-		</div>
-
-		<div algorithm="run a control message">
-			Running a <a>control message</a> to resume an
-			{{BaseAudioContext}} means running these steps on the
-			<a>rendering thread</a>:
-
-			1. Attempt to <a href="#acquiring">acquire system resources</a>.
-
-			2. Set the <a>rendering thread state</a> flag on the {{BaseAudioContext}} to <code>running</code>.
-
-			3. Start <a href="#rendering-loop">rendering the audio graph</a>.
-
-			4. In case of failure, <a>queue a task</a> on the <a>control thread</a> to execute the following,
-				and abort these steps:
-
-				1. Reject all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
-
-				2. Reject <em>promise</em>.
-
-			5. <a>Queue a task</a> on the <a>control thread</a>'s event loop, to
-				execute these steps:
-
-				1. Resolve all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
-
-				2. Resolve <em>promise</em>.
-
-				3. If the {{BaseAudioContext/state}} attribute of the {{BaseAudioContext}} is not already "{{AudioContextState/running}}":
-
-					1. Set the {{BaseAudioContext/state}} attribute of the {{BaseAudioContext}} to "{{AudioContextState/running}}".
-
-					2. <a>Queue a task</a> to fire a simple event named <code>statechange</code> at the {{BaseAudioContext}}.
-		</div>
-
-		<div>
-			<em>No parameters.</em>
-		</div>
-
-		<div>
-			<em>Return type:</em> {{Promise}}&lt;{{void}}&gt;
-		</div>
 </dl>
 
 <h4 id="callback-decodesuccesscallback-parameters" callback lt="DecodeSuccessCallback()">
@@ -1306,7 +1237,7 @@ create a new {{AudioContext}} will fail, <span class="synchronous">throwing {{No
 processes and audio streams. Suspending a {{BaseAudioContext}}
 permits implementations to release some of its resources, and
 allows it to continue to operate later by invoking
-{{BaseAudioContext/resume}}. Closing an
+{{AudioContext/resume}}. Closing an
 {{AudioContext}} permits implementations to release all of its
 resources, after which it cannot be used or resumed again.
 
@@ -1378,21 +1309,22 @@ enum AudioContextLatencyCategory {
 </table>
 </div>
 
-<pre class="idl">
+<xmp class="idl">
 [Exposed=Window,
  Constructor (optional AudioContextOptions contextOptions)]
 interface AudioContext : BaseAudioContext {
 		readonly attribute double baseLatency;
 		readonly attribute double outputLatency;
 		AudioTimestamp getOutputTimestamp ();
-		Promise&lt;void> suspend ();
-		Promise&lt;void> close ();
+		Promise<void> resume ();
+		Promise<void> suspend ();
+		Promise<void> close ();
 		MediaElementAudioSourceNode createMediaElementSource (HTMLMediaElement mediaElement);
 		MediaStreamAudioSourceNode createMediaStreamSource (MediaStream mediaStream);
 		MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (MediaStreamTrack mediaStreamTrack);
 		MediaStreamAudioDestinationNode createMediaStreamDestination ();
 };
-</pre>
+</xmp>
 
 <h4 id="AudioContext-constructors">
 Constructors</h4>
@@ -1428,9 +1360,10 @@ Constructors</h4>
 					AudioContext may be affected, possibly by a large
 					amount.
 
-			5. If the {{AudioContext}} is not <a>allowed to start</a>, abort these steps.
+			5. If the {{AudioContext}} is <a>allowed to start</a>, send a
+				<a>control message</a> to start processing.
 
-			6. Send a <a>control message</a> to start processing.
+			6. Return this {{AudioContext}} object.
 		</div>
 
 		<div algorithm="sending a control message to start processing">
@@ -1438,8 +1371,7 @@ Constructors</h4>
 			executing the following steps:
 
 			1. Attempt to <a href="#acquiring">acquire system resources</a>.
-
-			2. In case of failure, abort these steps.
+				In case of failure, abort the following steps.
 
 			3. Set the <a>rendering thread state</a> to <code>running</code> on the {{AudioContext}}.
 
@@ -1685,6 +1617,76 @@ Methods</h4>
 			<em>Return type:</em> {{AudioTimestamp}}
 		</div>
 
+	: <dfn>resume()</dfn>
+	::
+		Resumes the progression of the {{AudioContext}}'s
+		{{BaseAudioContext/currentTime}} when it has
+		been suspended.
+
+		<div algorithm="AudioContext::resume()">
+			<span class="synchronous">When resume is called,
+			execute these steps:</span>
+
+			1. Let <var>promise</var> be a new Promise.
+
+			2. If the <em>control thread state</em> flag on the
+				{{AudioContext}} is <code>closed</code> reject the
+				promise with {{InvalidStateError}}, abort these steps,
+				returning <var>promise</var>.
+
+			3. If the {{AudioContext}} is not <a>allowed to
+				start</a>, append <var>promise</var> to
+				<a>pendingResumePromises</a> and abort these steps, returning
+				<var>promise</var>.
+
+			4. Set the <em>control thread state</em> flag on the
+				{{AudioContext}} to <code>running</code>.
+
+			5. <a>Queue a control message</a> to resume the {{AudioContext}}.
+
+			6. Return <var>promise</var>.
+		</div>
+
+		<div algorithm="run a control message in AudioContext">
+			Running a <a>control message</a> to resume an
+			{{AudioContext}} means running these steps on the
+			<a>rendering thread</a>:
+
+			1. Attempt to <a href="#acquiring">acquire system resources</a>.
+
+			2. Set the <a>rendering thread state</a> flag on the {{AudioContext}} to <code>running</code>.
+
+			3. Start <a href="#rendering-loop">rendering the audio graph</a>.
+
+			4. In case of failure, queue a task on the <a>control thread</a> to execute the following,
+				and abort these steps:
+
+				1. Reject all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+
+				2. Reject <em>promise</em>.
+
+			5. Queue a task on the <a>control thread</a>'s event loop, to
+				execute these steps:
+
+				1. Resolve all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+
+				2. Resolve <em>promise</em>.
+
+				3. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is not already "{{AudioContextState/running}}":
+
+					1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/running}}".
+
+					2. Queue a task to fire a simple event named <code>statechange</code> at the {{AudioContext}}.
+		</div>
+
+		<div>
+			<em>No parameters.</em>
+		</div>
+
+		<div>
+			<em>Return type:</em> {{Promise}}&lt;{{void}}&gt;
+		</div>
+
 	: <dfn>suspend()</dfn>
 	::
 		Suspends the progression of {{AudioContext}}'s
@@ -1858,6 +1860,7 @@ returned promise with the rendered result as an
  Constructor (unsigned long numberOfChannels, unsigned long length, float sampleRate)]
 interface OfflineAudioContext : BaseAudioContext {
 	Promise<AudioBuffer> startRendering();
+	Promise<void> resume();
 	Promise<void> suspend(double suspendTime);
 	readonly attribute unsigned long length;
 	attribute EventHandler oncomplete;
@@ -2023,6 +2026,76 @@ Methods</h4>
 		</div>
 		<div>
 			<em>Return type:</em> {{Promise}}&lt;{{AudioBuffer}}&gt;
+		</div>
+
+	: <dfn>resume()</dfn>
+	::
+		Resumes the progression of the {{OfflineAudioContext}}'s
+		{{BaseAudioContext/currentTime}} when it has
+		been suspended.
+
+		<div algorithm="OfflineAudioContext::resume()">
+			<span class="synchronous">When resume is called,
+			execute these steps:</span>
+
+			1. Let <var>promise</var> be a new Promise.
+
+			2. Abort these steps and reject <var>promise</var> with
+				{{InvalidStateError}} when any of following conditions is true:
+				- The <em>control thread state</em> flag on the {{OfflineAudioContext}}
+					is <code>closed</code>.
+				- The {{[[rendering started]]}} slot on the {{OfflineAudioContext}}
+					is <em>false</em>.
+
+			If the <em>control thread state</em> flag on the
+				{{OfflineAudioContext}} is <code>closed</code> reject the
+				promise with {{InvalidStateError}}, abort these steps,
+				returning <var>promise</var>.
+
+			3. Set the <em>control thread state</em> flag on the
+				{{OfflineAudioContext}} to <code>running</code>.
+
+			4. <a>Queue a control message</a> to resume the {{OfflineAudioContext}}.
+
+			5. Return <var>promise</var>.
+		</div>
+
+		<div algorithm="run a control message in OfflineAudioContext">
+			Running a <a>control message</a> to resume an
+			{{OfflineAudioContext}} means running these steps on the
+			<a>rendering thread</a>:
+
+			1. Set the <a>rendering thread state</a> flag on the {{OfflineAudioContext}} to <code>running</code>.
+
+			2. Start <a href="#rendering-loop">rendering the audio graph</a>.
+
+			3. In case of failure, queue a task on the <a>control thread</a> to execute the following,
+				and abort these steps:
+
+				1. Reject all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+
+				2. Reject <em>promise</em>.
+
+			4. Queue a task on the <a>control thread</a>'s event loop, to
+				execute these steps:
+
+				1. Resolve all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+
+				2. Resolve <em>promise</em>.
+
+				3. If the {{BaseAudioContext/state}} attribute of the {{OfflineAudioContext}} is not already "{{AudioContextState/running}}":
+
+					1. Set the {{BaseAudioContext/state}} attribute of the {{OfflineAudioContext}} to "{{AudioContextState/running}}".
+
+					2. Queue a task to fire a simple event named <code>statechange</code> at the {{OfflineAudioContext}}.
+		</div>
+
+		<div>
+			<em>No parameters.</em>
+		</div>
+
+		<div>
+			<em>Return type:</em> {{Promise}}&lt;{{void}}&gt;
 		</div>
 
 	: <dfn>suspend(suspendTime)</dfn>

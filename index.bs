@@ -10194,29 +10194,25 @@ thread and the rendering thread.
 		  [$StructuredDeserialize$](<code>optionsSerialization</code>, the
 		  current Realm).
 
-	2. Let <var>processorConstructor</var> be the result of looking up
+	1. Let <var>processorConstructor</var> be the result of looking up
 		<var>nodeName</var> on the {{AudioWorkletGlobalScope}}'s <a>node
 		name to processor definition map</a>.
 
-	3. If <var>processorConstructor</var> is <code>undefined</code>,
+	1. If <var>processorConstructor</var> is <code>undefined</code>,
 		throw a {{NotSupportedError}} DOMException.
 
-	4. Let <var>processor</var> be the result of
+	1. Let <var>processor</var> be the result of
 		Construct(<var>processorConstructor</var>, « <var>options</var> »).
 
-	5. If <var>processor</var> does not implement the
-		{{AudioWorkletProcessor}} interface, throw an
-		{{InvalidStateError}} DOMException.
+	1. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to <var>processorPort</var>.
 
-	6. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to <var>processorPort</var>.
-
-	7. Set <var>processor</var>'s <a>node reference</a> to
+	1. Set <var>processor</var>'s <a>node reference</a> to
 		<var>node</var>.
 
-	8. Set <var>node</var>'s <a>processor reference</a> to
+	1. Set <var>node</var>'s <a>processor reference</a> to
 		<var>processor</var>.
 
-	9. <a>Queue a task</a> the <a>control thread</a> to set the associated
+	1. <a>Queue a task</a> the <a>control thread</a> to set the associated
 		{{AudioWorkletNode}}'s state to <code>running</code>, then fire
 		a <code>statechange</code> event.
 </div>
@@ -10796,11 +10792,23 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				[=Computing a block of audio|compute a block of audio=], and
 				[=Making a buffer available for reading|make it available for reading=].
 
-			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
-				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method
-				to [=Computing a block of audio|compute a block of audio=] with
-				the argument of [=input buffer=], output buffer and
-				[=input AudioParam buffer=].
+			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these step:
+
+				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
+				  instance.
+
+				2. Let <var>processFunction</var> be the result of
+				  <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+					Get</a>(O=<i>processor</i>, P="process")</code>.
+
+			  3. If <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+					IsCallable</a>(argument=<i>processFunction</i>)</code> is false, throw a
+					{{TypeError}}.
+
+				4. Invoke <var>processFunction</var> to
+				  [=Computing a block of audio|compute a block of audio=] with the
+					argument of [=input buffer=], output buffer and
+					[=input AudioParam buffer=].
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.

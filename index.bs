@@ -2809,14 +2809,14 @@ Attributes</h4>
 		::
 			The channel count cannot be greater than two, and a
 			<span class="synchronous">{{NotSupportedError}}
-			exception MUST be thrown for any attempt to change the to a
+			exception MUST be thrown for any attempt to change it to a
 			value greater than two.</span>
 
 		: {{PannerNode}}
 		::
 			The channel count cannot be greater than two, and a
 			<span class="synchronous">{{NotSupportedError}}
-			exception MUST be thrown for any attempt to change the to a
+			exception MUST be thrown for any attempt to change it to a
 			value greater than two.</span>
 
 		: {{ScriptProcessorNode}}
@@ -2828,7 +2828,7 @@ Attributes</h4>
 		::
 			The channel count cannot be greater than two, and a
 			<span class="synchronous">{{NotSupportedError}}
-			exception MUST be thrown for any attempt to change the to a
+			exception MUST be thrown for any attempt to change it to a
 			value greater than two.</span>
 
 		See [[#channel-up-mixing-and-down-mixing]] for more information on this attribute.
@@ -5993,15 +5993,24 @@ implement, as they determine the characteristics of the different
 filter types. They are inspired by formulas found in the
 <a href="https://www.w3.org/2011/audio/audio-eq-cookbook.html">Audio EQ Cookbook</a>.
 
-The transfer function for the filters implemented by the
-{{BiquadFilterNode}} is:
+The {{BiquadFilterNode}} processes audio with a transfer function of
 
 <pre nohighlight>
 $$
-H(z) = \frac{\frac{b_0}{a_0} + \frac{b_1}{a_0}z^{-1} + \frac{b_2}{a_0}z^{-2}}
-						{1+\frac{a_1}{a_0}z^{-1}+\frac{a_2}{a_0}z^{-2}}
+ H(z) = \frac{\frac{b_0}{a_0} + \frac{b_1}{a_0}z^{-1} + \frac{b_2}{a_0}z^{-2}}
+                                          {1+\frac{a_1}{a_0}z^{-1}+\frac{a_2}{a_0}z^{-2}}
 $$
 </pre>
+
+which is equivalent to a time-domain equation of:
+
+<pre nohighlight>
+$$
+a_0 y(n) + a_1 y(n-1) + a_2 y(n-2) =
+	b_0 x(n) + b_1 x(n-1) + b_2 x(n-2)
+$$
+</pre>
+
 
 The initial filter state is 0.
 The coefficients in the transfer function above are different for
@@ -6577,22 +6586,11 @@ Attributes</h4>
 		impulse response having the given normalization. The initial
 		value of this attribute is null.
 
-		<div algorithm="ConvolverNode.buffer">
-			To set the {{ConvolverNode/buffer}} attribute, execute these steps:
-
-			1. Let <var>new buffer</var> be an {{AudioBuffer}} to be
-				assigned to {{ConvolverNode/buffer}} or <code>null</code> .
-
-			2. If <var>new buffer</var> is not <code>null</code> and
-				{{ConvolverNode/[[buffer set]]}} is true, <span class="synchronous">throw an {{InvalidStateError}} and abort
-				these steps</span>.
-
-			3. If <var>new buffer</var> is not <code>null</code>, set
-				{{ConvolverNode/[[buffer set]]}} to true.
-
-			4. Assign <var>new buffer</var> to the {{ConvolverNode/buffer}}
-				attribute.
-		</div>
+		Note: If the {{ConvolverNode/buffer}} is set to an new
+		buffer, audio may glitch.  If this is undesirable, it
+		is recommended to create a new {{ConvolverNode}} to
+		replace the old, possibly cross-fading between the
+		two.
 
 		Note: The {{ConvolverNode}} produces a mono output only in the
 		single case where there is a single input channel and a

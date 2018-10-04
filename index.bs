@@ -9848,7 +9848,8 @@ custom audio node. {{AudioWorkletProcessor}} can
 only be instantiated by the construction of an
 {{AudioWorkletNode}} instance. Every
 {{AudioWorkletProcessor}} has an associated <dfn>node
-reference</dfn>, initially null.
+reference</dfn> and <dfn>callable process</dfn> that are
+initially null and false respectively.
 
 <pre class="idl">
 [Exposed=AudioWorklet,
@@ -9918,8 +9919,7 @@ algorithm and may have a valid static property named
 of {{AudioParamDescriptor}} that is looked up by the
 {{AudioWorkletProcessor}} constructor to create instances of
 {{AudioParam}} in the <code>parameters</code> maplike storage
-in the node. The <a href="#check-prototype-type">prototype type check step</a> and the <a href="#check-is-callable">process method is callable step</a> of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
-validity of a given {{AudioWorkletProcessor}} subclass.
+in the node.
 
 <dl dfn-type=method dfn-for="AudioWorkletProcessor">
 	: <dfn>process(inputs, outputs, parameters)</dfn>
@@ -9929,13 +9929,17 @@ validity of a given {{AudioWorkletProcessor}} subclass.
 
 		The {{process()}} method is called
 		synchronously by the audio <a>rendering thread</a> at
-		every <a>render quantum</a>, if ANY of the following
-		<dfn dfn>active processing conditions</dfn> are true:
+		every <a>render quantum</a>, if both conditions are met:
 
-		1. The associated {{AudioWorkletProcessor}}'s
-			<a>active source</a> flag is equal to `true`.
+		1. {{callable process}} is `true`.
 
-		2. There are one or more connected inputs to the {{AudioWorkletNode}}.
+		1. <dfn>active processing conditions</dfn> are `true`, meaning
+			ANY of the following states are met:
+
+			* The associated {{AudioWorkletProcessor}}'s
+				<a>active source</a> flag is equal to `true`.
+
+			* There are one or more connected inputs to the {{AudioWorkletNode}}.
 
 		The return value of this method controls the lifetime of the
 		{{AudioWorkletProcessor}}'s associated
@@ -10210,12 +10214,10 @@ thread and the rendering thread.
 	1. Set <var>processor</var>'s <a>node reference</a> to
 		<var>node</var>.
 
+	1. Set {{callable process}} to `true`.
+
 	1. Set <var>node</var>'s <a>processor reference</a> to
 		<var>processor</var>.
-
-	1. <a>Queue a task</a> to the <a>control thread</a> to set the associated
-		{{AudioWorkletNode}}'s state to <code>running</code>, then fire
-		a <code>statechange</code> event.
 </div>
 
 <h4 id="AudioWorklet-Sequence">
@@ -10795,28 +10797,30 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these steps:
 
+			  1. If {{callable process}} is `false`, abort the following sub steps.
+
 				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
 					instance.
 
-				2. Let <var>processFunction</var> be the result of
+				1. Let <var>processFunction</var> be the result of
 					<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 					Get</a>(O=<i><var>processor</var></i>, P="process")</code>.
 
-				3. If <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+				1. If <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
 					IsCallable</a>(argument=<i><var>processFunction</var></i>)</code> is
 					false, execute the following:
 
 					1. Queue a control message to fire `onprocessorerror` event on the
 						associated AudioWorkletNode.
 
-					2. Output silence to output buffer.
+					1. Set {{callable process}} to `false`.
 
-				4. Invoke <var>processFunction</var> to
+				1. Invoke <var>processFunction</var> to
 					[=Computing a block of audio|compute a block of audio=] with the
 					argument of [=input buffer=], output buffer and
 					[=input AudioParam buffer=].
 
-				5. Any {{Promise}} resolved within the execution of process method will
+				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
 
 			5. Else, if this {{AudioNode}} is a <a>destination node</a>,

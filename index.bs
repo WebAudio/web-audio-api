@@ -9931,9 +9931,9 @@ in the node.
 		synchronously by the audio <a>rendering thread</a> at
 		every <a>render quantum</a>, if both conditions are met:
 
-		1. <a>callable process</a> is `true`.
+		* <a>callable process</a> is `true`.
 
-		1. <dfn dfn>active processing conditions</dfn> are `true`, meaning
+		* <dfn dfn>active processing conditions</dfn> are `true`, meaning
 			ANY of the following states are met:
 
 			* The associated {{AudioWorkletProcessor}}'s
@@ -10795,35 +10795,42 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				[=Computing a block of audio|compute a block of audio=], and
 				[=Making a buffer available for reading|make it available for reading=].
 
-			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these steps:
-
-			  1. If <a>callable process</a> is `false`, abort the following sub steps.
+			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these
+				substeps:
 
 				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
-					instance.
+					instance of {{AudioWorkletNode}}.
 
-				1. Let <var>processFunction</var> be the result of
-					<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
-					Get</a>(O=<i><var>processor</var></i>, P="process")</code>.
+				1. If <a>callable process</a> of <var>processor</var> is `true`,
+					execute the following steps:
 
-				1. If <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
-					IsCallable</a>(argument=<i><var>processFunction</var></i>)</code> is
-					false, execute the following:
+					1. Let <var>processFunction</var> be the result of
+						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+						Get</a>(O=<i><var>processor</var></i>, P="process")</code>.
 
-					1. Queue a control message to fire `onprocessorerror` event on the
-						associated AudioWorkletNode.
+					1. Set <a>callable process</a> to be the return value of
+						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+						IsCallable</a>(argument=<i><var>processFunction</var></i>)</code>.
 
-					1. Set <a>callable process</a> to `false`.
+					1. If <a>callable process</a> is `true`,
+						invoke <var>processFunction</var> to
+						[=Computing a block of audio|compute a block of audio=] with the
+						argument of [=input buffer=], output buffer and
+						[=input AudioParam buffer=].
 
-				1. Invoke <var>processFunction</var> to
-					[=Computing a block of audio|compute a block of audio=] with the
-					argument of [=input buffer=], output buffer and
-					[=input AudioParam buffer=].
+					1. Else if <a>callable process</a> is `false`,
+						<a>Queue a control message</a> to fire `onprocessorerror` event on
+						the associated {{AudioWorkletNode}}.
+
+				1. If <a>callable process</a> of <var>processor</var> is `false`,
+					execute the following steps:
+
+					1. [=Making a buffer available for reading|Make a silent output buffer available for reading=].
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
 
-			5. Else, if this {{AudioNode}} is a <a>destination node</a>,
+			5. If this {{AudioNode}} is a <a>destination node</a>,
 				[=Recording the input|record the input=] of this {{AudioNode}}.
 
 			6. Else, <a>process</a> the <a>input buffer</a>, and

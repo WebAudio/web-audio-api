@@ -9846,10 +9846,7 @@ audio <a>rendering thread</a>. It lives in an
 the class manifests the actual audio processing mechanism of a
 custom audio node. {{AudioWorkletProcessor}} can
 only be instantiated by the construction of an
-{{AudioWorkletNode}} instance. Every
-{{AudioWorkletProcessor}} has an associated <dfn>node
-reference</dfn> and <dfn>callable process</dfn> that are
-initially null and false respectively.
+{{AudioWorkletNode}} instance.
 
 <pre class="idl">
 [Exposed=AudioWorklet,
@@ -9858,6 +9855,19 @@ interface AudioWorkletProcessor {
 	readonly attribute MessagePort port;
 };
 </pre>
+
+{{AudioWorkletProcessor}} has two internal slots:
+
+<dl dfn-type=attribute dfn-for="AudioWorkletProcessor">
+	: <dfn>[[node reference]]</dfn>
+	::
+		A reference to the associated {{AudioWorkletNode}}.
+
+	: <dfn>[[callable process]]</dfn>
+	::
+		A boolean flag represents whether {{AudioWorkletProcessor/process()}} is
+		a valid function that can ba invoked.
+</dl>
 
 <h5 id="AudioWorketProcessor-constructors">
 Constructors</h5>
@@ -9875,7 +9885,7 @@ Constructors</h5>
 				directly from JavaScript. The interface object may only
 				be called internally by the UA.
 
-			  1. Initialize the {{AudioWorkletProcessor}} using the
+			1. Initialize the {{AudioWorkletProcessor}} using the
 				contents of the <code>options</code> dictionary that was
 				passed to the constructor for {{AudioWorkletNode}}. The
 				contents of this dictionary will have been serialized and
@@ -9888,6 +9898,9 @@ Constructors</h5>
 				{{AudioWorkletProcessor}} will use this dictionary to
 				initialize themselves based on the options relevant to
 				their specific node type.
+
+			1. Set {{[[node reference]]}} to `null` and {{[[callable process]]}} to
+				`false`.
 		</div>
 
 		<pre class="argumentdef" for="AudioWorkletProcessor/AudioWorkletProcessor()">
@@ -9895,8 +9908,7 @@ Constructors</h5>
 		</pre>
 </dl>
 
-<h5 id="AudioWorkletProcessor-attributes">
-Attributes</h5>
+<h5 id="AudioWorkletProcessor-attributes">Attributes</h5>
 
 <dl dfn-type=attribute dfn-for="AudioWorkletProcessor">
 	: <dfn>port</dfn>
@@ -10211,10 +10223,10 @@ thread and the rendering thread.
 	1. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to
 		<var>processorPort</var>.
 
-	1. Set <var>processor</var>'s <a>node reference</a> to
+	1. Set <var>processor</var>'s {{[[node reference]]}}to
 		<var>node</var>.
 
-	1. Set <a>callable process</a> to `true`.
+	1. Set {{[[callable process]]}} to `true`.
 
 	1. Set <var>node</var>'s <a>processor reference</a> to
 		<var>processor</var>.
@@ -10801,28 +10813,28 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
 					instance of {{AudioWorkletNode}}.
 
-				1. If <a>callable process</a> of <var>processor</var> is `true`,
+				1. If {{[[callable process]]}} of <var>processor</var> is `true`,
 					execute the following steps:
 
 					1. Let <var>processFunction</var> be the result of
 						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 						Get</a>(O=<i><var>processor</var></i>, P="process")</code>.
 
-					1. Set <a>callable process</a> to be the return value of
+					1. Set {{[[callable process]]}} to be the return value of
 						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
 						IsCallable</a>(argument=<i><var>processFunction</var></i>)</code>.
 
-					1. If <a>callable process</a> is `true`,
+					1. If {{[[callable process]]}} is `true`,
 						invoke <var>processFunction</var> to
 						[=Computing a block of audio|compute a block of audio=] with the
 						argument of [=input buffer=], output buffer and
 						[=input AudioParam buffer=].
 
-					1. Else if <a>callable process</a> is `false`,
+					1. Else if {{[[callable process]]}} is `false`,
 						<a>Queue a control message</a> to fire `onprocessorerror` event on
 						the associated {{AudioWorkletNode}}.
 
-				1. If <a>callable process</a> of <var>processor</var> is `false`,
+				1. If {{[[callable process]]}} of <var>processor</var> is `false`,
 					execute the following steps:
 
 					1. [=Making a buffer available for reading|Make a silent output buffer available for reading=].

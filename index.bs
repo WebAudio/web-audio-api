@@ -14,7 +14,8 @@ Previous Version: https://www.w3.org/TR/2012/WD-webaudio-20120802/
 Previous Version: https://www.w3.org/TR/2012/WD-webaudio-20120315/
 Previous Version: https://www.w3.org/TR/2011/WD-webaudio-20111215/
 Editor: Paul Adenot, Mozilla (https://www.mozilla.org/), padenot@mozilla.com, w3cid 62410
-Editor: Raymond Toy, Google (https://www.google.com/), rtoy@google.com, w3cid 66910
+Editor: Hongchan Choi, Google (https://www.google.com/), hongchan@google.com, w3cid 74103
+Former Editor: Raymond Toy (until Oct 2018)
 Former Editor: Chris Wilson (Until Jan 2016)
 Former Editor: Chris Rogers (Until Aug 2013)
 Test Suite: https://github.com/web-platform-tests/wpt/tree/master/webaudio
@@ -9851,9 +9852,7 @@ audio <a>rendering thread</a>. It lives in an
 the class manifests the actual audio processing mechanism of a
 custom audio node. {{AudioWorkletProcessor}} can
 only be instantiated by the construction of an
-{{AudioWorkletNode}} instance. Every
-{{AudioWorkletProcessor}} has an associated <dfn>node
-reference</dfn>, initially null.
+{{AudioWorkletNode}} instance.
 
 <pre class="idl">
 [Exposed=AudioWorklet,
@@ -9862,6 +9861,19 @@ interface AudioWorkletProcessor {
 	readonly attribute MessagePort port;
 };
 </pre>
+
+{{AudioWorkletProcessor}} has two internal slots:
+
+<dl dfn-type=attribute dfn-for="AudioWorkletProcessor">
+	: <dfn>[[node reference]]</dfn>
+	::
+		A reference to the associated {{AudioWorkletNode}}.
+
+	: <dfn>[[callable process]]</dfn>
+	::
+		A boolean flag representing whether {{AudioWorkletProcessor/process()}} is
+		a valid function that can be invoked.
+</dl>
 
 <h5 id="AudioWorketProcessor-constructors">
 Constructors</h5>
@@ -9879,7 +9891,7 @@ Constructors</h5>
 				directly from JavaScript. The interface object may only
 				be called internally by the UA.
 
-			  1. Initialize the {{AudioWorkletProcessor}} using the
+			1. Initialize the {{AudioWorkletProcessor}} using the
 				contents of the <code>options</code> dictionary that was
 				passed to the constructor for {{AudioWorkletNode}}. The
 				contents of this dictionary will have been serialized and
@@ -9892,6 +9904,9 @@ Constructors</h5>
 				{{AudioWorkletProcessor}} will use this dictionary to
 				initialize themselves based on the options relevant to
 				their specific node type.
+
+			1. Set {{[[node reference]]}} to `null` and {{[[callable process]]}} to
+				`false`.
 		</div>
 
 		<pre class="argumentdef" for="AudioWorkletProcessor/AudioWorkletProcessor()">
@@ -9899,8 +9914,7 @@ Constructors</h5>
 		</pre>
 </dl>
 
-<h5 id="AudioWorkletProcessor-attributes">
-Attributes</h5>
+<h5 id="AudioWorkletProcessor-attributes">Attributes</h5>
 
 <dl dfn-type=attribute dfn-for="AudioWorkletProcessor">
 	: <dfn>port</dfn>
@@ -9923,8 +9937,7 @@ algorithm and may have a valid static property named
 of {{AudioParamDescriptor}} that is looked up by the
 {{AudioWorkletProcessor}} constructor to create instances of
 {{AudioParam}} in the <code>parameters</code> maplike storage
-in the node. The <a href="#check-prototype-type">prototype type check step</a> and the <a href="#check-is-callable">process method is callable step</a> of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
-validity of a given {{AudioWorkletProcessor}} subclass.
+in the node.
 
 <dl dfn-type=method dfn-for="AudioWorkletProcessor">
 	: <dfn>process(inputs, outputs, parameters)</dfn>
@@ -9934,13 +9947,17 @@ validity of a given {{AudioWorkletProcessor}} subclass.
 
 		The {{process()}} method is called
 		synchronously by the audio <a>rendering thread</a> at
-		every <a>render quantum</a>, if ANY of the following
-		<dfn dfn>active processing conditions</dfn> are true:
+		every <a>render quantum</a>, if both conditions are met:
 
-		1. The associated {{AudioWorkletProcessor}}'s
-			<a>active source</a> flag is equal to `true`.
+		* {{[[callable process]]}} is `true`.
 
-		2. There are one or more connected inputs to the {{AudioWorkletNode}}.
+		* <dfn dfn>active processing conditions</dfn> are `true`, meaning
+			ANY of the following states are met:
+
+			* The associated {{AudioWorkletProcessor}}'s
+				<a>active source</a> flag is equal to `true`.
+
+			* There are one or more connected inputs to the {{AudioWorkletNode}}.
 
 		The return value of this method controls the lifetime of the
 		{{AudioWorkletProcessor}}'s associated
@@ -10199,31 +10216,26 @@ thread and the rendering thread.
 		  [$StructuredDeserialize$](<code>optionsSerialization</code>, the
 		  current Realm).
 
-	2. Let <var>processorConstructor</var> be the result of looking up
+	1. Let <var>processorConstructor</var> be the result of looking up
 		<var>nodeName</var> on the {{AudioWorkletGlobalScope}}'s <a>node
 		name to processor definition map</a>.
 
-	3. If <var>processorConstructor</var> is <code>undefined</code>,
+	1. If <var>processorConstructor</var> is <code>undefined</code>,
 		throw a {{NotSupportedError}} DOMException.
 
-	4. Let <var>processor</var> be the result of
+	1. Let <var>processor</var> be the result of
 		Construct(<var>processorConstructor</var>, « <var>options</var> »).
 
-	5. If <var>processor</var> does not implement the
-		{{AudioWorkletProcessor}} interface, throw an
-		{{InvalidStateError}} DOMException.
+	1. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to
+		<var>processorPort</var>.
 
-	6. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to <var>processorPort</var>.
-
-	7. Set <var>processor</var>'s <a>node reference</a> to
+	1. Set <var>processor</var>'s {{[[node reference]]}}to
 		<var>node</var>.
 
-	8. Set <var>node</var>'s <a>processor reference</a> to
-		<var>processor</var>.
+	1. Set {{[[callable process]]}} to `true`.
 
-	9. <a>Queue a task</a> the <a>control thread</a> to set the associated
-		{{AudioWorkletNode}}'s state to <code>running</code>, then fire
-		a <code>statechange</code> event.
+	1. Set <var>node</var>'s <a>processor reference</a> to
+		<var>processor</var>.
 </div>
 
 <h4 id="AudioWorklet-Sequence">
@@ -10801,16 +10813,42 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				[=Computing a block of audio|compute a block of audio=], and
 				[=Making a buffer available for reading|make it available for reading=].
 
-			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
-				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method
-				to [=Computing a block of audio|compute a block of audio=] with
-				the argument of [=input buffer=], output buffer and
-				[=input AudioParam buffer=].
+			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these
+				substeps:
+
+				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
+					instance of {{AudioWorkletNode}}.
+
+				1. If {{[[callable process]]}} of <var>processor</var> is `true`,
+					execute the following steps:
+
+					1. Let <var>processFunction</var> be the result of
+						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+						Get</a>(O=<i><var>processor</var></i>, P="process")</code>.
+
+					1. Set {{[[callable process]]}} to be the return value of
+						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+						IsCallable</a>(argument=<i><var>processFunction</var></i>)</code>.
+
+					1. If {{[[callable process]]}} is `true`,
+						invoke <var>processFunction</var> to
+						[=Computing a block of audio|compute a block of audio=] with the
+						argument of [=input buffer=], output buffer and
+						[=input AudioParam buffer=].
+
+					1. Else if {{[[callable process]]}} is `false`,
+						<a>Queue a control message</a> to fire `onprocessorerror` event on
+						the associated {{AudioWorkletNode}}.
+
+				1. If {{[[callable process]]}} of <var>processor</var> is `false`,
+					execute the following steps:
+
+					1. [=Making a buffer available for reading|Make a silent output buffer available for reading=].
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
 
-			5. Else, if this {{AudioNode}} is a <a>destination node</a>,
+			5. If this {{AudioNode}} is a <a>destination node</a>,
 				[=Recording the input|record the input=] of this {{AudioNode}}.
 
 			6. Else, <a>process</a> the <a>input buffer</a>, and

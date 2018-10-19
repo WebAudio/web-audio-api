@@ -4555,9 +4555,18 @@ macros:
 	tail-time: No
 </pre>
 
-The number of channels of the output always equals the number of
-channels of the AudioBuffer assigned to the {{AudioBufferSourceNode/buffer}} attribute, or is one
-channel of silence if {{AudioBufferSourceNode/buffer}} is <code>null</code>.
+The number of channels of the output equals the number of channels of the
+AudioBuffer assigned to the {{AudioBufferSourceNode/buffer}} attribute,
+or is one channel of silence if {{AudioBufferSourceNode/buffer}} is
+<code>null</code>.
+
+In addition, if the buffer has more than one channel,
+then the {{AudioBufferSourceNode}} output must change to a single channel
+of silence at a beginning of render quantum after the time at which any one
+of the following conditions holds:
+	* the end of the {{AudioBufferSourceNode/buffer}} has been reached;
+	* the {{AudioBufferSourceNode/start(when, offset, duration)/duration}} has been reached;
+	* the {{AudioScheduledSourceNode/stop(when)/when|stop}} time has been reached.
 
 A <dfn>playhead position</dfn> for an {{AudioBufferSourceNode}} is
 defined as any quantity representing a time offset in seconds,
@@ -5042,8 +5051,8 @@ function process(numberOfFrames) {
 	} // End of render quantum loop
 
 	if (currentTime >= stop) {
-		// end playback state of this node.
-		// no further invocations of process() will occur.
+		// End playback state of this node.  No further invocations of process()
+		// will occur.  Schedule a change to set the number of output channels to 1.
 	}
 
 	return output;

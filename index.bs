@@ -1272,6 +1272,11 @@ the current context. In other words, if the
 allowed to transition from <code>suspended</code> to
 <code>running</code>.
 
+An {{AudioContext}} has an associated <dfn>was allowed to start</dfn> flag,
+initially set to <code>true</code>. The flag, when set to <code>false</code>
+reflects that the {{AudioContext}} was prevented from transitioning to the
+<code>running/<code> state.
+
 Note: For example, a user agent could require that an
 {{AudioContext}} control thread state change to
 running is <a>triggered by user activation</a> (as described in [[HTML]]).
@@ -1362,7 +1367,9 @@ Constructors</h4>
 					amount.
 
 			5. If the {{AudioContext}} is <a>allowed to start</a>, send a
-				<a>control message</a> to start processing.
+				<a>control message</a> to start processing. Otherwise, set the
+				<a>was allowed to start</a> flag associated to the {{AudioContext}} to
+				<code>false</code>.
 
 			6. Return this {{AudioContext}} object.
 		</div>
@@ -1637,8 +1644,9 @@ Methods</h4>
 
 			3. If the {{AudioContext}} is not <a>allowed to
 				start</a>, append <var>promise</var> to
-				<a>pendingResumePromises</a> and abort these steps, returning
-				<var>promise</var>.
+				<a>pendingResumePromises</a>, set the <a>was allowed to start</a> flag
+				associated to the {{AudioContext}} to <code>fase</code>, and abort these
+				steps, returning <var>promise</var>.
 
 			4. Set the <em>control thread state</em> flag on the
 				{{AudioContext}} to <code>running</code>.
@@ -4057,7 +4065,12 @@ Methods</h4>
 			2. Check for any errors that must be thrown due to parameter
 				constraints described below.
 
-			3. <a>Queue a control message</a> to start the
+			3. If the associated {{AudioContext}} <a>was allowed to start</a> flag
+				is set to <code>false</code> and it is <a>allowed to start</a>, invoke
+				{{AudioContext/resume}} on the {{AudioContext}} then set the <a>was
+				allowed to start</a> flag to <code>true</code>.
+
+			4. <a>Queue a control message</a> to start the
 				{{AudioScheduledSourceNode}}, including the parameter
 				values in the messsage.
 		</div>
@@ -4735,7 +4748,12 @@ Methods</h4>
 			2. Check for any errors that must be thrown due to parameter
 				constraints described below.
 
-			3. <a>Queue a control message</a> to start the
+			3. If the associated {{AudioContext}} <a>was allowed to start</a> flag
+				is set to <code>false</code> and it is <a>allowed to start</a>, invoke
+				{{AudioContext/resume}} on the {{AudioContext}} then set the <a>was
+				allowed to start</a> flag to <code>true</code>.
+
+			4. <a>Queue a control message</a> to start the
 				{{AudioBufferSourceNode}}, including the parameter values
 				in the messsage.
 		</div>

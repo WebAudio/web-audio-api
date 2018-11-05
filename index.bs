@@ -6901,6 +6901,37 @@ Dictionary {{DelayOptions}} Members</h5>
 	:: The maximum delay time for the node.  See {{BaseAudioContext/createDelay(maxDelayTime)/maxDelayTime!!argument|createDelay(maxDelayTime)}} for constraints.
 </dl>
 
+<h4 id="DelayNode-processing">Processing</h4>
+
+A {{DelayNode}} has an internal buffer that holds {{DelayNode|delayTime}}
+seconds of audio.
+
+The processing of a {{DelayNode}} is broken down in two parts: writing to the
+delay line, and reading from the delay line. This is done via two internal
+{{AudioNode}}s (that are not accessible to content and exist only to ease
+the description of the inner workings of the node). Both are created from a
+{{DelayNode}}.
+
+Creating a <dfn>DelayWriter</dfn> for a {{DelayNode}} means creating an object
+that has the same interface as an {{AudioNode}}, and that writes the input audio
+into the internal buffer of the {{DelayNode}}. It has the same input connections
+as the {{DelayNode}} it was created from.
+
+Creating a <dfn>DelayReader</dfn> for a {{DelayNode}} means creating an object
+that has the same interface as an {{AudioNode}}, and that can read the audio
+data from the internal buffer of the {{DelayNode}}. It is connected to the same
+{{AudioNode}}s as the {{DelayNode}} it was create from. A <a>DelayReader</a> is a
+<a>source node</a>.
+
+When processing a input buffer, a <a>DelayWriter</a> MUST write the audio to the
+internal buffer of the {{DelayNode}}.
+
+When producing an output buffer, a <a>DelayReader</a> MUST yield exactly the audio
+that was written to the corresponding <a>DelayWriter</a> {{DelayNode|delayTime}}
+seconds ago.
+
+Note: This means that channel count changes are reflected after the delay time
+has passed.
 
 <!--
 ████████  ██    ██ ██    ██    ███    ██     ██ ████  ██████   ██████
@@ -10778,12 +10809,11 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 			5. For each {{DelayNode}} <var>delay</var> in <var>cycle breakers</var>:
 
-				1. Let <var>delayWriter</var> and <var>delayReader</var> be two
-					placeholder {{AudioNode}} that represent the two ends of the delay
-					line. <var>delayWriter</var> has the same input {{AudioNode}} as
-					<var>delay</var>. <var>delayReader</var> is connected to the same
-					{{AudioNode}}s as <var>delay</var>. Add <var>delayWriter</var> and
-					<var>delayReader</var> to <var>nodes</var>.
+			1. Let <var>delayWriter</var> and <var>delayReader</var> respectively be a
+					<a>DelayWriter</a> and a <a>DelayReader</a>, for <var>delay</var>.
+					Add <var>delayWriter</var> and <var>delayReader</var> to
+					<var>nodes</var>. Disconnect <var>delay</var> from all its input and
+					outputs.
 
 					Note: This breaks the cycle: if a <code>DelayNode</code> is in a
 					cycle, its two ends can be considered separately, because delay lines

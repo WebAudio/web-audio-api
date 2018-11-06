@@ -5544,6 +5544,17 @@ Methods</h4>
 		</pre>
 </dl>
 
+<h4 id="listenerprocessing">
+Processing</h4>
+
+Since the {{AudioListener}} has {{AudioParam}}, and {{AudioNode}} can be
+connected to {{AudioParam}}, it is necessary to have the {{AudioListener}}
+participate in the {{AudioNode}} ordering algorithm.
+
+Additionaly {{PannerNode}} output depend on the value of the {{AudioListener}}'s
+parameter.  For the purpose of computing the ordering in which to process the
+{{AudioNode}}s, all the {{PannerNode}}s in the graph have the {{AudioListener}}
+as input.
 
 <!--
 ████████  ████████   ███████   ██████  ████████  ██████   ██████  ████ ██    ██  ██████
@@ -8838,7 +8849,6 @@ The set of <a href="#panner-channel-limitations">channel
 limitations</a> for {{StereoPannerNode}} also apply
 to {{PannerNode}}.
 
-
 <!-- Big Text: Periodic -->
 
 <h3 interface lt="PeriodicWave">
@@ -10793,22 +10803,24 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 		2. Order the {{AudioNode}}s of the {{BaseAudioContext}} to be processed.
 
-			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s. It will
-				contain an ordered list of {{AudioNode}}s when this ordering algorithm
-				terminates.
+			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s and
+				{{AudioListener}}. It will contain an ordered list of {{AudioNode}}s and
+				the {{AudioListener}} when this ordering algorithm terminates.
 
 			2. Let <var>nodes</var> be the set of all nodes created by this
 				{{BaseAudioContext}}, and still alive.
 
-			3. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
+			3. Add the {{AudioListener}} to <var>nodes</var>.
+
+			4. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
 				contain all the {{DelayNode}}s that are part of a cycle.
 
-			4. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
+			5. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
 
 				1. If <var>node</var> is a {{DelayNode}} that is part of a cycle, add it
 					to <var>cycle breakers</var> and remove it from <var>nodes</var>.
 
-			5. For each <var>delay</var> of <var>cycle breakers</var>:
+			6. For each {{DelayNode}} <var>delay</var> in <var>cycle breakers</var>:
 
 				1. Let <var>delayWriter</var> and <var>delayReader</var> respectively be a
 						<a>DelayWriter</a> and a <a>DelayReader</a>, for <var>delay</var>.
@@ -10820,15 +10832,15 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 						cycle, its two ends can be considered separately, because delay lines
 						cannot be smaller than one render quantum when in a cycle.
 
-			6. If <var>nodes</var> contains cycles, [=mute=] all the
+			7. If <var>nodes</var> contains cycles, [=mute=] all the
 				{{AudioNode}}s that are part of this cycle, and remove them from
 				<var>nodes</var>.
 
-			7. Let <var>ordered node list</var> be a empty list.
+			8. Let <var>ordered node list</var> be a empty list.
 
-			8. While there are unmarked {{AudioNode}}s in <var>nodes</var>:
+			9. While there are unmarked elements in <var>nodes</var>:
 
-				1. Choose an {{AudioNode}} <var>node</var> in <var>nodes</var>.
+				1. Choose an element <var>node</var> in <var>nodes</var>.
 
 				2. [=Visit=] <var>node</var>.
 
@@ -10840,13 +10852,17 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 					2. Mark <var>node</var>.
 
-					3. [=Visit=] each {{AudioNode}} connected to the input of
-						<var>node</var>.
+					3. If <var>node</var> is an {{AudioNode}}, [=Visit=] each
+						{{AudioNode}} connected to the input of <var>node</var>.
 
-					4. Add <var>node</var> to the beginning of <var ignore=>ordered node list</var>.
+					4. For each {{AudioParam}} <var>param</var> of <var>node</var>:
+						1. For each {{AudioNode}} <var>param input node</var> connected to <var>param</var>:
+							1. [=Visit=] <var>param input node</var>
+
+					5. Add <var>node</var> to the beginning of <var ignore=>ordered node list</var>.
 				</div>
 
-			9. Reverse the order of <var>ordered node list</var>.
+			10. Reverse the order of <var>ordered node list</var>.
 
 		4. [[#computation-of-value|Compute the value(s)]] of the
 			{{AudioListener}}'s {{AudioParam}}s for this block.

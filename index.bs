@@ -1132,12 +1132,21 @@ Methods</h4>
 			Note: Multiple <em>decoding threads</em> can run in parallel to
 			service multiple calls to <code>decodeAudioData</code>.
 
-			1. Attempt to decode the encoded {{BaseAudioContext/decodeAudioData(audioData, successCallback, errorCallback)/audioData!!argument}} into linear
-				PCM.
+			1. Let <var>can decode</var> be a boolean flag, initially set to true.
 
-			2. If a decoding error is encountered due to the audio format
-				not being recognized or supported, or because of
-				corrupted/unexpected/inconsistent data, then <a>queue a task</a> to
+			2. Attempt to determine the MIME type of
+				{{BaseAudioContext/decodeAudioData(audioData, successCallback,
+				errorCallback)/audioData!!argument}}, using
+				[[mimesniff#matching-an-audio-or-video-type-pattern]]. If the audio or
+				video type pattern matching algorithm returns <code>undefined</code>,
+				set <var>can decode</var> to <em>false</em>.
+
+			3. If <var>can decode</var> is <em>true</em>, attempt to decode the encoded
+				{{BaseAudioContext/decodeAudioData(audioData, successCallback,
+				errorCallback)/audioData!!argument}} into linear PCM. In case of
+				failure, set <var>can decode</var> to <em>false</em>.
+
+			4. If <var>can decode</var> is <em>false</em>, <a>queue a task</a> to
 				execute the following step, on the <a>control thread</a>'s
 				event loop:
 
@@ -1148,7 +1157,7 @@ Methods</h4>
 
 				3. If {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} is not missing, invoke {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} with <var>error</var>.
 
-			3. Otherwise:
+			5. Otherwise:
 				1. Take the result, representing the decoded linear PCM
 					audio data, and resample it to the sample-rate of the
 					{{AudioContext}} if it is different from

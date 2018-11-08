@@ -11290,6 +11290,35 @@ defined below, skipping over those channels not present.
 		<tr><td>17 <td>SPEAKER_TOP_BACK_RIGHT <td> <td> <td> <td>
 </table>
 
+<h3 id="channels-tail-time">
+Implication of tail-time on input and output channel count</h3>
+
+When an {{AudioNode}} has a non-null <a>tail-time</a>, and an output channel
+count that depends on the input channels count, any change in input channel
+count MUST take into account the {{AudioNode}}'s <a>tail-time</a>.
+
+When there is a decrease in input channel count, the change in output channel
+count MUST happen after the <a>tail-time</a> has passed.
+
+When there is an increase in input channel count, the behavious depends on the
+{{AudioNode}} type:
+
+- For a {{ConvolverNode}}, since the number of input channel determines the
+	<a href="#Convolution-channel-configurations"> audio processing algorithm </a>
+	to use, it MUST immediately start outputing two channels.
+
+	Note: this only applies to the case where the {{ConvolverNode}}'s impulse
+	response is mono. Otherwise, the {{ConvolverNode}} always outputs a stereo
+	signal regardless of its input channel count.
+
+- For other {{AudioNode}}s that have a <a>tail-time</a>, the number of output
+	channels MUST increase after the <a>tail-time</a> has passed.
+
+Note: Intuitively, this allows not losing stereo information as part of
+processing: when multiple audio blocks of different channel count contribute to
+an output block, then the output block's channel count is a superset of the
+input channel count of the input blocks.
+
 <h3 id="UpMix-sub">
 Up Mixing Speaker Layouts</h3>
 

@@ -1,10 +1,7 @@
 # Web Audio API Spec
 
 
-<a href="https://travis-ci.org/WebAudio/web-audio-api">
-  <img src="https://api.travis-ci.org/WebAudio/web-audio-api.svg?branch=gh-pages">
-  </img>
-</a>
+[![Build Status](https://travis-ci.com/WebAudio/web-audio-api.svg?branch=master)](https://travis-ci.com/WebAudio/web-audio-api)
 
 This repository contains the latest editor's draft of the [W3C AudioWG](https://www.w3.org/2011/audio/)'s Web Audio API.
 

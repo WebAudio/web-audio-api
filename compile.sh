@@ -23,14 +23,3 @@ sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG
 # there are any differences.
 (sed 's;^LINE [0-9]*:;LINE:;' expected-errs.txt | sed -e '$a\' | diff -u - $ERRLOG) || exit 1
 
-# If the out directory exists, copy everything needed for the HTML
-# version of the spec to the out directory.
-
-if [ -d out ]; then
-    if [ ! -d out/images ]; then
-	mkdir out/images || exit 1
-    fi
-    cp index.html implementation-report.html out
-    cp images/*.png out/images
-    cp images/*.svg out/images
-fi

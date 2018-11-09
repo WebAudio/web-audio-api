@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Web Audio API - Convolution Architecture</title>
+  <link rel="stylesheet" href="http://www.w3.org/StyleSheets/TR/W3C-ED" type="text/css" />
+</head>
+
+  <body>
+
+   <h3>Convolution Reverb</h3>
+<p>
+    <em>This section is informative and may be helpful to implementors</em>
+</p>
+   
+<p>
+    A <a href="http://en.wikipedia.org/wiki/Convolution_reverb">convolution reverb</a> can be used to simulate an acoustic space with very high quality.
+      It can also be used as the basis for creating a vast number of unique and interesting special effects.  This technique is widely used
+      in modern professional audio and motion picture production, and is an excellent choice to create room effects in a game engine.
+</p>
+    <p>
+    Creating a well-optimized real-time convolution engine is one of the more challenging parts of the Web Audio API implementation.
+  When convolving an input audio stream of unknown (or theoretically infinite) length, the <a href="http://en.wikipedia.org/wiki/Overlap-add_method">overlap-add</a> approach is used, chopping the
+  input stream into pieces of length L, performing the convolution on each piece, then re-constructing the output signal by delaying each result and summing.
+</p>
+
+  <h4>Overlap-Add Convolution</h4>
+  <img src="http://upload.wikimedia.org/wikipedia/commons/7/77/Depiction_of_overlap-add_algorithm.png" alt="Depiction of overlap-add algorithm" />
+  
+  
+  
+  <p>
+    
+    Direct convolution is far too computationally expensive due to the extremely long impulse responses typically used.  Therefore an approach using
+    <a href="http://en.wikipedia.org/wiki/FFT">FFTs</a> must be used.  But naively doing a standard overlap-add FFT convolution using an FFT of size N with L=N/2, where N is chosen to be at least twice the length of the convolution kernel (zero-padding the kernel) to perform each convolution operation in the diagram above would incur a substantial input to output pipeline latency on the order of L samples.  Because of the enormous audible delay, this simple method cannot be used.  Aside from the enormous delay, the size N of the FFT could be extremely large.  For example, with an impulse response of 10 seconds at 44.1Khz, N would equal 1048576 (2^20).
+      This would take a very long time to evaluate.  Furthermore, such large FFTs are not practical due to substantial phase errors.
+
+    </p>
+
+
+    <h4>Optimizations and Tricks</h4>
+
+
+    <p>
+    There exist several clever tricks which break the impulse response into smaller pieces, performing separate convolutions, then
+    combining the results (exploiting the property of linearity).  The best ones use a divide and conquer approach using different size FFTs and a direct
+    convolution for the initial (leading) portion of the impulse response to achieve a zero-latency output.    There are additional optimizations which can be done exploiting the
+    fact that the tail of the reverb typically contains very little or no high-frequency energy.  For this part, the convolution may be done at a lower sample-rate...
+    </p>
+
+    <p>
+    Performance can be quite good, easily
+    done in real-time without creating undo stress on modern mid-range CPUs.  A multi-threaded implementation is really required if low (or zero) latency is required because of the way the buffering / processing chunking works.  Achieving good performance requires a highly optimized FFT algorithm.
+    </p>
+
+    <h4>Multi-channel convolution</h4>
+    <p>
+      It should be noted that a convolution reverb typically involves two convolution operations, with separate impulse responses for the left and right channels in 
+      the stereo case.  For 5.1 surround, at least five separate convolution operations are necessary to generate output for each of the five channels.
+    </p>
+
+    <h4>Impulse Responses</h4>
+    <p>
+      Similar to other assets such as JPEG images, WAV sound files, MP4 videos, shaders, and geometry, impulse responses can be considered as multi-media assets.  As with these other
+      assets, they require work to produce, and the high-quality ones are considered valuable.  For example, a company called Audio Ease makes a fairly expensive ($500 - $1000)
+      product called <a href="http://www.audioease.com/Pages/Altiverb/AltiverbMain.html">Altiverb</a> 
+      containing several nicely recorded impulse responses along with a convolution reverb engine.
+      </p>
+
+
+    <h3>Convolution Engine Implementation</h3>
+    
+    
+    <h4>FFTConvolver (short convolutions)</h4>
+
+    <p>
+    The <code>FFTConvolver</code> is able to do short convolutions with the FFT size N being at least twice as large as the
+    length of the short impulse response.  It incurs a latency of N/2 sample-frames.  Because of this latency and performance considerations,
+    it is not suitable for long convolutions.  Multiple instances of this building block can be used to perform extremely long convolutions.
+    </p>
+    
+    <img src="images/fft-convolver.png" alt="description of FFT convolver" />
+    
+
+    <h4>ReverbConvolver (long convolutions)</h4> 
+    The <code>ReverbConvolver</code> is able to perform extremely long real-time convolutions on a single audio channel.
+    It uses multiple <code>FFTConvolver</code> objects as well as an input buffer and an accumulation buffer.  Note that it's
+    possible to get a multi-threaded implementation by exploiting the parallelism.  Also note that the leading sections of the long
+    impulse response are processed in the real-time thread for minimum latency.  In theory it's possible to get zero latency if the
+    very first FFTConvolver is replaced with a DirectConvolver (not using a FFT).
+    
+
+    
+    <img src="images/reverb-convolver.png" alt="description of reverb convolver" /> 
+
+    
+    <h4>Reverb Effect (with matrixing)</h4>
+    <img src="images/reverb-matrixing.png" alt="description of reverb matrixing" />
+
+
+
+
+
+    <h3>Recording Impulse Responses</h3>
+
+
+    <img src="images/impulse-response.png" alt="impulse-response waveforms" />
+    
+
+    <p>The most <a href="http://pcfarina.eng.unipr.it/Public/Papers/226-AES122.pdf">modern</a>
+     and accurate way to record the impulse response of a real acoustic space is to use
+    a long exponential sine sweep. The test-tone can be as long as 20 or 30 seconds, or longer.</p>
+
+
+
+
+    <p>  Several recordings of the
+    test tone played through a speaker can be made with microphones placed and oriented at various positions in the room.  It's important
+    to document speaker placement/orientation, the types of microphones, their settings, placement, and orientations for each recording taken.</p>
+
+    <p>
+    Post-processing is required for each of these recordings by performing an inverse-convolution with the test tone,
+    yielding the impulse response of the room with the corresponding microphone placement.  These impulse responses are then
+    ready to be loaded into the convolution reverb engine to re-create the sound of being in the room.
+    </p>
+
+    <h3>Tools</h3>
+    <p>
+    Two command-line tools have been written:
+    </p>
+    <p>
+     <code>generate_testtones</code> generates an exponential sine-sweep test-tone and its inverse.  Another
+    tool <code>convolve</code> was written for post-processing.  With these tools, anybody with recording equipment can record their own impulse responses.
+      To test the tools in practice, several recordings were made in a warehouse space with interesting
+    acoustics.  These were later post-processed with the command-line tools.
+    </p>
+
+    <pre>
+
+    % generate_testtones -h
+    Usage: generate_testtone
+    	[-o /Path/To/File/To/Create] Two files will be created: .tone and .inverse
+    	[-rate &lt;sample rate&gt;] sample rate of the generated test tones
+    	[-duration &lt;duration&gt;] The duration, in seconds, of the generated files
+    	[-min_freq &lt;min_freq&gt;] The minimum frequency, in hertz, for the sine sweep
+
+    % convolve -h
+    Usage: convolve input_file impulse_response_file output_file
+        </pre>
+
+
+
+
+    
+
+
+    <h3>Recording Setup</h3>
+    <div>
+      <img src="images/recording-setup.png" alt="photograph of recording setup" />
+    
+
+    Audio Interface: Metric Halo Mobile I/O 2882 
+
+    
+
+
+    <img src="images/microphones-speaker.png" alt="microphones and speakers used" />
+    
+
+    <img src="images/microphone.png" alt="microphone used" />
+    <img src="images/speaker.png" alt="speakers used" />
+    
+    Microphones: AKG 414s, Speaker: Mackie HR824
+
+    
+
+    <h3>The Warehouse Space</h3>
+
+    <img src="images/warehouse.png" alt="photo of the warehouse used" />
+    </div>
+
+
+  </body>
+  </html>

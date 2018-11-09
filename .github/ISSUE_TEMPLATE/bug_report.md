@@ -8,7 +8,7 @@ about: Create a report to fix the specification
 A clear and concise description of what the problem is in the spec.
 
 If you need help on how to use WebAudio, ask on your favorite forum or consider visiting
-the [WebAudio Slack Channel](https://web-audio.slack.com/) or
+the [WebAudio Slack Channel](https://web-audio.slack.com/) (register [here](https://web-audio-slackin.herokuapp.com/)) or
 [StackOverflow](https://stackoverflow.com/).
 
 **Where Is It**

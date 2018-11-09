@@ -1,0 +1,363 @@
+<pre class='metadata'>
+Title: CSS Shadow Parts
+Shortname: css-shadow-parts
+Level: 1
+Group: CSSWG
+Status: ED
+Work Status: exploring
+URL: http://drafts.csswg.org/css-shadow-parts/
+Editor: Tab Atkins-Bittner, Google, http://xanthir.com/contact/, w3cid 42199
+Editor: Fergal Daly, Google, fergal@chromium.org
+Abstract: This specification defines the ''::part()'' and ''::theme()'' pseudo-elements on <a>shadow hosts</a>, allowing <a>shadow hosts</a> to selectively expose chosen elements from their <a>shadow tree</a> to the outside page for styling purposes.
+</pre>
+
+<pre class=link-defaults>
+spec:selectors-4;
+    type:selector; text::hover
+    type:dfn; text:live profile
+    type:dfn; text:structural pseudo-class
+spec:dom; type:dfn; for:/; text:shadow root
+spec:infra;
+    type:dfn; text:string
+</pre>
+
+Introduction {#intro}
+=====================
+
+Shadow DOM allows authors to separate their page into "components",
+subtrees of markup whose details are only relevant to the component itself,
+not the outside page.
+This reduces the chance of a style meant for one part of the page
+accidentally over-applying and making a different part of the page look wrong.
+However, this styling barrier also makes it harder for a page to interact with its components
+when it actually <em>wants</em> to do so.
+
+This specification defines the ''::part()'' and ''::theme()'' pseudo-elements,
+which allow an author to style specific, purposely exposed elements in a <a>shadow tree</a>
+from the outside page's context.
+In combination with <a>custom properties</a>,
+which let the outside page pass particular values
+(such as theme colors)
+into the component for it to do with as it will,
+these pseudo-elements allow components and the outside page
+to interact in safe, powerful ways,
+maintaining encapsulation
+without surrendering all control.
+
+Motivation {#motivation}
+------------------------
+
+For custom elements to be fully useful and as capable as built-in elements
+it should be possible for parts of them to be styled from outside.
+Exactly what can be styled from outside should be controlled by the element author.
+Also, it should be possible for a custom element to present a stable "API" for styling.
+That is, the selector used to style a part of a custom element
+should not expose or require knowledge of the internal details of the element.
+The custom element author should be able to change the internal details of the element
+while leaving the selectors untouched.
+
+The previous proposed method for styling inside the shadow tree,
+the >>> combinator,
+turned out to be <em>too powerful</em> for its own good;
+it exposed too much of a component's internal structure to scrutiny,
+defeating some of the encapsulation benefits that using Shadow DOM brings.
+For this,
+and other performance-related reasons,
+the >>> combinator was eventually removed from the <a>live profile</a>.
+
+This left us with using <a>custom properties</a> as the only way to style into a shadow tree:
+the component would advertise that it uses certain <a>custom properties</a> to style its internals,
+and the outer page could then set those properties as it wished on the <a>shadow host</a>,
+letting inheritance push the values down to where they were needed.
+This works very well for many simple theming use-cases.
+
+However, there are some cases where this falls down.
+If a component wishes to allow arbitrary styling of something in its shadow tree,
+the only way to do so is to define hundreds of <a>custom properties</a>
+(one per CSS property they wish to allow control of),
+which is obviously ridiculous
+for both usability and performance reasons.
+The situation is compounded if authors wish to style the component differently
+based on pseudo-classes like '':hover'';
+the component needs to duplicate the <a>custom properties</a> used
+for each pseudo-class
+(and each combination,
+like '':hover:focus'',
+resulting in a combinatorial explosion).
+This makes the usability and performance problems even worse.
+
+We introduce ''::part()'' to handle this case much more elegantly and performantly.
+Rather than bundling everything into <a>custom property</a> names,
+the functionality lives in selectors and style rule syntax,
+like it's meant to.
+This is far more usable for both component authors
+and component users,
+should have much better performance,
+and allows for better encapsulation/API surface.
+
+Another interesting facet of using <a>custom properties</a>,
+however,
+is that inheritance doesn't stop at the first shadow tree.
+Unless explicitly blocked,
+a <a>custom property</a> inherits down thru nested trees,
+allowing authors to style deeply nested components
+as easily as they style directly-visible ones.
+The same considerations apply to this case,
+so we introduce ''::theme()'' to handle this.
+
+It's important to note that ''::part()'' and ''::theme()''
+offer <em>absolutely zero new theoretical power</em>.
+They are not a rehash of the ''>>>'' combinator,
+they're simply a more convenient and consistent syntax
+for something authors can already do with <a>custom properties</a>.
+By separating out the explicitly "published" parts of an element
+(the <a>shadow part map</a>)
+from the sub-parts that it merely happens to contain
+(the <a>computed shadow theme map</a>),
+it also helps with encapsulation,
+as authors can use ''::part()'' without fear of accidental over-styling.
+
+
+Exposing a Shadow Element: {#exposing}
+=============================================================
+Elements in a <a>shadow tree</a> may be exported for styling by stylesheets outside the tree
+using the part and exportparts attributes.
+
+Each element has a <dfn export for="element">part name list</dfn>
+which is an [=ordered set=] of tokens.
+
+Each element has a <dfn export for="element">part name map</dfn>
+which is an <a>ordered map</a>,
+with keys that are [=strings=]
+(part names to expose to selectors outside this element)
+and values that are [=ordered sets=] of [=strings=]
+(part names that are selectable inside this element).
+
+Each <a>shadow root</a> can be thought of as having a <dfn export for="shadow root">part element map</dfn>
+with keys that are [=strings=]
+and values that are [=ordered sets=] of elements.
+
+The part element map is described
+only as part of the algorithm for calculating style in this spec.
+It is not exposed via the DOM,
+as calculating it may be expensive
+and exposing it could allow access to elements inside closed shadow roots.
+
+Part element maps are affected by the addition and removal of elements
+and changes to the part name lists and part name maps of elements in the DOM.
+
+To calculate the part element map of a shadow root, |outerRoot|:
+
+<ol>
+  <li>For each element, |el| within |outerRoot|
+    <ol>
+      <li>For each |name| in |el|'s part name list,
+        add |el| to |outerRoot|'s part element map
+        under the key |name|.
+      <li>If |el| is a shadow host itself
+      then let |innerRoot| be its shadow root:
+        <ol>
+          <li>Calculate |innerRoot|'s part element map.
+          <li>For each key, |outerName|, in |el|'s part name map
+            and for each token |innerName| under that key
+            look up |innerName| in |innerRoot|'s shadow part element map
+            to get a (possibly empty) set of elements
+            and add these elements to |outerRoot|'s part element map under |outerName|
+        </ol>
+    </ol>
+</ol>
+
+
+Issue: There is no need for the part element map values to be ordered, can we drop that?
+
+Naming a Shadow Element: the <{html-global/part}> attribute {#part-attr}
+------------------------------------------------------------------------
+
+Any element in a shadow tree can have a <dfn element-attr for=html-global>part</dfn> attribute.
+This is used to expose the element outside of the <a>shadow tree</a>.
+
+The part attribute is parsed as a space-separated list of tokens representing the part names of this element.
+
+Note: It's okay to give a part multiple names.
+The "part name" should be considered similar to a class,
+not an id or tagname.
+
+<pre class="example">
+&lt;style&gt;
+  c-e<b>::part(textspan)</b> { color: red; }
+&lt;/style&gt;
+
+&lt;template id="c-e-template"&gt;
+  &lt;span <b>part="textspan"</b>&gt;This text will be red&lt;/span&gt;
+&lt;/template&gt;
+&lt;c-e&gt;&lt;/c-e&gt;
+&lt;script&gt;
+  // Add template as custom element c-e
+  ...
+&lt;/script&gt;
+</pre>
+
+Forwarding a Shadow Element: the <{html-global/exportparts}> attribute {#exportparts-attr}
+----------------------------------------------------------------------------------
+Any element in a shadow tree can have a <dfn element-attr for=html-global>exportparts</dfn> attribute.
+If the element is a shadow host,
+this is used to allow styling of parts from hosts inside the <a>shadow tree</a>
+by rules outside this the <a>shadow tree</a>
+(as if they were elements in the same tree as the host,
+named by a part attribute).
+
+The exportparts attribute is parsed as a comma-separated list of part mappings.
+Each part mapping is one of:
+
+<dl class=switch>
+    : <code>innerIdent : outerIdent</code>
+    :: this adds «[ outerIdent → innerIdent ]» to el's <a>part name map</a>.
+
+    : <code>ident</code>
+    :: Is shorthand for <code>ident : ident</code>.
+
+    : anything else
+    :: Ignored for error-recovery / future compatibility.
+</dl>
+
+Note: It's okay to map a sub-part to several names.
+
+Issue(w3c/csswg-drafts#2411): Decide whether to allow "ident1 : ident2 ident3 ..."
+as shorthand for "ident1 : ident2, ident1 : ident3, ...".
+
+Issue(w3c/csswg-drafts#2411): Decide whether to allow wild-card forwarding,
+e.g exportparts="button-* buttons".
+Consider excluding sub-parts that have been explicitly forwarded.
+Consider a mechanism to exclude sub-parts without forwarding them.
+
+<pre class="example">
+&lt;style&gt;
+  c-e<b>::part(textspan)</b> { color: red; }
+&lt;/style&gt;
+
+&lt;template id="c-e-outer-template"&gt;
+  &lt;c-e-inner <b>exportparts="innerspan textspan"</b>&gt;&lt;/c-e-inner&gt;
+&lt;/template&gt;
+
+&lt;template id="c-e-inner-template"&gt;
+  &lt;span <b>part="innerspan"</b>&gt;
+    This text will be red because the containing shadow
+    host forwards <b>innerspan</b> to the document as "textspan"
+    and the document style matches it.
+  &lt;/span&gt;
+  &lt;span <b>part="textspan"</b>&gt;
+    This text will not be red because <b>textspan</b> in the document style
+    cannot match against the part inside the inner custom element
+    if it is not forwarded.
+	&lt;/span&gt;
+&lt;/template&gt;
+
+&lt;c-e&gt;&lt;/c-e&gt;
+&lt;script&gt;
+  // Add template as custom elements c-e-inner, c-e-outer
+    ...
+&lt;/script&gt;
+</pre>
+
+Exposing More Widely: the <{html-global/theme}> attribute {#theme-attr}
+-----------------------------------------------------------------------
+
+Issue: The theme section is intentionally a rough sketch at the moment.
+The functionality of theme can be achieved with part alone
+however it may be tedious to explicitly export parts as a theme.
+The need for theme will be better understood once part is in use.
+
+
+In addition to the [=shadow part map=],
+every [=shadow root=] has a <dfn export for="shadow root">partial shadow theme map</dfn>
+and a <dfn export for="shadow root">computed shadow theme map</dfn>
+both of which are [=ordered maps=]
+(with the same key/value shape as the [=shadow part map=]),
+and the elements in the [=shadow tree=]
+have a corresponding <dfn element-attr for=html-global>theme</dfn> attribute.
+
+The <{html-global/theme}> attribute is parsed and interpreted identically to the <{html-global/part}> attribute,
+except that it adds its entries to the [=shadow root’s=] [=partial shadow theme map=] instead.
+
+If the [=shadow root’s=] {{ShadowRoot/mode}} is {{ShadowRootMode/"closed"}},
+the [=computed shadow theme map=] is identical to the [=partial shadow theme map=].
+Otherwise,
+it's the union of the [=partial shadow theme map=]
+with the [=computed shadow theme maps=] of every [=shadow host’s=] [=shadow root=] in its [=shadow tree=].
+
+Issue(w3c/csswg-drafts#2381): Decide if theme can ever/always penetrate closed shadow roots.
+
+Selecting a Shadow Element: the ''::part()'' and ''::theme()'' pseudo-elements {#part-theme}
+============================================================================================
+
+The <dfn selector>::part()</dfn> and <dfn selector>::theme()</dfn> pseudo-elements
+(collectively, the <dfn export>shadow-part pseudo-elements</dfn>)
+allow you to select elements that have been exposed via a <{html-global/part}> attribute.
+The syntaxes of them are:
+
+<pre class=prod>
+    ::part() = ::part( <<ident>> )
+    ::theme() = ::theme( <<ident>> )
+</pre>
+
+The ''::part()'' pseudo-element only matches anything
+when the <a>originating element</a> is a <a>shadow host</a>.
+If the <a>originating element's</a> <a>shadow root's</a> <a>part element map</a>
+[=map/contains=] the specified <<ident>>,
+''::part()'' matches the element or elements keyed to that <<ident>>.
+Otherwise, it matches nothing.
+
+<div class="example">
+    For example,
+    if you have a custom button
+    that contains a "label" element that is exposed for styling
+    (via <code>part="label"</code>),
+    you can select it with
+    ''#the-button::part(label)''.
+</div>
+
+The ''::theme()'' pseudo-element is similar,
+except it can match regardless of whether the <a>originating element</a>
+is a <a>shadow host</a> or not.
+It matches the elements keyed to the specified <<ident>>
+in the <a>computed shadow theme map</a> of the <a>shadow trees</a>
+of the <a>originating element</a> or any descendants.
+
+<div class="example">
+    For example,
+    '':root::theme(label)'' matches any element with <code>part="label"</code>
+    anywhere in the entire document,
+    no  matter how deeply nested into shadow trees they are.
+</div>
+
+The <a>shadow-part pseudo-elements</a> can take additional pseudo-classes after them,
+such as ''x-button::part(label):hover'',
+but never match the <a>structural pseudo-classes</a>
+or any other pseudo-classes that match based on tree information
+rather than local element information.
+
+The <a>shadow-part pseudo-elements</a> also can take additional pseudo-elements after them,
+such as ''x-button::part(label)::before'',
+but never match additional <a>shadow-part pseudo-elements</a>.
+
+<div class=example>
+    For example,
+    ''x-panel::part(confirm-button)::part(label)''
+    never matches anything.
+    This is because doing so would expose more structural information
+    than is intended.
+
+    One can still target the nested label with a selector like
+    ''x-panel::theme(label)''.
+    However, this will also select the labels of any other buttons in the panel.
+
+    If the <code>&lt;x-panel></code>'s internal confirm button had used something like
+    <code>part="confirm-button, * => confirm-*"</code>
+    to forward the button's internal parts up into the panel's own <a>part element map</a>,
+    then a selector like
+    ''x-panel::part(confirm-label)''
+    would select just the one button's label,
+    ignoring any other labels.
+</div>
+
+Issue(w3c/csswg-drafts#2414): Define IDL for structured setting and getting of `part` and `exportparts`.

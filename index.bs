@@ -11293,9 +11293,10 @@ defined below, skipping over those channels not present.
 <h3 id="channels-tail-time">
 Implication of tail-time on input and output channel count</h3>
 
-When an {{AudioNode}} has a non-null <a>tail-time</a>, and an output channel
-count that depends on the input channels count, any change in input channel
-MUST take the {{AudioNode}}'s <a>tail-time</a> into account
+When an {{AudioNode}} has a non-zero <a>tail-time</a>, and an output channel
+count that depends on the input channels count, the {{AudioNode}}'s
+<a>tail-time</a> must be taken into account when the input channel count
+changes.
 
 When there is a decrease in input channel count, the change in output channel
 count MUST happen after the <a>tail-time</a> has passed.
@@ -11303,16 +11304,17 @@ count MUST happen after the <a>tail-time</a> has passed.
 When there is an increase in input channel count, the behavious depends on the
 {{AudioNode}} type:
 
-- For a {{ConvolverNode}}, since the number of input channel determines the
-	<a href="#Convolution-channel-configurations">audio processing algorithm</a>
-	to use, it MUST immediately start outputing two channels.
+- For a {{DelayNode}} or a {{DynamicsCompressorNode}},
+	<a>tail-time</a>, the number of output channels MUST increase after the
+	<a>tail-time</a> has passed.
 
-	Note: this only applies to the case where the {{ConvolverNode}}'s impulse
+- For the other {{AudioNode}}, since the number of input channel determines the
+	audio processing algorithm to use, the increase of the number of channels to
+	match the input channel count MUST happen immediately.
+	
+	Note: For a {{ConvolverNode}}, this only applies to the case where the impulse
 	response is mono. Otherwise, the {{ConvolverNode}} always outputs a stereo
 	signal regardless of its input channel count.
-
-- For other {{AudioNode}}s that have a <a>tail-time</a>, the number of output
-	channels MUST increase after the <a>tail-time</a> has passed.
 
 Note: Intuitively, this allows not losing stereo information as part of
 processing: when multiple input render quantum of different channel count

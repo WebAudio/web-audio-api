@@ -6,6 +6,7 @@ Group: audiowg
 Status: ED
 ED: https://webaudio.github.io/web-audio-api/
 TR: https://www.w3.org/TR/webaudio/
+Favicon: favicon.png
 Previous Version: https://www.w3.org/TR/2018/WD-webaudio-20180619/
 Previous Version: https://www.w3.org/TR/2015/WD-webaudio-20151208/
 Previous Version: https://www.w3.org/TR/2013/WD-webaudio-20131010/
@@ -5543,6 +5544,14 @@ Methods</h4>
 		</pre>
 </dl>
 
+<h4 id="listenerprocessing">
+Processing</h4>
+
+Because {{AudioListener}}'s parameters can be connected with {{AudioNode}}s and
+they can also affect the output of {{PannerNode}}s in the same graph, the node
+ordering algorithm should take the {{AudioListener}} into consideration when
+computing the order of processing. For this reason, all the {{PannerNode}}s in
+the graph have the {{AudioListener}} as input.
 
 <!--
 ████████  ████████   ███████   ██████  ████████  ██████   ██████  ████ ██    ██  ██████
@@ -6901,6 +6910,37 @@ Dictionary {{DelayOptions}} Members</h5>
 	:: The maximum delay time for the node.  See {{BaseAudioContext/createDelay(maxDelayTime)/maxDelayTime!!argument|createDelay(maxDelayTime)}} for constraints.
 </dl>
 
+<h4 id="DelayNode-processing">Processing</h4>
+
+A {{DelayNode}} has an internal buffer that holds {{DelayNode|delayTime}}
+seconds of audio.
+
+The processing of a {{DelayNode}} is broken down in two parts: writing to the
+delay line, and reading from the delay line. This is done via two internal
+{{AudioNode}}s (that are not available to authors and exist only to ease
+the description of the inner workings of the node). Both are created from a
+{{DelayNode}}.
+
+Creating a <dfn>DelayWriter</dfn> for a {{DelayNode}} means creating an object
+that has the same interface as an {{AudioNode}}, and that writes the input audio
+into the internal buffer of the {{DelayNode}}. It has the same input connections
+as the {{DelayNode}} it was created from.
+
+Creating a <dfn>DelayReader</dfn> for a {{DelayNode}} means creating an object
+that has the same interface as an {{AudioNode}}, and that can read the audio
+data from the internal buffer of the {{DelayNode}}. It is connected to the same
+{{AudioNode}}s as the {{DelayNode}} it was created from. A <a>DelayReader</a> is
+a <a>source node</a>.
+
+When processing an input buffer, a <a>DelayWriter</a> MUST write the audio to
+the internal buffer of the {{DelayNode}}.
+
+When producing an output buffer, a <a>DelayReader</a> MUST yield exactly the
+audio that was written to the corresponding <a>DelayWriter</a>
+{{DelayNode|delayTime}} seconds ago.
+
+Note: This means that channel count changes are reflected after the delay time
+has passed.
 
 <!--
 ████████  ██    ██ ██    ██    ███    ██     ██ ████  ██████   ██████
@@ -8805,7 +8845,6 @@ Channel Limitations</h4>
 The set of <a href="#panner-channel-limitations">channel
 limitations</a> for {{StereoPannerNode}} also apply
 to {{PannerNode}}.
-
 
 <!-- Big Text: Periodic -->
 
@@ -10759,28 +10798,44 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 		2. Order the {{AudioNode}}s of the {{BaseAudioContext}} to be processed.
 
-			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s. It will
-				contain an ordered list of {{AudioNode}}s when this ordering algorithm
-				terminates.
+			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s and
+				{{AudioListener}}. It will contain an ordered list of {{AudioNode}}s and
+				the {{AudioListener}} when this ordering algorithm terminates.
 
 			2. Let <var>nodes</var> be the set of all nodes created by this
 				{{BaseAudioContext}}, and still alive.
 
-			3. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
+			3. Add the {{AudioListener}} to <var>nodes</var>.
+
+			4. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
 				contain all the {{DelayNode}}s that are part of a cycle.
 
-			4. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
+			5. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
 
 				1. If <var>node</var> is a {{DelayNode}} that is part of a cycle, add it
 					to <var>cycle breakers</var> and remove it from <var>nodes</var>.
 
-			5. If <var>nodes</var> contains cycles, [=mute=] all the
+			6. For each {{DelayNode}} <var>delay</var> in <var>cycle breakers</var>:
+
+				1. Let <var>delayWriter</var> and <var>delayReader</var> respectively be a
+						<a>DelayWriter</a> and a <a>DelayReader</a>, for <var>delay</var>.
+						Add <var>delayWriter</var> and <var>delayReader</var> to
+						<var>nodes</var>. Disconnect <var>delay</var> from all its input and
+						outputs.
+
+						Note: This breaks the cycle: if a <code>DelayNode</code> is in a
+						cycle, its two ends can be considered separately, because delay lines
+						cannot be smaller than one render quantum when in a cycle.
+
+			7. If <var>nodes</var> contains cycles, [=mute=] all the
 				{{AudioNode}}s that are part of this cycle, and remove them from
 				<var>nodes</var>.
 
-			6. While there are unmarked {{AudioNode}}s in <var>nodes</var>:
+			8. Let <var>ordered node list</var> be a empty list.
 
-				1. Choose an {{AudioNode}} <var>node</var> in <var>nodes</var>.
+			9. While there are unmarked elements in <var>nodes</var>:
+
+				1. Choose an element <var>node</var> in <var>nodes</var>.
 
 				2. [=Visit=] <var>node</var>.
 
@@ -10792,21 +10847,22 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 					2. Mark <var>node</var>.
 
-					3. [=Visit=] each {{AudioNode}} connected to the input of
-						<var>node</var>.
+					3. If <var>node</var> is an {{AudioNode}}, [=Visit=] each
+						{{AudioNode}} connected to the input of <var>node</var>.
+
+					4. For each {{AudioParam}} <var>param</var> of <var>node</var>:
+						1. For each {{AudioNode}} <var>param input node</var> connected to <var>param</var>:
+							1. [=Visit=] <var>param input node</var>
+
+					5. Add <var>node</var> to the beginning of <var ignore>ordered node list</var>.
 				</div>
 
-			7. Add <var>node</var> to the beginning of <var>ordered node list</var>.
-
-			8. Reverse the order of <var>ordered node list</var>.
-
-		3. For each {{DelayNode}} in a cycle, [=Making a buffer available for reading|make
-			available for reading=] a block of audio from the {{DelayNode}} buffer.
+			10. Reverse the order of <var>ordered node list</var>.
 
 		4. [[#computation-of-value|Compute the value(s)]] of the
 			{{AudioListener}}'s {{AudioParam}}s for this block.
 
-		5. For each {{AudioNode}}, in the order determined previously:
+		5. For each {{AudioNode}}, in <var>ordered node list</var>:
 
 			1. For each {{AudioParam}} of this {{AudioNode}}, execute these steps:
 
@@ -11287,37 +11343,6 @@ defined below, skipping over those channels not present.
 		<tr><td>16 <td>SPEAKER_TOP_BACK_CENTER <td> <td> <td> <td>
 		<tr><td>17 <td>SPEAKER_TOP_BACK_RIGHT <td> <td> <td> <td>
 </table>
-
-<h3 id="channels-tail-time">
-Implication of tail-time on input and output channel count</h3>
-
-When an {{AudioNode}} has a non-zero <a>tail-time</a>, and an output channel
-count that depends on the input channels count, the {{AudioNode}}'s
-<a>tail-time</a> must be taken into account when the input channel count
-changes.
-
-When there is a decrease in input channel count, the change in output channel
-count MUST happen when the input that was received with greater channel count no
-longer affects the output.
-
-When there is an increase in input channel count, the behavior depends on the
-{{AudioNode}} type:
-
-- For a {{DelayNode}} or a {{DynamicsCompressorNode}}, the number of output
-	channels MUST increase when the input that was received with greater channel
-	count begins to affect the output.
-
-- For other {{AudioNode}}s that have a <a>tail-time</a>, the number of output
-	channels MUST increase immediately.
-
-	Note: For a {{ConvolverNode}}, this only applies to the case where the impulse
-	response is mono. Otherwise, the {{ConvolverNode}} always outputs a stereo
-	signal regardless of its input channel count.
-
-Note: Intuitively, this allows not losing stereo information as part of
-processing: when multiple input render quanta of different channel count
-contribute to an output render quantum then the output render quantum's channel
-count is a superset of the input channel count of the input render quantums.
 
 <h3 id="UpMix-sub">
 Up Mixing Speaker Layouts</h3>
@@ -12293,15 +12318,55 @@ Members and former members of the Working Group and contributors to the specific
 alphabetical order):<br>
 Adenot, Paul (Mozilla Foundation) - Specification Co-editor;
 Akhgari, Ehsan (Mozilla Foundation);
-Berkovitz, Joe (Invited Expert, affiliated with Noteflight/Hal Leonard, WG Chair from September 2013 to December 2017);
+Becker, Steven (Microsoft Corporation);
+Berkovitz, Joe (Invited Expert, affiliated with Noteflight/Hal Leonard) - WG co-chair from September 2013 to December 2017);
 Bossart, Pierre (Intel Corporation);
-Buffa, Michel (NSAU;)
+Borins, Myles (Google, Inc);
+Buffa, Michel (NSAU);
 Caceres, Marcos (Invited Expert);
 Cardoso, Gabriel (INRIA);
-Carlson, Eric (Apple, Inc.);
-Chen, Bin (Baidu, Inc.);
-Choi, Hongchan (Google, Inc.);
+Carlson, Eric (Apple, Inc);
+Chen, Bin (Baidu, Inc);
+Choi, Hongchan (Google, Inc) - Specification Co-editor;
+Collichio, Lisa (Qualcomm);
 Geelnard, Marcus (Opera Software);
 Gehring, Todd (Dolby Laboratories);
-Goode, Adam (Google, Inc.); Gregan, Matthew (Mozilla Foundation); Hofmann, Bill (Dolby Laboratories); Jägenstedt, Philip (Opera Software); Kalliokoski, Jussi (Invited Expert); Kawai, Ryoya (AMEI); Lilley, Chris (W3C Staff); Lowis, Chris (Invited Expert. WG co-chair from December 2012 to September 2013, affiliated with British Broadcasting Corporation); MacDonald, Alistair (W3C Invited Experts) — WG co-chair
-from March 2011 to July 2012; Mandyam, Giridhar (Qualcomm Innovation Center, Inc); Michel, Thierry (W3C/ERCIM); Noble, Jer (Apple, Inc.); O'Callahan, Robert(Mozilla Foundation); Onumonu, Anthony (British Broadcasting Corporation); Paradis, Matthew (British Broadcasting Corporation) - WG Chair from September 2013 to present; Raman, T.V. (Google, Inc.); Rogers, Chris (Google, Inc.) – Specification Editor until August 2013; Schepers, Doug (W3C/MIT); Shires, Glen (Google, Inc.); Smith, Michael (W3C/Keio); Thereaux, Olivier (British Broadcasting Corporation); Toy, Raymond (Google, Inc.) - WG Chair from December 2017 - Present, Specification Co-editor; Verdie, Jean-Charles (MStar Semiconductor, Inc.); Wei, James (Intel Corporation); Weitnauer, Michael (IRT); Wilson, Chris (Google,Inc.) - Specification Co-editor; ZERGAOUI, Mohamed (INNOVIMAX)
+Goode, Adam (Google, Inc);
+Gregan, Matthew (Mozilla Foundation);
+Hikawa, Kazuo (AMEI);
+Hofmann, Bill (Dolby Laboratories);
+Jägenstedt, Philip (Google, Inc);
+Jeong, Paul Changjin (HTML5 Converged Technology Forum);
+Kalliokoski, Jussi (Invited Expert);
+Lee, WonSuk (Electronics and Telecommunications Research Institute);
+Kakishita, Masahiro (AMEI);
+Kawai, Ryoya (AMEI);
+Kostiainen, Anssi (Intel Corporation);
+Lilley, Chris (W3C Staff);
+Lowis, Chris (Invited Expert) - WG co-chair from December 2012 to September 2013, affiliated with British Broadcasting Corporation;
+MacDonald, Alistair (W3C Invited Experts) — WG co-chair from March 2011 to July 2012;
+Mandyam, Giridhar (Qualcomm Innovation Center, Inc);
+Michel, Thierry (W3C/ERCIM);
+Nair, Varun (Facebook);
+Needham, Chris (British Broadcasting Corporation);
+Noble, Jer (Apple, Inc);
+O'Callahan, Robert(Mozilla Foundation);
+Onumonu, Anthony (British Broadcasting Corporation);
+Paradis, Matthew (British Broadcasting Corporation) - WG co-chair from September 2013 to present;
+Pozdnyakov, Mikhail (Intel Corporation);
+Raman, T.V. (Google, Inc);
+Rogers, Chris (Google, Inc);
+Schepers, Doug (W3C/MIT);
+Schmitz, Alexander (JS Foundation);
+Shires, Glen (Google, Inc);
+Smith, Jerry (Microsoft Corporation);
+Smith, Michael (W3C/Keio);
+Thereaux, Olivier (British Broadcasting Corporation);
+Toy, Raymond (Google, Inc.) - WG co-chair from December 2017 - Present;
+Toyoshima, Takashi (Google, Inc);
+Troncy, Raphael (Institut Telecom);
+Verdie, Jean-Charles (MStar Semiconductor, Inc.);
+Wei, James (Intel Corporation);
+Weitnauer, Michael (IRT);
+Wilson, Chris (Google,Inc);
+Zergaoui, Mohamed (INNOVIMAX)

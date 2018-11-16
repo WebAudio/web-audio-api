@@ -1222,7 +1222,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 7d8ce2d953ffaca8e344c0dab76f68fc292738a6" name="generator">
   <link href="https://www.w3.org/TR/webaudio/" rel="canonical">
   <link href="favicon.png" rel="icon">
-  <meta content="b5f65b376941b74f02f2ae0ad35ea51b7c96ab42" name="document-revision">
+  <meta content="ca7227bf3fe060ed42d6f3d97e80bd438395def5" name="document-revision">
   <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML" rel="preload">
   <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/jax.js?rev=2.6.1" rel="preload">
   <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.6.1" rel="preload">
@@ -1624,7 +1624,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"><a class="logo" href="https://www.w3.org/"> <img alt="W3C" height="48" src="https://www.w3.org/StyleSheets/TR/2016/logos/W3C" width="72"> </a> </p>
    <h1 class="p-name no-ref" id="title">Web Audio API</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Editor’s Draft, <time class="dt-updated" datetime="2018-11-15">15 November 2018</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Editor’s Draft, <time class="dt-updated" datetime="2018-11-16">16 November 2018</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -2132,9 +2132,10 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
      <ol class="toc">
       <li><a href="#ChannelLayouts"><span class="secno">5.1</span> <span class="content"> Speaker Channel Layouts</span></a>
       <li><a href="#ChannelOrdering"><span class="secno">5.2</span> <span class="content"> Channel Ordering</span></a>
-      <li><a href="#UpMix-sub"><span class="secno">5.3</span> <span class="content"> Up Mixing Speaker Layouts</span></a>
-      <li><a href="#down-mix"><span class="secno">5.4</span> <span class="content"> Down Mixing Speaker Layouts</span></a>
-      <li><a href="#ChannelRules-section"><span class="secno">5.5</span> <span class="content"> Channel Rules Examples</span></a>
+      <li><a href="#channels-tail-time"><span class="secno">5.3</span> <span class="content"> Implication of tail-time on input and output channel count</span></a>
+      <li><a href="#UpMix-sub"><span class="secno">5.4</span> <span class="content"> Up Mixing Speaker Layouts</span></a>
+      <li><a href="#down-mix"><span class="secno">5.5</span> <span class="content"> Down Mixing Speaker Layouts</span></a>
+      <li><a href="#ChannelRules-section"><span class="secno">5.6</span> <span class="content"> Channel Rules Examples</span></a>
      </ol>
     <li>
      <a href="#audio-signal-values"><span class="secno">6</span> <span class="content"> Audio Signal Values</span></a>
@@ -12216,7 +12217,31 @@ defined below, skipping over those channels not present.</p>
       <td>
       <td>
    </table>
-   <h3 class="heading settled" data-level="5.3" id="UpMix-sub"><span class="secno">5.3. </span><span class="content"> Up Mixing Speaker Layouts</span><a class="self-link" href="#UpMix-sub"></a></h3>
+   <h3 class="heading settled" data-level="5.3" id="channels-tail-time"><span class="secno">5.3. </span><span class="content"> Implication of tail-time on input and output channel count</span><a class="self-link" href="#channels-tail-time"></a></h3>
+   <p>When an <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②②">AudioNode</a></code> has a non-zero <a data-link-type="dfn" href="#tail-time" id="ref-for-tail-time②⑧">tail-time</a>, and an output channel
+count that depends on the input channels count, the <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②③">AudioNode</a></code>'s <a data-link-type="dfn" href="#tail-time" id="ref-for-tail-time②⑨">tail-time</a> must be taken into account when the input channel count
+changes.</p>
+   <p>When there is a decrease in input channel count, the change in output channel
+count MUST happen when the input that was received with greater channel count no
+longer affects the output.</p>
+   <p>When there is an increase in input channel count, the behavior depends on the <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②④">AudioNode</a></code> type:</p>
+   <ul>
+    <li data-md>
+     <p>For a <code class="idl"><a data-link-type="idl" href="#DelayNode" id="ref-for-DelayNode③⓪">DelayNode</a></code> or a <code class="idl"><a data-link-type="idl" href="#dynamicscompressornode" id="ref-for-dynamicscompressornode②③">DynamicsCompressorNode</a></code>, the number of output
+channels MUST increase when the input that was received with greater channel
+count begins to affect the output.</p>
+    <li data-md>
+     <p>For other <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑤">AudioNode</a></code>s that have a <a data-link-type="dfn" href="#tail-time" id="ref-for-tail-time③⓪">tail-time</a>, the number of output
+channels MUST increase immediately.</p>
+     <p class="note" role="note"><span>Note:</span> For a <code class="idl"><a data-link-type="idl" href="#ConvolverNode" id="ref-for-ConvolverNode③①">ConvolverNode</a></code>, this only applies to the case where the impulse
+response is mono. Otherwise, the <code class="idl"><a data-link-type="idl" href="#ConvolverNode" id="ref-for-ConvolverNode③②">ConvolverNode</a></code> always outputs a stereo
+signal regardless of its input channel count.</p>
+   </ul>
+   <p class="note" role="note"><span>Note:</span> Intuitively, this allows not losing stereo information as part of
+processing: when multiple input render quanta of different channel count
+contribute to an output render quantum then the output render quantum’s channel
+count is a superset of the input channel count of the input render quantums.</p>
+   <h3 class="heading settled" data-level="5.4" id="UpMix-sub"><span class="secno">5.4. </span><span class="content"> Up Mixing Speaker Layouts</span><a class="self-link" href="#UpMix-sub"></a></h3>
 <pre>Mono up-mix:
 
   1 -> 2 : up-mix from mono to stereo
@@ -12263,7 +12288,7 @@ Quad up-mix:
     output.SL = input.SL;
     output.SR = input.SR;
 </pre>
-   <h3 class="heading settled" data-level="5.4" id="down-mix"><span class="secno">5.4. </span><span class="content"> Down Mixing Speaker Layouts</span><a class="self-link" href="#down-mix"></a></h3>
+   <h3 class="heading settled" data-level="5.5" id="down-mix"><span class="secno">5.5. </span><span class="content"> Down Mixing Speaker Layouts</span><a class="self-link" href="#down-mix"></a></h3>
    <p>A down-mix will be necessary, for example, if processing 5.1 source
 material, but playing back stereo.</p>
 <pre>Mono down-mix:
@@ -12295,7 +12320,7 @@ Quad down-mix:
     output.SL = input.SL
     output.SR = input.SR
 </pre>
-   <h3 class="heading settled" data-level="5.5" id="ChannelRules-section"><span class="secno">5.5. </span><span class="content"> Channel Rules Examples</span><a class="self-link" href="#ChannelRules-section"></a></h3>
+   <h3 class="heading settled" data-level="5.6" id="ChannelRules-section"><span class="secno">5.6. </span><span class="content"> Channel Rules Examples</span><a class="self-link" href="#ChannelRules-section"></a></h3>
 <pre class="example highlight line-numbered" id="example-c5d47e05"><span class="line-no" data-line="1"></span><span class="line"><a class="self-link" href="#example-c5d47e05"></a><c- c1>// Set gain node to explicit 2-channels (stereo).</c-></span><span class="line-no" data-line="2"></span><span class="line">gain<c- p>.</c->channelCount <c- o>=</c-> <c- mi>2</c-><c- p>;</c-></span><span class="line-no" data-line="3"></span><span class="line">gain<c- p>.</c->channelCountMode <c- o>=</c-> <c- u>"explicit"</c-><c- p>;</c-></span><span class="line-no" data-line="4"></span><span class="line">gain<c- p>.</c->channelInterpretation <c- o>=</c-> <c- u>"speakers"</c-><c- p>;</c-></span><span class="line-no" data-line="5"></span><span class="line"></span><span class="line-no" data-line="6"></span><span class="line"><c- c1>// Set "hardware output" to 4-channels for DJ-app with two stereo output busses.</c-></span><span class="line-no" data-line="7"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelCount <c- o>=</c-> <c- mi>4</c-><c- p>;</c-></span><span class="line-no" data-line="8"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelCountMode <c- o>=</c-> <c- u>"explicit"</c-><c- p>;</c-></span><span class="line-no" data-line="9"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelInterpretation <c- o>=</c-> <c- u>"discrete"</c-><c- p>;</c-></span><span class="line-no" data-line="10"></span><span class="line"></span><span class="line-no" data-line="11"></span><span class="line"><c- c1>// Set "hardware output" to 8-channels for custom multi-channel speaker array</c-></span><span class="line-no" data-line="12"></span><span class="line"><c- c1>// with custom matrix mixing.</c-></span><span class="line-no" data-line="13"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelCount <c- o>=</c-> <c- mi>8</c-><c- p>;</c-></span><span class="line-no" data-line="14"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelCountMode <c- o>=</c-> <c- u>"explicit"</c-><c- p>;</c-></span><span class="line-no" data-line="15"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelInterpretation <c- o>=</c-> <c- u>"discrete"</c-><c- p>;</c-></span><span class="line-no" data-line="16"></span><span class="line"></span><span class="line-no" data-line="17"></span><span class="line"><c- c1>// Set "hardware output" to 5.1 to play an HTMLAudioElement.</c-></span><span class="line-no" data-line="18"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelCount <c- o>=</c-> <c- mi>6</c-><c- p>;</c-></span><span class="line-no" data-line="19"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelCountMode <c- o>=</c-> <c- u>"explicit"</c-><c- p>;</c-></span><span class="line-no" data-line="20"></span><span class="line">context<c- p>.</c->destination<c- p>.</c->channelInterpretation <c- o>=</c-> <c- u>"speakers"</c-><c- p>;</c-></span><span class="line-no" data-line="21"></span><span class="line"></span><span class="line-no" data-line="22"></span><span class="line"><c- c1>// Explicitly down-mix to mono.</c-></span><span class="line-no" data-line="23"></span><span class="line">gain<c- p>.</c->channelCount <c- o>=</c-> <c- mi>1</c-><c- p>;</c-></span><span class="line-no" data-line="24"></span><span class="line">gain<c- p>.</c->channelCountMode <c- o>=</c-> <c- u>"explicit"</c-><c- p>;</c-></span><span class="line-no" data-line="25"></span><span class="line">gain<c- p>.</c->channelInterpretation <c- o>=</c-> <c- u>"speakers"</c-><c- p>;</c-></span></pre>
    <h2 class="heading settled" data-level="6" id="audio-signal-values"><span class="secno">6. </span><span class="content"> Audio Signal Values</span><a class="self-link" href="#audio-signal-values"></a></h2>
    <h3 class="heading settled" data-level="6.1" id="audio-sample-format"><span class="secno">6.1. </span><span class="content"> Audio sample format</span><a class="self-link" href="#audio-sample-format"></a></h3>
@@ -12348,7 +12373,7 @@ provides basic, but reasonable results. It is used for the for the <code class="
    <div class="algorithm" data-algorithm="equalpower panning">
     <ol>
      <li data-md>
-      <p>For each sample to be computed by this <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②②">AudioNode</a></code>:</p>
+      <p>For each sample to be computed by this <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑥">AudioNode</a></code>:</p>
       <ol>
        <li data-md>
         <p>Let <var>azimuth</var> be the value computed in the <a href="#azimuth-elevation">azimuth and elevation</a> section.</p>
@@ -12426,7 +12451,7 @@ sound.</p>
 	MUST be implemented. 
     <ol>
      <li data-md>
-      <p>For each sample to be computed by this <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②③">AudioNode</a></code></p>
+      <p>For each sample to be computed by this <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑦">AudioNode</a></code></p>
       <ol>
        <li data-md>
         <p>Let <var>pan</var> be the <a data-link-type="dfn" href="#computedvalue" id="ref-for-computedvalue⑤">computedValue</a> of the <code>pan</code> <code class="idl"><a data-link-type="idl" href="#AudioParam" id="ref-for-AudioParam①⑦③">AudioParam</a></code> of this <code class="idl"><a data-link-type="idl" href="#stereopannernode" id="ref-for-stereopannernode①⑤">StereoPannerNode</a></code>.</p>
@@ -12518,24 +12543,24 @@ latency can be from as low as 3-6 milliseconds to 25-50 milliseconds.</p>
 seek to minimize the difference between an <code class="idl"><a data-link-type="idl" href="#audiocontext" id="ref-for-audiocontext①③③">AudioContext</a></code>'s <code>currentTime</code> and an <code class="idl"><a data-link-type="idl" href="#audioprocessingevent" id="ref-for-audioprocessingevent⑤">AudioProcessingEvent</a></code>'s <code>playbackTime</code>.
 Deprecation of <code class="idl"><a data-link-type="idl" href="#scriptprocessornode" id="ref-for-scriptprocessornode①⑥">ScriptProcessorNode</a></code> will make this
 consideration less important over time.</p>
-   <p>Additionally, some <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②④">AudioNode</a></code>s can add latency to some paths
+   <p>Additionally, some <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑧">AudioNode</a></code>s can add latency to some paths
 of the audio graph, notably:</p>
    <ul>
     <li data-md>
      <p>The <code class="idl"><a data-link-type="idl" href="#audioworkletnode" id="ref-for-audioworkletnode④⑨">AudioWorkletNode</a></code> can run a script that buffers
 internally, adding delay to the signal path.</p>
     <li data-md>
-     <p>The <code class="idl"><a data-link-type="idl" href="#DelayNode" id="ref-for-DelayNode③⓪">DelayNode</a></code>, whose role is to add controlled latency
+     <p>The <code class="idl"><a data-link-type="idl" href="#DelayNode" id="ref-for-DelayNode③①">DelayNode</a></code>, whose role is to add controlled latency
 time.</p>
     <li data-md>
      <p>The <code class="idl"><a data-link-type="idl" href="#biquadfilternode" id="ref-for-biquadfilternode②⓪">BiquadFilterNode</a></code> and <code class="idl"><a data-link-type="idl" href="#iirfilternode" id="ref-for-iirfilternode①①">IIRFilterNode</a></code> filter
 design can delay incoming samples, as a natural consequence of the
 causal filtering process.</p>
     <li data-md>
-     <p>The <code class="idl"><a data-link-type="idl" href="#ConvolverNode" id="ref-for-ConvolverNode③①">ConvolverNode</a></code> depending on the impulse, can delay
+     <p>The <code class="idl"><a data-link-type="idl" href="#ConvolverNode" id="ref-for-ConvolverNode③③">ConvolverNode</a></code> depending on the impulse, can delay
 incoming samples, as a natural result of the convolution operation.</p>
     <li data-md>
-     <p>The <code class="idl"><a data-link-type="idl" href="#dynamicscompressornode" id="ref-for-dynamicscompressornode②③">DynamicsCompressorNode</a></code> has a look ahead algorithm that
+     <p>The <code class="idl"><a data-link-type="idl" href="#dynamicscompressornode" id="ref-for-dynamicscompressornode②④">DynamicsCompressorNode</a></code> has a look ahead algorithm that
 causes delay in the signal path.</p>
     <li data-md>
      <p>The <code class="idl"><a data-link-type="idl" href="#mediastreamaudiosourcenode" id="ref-for-mediastreamaudiosourcenode①④">MediaStreamAudioSourceNode</a></code>, <code class="idl"><a data-link-type="idl" href="#mediastreamtrackaudiosourcenode" id="ref-for-mediastreamtrackaudiosourcenode①③">MediaStreamTrackAudioSourceNode</a></code> and <code class="idl"><a data-link-type="idl" href="#mediastreamaudiodestinationnode" id="ref-for-mediastreamaudiodestinationnode①②">MediaStreamAudioDestinationNode</a></code>, depending on the
@@ -12602,13 +12627,13 @@ the web?</p>
     <li data-md>
      <p>Does this specification expose any other data to an origin that it
 doesn’t currently have access to?</p>
-     <p>Yes. When giving various information on available <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑤">AudioNode</a></code>s, the Web Audio API potentially
+     <p>Yes. When giving various information on available <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑨">AudioNode</a></code>s, the Web Audio API potentially
 exposes information on characteristic features of the client (such
-as audio hardware sample-rate) to any page that makes use of the <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②②⑥">AudioNode</a></code> interface. Additionally, timing
+as audio hardware sample-rate) to any page that makes use of the <code class="idl"><a data-link-type="idl" href="#audionode" id="ref-for-audionode②③⓪">AudioNode</a></code> interface. Additionally, timing
 information can be collected through the <code class="idl"><a data-link-type="idl" href="#analysernode" id="ref-for-analysernode①⑥">AnalyserNode</a></code> or <code class="idl"><a data-link-type="idl" href="#scriptprocessornode" id="ref-for-scriptprocessornode①⑧">ScriptProcessorNode</a></code> interface. The information
 could subsequently be used to create a fingerprint of the client.</p>
      <p>Research by Princeton CITP’s <a href="https://audiofingerprint.openwpm.com/"></a> Web Transparency and Accountability Project
-has shown that <code class="idl"><a data-link-type="idl" href="#dynamicscompressornode" id="ref-for-dynamicscompressornode②④">DynamicsCompressorNode</a></code> and <code class="idl"><a data-link-type="idl" href="#oscillatornode" id="ref-for-oscillatornode②⓪">OscillatorNode</a></code> can
+has shown that <code class="idl"><a data-link-type="idl" href="#dynamicscompressornode" id="ref-for-dynamicscompressornode②⑤">DynamicsCompressorNode</a></code> and <code class="idl"><a data-link-type="idl" href="#oscillatornode" id="ref-for-oscillatornode②⓪">OscillatorNode</a></code> can
 be used to gather entropy from a client to fingerprint a device.
 This is due to small, and normally inaudible, differences in DSP
 architecture, resampling strategies and rounding trade-offs between
@@ -16865,14 +16890,16 @@ Summing Inputs</a> <a href="#ref-for-audionode②①⑤">(2)</a>
 Example: Mixer with Send Busses</a>
     <li><a href="#ref-for-audionode②①⑦">5. 
 Channel Up-Mixing and Down-Mixing</a> <a href="#ref-for-audionode②①⑧">(2)</a> <a href="#ref-for-audionode②①⑨">(3)</a> <a href="#ref-for-audionode②②⓪">(4)</a> <a href="#ref-for-audionode②②①">(5)</a>
-    <li><a href="#ref-for-audionode②②②">7.3.1. 
+    <li><a href="#ref-for-audionode②②②">5.3. 
+Implication of tail-time on input and output channel count</a> <a href="#ref-for-audionode②②③">(2)</a> <a href="#ref-for-audionode②②④">(3)</a> <a href="#ref-for-audionode②②⑤">(4)</a>
+    <li><a href="#ref-for-audionode②②⑥">7.3.1. 
 PannerNode "equalpower" Panning</a>
-    <li><a href="#ref-for-audionode②②③">7.3.3. 
+    <li><a href="#ref-for-audionode②②⑦">7.3.3. 
 StereoPannerNode Panning</a>
-    <li><a href="#ref-for-audionode②②④">8.1. 
+    <li><a href="#ref-for-audionode②②⑧">8.1. 
 Latency</a>
-    <li><a href="#ref-for-audionode②②⑤">9. 
-Security and Privacy Considerations</a> <a href="#ref-for-audionode②②⑥">(2)</a>
+    <li><a href="#ref-for-audionode②②⑨">9. 
+Security and Privacy Considerations</a> <a href="#ref-for-audionode②③⓪">(2)</a>
    </ul>
   </aside>
   <aside class="dfn-panel" data-for="connection">
@@ -17824,6 +17851,8 @@ The WaveShaperNode Interface</a> <a href="#ref-for-tail-time②③">(2)</a> <a h
 The AudioWorkletNode Interface</a> <a href="#ref-for-tail-time②⑥">(2)</a>
     <li><a href="#ref-for-tail-time②⑦">1.32.4.3. 
 Methods</a>
+    <li><a href="#ref-for-tail-time②⑧">5.3. 
+Implication of tail-time on input and output channel count</a> <a href="#ref-for-tail-time②⑨">(2)</a> <a href="#ref-for-tail-time③⓪">(3)</a>
    </ul>
   </aside>
   <aside class="dfn-panel" data-for="AudioParam">
@@ -19565,7 +19594,9 @@ ConvolverOptions</a>
 Dictionary ConvolverOptions Members</a> <a href="#ref-for-ConvolverNode②⑦">(2)</a>
     <li><a href="#ref-for-ConvolverNode②⑧">1.17.4. 
 Channel Configurations for Input, Impulse Response and Output</a> <a href="#ref-for-ConvolverNode②⑨">(2)</a> <a href="#ref-for-ConvolverNode③⓪">(3)</a>
-    <li><a href="#ref-for-ConvolverNode③①">8.1. 
+    <li><a href="#ref-for-ConvolverNode③①">5.3. 
+Implication of tail-time on input and output channel count</a> <a href="#ref-for-ConvolverNode③②">(2)</a>
+    <li><a href="#ref-for-ConvolverNode③③">8.1. 
 Latency</a>
    </ul>
   </aside>
@@ -19656,7 +19687,9 @@ DelayOptions</a>
     <li><a href="#ref-for-DelayNode①④">1.18.4. Processing</a> <a href="#ref-for-DelayNode①⑤">(2)</a> <a href="#ref-for-DelayNode①⑥">(3)</a> <a href="#ref-for-DelayNode①⑦">(4)</a> <a href="#ref-for-DelayNode①⑧">(5)</a> <a href="#ref-for-DelayNode①⑨">(6)</a> <a href="#ref-for-DelayNode②⓪">(7)</a> <a href="#ref-for-DelayNode②①">(8)</a> <a href="#ref-for-DelayNode②②">(9)</a> <a href="#ref-for-DelayNode②③">(10)</a> <a href="#ref-for-DelayNode②④">(11)</a> <a href="#ref-for-DelayNode②⑤">(12)</a>
     <li><a href="#ref-for-DelayNode②⑥">2.4. 
 Rendering an Audio Graph</a> <a href="#ref-for-DelayNode②⑦">(2)</a> <a href="#ref-for-DelayNode②⑧">(3)</a> <a href="#ref-for-DelayNode②⑨">(4)</a>
-    <li><a href="#ref-for-DelayNode③⓪">8.1. 
+    <li><a href="#ref-for-DelayNode③⓪">5.3. 
+Implication of tail-time on input and output channel count</a>
+    <li><a href="#ref-for-DelayNode③①">8.1. 
 Latency</a>
    </ul>
   </aside>
@@ -19745,9 +19778,11 @@ Constructors</a> <a href="#ref-for-dynamicscompressornode①①">(2)</a> <a href
 DynamicsCompressorOptions</a>
     <li><a href="#ref-for-dynamicscompressornode①⑤">1.19.4. 
 Processing</a> <a href="#ref-for-dynamicscompressornode①⑥">(2)</a> <a href="#ref-for-dynamicscompressornode①⑦">(3)</a> <a href="#ref-for-dynamicscompressornode①⑧">(4)</a> <a href="#ref-for-dynamicscompressornode①⑨">(5)</a> <a href="#ref-for-dynamicscompressornode②⓪">(6)</a> <a href="#ref-for-dynamicscompressornode②①">(7)</a> <a href="#ref-for-dynamicscompressornode②②">(8)</a>
-    <li><a href="#ref-for-dynamicscompressornode②③">8.1. 
+    <li><a href="#ref-for-dynamicscompressornode②③">5.3. 
+Implication of tail-time on input and output channel count</a>
+    <li><a href="#ref-for-dynamicscompressornode②④">8.1. 
 Latency</a>
-    <li><a href="#ref-for-dynamicscompressornode②④">9. 
+    <li><a href="#ref-for-dynamicscompressornode②⑤">9. 
 Security and Privacy Considerations</a>
    </ul>
   </aside>

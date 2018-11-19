@@ -3552,73 +3552,49 @@ Methods</h4>
 		then proprogated for all future time until other automation
 		events are introduced.
 
-		The behavior of the timeline in the face of
-		{{AudioParam/cancelAndHoldAtTime()}} when automations are running
-		and can be introduced at any time after calling
-		{{AudioParam/cancelAndHoldAtTime()}} and before
-		<code>cancelTime</code> is reached is quite complicated. The
-		behavior of {{AudioParam/cancelAndHoldAtTime()}} is therefore
-		specified in the following algorithm.
+		When <code>cancelAndHoldAtTime</code> is called with a time <var>t</var> as
+		a parameter, execute the following steps:
 
-		<div algorithm="cancel and hold">
-			Let \(t_c\) be the value of <code>cancelTime</code>. Then
+		- Let <var>v</var> be the value of the {{AudioParam}} at time
+			<var>t</var>.
+		- Let <var>current</var> be the <a lt="current audioparam">current
+			AudioParam</a> at time <var>t</var>.
+		- <a lt="rewrite event">Rewrite the current AudioParam event</a> to
+			end at <var>t</var>.
+		- Remove all {{AudioParam}} event that are in the list after
+			<var>current</var>.
+		- Insert a new <code>setValueAtTime</code> event at time <var>t</var> with
+			value <var>v</var>.
 
-			1. Let \(E_1\) be the event (if any) at time \(t_1\) where
-				\(t_1\) is the largest number satisfying \(t_1 \le t_c\).
+		The <dfn dfn-type="dfn" lt="current audioparam">current AudioParam</dfn> at time
+		<var>t</var> is the {{AudioParam}} that is being used to compute the
+		value of the {{AudioParam}} at time <var>t</var>.
 
-			2. Let \(E_2\) be the event (if any) at time \(t_2\) where
-				\(t_2\) is the smallest number satisfying \(t_c \lt t_2\).
+		Note: There is only one [=current AudioParam=] for a givent time
+			<var>t</var>. Depending on the {{AudioParam}} event type, the time of the
+			event itself can be greater or lower than <var>t</var>.
 
-			3. If \(E_2\) exists:
-				1. If \(E_2\) is a linear or exponential ramp,
-					1. Effectively rewrite \(E_2\) to be the same kind of
-						ramp ending at time \(t_c\) with an end value that
-						would be the value of the original ramp at time
-						\(t_c\).
-						<img alt="Graphical representation of calling cancelAndHoldAtTime when linearRampToValueAtTime has been called at this time." src="images/cancel-linear.svg" style="height:75%;width:75%">
+		<dfn dfn-type="dfn" lt="rewrite event">Rewriting a AudioParam event</dfn> to end at
+		time <var>t</var> means changing the {{AudioParam}} event in a way that:
+		- The values for this {{AudioParam}} before and at <var>t</var> are not
+			changed.
+		- If this {{AudioParam}} <a>has an end time</a>, it now ends at
+			<var>t</var>.
 
-					2. Go to step 5.
-
-				2. Otherwise, go to step 4.
-
-			4. If \(E_1\) exists:
-				1. If \(E_1\) is a <code>setTarget</code> event,
-					1. Implicitly insert a <code>setValueAtTime</code>
-						event at time \(t_c\) with the value that the
-						<code>setTarget</code> would have at time
-						\(t_c\).
-						<img alt="Graphical representation of calling cancelAndHoldAtTime when setTargetAtTime has been called at this time" src="images/cancel-setTarget.svg" style="height:75%;width:75%">
-
-					2. Go to step 5.
-
-				2. If \(E_1\) is a <code>setValueCurve</code> with a start
-					time of \(t_3\) and a duration of \(d\)
-
-					1. If \(t_c \gt t_3 + d\), go to step 5.
-
-					2. Otherwise,
-						1. Effectively replace this event with a
-							<code>setValueCurve</code> event with a start time
-							of \(t_3\) and a new duration of \(t_c-t_3\).
-							However, this is not a true replacement; this
-							automation MUST take care to produce the same
-							output as the original, and not one computed using
-							a different duration. (That would cause sampling of
-							the value curve in a slightly different way,
-							producing different results.)
-							<img alt="Graphical representation of calling cancelAndHoldAtTime when setValueCurve has been called at this time" src="images/cancel-setValueCurve.svg" style="height:75%;width:75%">
-
-						2. Go to step 5.
-
-			5. Remove all events with time greater than \(t_c\).
-
-			If no events are added, then the automation value after
-			{{AudioParam/cancelAndHoldAtTime()}} is the constant value that
-			the original timeline would have had at time \(t_c\).
-		</div>
+		An {{AudioParam}} event <dfn dfn-type="dfn">has an end time</dfn> if it has
+		been produced by {{AudioParam/setValueCurveAtTime()}},
+		{{AudioParam/exponentialRampToValueAtTime()}}, or
+		{{AudioParam/linearRampToValueAtTime()}}.
 
 		<pre class=argumentdef for="AudioParam/cancelAndHoldAtTime()">
-			cancelTime: The time after which any previously scheduled parameter changes will be cancelled. It is a time in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>cancelTime</code> is negative or is not a finite number.</span> If {{AudioParam/cancelAndHoldAtTime()/cancelTime}} is less than {{BaseAudioContext/currentTime}}, it is clamped to {{BaseAudioContext/currentTime}}.
+cancelTime: The time after which any previously scheduled parameter
+	changes will be cancelled. It is a time in the same time coordinate system
+	as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute.
+	<span class="synchronous">A {{RangeError}} exception MUST be thrown if
+	{{AudioParam/cancelAndHoldAtTime()/cancelTime}} is negative or is not a finite
+	number.</span> If {{AudioParam/cancelAndHoldAtTime()/cancelTime}} is less than
+	{{BaseAudioContext/currentTime}}, it is clamped to
+	{{BaseAudioContext/currentTime}}.
 		</pre>
 
 		<div>

@@ -3342,13 +3342,21 @@ negative of the <a>most-positive-single-float</a>: -3.4028235e38.
 (Similarly, this must be written in JavaScript as
 -3.4028234663852886e38.)
 
-An {{AudioParam}} maintains a list of zero or more <dfn id="dfn-automation-event">automation events</dfn>. Each automation event
-specifies changes to the parameter's value over a specific time
-range, in relation to its <dfn>automation event time</dfn> in the
-time coordinate system of the {{AudioContext}}'s
-{{BaseAudioContext/currentTime}} attribute. The
-list of automation events is maintained in ascending order of
-automation event time.
+An {{AudioParam}} maintains a list of zero or more
+<dfn id="dfn-automation-event">automation events</dfn>. Each automation event
+specifies changes to the parameter's value over a specific time range.  The
+<dfn>automation event time</dfn> for an event is the time, in the time
+coordinate system of the {{AudioContext}}'s {{BaseAudioContext/currentTime}}
+attribute, passed to the automation method that generated it, specifically:
+
+- {{AudioParam/setValueAtTime()}} - <code>startTime</code>
+- {{AudioParam/linearRampToValueAtTime()}} - <code>endTime</code>
+- {{AudioParam/exponentialRampToValueAtTime()}} - <code>endTime</code>
+- {{AudioParam/setTargetAtTime()}} - <code>startTime</code>
+- {{AudioParam/setValueCurveAtTime()}} - <code>startTime</code>
+
+The list of automation events is maintained in ascending order of <a>automation
+event time</a>.
 
 The behavior of a given automation event is a function of the
 {{AudioContext}}'s current time, as well as the automation event
@@ -3434,6 +3442,10 @@ enum AutomationRate {
 
 Each {{AudioParam}} has an internal slot <dfn attribute for=AudioParam>[[current value]]</dfn>,
 initially set to the {{AudioParam}}'s {{AudioParam/defaultValue}}.
+
+On creation, an {{AudioParam}} timeline has a single <code>SetValue</code>
+event, that has a value equal to the default value for this {{AudioParam}}, at
+time 0.
 
 <pre class="idl">
 [Exposed=Window]
@@ -3555,10 +3567,10 @@ Methods</h4>
 		When <code>cancelAndHoldAtTime</code> is called with a time <var>t</var> as
 		a parameter, execute the following steps:
 
-		- Let <var>v</var> be the value of the {{AudioParam}} at time
-			<var>t</var>.
 		- Let <var>current</var> be the <a lt="current audioparam">current
 			AudioParam</a> at time <var>t</var>.
+		- Let <var>v</var> be the value of the {{AudioParam}} at time
+			<var>t</var>.
 		- <a lt="rewrite event">Rewrite the current AudioParam event</a> to
 			end at <var>t</var>.
 		- Remove all {{AudioParam}} event that are in the list after
@@ -3613,6 +3625,9 @@ cancelTime: The time after which any previously scheduled parameter
 		hold values scheduled by {{AudioParam/cancelAndHoldAtTime()}}
 		are also removed if the hold time occurs after
 		<code>cancelTime</code>.
+
+		If <code>cancelTime</code> is 0, this method removes all events except the
+		initial event inserted on construction of the {{AudioParam}}.
 
 		<pre class=argumentdef for="AudioParam/cancelScheduledValues()">
 			cancelTime: The time after which any previously scheduled parameter changes will be cancelled. It is a time in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>cancelTime</code> is negative or is not a finite number.</span> If <code>cancelTime</code> is less than {{BaseAudioContext/currentTime}}, it is clamped to {{BaseAudioContext/currentTime}}.

@@ -9571,7 +9571,7 @@ class BypassProcessor extends AudioWorkletProcessor {
 		// Process only while there are inputs.
 		return false;
 	}
-});
+};
 
 registerProcessor('bypass-processor', BypassProcessor);
 </pre>
@@ -10429,8 +10429,10 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 	process (inputs, outputs, parameters) {
 		let input = inputs[0];
 		let output = outputs[0];
+		const bitDepth = parameters.bitDepth;
 		let bitDepthLength = parameters.bitDepth.length;
-		let reductionLength = parameters.frequencyReduction.length;
+		const frequencyReduction = parameters.frequencyReduction;
+		let frequencyReductionLength = parameters.frequencyReduction.length;
 
 		if (bitDepthLength > 1) {
 			// General case
@@ -10440,7 +10442,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
 					// Use modulo for indexing to handle the case where
 					// the length of the frequencyReduction array is 1.
-					this._phase += frequencyReduction[i % reductionLength];
+					this._phase += frequencyReduction[i % frequencyReductionLength];
 					if (this._phase >= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
@@ -10456,7 +10458,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 			let step = Math.pow(0.5, bitDepth[0]);
 			for (let channel = 0; channel &lt; output.length; ++channel) {
 				for (let i = 0; i &lt; output[channel].length; ++i) {
-					this._phase += frequencyReduction[i % reductionLength];
+					this._phase += frequencyReduction[i % frequencyReductionLength];
 					if (this._phase >= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
@@ -10598,7 +10600,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 &lt;script src="vumeternode.js">&lt;/script>
 &lt;script>
 	importAudioWorkletNode.then(() =&gt; {
-		let oscillator = new Oscillator(context);
+		let oscillator = new OscillatorNode(context);
 		let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
 
 		oscillator.connect(vuMeterNode);

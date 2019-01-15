@@ -2593,6 +2593,32 @@ sample-frames which corresponds to roughly 3ms at a sample-rate of
 An {{AudioNode}} can have a <dfn>tail-time</dfn>. This means that even when the
 {{AudioNode}} is fed silence, non-silent output can be output.
 
+<h4 id="AudioNode-actively-processing">AudioNode lifetime</h4>
+
+{{AudioNode}} can be <dfn id="actively-processing">actively processing</dfn>
+during a <a>render quantum</a>.
+
+- An {{AudioScheduledSourceNode}} is [=actively processing=] when and only when it
+	is playing for at least part of the current rendering quantum.
+- A {{DelayNode}} in a cycle is actively processing only when the absolute value
+	of any output sample for the current [=render quantum=] is greater than or equal
+	to \( 2^{-126} \).
+- A {{ScriptProcessorNode}} is [=actively processing=] when its input or output is
+	connected.
+- An {{AudioWorkletNode}} is [=actively processing=] when its
+	{{AudioWorkletProcessor}}'s {{[[callable process]]}} is <code>true</code> and
+	either its [=active source=] flag is <code>true</code> or any {{AudioNode}}
+	connected to one of its inputs is [=actively processing=].
+- All other {{AudioNode}}s start [=actively processing=] when any
+	{{AudioNode}} connected to one of its inputs is [=actively processing=], and
+	stops [=actively processing=] when the input that was received from other
+	[=actively processing=] {{AudioNode}} no longer affects the output.
+
+Note: This takes into account {{AudioNode}}s that have a [=tail-time=].
+
+{{AudioNode}} that are not [=actively processing=] output a single channel of
+silence.
+
 <pre class="idl">
 [Exposed=Window]
 interface AudioNode : EventTarget {

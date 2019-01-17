@@ -6,6 +6,7 @@ Group: audiowg
 Status: ED
 ED: https://webaudio.github.io/web-audio-api/
 TR: https://www.w3.org/TR/webaudio/
+Favicon: favicon.png
 Previous Version: https://www.w3.org/TR/2018/WD-webaudio-20180619/
 Previous Version: https://www.w3.org/TR/2015/WD-webaudio-20151208/
 Previous Version: https://www.w3.org/TR/2013/WD-webaudio-20131010/
@@ -14,7 +15,8 @@ Previous Version: https://www.w3.org/TR/2012/WD-webaudio-20120802/
 Previous Version: https://www.w3.org/TR/2012/WD-webaudio-20120315/
 Previous Version: https://www.w3.org/TR/2011/WD-webaudio-20111215/
 Editor: Paul Adenot, Mozilla (https://www.mozilla.org/), padenot@mozilla.com, w3cid 62410
-Editor: Raymond Toy, Google (https://www.google.com/), rtoy@google.com, w3cid 66910
+Editor: Hongchan Choi, Google (https://www.google.com/), hongchan@google.com, w3cid 74103
+Former Editor: Raymond Toy (until Oct 2018)
 Former Editor: Chris Wilson (Until Jan 2016)
 Former Editor: Chris Rogers (Until Aug 2013)
 Test Suite: https://github.com/web-platform-tests/wpt/tree/master/webaudio
@@ -855,9 +857,13 @@ Methods</h4>
 		nominal range.</span>
 
 		<pre class=argumentdef for="BaseAudioContext/createBuffer()">
-		numberOfChannels: Determines how many channels the buffer will have. An implementation MUST support at least 32 channels.
-		length: Determines the size of the buffer in sample-frames.  This MUST be at least 1.
-		sampleRate: Describes the sample-rate of the linear PCM audio data in the buffer in sample-frames per second. An implementation MUST support sample rates in at least the range 8000 to 96000.
+		numberOfChannels: Determines how many channels the buffer will have. An
+			implementation MUST support at least 32 channels.
+		length: Determines the size of the buffer in sample-frames.  This MUST be at
+			least 1.
+		sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in
+			the buffer in sample-frames per second. An implementation MUST support
+			sample rates in at least the range 8000 to 96000.
 		</pre>
 		<div>
 			<em>Return type:</em> {{AudioBuffer}}
@@ -1131,12 +1137,21 @@ Methods</h4>
 			Note: Multiple <em>decoding threads</em> can run in parallel to
 			service multiple calls to <code>decodeAudioData</code>.
 
-			1. Attempt to decode the encoded {{BaseAudioContext/decodeAudioData(audioData, successCallback, errorCallback)/audioData!!argument}} into linear
-				PCM.
+			1. Let <var>can decode</var> be a boolean flag, initially set to true.
 
-			2. If a decoding error is encountered due to the audio format
-				not being recognized or supported, or because of
-				corrupted/unexpected/inconsistent data, then <a>queue a task</a> to
+			2. Attempt to determine the MIME type of
+				{{BaseAudioContext/decodeAudioData(audioData, successCallback,
+				errorCallback)/audioData!!argument}}, using
+				[[mimesniff#matching-an-audio-or-video-type-pattern]]. If the audio or
+				video type pattern matching algorithm returns <code>undefined</code>,
+				set <var>can decode</var> to <em>false</em>.
+
+			3. If <var>can decode</var> is <em>true</em>, attempt to decode the encoded
+				{{BaseAudioContext/decodeAudioData(audioData, successCallback,
+				errorCallback)/audioData!!argument}} into [=linear PCM=]. In case of
+				failure, set <var>can decode</var> to <em>false</em>.
+
+			4. If <var>can decode</var> is <em>false</em>, <a>queue a task</a> to
 				execute the following step, on the <a>control thread</a>'s
 				event loop:
 
@@ -1145,13 +1160,17 @@ Methods</h4>
 
 				2. Reject <var>promise</var> with <var>error</var>.
 
-				3. If {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} is not missing, invoke {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} with <var>error</var>.
+				3. If {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} is
+					not missing, invoke
+					{{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} with
+					<var>error</var>.
 
-			3. Otherwise:
-				1. Take the result, representing the decoded linear PCM
+			5. Otherwise:
+				1. Take the result, representing the decoded [=linear PCM=]
 					audio data, and resample it to the sample-rate of the
 					{{AudioContext}} if it is different from
-					the sample-rate of {{BaseAudioContext/decodeAudioData(audioData, successCallback, errorCallback)/audioData!!argument}}.
+					the sample-rate of {{BaseAudioContext/decodeAudioData(audioData,
+					successCallback, errorCallback)/audioData!!argument}}.
 
 				2. <a>Queue a task</a> on the <a>control thread</a>'s event loop
 					to execute the following steps:
@@ -1162,8 +1181,10 @@ Methods</h4>
 
 					2. Resolve <var>promise</var> with <var>buffer</var>.
 
-					3. If {{BaseAudioContext/decodeAudioData()/successCallback!!argument}} is not missing,
-						invoke {{BaseAudioContext/decodeAudioData()/successCallback!!argument}} with <var>buffer</var>.
+					3. If {{BaseAudioContext/decodeAudioData()/successCallback!!argument}}
+						is not missing, invoke
+						{{BaseAudioContext/decodeAudioData()/successCallback!!argument}}
+						with <var>buffer</var>.
 		</div>
 
 		<pre class=argumentdef for="BaseAudioContext/decodeAudioData()">
@@ -1913,9 +1934,12 @@ Constructors</h4>
 		were called instead.
 
 		<pre class=argumentdef for="OfflineAudioContext/OfflineAudioContext(numberOfChannels, length, sampleRate)">
-		numberOfChannels: Determines how many channels the buffer will have. See {{BaseAudioContext/createBuffer()}} for the supported number of channels.
+		numberOfChannels: Determines how many channels the buffer will have. See
+			{{BaseAudioContext/createBuffer()}} for the supported number of channels.
 		length: Determines the size of the buffer in sample-frames.
-		sampleRate: Describes the sample-rate of the linear PCM audio data in the buffer in sample-frames per second. See {{BaseAudioContext/createBuffer()}} for valid sample rates.
+		sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in
+			the buffer in sample-frames per second. See
+			{{BaseAudioContext/createBuffer()}} for valid sample rates.
 		</pre>
 </dl>
 
@@ -2209,7 +2233,7 @@ The {{AudioBuffer}} Interface</h3>
 
 This interface represents a memory-resident audio asset (for one-shot
 sounds and other short audio clips). Its format is non-interleaved
-32-bit linear floating-point PCM values with a normal range of \([-1,
+32-bit floating-point [=linear PCM=] values with a normal range of \([-1,
 1]\), but values are not limited to this range. It can contain one or
 more channels. Typically, it would be expected that the length of the
 PCM data would be fairly short (usually somewhat less than a minute).
@@ -2971,7 +2995,7 @@ Methods</h4>
 		{{AudioNode}} object.
 
 		<pre class=argumentdef for="AudioNode/connect(destinationNode, output, input)">
-			destinationNode: The <code>destination</code> parameter is the {{AudioNode}} to connect to. <span class="synchronous">If the <code>destination</code> parameter is an {{AudioNode}} that has been created using another {{AudioContext}}, an {{InvalidAccessError}} MUST be thrown</span>. That is, {{AudioNode}}s cannot be shared between {{AudioContext}}s.
+			destinationNode: The <code>destination</code> parameter is the {{AudioNode}} to connect to. <span class="synchronous">If the <code>destination</code> parameter is an {{AudioNode}} that has been created using another {{AudioContext}}, an {{InvalidAccessError}} MUST be thrown</span>. That is, {{AudioNode}}s cannot be shared between {{AudioContext}}s. Multiple {{AudioNode}}s can be connected to the same {{AudioNode}}, this is described in [[#channel-up-mixing-and-down-mixing|Channel Upmixing and down mixing]] section.
 			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to connect. <span class="synchronous">If this parameter is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span> It is possible to connect an {{AudioNode}} output to more than one input with multiple calls to connect(). Thus, "fan-out" is supported.
 			input:  The <code>input</code> parameter is an index describing which input of the destination {{AudioNode}} to connect to. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span> It is possible to connect an {{AudioNode}} to another {{AudioNode}} which creates a <dfn dfn for>cycle</dfn>: an {{AudioNode}} may connect to another {{AudioNode}}, which in turn connects back to the input or {{AudioParam}} of the first {{AudioNode}}. This is allowed only if there is at least one {{DelayNode}} in the <em>cycle</em> <span class="synchronous">or a {{NotSupportedError}} exception MUST be thrown.</span>
 		</pre>
@@ -4237,13 +4261,15 @@ Methods</h4>
 <dl dfn-type=method dfn-for="AnalyserNode">
 	: <dfn>getByteFrequencyData(array)</dfn>
 	::
-		Copies the <a>current frequency data</a> into the passed
-		unsigned byte array. If the array has fewer elements than the
-		{{frequencyBinCount}}, the excess elements will
-		be dropped. If the array has more elements than the
-		{{frequencyBinCount}}, the excess elements will
-		be ignored. The most recent {{AnalyserNode/fftSize}} frames are used in
-		computing the frequency data.
+		Get a
+		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
+		reference to the bytes</a> held by the [[WebIDL#idl-Uint8Array|Uint8Array]]
+		passed as an argument.  Copies the <a>current frequency data</a> to those
+		bytes. If the array has fewer elements than the {{frequencyBinCount}}, the
+		excess elements will be dropped. If the array has more elements than the
+		{{frequencyBinCount}}, the excess elements will be ignored. The most
+		recent {{AnalyserNode/fftSize}} frames are used in computing the frequency
+		data.
 
 		If another call to {{AnalyserNode/getByteFrequencyData()}} or
 		{{AnalyserNode/getFloatFrequencyData()}} occurs within the same
@@ -4280,13 +4306,14 @@ Methods</h4>
 
 	: <dfn>getByteTimeDomainData(array)</dfn>
 	::
-		Copies the <a>current time-domain data</a> (waveform data) into
-		the passed unsigned byte array. If the array has fewer elements
-		than the value of {{AnalyserNode/fftSize}}, the excess elements
-		will be dropped. If the array has more elements than
-		{{AnalyserNode/fftSize}}, the
-		excess elements will be ignored. The most recent
-		{{AnalyserNode/fftSize}} frames
+		Get a
+		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
+		reference to the bytes</a> held by the [[WebIDL#idl-Uint8Array|Uint8Array]]
+		passed as an argument.  Copies the <a>current time-domain data</a>
+		(waveform data) into those bytes. If the array has fewer elements than the
+		value of {{AnalyserNode/fftSize}}, the excess elements will be dropped. If
+		the array has more elements than {{AnalyserNode/fftSize}}, the excess
+		elements will be ignored. The most recent {{AnalyserNode/fftSize}} frames
 		are used in computing the byte data.
 
 		The values stored in the unsigned byte array are computed in
@@ -4312,13 +4339,15 @@ Methods</h4>
 
 	: <dfn>getFloatFrequencyData(array)</dfn>
 	::
-		Copies the <a>current frequency data</a> into the passed
-		floating-point array. If the array has fewer elements than the
-		{{frequencyBinCount}}, the excess elements will
-		be dropped. If the array has more elements than the
-		{{frequencyBinCount}}, the excess elements will
-		be ignored. The most recent {{AnalyserNode/fftSize}} frames are used in
-		computing the frequency data.
+		Get a
+		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
+		reference to the bytes</a> held by the
+		[[WebIDL#idl-Float32Array|Float32Array]] passed as an argument.  Copies
+		the <a>current frequency data</a> into those bytes.  If the array has
+		fewer elements than the {{frequencyBinCount}}, the excess elements will be
+		dropped. If the array has more elements than the {{frequencyBinCount}},
+		the excess elements will be ignored. The most recent
+		{{AnalyserNode/fftSize}} frames are used in computing the frequency data.
 
 		If another call to {{AnalyserNode/getFloatFrequencyData()}} or
 		{{AnalyserNode/getByteFrequencyData()}} occurs within the same
@@ -4338,14 +4367,15 @@ Methods</h4>
 
 	: <dfn>getFloatTimeDomainData(array)</dfn>
 	::
-		Copies the <a>current time-domain data</a> (waveform data) into
-		the passed floating-point array. If the array has fewer
-		elements than the value of {{AnalyserNode/fftSize}}, the excess elements
-		will be dropped. If the array has more elements than
-		{{AnalyserNode/fftSize}}, the
-		excess elements will be ignored. The most recent
-		{{AnalyserNode/fftSize}} frames
-		are returned (after downmixing).
+		Get a
+		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
+		reference to the bytes</a> held by the
+		[[WebIDL#idl-Float32Array|Float32Array]] passed as an argument.  Copies the
+		<a>current time-domain data</a> (waveform data) into those bytes. If the
+		array has fewer elements than the value of {{AnalyserNode/fftSize}}, the
+		excess elements will be dropped. If the array has more elements than
+		{{AnalyserNode/fftSize}}, the excess elements will be ignored. The most
+		recent {{AnalyserNode/fftSize}} frames are returned (after downmixing).
 
 		<pre class=argumentdef for="AnalyserNode/getFloatTimeDomainData()">
 			array: This parameter is where the time-domain sample data will be copied.
@@ -4558,9 +4588,18 @@ macros:
 	tail-time: No
 </pre>
 
-The number of channels of the output always equals the number of
-channels of the AudioBuffer assigned to the {{AudioBufferSourceNode/buffer}} attribute, or is one
-channel of silence if {{AudioBufferSourceNode/buffer}} is <code>null</code>.
+The number of channels of the output equals the number of channels of the
+AudioBuffer assigned to the {{AudioBufferSourceNode/buffer}} attribute,
+or is one channel of silence if {{AudioBufferSourceNode/buffer}} is
+<code>null</code>.
+
+In addition, if the buffer has more than one channel,
+then the {{AudioBufferSourceNode}} output must change to a single channel
+of silence at a beginning of render quantum after the time at which any one
+of the following conditions holds:
+	* the end of the {{AudioBufferSourceNode/buffer}} has been reached;
+	* the {{AudioBufferSourceNode/start(when, offset, duration)/duration}} has been reached;
+	* the {{AudioScheduledSourceNode/stop(when)/when|stop}} time has been reached.
 
 A <dfn>playhead position</dfn> for an {{AudioBufferSourceNode}} is
 defined as any quantity representing a time offset in seconds,
@@ -5045,8 +5084,8 @@ function process(numberOfFrames) {
 	} // End of render quantum loop
 
 	if (currentTime >= stop) {
-		// end playback state of this node.
-		// no further invocations of process() will occur.
+		// End playback state of this node.  No further invocations of process()
+		// will occur.  Schedule a change to set the number of output channels to 1.
 	}
 
 	return output;
@@ -5515,6 +5554,14 @@ Methods</h4>
 		</pre>
 </dl>
 
+<h4 id="listenerprocessing">
+Processing</h4>
+
+Because {{AudioListener}}'s parameters can be connected with {{AudioNode}}s and
+they can also affect the output of {{PannerNode}}s in the same graph, the node
+ordering algorithm should take the {{AudioListener}} into consideration when
+computing the order of processing. For this reason, all the {{PannerNode}}s in
+the graph have the {{AudioListener}} as input.
 
 <!--
 ████████  ████████   ███████   ██████  ████████  ██████   ██████  ████ ██    ██  ██████
@@ -6873,6 +6920,37 @@ Dictionary {{DelayOptions}} Members</h5>
 	:: The maximum delay time for the node.  See {{BaseAudioContext/createDelay(maxDelayTime)/maxDelayTime!!argument|createDelay(maxDelayTime)}} for constraints.
 </dl>
 
+<h4 id="DelayNode-processing">Processing</h4>
+
+A {{DelayNode}} has an internal buffer that holds {{DelayNode|delayTime}}
+seconds of audio.
+
+The processing of a {{DelayNode}} is broken down in two parts: writing to the
+delay line, and reading from the delay line. This is done via two internal
+{{AudioNode}}s (that are not available to authors and exist only to ease
+the description of the inner workings of the node). Both are created from a
+{{DelayNode}}.
+
+Creating a <dfn>DelayWriter</dfn> for a {{DelayNode}} means creating an object
+that has the same interface as an {{AudioNode}}, and that writes the input audio
+into the internal buffer of the {{DelayNode}}. It has the same input connections
+as the {{DelayNode}} it was created from.
+
+Creating a <dfn>DelayReader</dfn> for a {{DelayNode}} means creating an object
+that has the same interface as an {{AudioNode}}, and that can read the audio
+data from the internal buffer of the {{DelayNode}}. It is connected to the same
+{{AudioNode}}s as the {{DelayNode}} it was created from. A <a>DelayReader</a> is
+a <a>source node</a>.
+
+When processing an input buffer, a <a>DelayWriter</a> MUST write the audio to
+the internal buffer of the {{DelayNode}}.
+
+When producing an output buffer, a <a>DelayReader</a> MUST yield exactly the
+audio that was written to the corresponding <a>DelayWriter</a>
+{{DelayNode|delayTime}} seconds ago.
+
+Note: This means that channel count changes are reflected after the delay time
+has passed.
 
 <!--
 ████████  ██    ██ ██    ██    ███    ██     ██ ████  ██████   ██████
@@ -7639,13 +7717,15 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="MediaElementAudioSourceNode">
 	: <dfn>MediaElementAudioSourceNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{MediaElementAudioSourceNode}}
-		object. <a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+		1. If <var>context</var> is not an {{AudioContext}}, throw an
+			{{NotSupportedError}} exception and abort these steps.
+		2. Let <var>node</var> be a new {{MediaElementAudioSourceNode}} object.
+			<a href="#audionode-constructor-init">Initialize</a> <var>node</var>, and
+			return <var>node</var>.
 
 		<pre class=argumentdef for="MediaElementAudioSourceNode/MediaElementAudioSourceNode()">
-			context: The {{BaseAudioContext}} this new {{MediaElementAudioSourceNode}} will be <a href="#associated">associated</a> with.
-			options: Parameter value for this {{MediaElementAudioSourceNode}}.
+			context: The {{AudioContext}} this new {{MediaElementAudioSourceNode}} will be <a href="#associated">associated</a> with.
+			options: Initial parameter value for this {{MediaElementAudioSourceNode}}.
 		</pre>
 </dl>
 
@@ -7768,9 +7848,11 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="MediaStreamAudioDestinationNode">
 	: <dfn>MediaStreamAudioDestinationNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new
-		{{MediaStreamAudioDestinationNode}} object. <a href="#audionode-constructor-init">Initialize</a> <var>node</var>,
-		and return <var>node</var>.
+		1. If <code>context</code> is not an {{AudioContext}}, throw an
+			{{NotSupportedError}} and abort these steps.
+		2. Let <var>node</var> be a new {{MediaStreamAudioDestinationNode}} object.
+			<a href="#audionode-constructor-init">Initialize</a> <var>node</var>, and
+			return <var>node</var>.
 
 		<pre class=argumentdef for="MediaStreamAudioDestinationNode/MediaStreamAudioDestinationNode()">
 			context: The {{BaseAudioContext}} this new {{MediaStreamAudioDestinationNode}} will be <a href="#associated">associated</a> with.
@@ -7835,13 +7917,21 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="MediaStreamAudioSourceNode">
 	: <dfn>MediaStreamAudioSourceNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{MediaStreamAudioSourceNode}}
-		object. <a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
-
+			1. If <var>context</var> is not an {{AudioContext}}, throw an
+				{{NotSupportedError}} exception and abort these steps.
+			2. If the {{MediaStreamAudioSourceOptions/mediaStream}} member of
+				<code>options</code> does not reference a
+				[[mediacapture-streams#mediastream|MediaStream]] that has at least one
+				[[mediacapture-streams#mediastreamtrack|MediaStramTrack]] whose
+				<code>kind</code> attribute has the value <code>"audio"</code>,
+				throw an {{InvalidStateError}} and abort these steps.
+			3. Let <var>node</var> be a new {{MediaStreamAudioSourceNode}}
+				object. <a href="#audionode-constructor-init">Initialize</a>
+				<var>node</var>, and return <var>node</var>.
 		<pre class=argumentdef for="MediaStreamAudioSourceNode/MediaStreamAudioSourceNode()">
-			context: The {{BaseAudioContext}} this new {{MediaStreamAudioSourceNode}} will be <a href="#associated">associated</a> with.
-			options: Initial parameter values for this {{MediaStreamAudioSourceNode}}. If the {{MediaStreamAudioSourceOptions/mediaStream}} parameter does not reference a [[mediacapture-streams#mediastream|MediaStream]] whose <code>kind</code> attribute has the value <code>"audio"</code>, <span class="synchronous">an {{InvalidStateError}} MUST be thrown</span>.
+			context: The {{AudioContext}} this new {{MediaStreamAudioSourceNode}} will be <a href="#associated">associated</a> with.
+			options: Initial parameter value for this {{MediaStreamAudioSourceNode}}.
+		</pre>
 		</pre>
 </dl>
 
@@ -7905,12 +7995,17 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="MediaStreamTrackAudioSourceNode">
 	: <dfn>MediaStreamTrackAudioSourceNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new
-		{{MediaStreamTrackAudioSourceNode}} object. <a href="#audionode-constructor-init">Initialize</a> <var>node</var>,
-		and return <var>node</var>.
+		1. If <var>context</var> is not an {{AudioContext}}, throw an
+			{{NotSupportedError}} exception and abort these steps.
+		2. If the {{MediaStreamTrackAudioSourceOptions/mediaStreamTrack}}'s
+			<code>kind</code> attribute is not <code>"audio"</code>, throw an
+			{{InvalidStateError}} and abort these steps.
+		3. Let <var>node</var> be a new {{MediaStreamTrackAudioSourceNode}} object.
+			<a href="#audionode-constructor-init">Initialize</a> <var>node</var>, and
+			return <var>node</var>.
 
 		<pre class=argumentdef for="MediaStreamTrackAudioSourceNode/MediaStreamTrackAudioSourceNode()">
-			context: The {{BaseAudioContext}} this new {{MediaStreamTrackAudioSourceNode}} will be <a href="#associated">associated</a> with.
+			context: The {{AudioContext}} this new {{MediaStreamTrackAudioSourceNode}} will be <a href="#associated">associated</a> with.
 			options: Initial parameter value for this {{MediaStreamTrackAudioSourceNode}}.
 		</pre>
 </dl>
@@ -8778,7 +8873,6 @@ The set of <a href="#panner-channel-limitations">channel
 limitations</a> for {{StereoPannerNode}} also apply
 to {{PannerNode}}.
 
-
 <!-- Big Text: Periodic -->
 
 <h3 interface lt="PeriodicWave">
@@ -9487,7 +9581,7 @@ class BypassProcessor extends AudioWorkletProcessor {
 		// Process only while there are inputs.
 		return false;
 	}
-});
+};
 
 registerProcessor('bypass-processor', BypassProcessor);
 </pre>
@@ -9850,9 +9944,7 @@ audio <a>rendering thread</a>. It lives in an
 the class manifests the actual audio processing mechanism of a
 custom audio node. {{AudioWorkletProcessor}} can
 only be instantiated by the construction of an
-{{AudioWorkletNode}} instance. Every
-{{AudioWorkletProcessor}} has an associated <dfn>node
-reference</dfn>, initially null.
+{{AudioWorkletNode}} instance.
 
 <pre class="idl">
 [Exposed=AudioWorklet,
@@ -9861,6 +9953,19 @@ interface AudioWorkletProcessor {
 	readonly attribute MessagePort port;
 };
 </pre>
+
+{{AudioWorkletProcessor}} has two internal slots:
+
+<dl dfn-type=attribute dfn-for="AudioWorkletProcessor">
+	: <dfn>[[node reference]]</dfn>
+	::
+		A reference to the associated {{AudioWorkletNode}}.
+
+	: <dfn>[[callable process]]</dfn>
+	::
+		A boolean flag representing whether {{AudioWorkletProcessor/process()}} is
+		a valid function that can be invoked.
+</dl>
 
 <h5 id="AudioWorketProcessor-constructors">
 Constructors</h5>
@@ -9878,7 +9983,7 @@ Constructors</h5>
 				directly from JavaScript. The interface object may only
 				be called internally by the UA.
 
-			  1. Initialize the {{AudioWorkletProcessor}} using the
+			1. Initialize the {{AudioWorkletProcessor}} using the
 				contents of the <code>options</code> dictionary that was
 				passed to the constructor for {{AudioWorkletNode}}. The
 				contents of this dictionary will have been serialized and
@@ -9891,6 +9996,9 @@ Constructors</h5>
 				{{AudioWorkletProcessor}} will use this dictionary to
 				initialize themselves based on the options relevant to
 				their specific node type.
+
+			1. Set {{[[node reference]]}} to `null` and {{[[callable process]]}} to
+				`false`.
 		</div>
 
 		<pre class="argumentdef" for="AudioWorkletProcessor/AudioWorkletProcessor()">
@@ -9898,8 +10006,7 @@ Constructors</h5>
 		</pre>
 </dl>
 
-<h5 id="AudioWorkletProcessor-attributes">
-Attributes</h5>
+<h5 id="AudioWorkletProcessor-attributes">Attributes</h5>
 
 <dl dfn-type=attribute dfn-for="AudioWorkletProcessor">
 	: <dfn>port</dfn>
@@ -9922,8 +10029,7 @@ algorithm and may have a valid static property named
 of {{AudioParamDescriptor}} that is looked up by the
 {{AudioWorkletProcessor}} constructor to create instances of
 {{AudioParam}} in the <code>parameters</code> maplike storage
-in the node. The <a href="#check-prototype-type">prototype type check step</a> and the <a href="#check-is-callable">process method is callable step</a> of <a data-link-for="AudioWorkletGlobalScope">registerProcessor()</a> ensure the
-validity of a given {{AudioWorkletProcessor}} subclass.
+in the node.
 
 <dl dfn-type=method dfn-for="AudioWorkletProcessor">
 	: <dfn>process(inputs, outputs, parameters)</dfn>
@@ -9933,13 +10039,17 @@ validity of a given {{AudioWorkletProcessor}} subclass.
 
 		The {{process()}} method is called
 		synchronously by the audio <a>rendering thread</a> at
-		every <a>render quantum</a>, if ANY of the following
-		<dfn dfn>active processing conditions</dfn> are true:
+		every <a>render quantum</a>, if both conditions are met:
 
-		1. The associated {{AudioWorkletProcessor}}'s
-			<a>active source</a> flag is equal to `true`.
+		* {{[[callable process]]}} is `true`.
 
-		2. There are one or more connected inputs to the {{AudioWorkletNode}}.
+		* <dfn dfn>active processing conditions</dfn> are `true`, meaning
+			ANY of the following states are met:
+
+			* The associated {{AudioWorkletProcessor}}'s
+				<a>active source</a> flag is equal to `true`.
+
+			* There are one or more connected inputs to the {{AudioWorkletNode}}.
 
 		The return value of this method controls the lifetime of the
 		{{AudioWorkletProcessor}}'s associated
@@ -10198,31 +10308,26 @@ thread and the rendering thread.
 		  [$StructuredDeserialize$](<code>optionsSerialization</code>, the
 		  current Realm).
 
-	2. Let <var>processorConstructor</var> be the result of looking up
+	1. Let <var>processorConstructor</var> be the result of looking up
 		<var>nodeName</var> on the {{AudioWorkletGlobalScope}}'s <a>node
 		name to processor definition map</a>.
 
-	3. If <var>processorConstructor</var> is <code>undefined</code>,
+	1. If <var>processorConstructor</var> is <code>undefined</code>,
 		throw a {{NotSupportedError}} DOMException.
 
-	4. Let <var>processor</var> be the result of
+	1. Let <var>processor</var> be the result of
 		Construct(<var>processorConstructor</var>, « <var>options</var> »).
 
-	5. If <var>processor</var> does not implement the
-		{{AudioWorkletProcessor}} interface, throw an
-		{{InvalidStateError}} DOMException.
+	1. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to
+		<var>processorPort</var>.
 
-	6. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to <var>processorPort</var>.
-
-	7. Set <var>processor</var>'s <a>node reference</a> to
+	1. Set <var>processor</var>'s {{[[node reference]]}}to
 		<var>node</var>.
 
-	8. Set <var>node</var>'s <a>processor reference</a> to
-		<var>processor</var>.
+	1. Set {{[[callable process]]}} to `true`.
 
-	9. <a>Queue a task</a> the <a>control thread</a> to set the associated
-		{{AudioWorkletNode}}'s state to <code>running</code>, then fire
-		a <code>statechange</code> event.
+	1. Set <var>node</var>'s <a>processor reference</a> to
+		<var>processor</var>.
 </div>
 
 <h4 id="AudioWorklet-Sequence">
@@ -10289,7 +10394,6 @@ a lower bit-depth), and by quantizing in time resolution
 <pre line-numbers class="example" highlight="js" title="BitCrusher - Global Scope">
 let context = new AudioContext();
 context.audioWorklet.addModule('bitcrusher.js').then(() =&gt; {
-	let context = new AudioContext();
 	let osc = new OscillatorNode(context);
 	let amp = new GainNode(context);
 
@@ -10335,8 +10439,10 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 	process (inputs, outputs, parameters) {
 		let input = inputs[0];
 		let output = outputs[0];
+		const bitDepth = parameters.bitDepth;
 		let bitDepthLength = parameters.bitDepth.length;
-		let reductionLength = parameters.frequencyReduction.length;
+		const frequencyReduction = parameters.frequencyReduction;
+		let frequencyReductionLength = parameters.frequencyReduction.length;
 
 		if (bitDepthLength > 1) {
 			// General case
@@ -10346,7 +10452,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
 					// Use modulo for indexing to handle the case where
 					// the length of the frequencyReduction array is 1.
-					this._phase += frequencyReduction[i % reductionLength];
+					this._phase += frequencyReduction[i % frequencyReductionLength];
 					if (this._phase >= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
@@ -10362,7 +10468,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 			let step = Math.pow(0.5, bitDepth[0]);
 			for (let channel = 0; channel &lt; output.length; ++channel) {
 				for (let i = 0; i &lt; output[channel].length; ++i) {
-					this._phase += frequencyReduction[i % reductionLength];
+					this._phase += frequencyReduction[i % frequencyReductionLength];
 					if (this._phase >= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
@@ -10504,8 +10610,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 &lt;script src="vumeternode.js">&lt;/script>
 &lt;script>
 	importAudioWorkletNode.then(() =&gt; {
-		let context = new AudioContext();
-		let oscillator = new Oscillator(context);
+		let oscillator = new OscillatorNode(context);
 		let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
 
 		oscillator.connect(vuMeterNode);
@@ -10722,28 +10827,44 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 		2. Order the {{AudioNode}}s of the {{BaseAudioContext}} to be processed.
 
-			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s. It will
-				contain an ordered list of {{AudioNode}}s when this ordering algorithm
-				terminates.
+			1. Let <var>ordered node list</var> be an empty list of {{AudioNode}}s and
+				{{AudioListener}}. It will contain an ordered list of {{AudioNode}}s and
+				the {{AudioListener}} when this ordering algorithm terminates.
 
 			2. Let <var>nodes</var> be the set of all nodes created by this
 				{{BaseAudioContext}}, and still alive.
 
-			3. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
+			3. Add the {{AudioListener}} to <var>nodes</var>.
+
+			4. Let <var>cycle breakers</var> be an empty set of {{DelayNode}}s. It will
 				contain all the {{DelayNode}}s that are part of a cycle.
 
-			4. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
+			5. For each {{AudioNode}} <var>node</var> in <var>nodes</var>:
 
 				1. If <var>node</var> is a {{DelayNode}} that is part of a cycle, add it
 					to <var>cycle breakers</var> and remove it from <var>nodes</var>.
 
-			5. If <var>nodes</var> contains cycles, [=mute=] all the
+			6. For each {{DelayNode}} <var>delay</var> in <var>cycle breakers</var>:
+
+				1. Let <var>delayWriter</var> and <var>delayReader</var> respectively be a
+						<a>DelayWriter</a> and a <a>DelayReader</a>, for <var>delay</var>.
+						Add <var>delayWriter</var> and <var>delayReader</var> to
+						<var>nodes</var>. Disconnect <var>delay</var> from all its input and
+						outputs.
+
+						Note: This breaks the cycle: if a <code>DelayNode</code> is in a
+						cycle, its two ends can be considered separately, because delay lines
+						cannot be smaller than one render quantum when in a cycle.
+
+			7. If <var>nodes</var> contains cycles, [=mute=] all the
 				{{AudioNode}}s that are part of this cycle, and remove them from
 				<var>nodes</var>.
 
-			6. While there are unmarked {{AudioNode}}s in <var>nodes</var>:
+			8. Let <var>ordered node list</var> be a empty list.
 
-				1. Choose an {{AudioNode}} <var>node</var> in <var>nodes</var>.
+			9. While there are unmarked elements in <var>nodes</var>:
+
+				1. Choose an element <var>node</var> in <var>nodes</var>.
 
 				2. [=Visit=] <var>node</var>.
 
@@ -10755,21 +10876,22 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 
 					2. Mark <var>node</var>.
 
-					3. [=Visit=] each {{AudioNode}} connected to the input of
-						<var>node</var>.
+					3. If <var>node</var> is an {{AudioNode}}, [=Visit=] each
+						{{AudioNode}} connected to the input of <var>node</var>.
+
+					4. For each {{AudioParam}} <var>param</var> of <var>node</var>:
+						1. For each {{AudioNode}} <var>param input node</var> connected to <var>param</var>:
+							1. [=Visit=] <var>param input node</var>
+
+					5. Add <var>node</var> to the beginning of <var ignore>ordered node list</var>.
 				</div>
 
-			7. Add <var>node</var> to the beginning of <var>ordered node list</var>.
-
-			8. Reverse the order of <var>ordered node list</var>.
-
-		3. For each {{DelayNode}} in a cycle, [=Making a buffer available for reading|make
-			available for reading=] a block of audio from the {{DelayNode}} buffer.
+			10. Reverse the order of <var>ordered node list</var>.
 
 		4. [[#computation-of-value|Compute the value(s)]] of the
 			{{AudioListener}}'s {{AudioParam}}s for this block.
 
-		5. For each {{AudioNode}}, in the order determined previously:
+		5. For each {{AudioNode}}, in <var>ordered node list</var>:
 
 			1. For each {{AudioParam}} of this {{AudioNode}}, execute these steps:
 
@@ -10800,16 +10922,42 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 				[=Computing a block of audio|compute a block of audio=], and
 				[=Making a buffer available for reading|make it available for reading=].
 
-			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, invoke associated
-				{{AudioWorkletProcessor}}'s {{AudioWorkletProcessor/process()}} method
-				to [=Computing a block of audio|compute a block of audio=] with
-				the argument of [=input buffer=], output buffer and
-				[=input AudioParam buffer=].
+			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these
+				substeps:
+
+				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
+					instance of {{AudioWorkletNode}}.
+
+				1. If {{[[callable process]]}} of <var>processor</var> is `true`,
+					execute the following steps:
+
+					1. Let <var>processFunction</var> be the result of
+						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
+						Get</a>(O=<i><var>processor</var></i>, P="process")</code>.
+
+					1. Set {{[[callable process]]}} to be the return value of
+						<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
+						IsCallable</a>(argument=<i><var>processFunction</var></i>)</code>.
+
+					1. If {{[[callable process]]}} is `true`,
+						invoke <var>processFunction</var> to
+						[=Computing a block of audio|compute a block of audio=] with the
+						argument of [=input buffer=], output buffer and
+						[=input AudioParam buffer=].
+
+					1. Else if {{[[callable process]]}} is `false`,
+						<a>Queue a control message</a> to fire `onprocessorerror` event on
+						the associated {{AudioWorkletNode}}.
+
+				1. If {{[[callable process]]}} of <var>processor</var> is `false`,
+					execute the following steps:
+
+					1. [=Making a buffer available for reading|Make a silent output buffer available for reading=].
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
 
-			5. Else, if this {{AudioNode}} is a <a>destination node</a>,
+			5. If this {{AudioNode}} is a <a>destination node</a>,
 				[=Recording the input|record the input=] of this {{AudioNode}}.
 
 			6. Else, <a>process</a> the <a>input buffer</a>, and
@@ -11225,6 +11373,37 @@ defined below, skipping over those channels not present.
 		<tr><td>17 <td>SPEAKER_TOP_BACK_RIGHT <td> <td> <td> <td>
 </table>
 
+<h3 id="channels-tail-time">
+Implication of tail-time on input and output channel count</h3>
+
+When an {{AudioNode}} has a non-zero <a>tail-time</a>, and an output channel
+count that depends on the input channels count, the {{AudioNode}}'s
+<a>tail-time</a> must be taken into account when the input channel count
+changes.
+
+When there is a decrease in input channel count, the change in output channel
+count MUST happen when the input that was received with greater channel count no
+longer affects the output.
+
+When there is an increase in input channel count, the behavior depends on the
+{{AudioNode}} type:
+
+- For a {{DelayNode}} or a {{DynamicsCompressorNode}}, the number of output
+	channels MUST increase when the input that was received with greater channel
+	count begins to affect the output.
+
+- For other {{AudioNode}}s that have a <a>tail-time</a>, the number of output
+	channels MUST increase immediately.
+
+	Note: For a {{ConvolverNode}}, this only applies to the case where the impulse
+	response is mono. Otherwise, the {{ConvolverNode}} always outputs a stereo
+	signal regardless of its input channel count.
+
+Note: Intuitively, this allows not losing stereo information as part of
+processing: when multiple input render quanta of different channel count
+contribute to an output render quantum then the output render quantum's channel
+count is a superset of the input channel count of the input render quantums.
+
 <h3 id="UpMix-sub">
 Up Mixing Speaker Layouts</h3>
 
@@ -11344,13 +11523,28 @@ Channel Rules Examples</h3>
 	gain.channelInterpretation = "speakers";
 </pre>
 
-<h2 id="audio-sample-values">
+<h2 id="audio-signal-values">
 Audio Signal Values</h2>
+
+<h3 id="audio-sample-format">
+Audio sample format</h3>
+
+<dfn lt="linear PCM">Linear pulse code modulation</dfn> (linear PCM) describes a
+format where the audio values are sampled at a regular interval, and where the
+quantization levels between two successive values are linearly uniform.
+
+Whenever signal values are exposed to script in this specification, they are in
+linear 32-bit floating point pulse code modulation format (linear 32bits float
+PCM), often in the form of {{Float32Array}} objects.
+
+<h3 id="audio-values-rendering">
+Rendering</h3>
 
 The range of all audio signals at a destination node of any audio graph
 is nominally [-1, 1]. The audio rendition of signal values outside this
 range, or of the values <code>NaN</code>, positive infinity or negative
 infinity, is undefined by this specification.
+
 
 <h2 id="Spatialization">
 Spatialization/Panning</h2>
@@ -11893,7 +12087,7 @@ to Consider</a>
 4. Does this specification expose persistent, cross-origin state to
 	the web?
 
-	Yes, the supported audio sample rate(s) and the output device channel count are exposed.
+	Yes, the supported audio sample rate(s) and the output device channel count are exposed. See {{AudioContext}}.
 
 5. Does this specification expose any other data to an origin that it
 	doesn’t currently have access to?
@@ -11914,11 +12108,11 @@ to Consider</a>
 	be used to gather entropy from a client to fingerprint a device.
 	This is due to small, and normally inaudible, differences in DSP
 	architecture, resampling strategies and rounding trade-offs between
-	differing implementations. The precise comiler flags used and also the
-	CPU architecture (Arm vs. x86) also contribute to this entropy.
+	differing implementations. The precise compiler flags used and also the
+	CPU architecture (ARM vs. x86) contribute to this entropy.
 
 	In practice however, this merely allows deduction of information
-	already readilly available by easier means (User Agent string),
+	already readily available by easier means (User Agent string),
 	such as "this is Chrome running on an x86".
 
 	Fingerprinting via clock skew
@@ -11988,7 +12182,7 @@ to Consider</a>
 	It typically does not allow access to other networked devices (an
 	exception in a high-end recording studio might be Dante networked
 	devices, although these typically use a separate, dedicated network).
-	It does of necessity allow access to the users audio output device
+	It does of necessity allow access to the user's audio output device
 	or devices, which are sometimes separate units to the computer.
 
 	For voice or sound-actuated devices, Web Audio API <em>might</em> be used
@@ -12012,7 +12206,7 @@ to Consider</a>
 	over a user agent’s native UI?
 
 	If the UI has audio components, such as a voice assistant or screenreader,
-	Web Audio API might be used to emulate emulate aspects of the native UI to make
+	Web Audio API might be used to emulate aspects of the native UI to make
 	an attack seem more like a local system event.
 	This possibility also exists with HTML, through
 	the &lt;audio&gt; element.
@@ -12029,7 +12223,7 @@ to Consider</a>
 14. How should this specification work in the context of a user agent’s
 	"incognito" mode?
 
-	No differently.
+	Not differently.
 
 15. Does this specification persist data to a user’s local device?
 
@@ -12184,15 +12378,55 @@ Members and former members of the Working Group and contributors to the specific
 alphabetical order):<br>
 Adenot, Paul (Mozilla Foundation) - Specification Co-editor;
 Akhgari, Ehsan (Mozilla Foundation);
-Berkovitz, Joe (Invited Expert, affiliated with Noteflight/Hal Leonard, WG Chair from September 2013 to December 2017);
+Becker, Steven (Microsoft Corporation);
+Berkovitz, Joe (Invited Expert, affiliated with Noteflight/Hal Leonard) - WG co-chair from September 2013 to December 2017);
 Bossart, Pierre (Intel Corporation);
-Buffa, Michel (NSAU;)
+Borins, Myles (Google, Inc);
+Buffa, Michel (NSAU);
 Caceres, Marcos (Invited Expert);
 Cardoso, Gabriel (INRIA);
-Carlson, Eric (Apple, Inc.);
-Chen, Bin (Baidu, Inc.);
-Choi, Hongchan (Google, Inc.);
+Carlson, Eric (Apple, Inc);
+Chen, Bin (Baidu, Inc);
+Choi, Hongchan (Google, Inc) - Specification Co-editor;
+Collichio, Lisa (Qualcomm);
 Geelnard, Marcus (Opera Software);
 Gehring, Todd (Dolby Laboratories);
-Goode, Adam (Google, Inc.); Gregan, Matthew (Mozilla Foundation); Hofmann, Bill (Dolby Laboratories); Jägenstedt, Philip (Opera Software); Kalliokoski, Jussi (Invited Expert); Kawai, Ryoya (AMEI); Lilley, Chris (W3C Staff); Lowis, Chris (Invited Expert. WG co-chair from December 2012 to September 2013, affiliated with British Broadcasting Corporation); MacDonald, Alistair (W3C Invited Experts) — WG co-chair
-from March 2011 to July 2012; Mandyam, Giridhar (Qualcomm Innovation Center, Inc); Michel, Thierry (W3C/ERCIM); Noble, Jer (Apple, Inc.); O'Callahan, Robert(Mozilla Foundation); Onumonu, Anthony (British Broadcasting Corporation); Paradis, Matthew (British Broadcasting Corporation) - WG Chair from September 2013 to present; Raman, T.V. (Google, Inc.); Rogers, Chris (Google, Inc.) – Specification Editor until August 2013; Schepers, Doug (W3C/MIT); Shires, Glen (Google, Inc.); Smith, Michael (W3C/Keio); Thereaux, Olivier (British Broadcasting Corporation); Toy, Raymond (Google, Inc.) - WG Chair from December 2017 - Present, Specification Co-editor; Verdie, Jean-Charles (MStar Semiconductor, Inc.); Wei, James (Intel Corporation); Weitnauer, Michael (IRT); Wilson, Chris (Google,Inc.) - Specification Co-editor; ZERGAOUI, Mohamed (INNOVIMAX)
+Goode, Adam (Google, Inc);
+Gregan, Matthew (Mozilla Foundation);
+Hikawa, Kazuo (AMEI);
+Hofmann, Bill (Dolby Laboratories);
+Jägenstedt, Philip (Google, Inc);
+Jeong, Paul Changjin (HTML5 Converged Technology Forum);
+Kalliokoski, Jussi (Invited Expert);
+Lee, WonSuk (Electronics and Telecommunications Research Institute);
+Kakishita, Masahiro (AMEI);
+Kawai, Ryoya (AMEI);
+Kostiainen, Anssi (Intel Corporation);
+Lilley, Chris (W3C Staff);
+Lowis, Chris (Invited Expert) - WG co-chair from December 2012 to September 2013, affiliated with British Broadcasting Corporation;
+MacDonald, Alistair (W3C Invited Experts) — WG co-chair from March 2011 to July 2012;
+Mandyam, Giridhar (Qualcomm Innovation Center, Inc);
+Michel, Thierry (W3C/ERCIM);
+Nair, Varun (Facebook);
+Needham, Chris (British Broadcasting Corporation);
+Noble, Jer (Apple, Inc);
+O'Callahan, Robert(Mozilla Foundation);
+Onumonu, Anthony (British Broadcasting Corporation);
+Paradis, Matthew (British Broadcasting Corporation) - WG co-chair from September 2013 to present;
+Pozdnyakov, Mikhail (Intel Corporation);
+Raman, T.V. (Google, Inc);
+Rogers, Chris (Google, Inc);
+Schepers, Doug (W3C/MIT);
+Schmitz, Alexander (JS Foundation);
+Shires, Glen (Google, Inc);
+Smith, Jerry (Microsoft Corporation);
+Smith, Michael (W3C/Keio);
+Thereaux, Olivier (British Broadcasting Corporation);
+Toy, Raymond (Google, Inc.) - WG co-chair from December 2017 - Present;
+Toyoshima, Takashi (Google, Inc);
+Troncy, Raphael (Institut Telecom);
+Verdie, Jean-Charles (MStar Semiconductor, Inc.);
+Wei, James (Intel Corporation);
+Weitnauer, Michael (IRT);
+Wilson, Chris (Google,Inc);
+Zergaoui, Mohamed (INNOVIMAX)

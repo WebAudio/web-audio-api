@@ -1285,17 +1285,6 @@ output device that produces a signal directed at the user. In most
 use cases, only a single {{AudioContext}} is used per
 document.
 
-An {{AudioContext}} is said to be <dfn>allowed to
-start</dfn> if the user agent and the system allow audio output in
-the current context. In other words, if the
-{{AudioContext}} <em>control thread state</em> is
-allowed to transition from <code>suspended</code> to
-<code>running</code>.
-
-Note: For example, a user agent could require that an
-{{AudioContext}} control thread state change to
-running is <a>triggered by user activation</a> (as described in [[HTML]]).
-
 <pre class="idl">
 enum AudioContextLatencyCategory {
 		"balanced",
@@ -1303,6 +1292,7 @@ enum AudioContextLatencyCategory {
 		"playback"
 };
 </pre>
+
 <div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="AudioContextLatencyCategory">
 	<thead>
@@ -1347,6 +1337,23 @@ interface AudioContext : BaseAudioContext {
 };
 </xmp>
 
+{{AudioContext}} has two internal slots:
+
+<dl dfn-type=attribute dfn-for="AudioContext">
+	: <dfn>[[is allowed to play]]</dfn>
+	::
+		A boolean flag representing whether the audio is allowed to play by user
+		agent. The initial value is <code>false</code>.
+
+	: <dfn>[[is suspended by user]]</dfn>
+	::
+		A boolean flag representing whether the context is suspended by user code.
+		The initial value is <code>false</code>.
+</dl>
+
+NOTE: A user agent may require the actual audio production from an
+{{AudioContext}} to be triggered by user activation (as described in [[HTML]]).
+
 <h4 id="AudioContext-constructors">
 Constructors</h4>
 
@@ -1381,8 +1388,8 @@ Constructors</h4>
 					AudioContext may be affected, possibly by a large
 					amount.
 
-			5. If the {{AudioContext}} is <a>allowed to start</a>, send a
-				<a>control message</a> to start processing.
+			5. If the {{[[is allowed to play]]}} is <code>true</code>,
+				send a <a>control message</a> to start processing.
 
 			6. Return this {{AudioContext}} object.
 		</div>
@@ -1655,20 +1662,21 @@ Methods</h4>
 				promise with {{InvalidStateError}}, abort these steps,
 				returning <var>promise</var>.
 
-			3. If the {{AudioContext}} is not <a>allowed to
-				start</a>, append <var>promise</var> to
-				<a>pendingResumePromises</a> and abort these steps, returning
-				<var>promise</var>.
+			3. If {{[[is allowed to play]]}} is <code>false</code>, append
+				<var>promise</var> to <a>pendingResumePromises</a> and abort these
+				steps, returning <var>promise</var>.
 
-			4. Set the <em>control thread state</em> flag on the
+			4. Set {{[[is suspended by user]]}} to <code>false</code>.
+
+			5. Set the <em>control thread state</em> flag on the
 				{{AudioContext}} to <code>running</code>.
 
-			5. <a>Queue a control message</a> to resume the {{AudioContext}}.
+			6. <a>Queue a control message</a> to resume the {{AudioContext}}.
 
-			6. Return <var>promise</var>.
+			7. Return <var>promise</var>.
 		</div>
 
-		<div algorithm="run a control message in AudioContext">
+		<div id="context-resume" algorithm="run a control message in AudioContext">
 			Running a <a>control message</a> to resume an
 			{{AudioContext}} means running these steps on the
 			<a>rendering thread</a>:
@@ -1734,11 +1742,13 @@ Methods</h4>
 				with {{InvalidStateError}}, abort these steps,
 				returning <em>promise</em>.
 
-			3. Set the <em>control thread state</em> flag on the {{AudioContext}} to <code>suspended</code>.
+			3. Set {{[[is suspended by user]]}} to <code>true</code>.
 
-			4. <a>Queue a control message</a> to suspend the {{AudioContext}}.
+			4. Set the <em>control thread state</em> flag on the {{AudioContext}} to <code>suspended</code>.
 
-			5. Return <em>promise</em>.
+			5. <a>Queue a control message</a> to suspend the {{AudioContext}}.
+
+			6. Return <em>promise</em>.
 		</div>
 
 		<div algorithm="run a control message to suspend an AudioContext">
@@ -4083,6 +4093,14 @@ Methods</h4>
 			3. <a>Queue a control message</a> to start the
 				{{AudioScheduledSourceNode}}, including the parameter
 				values in the messsage.
+
+			4. Send a <a>control message</a> to the associated {{AudioContext}} to
+				<a href="#context-resume">run it in the rendering thread</a> only when
+				the following conditions are met:
+				1. The context's <code>control thread state</code> is
+					<code>suspended</code>.
+				2. {{[[is allowed to play]]}} flag is <code>true</code>.
+				3. {{[[is suspended by user]]}} flag is <code>false</code>.
 		</div>
 
 		<pre class=argumentdef for="AudioScheduledSourceNode/start(when)">
@@ -4767,13 +4785,20 @@ Methods</h4>
 			3. <a>Queue a control message</a> to start the
 				{{AudioBufferSourceNode}}, including the parameter values
 				in the messsage.
+
+			4. Send a <a>control message</a> to the associated {{AudioContext}} to
+				<a href="#context-resume">run it in the rendering thread</a> only when
+				the following conditions are met:
+				1. The context's <code>control thread state</code> is
+					<code>suspended</code>.
+				2. {{[[is allowed to play]]}} flag is <code>true</code>.
+				3. {{[[is suspended by user]]}} flag is <code>false</code>.
 		</div>
 
 		<div algorithm="run a control message to start the AudioBufferSourceNode">
-			Running a <a>control message</a> to start the
-			{{AudioBufferSourceNode}} means invoking the
-			<code>handleStart()</code> function in the <a href="#playback-AudioBufferSourceNode">playback algorithm</a> which
-			follows.
+			Running a <a>control message</a> to start the {{AudioBufferSourceNode}}
+			means invoking the <code>handleStart()</code> function in the
+			[[#playback-AudioBufferSourceNode|playback algorithm]] which follows.
 		</div>
 
 		<pre class=argumentdef for="AudioBufferSourceNode/start(when, offset, duration)">

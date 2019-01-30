@@ -1337,22 +1337,19 @@ interface AudioContext : BaseAudioContext {
 };
 </xmp>
 
-{{AudioContext}} has two internal slots:
+An {{AudioContext}} is said to be <dfn>allowed to start</dfn> if the user agent
+allows the current context to produce audible output.  A user agent may require
+the actual audio production from an {{AudioContext}} to be <a>triggered by user
+activation</a> (as described in [[HTML]]).
+
+{{AudioContext}} has an internal slot:
 
 <dl dfn-type=attribute dfn-for="AudioContext">
-	: <dfn>[[is allowed to play]]</dfn>
-	::
-		A boolean flag representing whether the audio is allowed to play by user
-		agent. The initial value is <code>false</code>.
-
 	: <dfn>[[is suspended by user]]</dfn>
 	::
 		A boolean flag representing whether the context is suspended by user code.
 		The initial value is <code>false</code>.
 </dl>
-
-NOTE: A user agent may require the actual audio production from an
-{{AudioContext}} to be triggered by user activation (as described in [[HTML]]).
 
 <h4 id="AudioContext-constructors">
 Constructors</h4>
@@ -1388,8 +1385,8 @@ Constructors</h4>
 					AudioContext may be affected, possibly by a large
 					amount.
 
-			5. If the {{[[is allowed to play]]}} is <code>true</code>,
-				send a <a>control message</a> to start processing.
+			5. If the context is <a>allowed to start</a>, send a
+				<a>control message</a> to start processing.
 
 			6. Return this {{AudioContext}} object.
 		</div>
@@ -1662,11 +1659,11 @@ Methods</h4>
 				promise with {{InvalidStateError}}, abort these steps,
 				returning <var>promise</var>.
 
-			3. If {{[[is allowed to play]]}} is <code>false</code>, append
-				<var>promise</var> to <a>pendingResumePromises</a> and abort these
-				steps, returning <var>promise</var>.
+			3. Set {{[[is suspended by user]]}} to <code>false</code>.
 
-			4. Set {{[[is suspended by user]]}} to <code>false</code>.
+			4. If the context is not <a>allowed to start</a>, append<var>promise</var>
+				to <a>pendingResumePromises</a> and abort these steps, returning
+				<var>promise</var>.
 
 			5. Set the <em>control thread state</em> flag on the
 				{{AudioContext}} to <code>running</code>.
@@ -4099,7 +4096,7 @@ Methods</h4>
 				the following conditions are met:
 				1. The context's <code>control thread state</code> is
 					<code>suspended</code>.
-				2. {{[[is allowed to play]]}} flag is <code>true</code>.
+				2. The context is <a>allowed to start</a>.
 				3. {{[[is suspended by user]]}} flag is <code>false</code>.
 		</div>
 
@@ -4791,7 +4788,7 @@ Methods</h4>
 				the following conditions are met:
 				1. The context's <code>control thread state</code> is
 					<code>suspended</code>.
-				2. {{[[is allowed to play]]}} flag is <code>true</code>.
+				2. The context is <a>allowed to start</a>.
 				3. {{[[is suspended by user]]}} flag is <code>false</code>.
 		</div>
 

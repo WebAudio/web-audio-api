@@ -12,9 +12,11 @@ ERRLOG="actual-errs.txt"
 # can update the expected errors.
 trap "rm $ERRLOG" 0
 
+sed -i "s/if __main__/import faulthandler\nfaulthandler.enable\(\)\nif __main__/" `which bikeshed`
+
 # Run bikeshed and save the output.  You can use this output as is
 # to update expected-errs.txt.
-bikeshed --print=plain -f spec 2>&1 > $BSLOG
+PYTHONFAULTHANDLER=1 python `which bikeshed` --print=plain -f spec 2>&1 > $BSLOG
 # Remove the line numbers from the log, and make sure it ends with a
 # newline.
 sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG

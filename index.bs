@@ -7875,17 +7875,7 @@ Attributes</h4>
 The {{MediaStreamAudioSourceNode}} Interface</h3>
 
 This interface represents an audio source from a
-[[mediacapture-streams#mediastream|MediaStream]]. The track that will be used as the source
-of audio and will be output from this node is the first
-[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] whose <code>kind</code> attribute has
-the value <code>"audio"</code>, when alphabetically sorting the
-tracks of this [[mediacapture-streams#mediastream|MediaStream]] by their <code>id</code>
-attribute. Those interfaces are described in
-[[!mediacapture-streams]].
-
-Note: The behaviour for picking the track to output is weird for legacy
-reasons. {{MediaStreamTrackAudioSourceNode}} should be used
-instead.
+[[mediacapture-streams#mediastream|MediaStream]].
 
 <pre class=include>
 path: audionode-noinput.include
@@ -7894,9 +7884,9 @@ macros:
 	tail-time: No
 </pre>
 
-The number of channels of the output corresponds to the number of
-channels of the [[mediacapture-streams#mediastreamtrack|MediaStreamTrack]]. If there is no valid
-audio track, then the number of channels output will be one silent
+The number of channels of the output corresponds to the number of channels of
+the [[mediacapture-streams#mediastreamtrack|MediaStreamTrack]]. If there is no
+valid audio track, then the number of channels output will be one silent
 channel.
 
 <pre class="idl">
@@ -7920,10 +7910,28 @@ Constructors</h4>
 				[[mediacapture-streams#mediastream|MediaStream]] that has at least one
 				[[mediacapture-streams#mediastreamtrack|MediaStramTrack]] whose
 				<code>kind</code> attribute has the value <code>"audio"</code>,
-				throw an {{InvalidStateError}} and abort these steps.
-			3. Let <var>node</var> be a new {{MediaStreamAudioSourceNode}}
+				throw an {{InvalidStateError}} and abort these steps. Else, let
+				this stream be <var>inputStream</var>.
+			3. Let <var>tracks</var> be the list of all
+				[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]]s of
+				<var>inputStream</var> that have a <code>kind</code> of
+				<code>"audio"</code>.
+			4. Sort the elements in <var>tracks</var> based on their <code>id</code>
+				attribute using lexicographic ordering on sequences of code unit
+				values.
+			5. Let <var>node</var> be a new {{MediaStreamAudioSourceNode}}
 				object. <a href="#audionode-constructor-init">Initialize</a>
-				<var>node</var>, and return <var>node</var>.
+				<var>node</var>.
+			6. Set an internal slot [[input track]] on this
+				{{MediaStreamAudioSourceNode}} to be the first element of
+				<var>tracks</var>.  This is the track used as the input audio for this
+				{{MediaStreamAudioSourceNode}}.
+			7. Return <var>node</var>.
+
+			Note: The behaviour for picking the track to output is arbitrary for
+			legacy reasons. {{MediaStreamTrackAudioSourceNode}} can be used
+			instead to be explicit about which track to use as input.
+
 		<pre class=argumentdef for="MediaStreamAudioSourceNode/MediaStreamAudioSourceNode()">
 			context: The {{AudioContext}} this new {{MediaStreamAudioSourceNode}} will be <a href="#associated">associated</a> with.
 			options: Initial parameter value for this {{MediaStreamAudioSourceNode}}.

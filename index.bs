@@ -2588,37 +2588,6 @@ value explicitly. <em>block-size</em> is defined to be 128
 sample-frames which corresponds to roughly 3ms at a sample-rate of
 44.1 kHz.
 
-<h4 id="AudioNode-tail">AudioNode tail-time</h4>
-
-An {{AudioNode}} can have a <dfn>tail-time</dfn>. This means that even when the
-{{AudioNode}} is fed silence, non-silent output can be output.
-
-<h4 id="AudioNode-actively-processing">AudioNode lifetime</h4>
-
-{{AudioNode}} can be <dfn id="actively-processing">actively processing</dfn>
-during a <a>render quantum</a>.
-
-- An {{AudioScheduledSourceNode}} is [=actively processing=] when and only when it
-	is playing for at least part of the current rendering quantum.
-- A {{DelayNode}} in a cycle is actively processing only when the absolute value
-	of any output sample for the current [=render quantum=] is greater than or equal
-	to \( 2^{-126} \).
-- A {{ScriptProcessorNode}} is [=actively processing=] when its input or output is
-	connected.
-- An {{AudioWorkletNode}} is [=actively processing=] when its
-	{{AudioWorkletProcessor}}'s {{[[callable process]]}} is <code>true</code> and
-	either its [=active source=] flag is <code>true</code> or any {{AudioNode}}
-	connected to one of its inputs is [=actively processing=].
-- All other {{AudioNode}}s start [=actively processing=] when any
-	{{AudioNode}} connected to one of its inputs is [=actively processing=], and
-	stops [=actively processing=] when the input that was received from other
-	[=actively processing=] {{AudioNode}} no longer affects the output.
-
-Note: This takes into account {{AudioNode}}s that have a [=tail-time=].
-
-{{AudioNode}} that are not [=actively processing=] output a single channel of
-silence.
-
 <pre class="idl">
 [Exposed=Window]
 interface AudioNode : EventTarget {
@@ -2815,6 +2784,52 @@ enum ChannelInterpretation {
 			possible, then dropping remaining channels.
 </table>
 </div>
+
+<h4 id="AudioNode-tail">AudioNode tail-time</h4>
+
+An {{AudioNode}} can have a <dfn>tail-time</dfn>. This means that even when the
+{{AudioNode}} is fed silence, non-silent output can be output.
+
+{{AudioNode}}s have a non-zero tail-time if they have internal processing state
+such that input received at one time affects the output at later times. Such
+{{AudioNode}}s that have received non-silent input continue to produce
+non-silent output for the length of the tail-time after the input becomes
+silent.
+
+<h4 id="AudioNode-actively-processing">AudioNode lifetime</h4>
+
+{{AudioNode}} can be <dfn id="actively-processing">actively processing</dfn>
+during a <a>render quantum</a>, if any of the following conditions hold.
+
+- An {{AudioScheduledSourceNode}} is [=actively processing=] if and only if it
+	is playing for at least part of the current rendering quantum.
+- A {{MediaElementAudioSourceNode}} is [=actively processing=] if and only if its
+	{{MediaElementAudioSourceNode/mediaElement}} is playing for at least part of
+	the current rendering quantum.
+- A {{MediaStreamAudioSourceNode}} or {{MediaStreamTrackAudioSourceNode}} when
+	the [[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] used as input
+	has a <code>readyState</code> of <code>live</code>, a <code>muted</code>
+	attribute that is <code>false</code> and an <code>enabled</code> attribute
+	that is <code>true</code>.
+- A {{DelayNode}} in a cycle is [=actively processing=] only when the absolute value
+	of any output sample for the current [=render quantum=] is greater than or equal
+	to \( 2^{-126} \).
+- A {{ScriptProcessorNode}} is [=actively processing=] when its input or output is
+	connected.
+- An {{AudioWorkletNode}} is [=actively processing=] when its
+	{{AudioWorkletProcessor}}'s {{[[callable process]]}} is <code>true</code> and
+	either its [=active source=] flag is <code>true</code> or any {{AudioNode}}
+	connected to one of its inputs is [=actively processing=].
+- All other {{AudioNode}}s start [=actively processing=] when any
+	{{AudioNode}} connected to one of its inputs is [=actively processing=], and
+	stops [=actively processing=] when the input that was received from other
+	[=actively processing=] {{AudioNode}} no longer affects the output.
+
+Note: This takes into account {{AudioNode}}s that have a [=tail-time=].
+
+{{AudioNode}}s that are not [=actively processing=] output a single channel of
+silence.
+
 
 <h4 id="AudioNode-attributes">
 Attributes</h4>
@@ -8351,7 +8366,7 @@ macros:
 	cc-mode-notes: Has <a>channelCountMode constraints</a>
 	cc-interp: speakers
 	tail-time: Maybe
-	tail-time-notes:  If the {{PannerNode/panningModel}} is set to "{{PanningModelType/HRTF}}", the node will produce non-silent output for silent input due to the inherent processing for head responses. Otherwise there are no tail-time.
+	tail-time-notes:  If the {{PannerNode/panningModel}} is set to "{{PanningModelType/HRTF}}", the node will produce non-silent output for silent input due to the inherent processing for head responses. Otherwise the tail-time is zero.
 </pre>
 
 The input of this node is either mono (1 channel) or stereo (2
@@ -11166,11 +11181,11 @@ Dynamic Lifetime</h2>
 <h3 id="dynamic-lifetime-background" class="informative">
 Background</h3>
 
-<em>This section is non-normative.</em>
-
 Note: The normative description of {{AudioContext}} and {{AudioNode}} lifetime characteristics is
 	available at <a href="#lifetime-AudioContext">AudioContext lifetime</a> and <a
-	href="#AudioNode-actively-processing">AudioNode lifetime</a>
+	href="#AudioNode-actively-processing">AudioNode lifetime</a>.
+
+<em>This section is non-normative.</em>
 
 In addition to allowing the creation of static routing
 configurations, it should also be possible to do custom effect

@@ -2788,13 +2788,12 @@ enum ChannelInterpretation {
 <h4 id="AudioNode-tail">AudioNode tail-time</h4>
 
 An {{AudioNode}} can have a <dfn>tail-time</dfn>. This means that even when the
-{{AudioNode}} is fed silence, non-silent output can be output.
+{{AudioNode}} is fed silence, the output can be non-silent.
 
 {{AudioNode}}s have a non-zero tail-time if they have internal processing state
-such that input received at one time affects the output at later times. Such
-{{AudioNode}}s that have received non-silent input continue to produce
-non-silent output for the length of the tail-time after the input becomes
-silent.
+such that input in the past affects the future output. {{AudioNode}}s
+may continue to produce non-silent output for the calculated tail-time even
+after the input transitions from non-silent to silent.
 
 <h4 id="AudioNode-actively-processing">AudioNode lifetime</h4>
 
@@ -2802,15 +2801,16 @@ silent.
 during a <a>render quantum</a>, if any of the following conditions hold.
 
 - An {{AudioScheduledSourceNode}} is [=actively processing=] if and only if it
-	is playing for at least part of the current rendering quantum.
+	is [=playing=] for at least part of the current rendering quantum.
 - A {{MediaElementAudioSourceNode}} is [=actively processing=] if and only if its
 	{{MediaElementAudioSourceNode/mediaElement}} is playing for at least part of
 	the current rendering quantum.
-- A {{MediaStreamAudioSourceNode}} or {{MediaStreamTrackAudioSourceNode}} when
-	the [[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] used as input
-	has a <code>readyState</code> of <code>live</code>, a <code>muted</code>
-	attribute that is <code>false</code> and an <code>enabled</code> attribute
-	that is <code>true</code>.
+- A {{MediaStreamAudioSourceNode}} or a {{MediaStreamTrackAudioSourceNode}} are
+	[=actively processing=] when the associated
+	[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] object has a
+	<code>readyState</code> attribute equal to <code>"live"</code>, a
+	<code>muted</code> attribute equal to <code>false</code> and an
+	<code>enabled</code> attribute equal to <code>true</code>.
 - A {{DelayNode}} in a cycle is [=actively processing=] only when the absolute value
 	of any output sample for the current [=render quantum=] is greater than or equal
 	to \( 2^{-126} \).
@@ -3998,6 +3998,11 @@ the source MUST then output silence (0).
 
 {{AudioScheduledSourceNode}} cannot be instantiated directly, but
 is instead extended by the concrete interfaces for the source nodes.
+
+An {{AudioScheduledSourceNode}} is said to be <dfn>playing</dfn> when
+its associated {{BaseAudioContext}}'s {{BaseAudioContext|currentTime}} is
+greater or equal to the time it's set to start, and lesser than the time it's
+set to stop.
 
 <pre class="idl">
 [Exposed=Window]

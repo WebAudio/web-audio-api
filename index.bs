@@ -1285,17 +1285,6 @@ output device that produces a signal directed at the user. In most
 use cases, only a single {{AudioContext}} is used per
 document.
 
-An {{AudioContext}} is said to be <dfn>allowed to
-start</dfn> if the user agent and the system allow audio output in
-the current context. In other words, if the
-{{AudioContext}} <em>control thread state</em> is
-allowed to transition from <code>suspended</code> to
-<code>running</code>.
-
-Note: For example, a user agent could require that an
-{{AudioContext}} control thread state change to
-running is <a>triggered by user activation</a> (as described in [[HTML]]).
-
 <pre class="idl">
 enum AudioContextLatencyCategory {
 		"balanced",
@@ -1303,6 +1292,7 @@ enum AudioContextLatencyCategory {
 		"playback"
 };
 </pre>
+
 <div class="enum-description">
 <table class="simple" dfn-type=enum-value dfn-for="AudioContextLatencyCategory">
 	<thead>
@@ -1347,6 +1337,20 @@ interface AudioContext : BaseAudioContext {
 };
 </xmp>
 
+An {{AudioContext}} is said to be <dfn>allowed to start</dfn> if the user agent
+allows the context state to transition from "suspended" to "running". A user
+agent may require the actual audio production from an {{AudioContext}} to be
+<a>triggered by user activation</a> (as described in [[HTML]]).
+
+{{AudioContext}} has an internal slot:
+
+<dl dfn-type=attribute dfn-for="AudioContext">
+	: <dfn>[[suspended by user]]</dfn>
+	::
+		A boolean flag representing whether the context is suspended by user code.
+		The initial value is <code>false</code>.
+</dl>
+
 <h4 id="AudioContext-constructors">
 Constructors</h4>
 
@@ -1381,7 +1385,7 @@ Constructors</h4>
 					AudioContext may be affected, possibly by a large
 					amount.
 
-			5. If the {{AudioContext}} is <a>allowed to start</a>, send a
+			5. If the context is <a>allowed to start</a>, send a
 				<a>control message</a> to start processing.
 
 			6. Return this {{AudioContext}} object.
@@ -1655,20 +1659,21 @@ Methods</h4>
 				promise with {{InvalidStateError}}, abort these steps,
 				returning <var>promise</var>.
 
-			3. If the {{AudioContext}} is not <a>allowed to
-				start</a>, append <var>promise</var> to
-				<a>pendingResumePromises</a> and abort these steps, returning
-				<var>promise</var>.
+			3. Set {{[[suspended by user]]}} to <code>false</code>.
 
-			4. Set the <em>control thread state</em> flag on the
+			4. If the context is not <a>allowed to start</a>, append
+				<var>promise</var> to <a>pendingResumePromises</a> and abort these
+				steps, returning <var>promise</var>.
+
+			5. Set the <em>control thread state</em> flag on the
 				{{AudioContext}} to <code>running</code>.
 
-			5. <a>Queue a control message</a> to resume the {{AudioContext}}.
+			6. <a>Queue a control message</a> to resume the {{AudioContext}}.
 
-			6. Return <var>promise</var>.
+			7. Return <var>promise</var>.
 		</div>
 
-		<div algorithm="run a control message in AudioContext">
+		<div id="context-resume" algorithm="run a control message in AudioContext">
 			Running a <a>control message</a> to resume an
 			{{AudioContext}} means running these steps on the
 			<a>rendering thread</a>:
@@ -1734,11 +1739,13 @@ Methods</h4>
 				with {{InvalidStateError}}, abort these steps,
 				returning <em>promise</em>.
 
-			3. Set the <em>control thread state</em> flag on the {{AudioContext}} to <code>suspended</code>.
+			3. Set {{[[suspended by user]]}} to <code>true</code>.
 
-			4. <a>Queue a control message</a> to suspend the {{AudioContext}}.
+			4. Set the <em>control thread state</em> flag on the {{AudioContext}} to <code>suspended</code>.
 
-			5. Return <em>promise</em>.
+			5. <a>Queue a control message</a> to suspend the {{AudioContext}}.
+
+			6. Return <em>promise</em>.
 		</div>
 
 		<div algorithm="run a control message to suspend an AudioContext">
@@ -2778,6 +2785,52 @@ enum ChannelInterpretation {
 </table>
 </div>
 
+<h4 id="AudioNode-tail">AudioNode Tail-Time</h4>
+
+An {{AudioNode}} can have a <dfn>tail-time</dfn>. This means that even when the
+{{AudioNode}} is fed silence, the output can be non-silent.
+
+{{AudioNode}}s have a non-zero tail-time if they have internal processing state
+such that input in the past affects the future output. {{AudioNode}}s
+may continue to produce non-silent output for the calculated tail-time even
+after the input transitions from non-silent to silent.
+
+<h4 id="AudioNode-actively-processing">AudioNode Lifetime</h4>
+
+{{AudioNode}} can be <dfn id="actively-processing">actively processing</dfn>
+during a <a>render quantum</a>, if any of the following conditions hold.
+
+- An {{AudioScheduledSourceNode}} is [=actively processing=] if and only if it
+	is [=playing=] for at least part of the current rendering quantum.
+- A {{MediaElementAudioSourceNode}} is [=actively processing=] if and only if its
+	{{MediaElementAudioSourceNode/mediaElement}} is playing for at least part of
+	the current rendering quantum.
+- A {{MediaStreamAudioSourceNode}} or a {{MediaStreamTrackAudioSourceNode}} are
+	[=actively processing=] when the associated
+	[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] object has a
+	<code>readyState</code> attribute equal to <code>"live"</code>, a
+	<code>muted</code> attribute equal to <code>false</code> and an
+	<code>enabled</code> attribute equal to <code>true</code>.
+- A {{DelayNode}} in a cycle is [=actively processing=] only when the absolute value
+	of any output sample for the current [=render quantum=] is greater than or equal
+	to \( 2^{-126} \).
+- A {{ScriptProcessorNode}} is [=actively processing=] when its input or output is
+	connected.
+- An {{AudioWorkletNode}} is [=actively processing=] when its
+	{{AudioWorkletProcessor}}'s {{[[callable process]]}} returns <code>true</code>
+	and either its [=active source=] flag is <code>true</code> or any
+	{{AudioNode}} connected to one of its inputs is [=actively processing=].
+- All other {{AudioNode}}s start [=actively processing=] when any
+	{{AudioNode}} connected to one of its inputs is [=actively processing=], and
+	stops [=actively processing=] when the input that was received from other
+	[=actively processing=] {{AudioNode}} no longer affects the output.
+
+Note: This takes into account {{AudioNode}}s that have a [=tail-time=].
+
+{{AudioNode}}s that are not [=actively processing=] output a single channel of
+silence.
+
+
 <h4 id="AudioNode-attributes">
 Attributes</h4>
 
@@ -3124,7 +3177,7 @@ Methods</h4>
 		destination {{AudioNode}}.
 
 		<pre class=argumentdef for="AudioNode/disconnect(destinationNode, output, input)">
-			destinationNode: The <code>destinationNode</code> parameter is the {{AudioNode}} to disconnect. <span class="synchronous">If there is no connection to the <code>destinationNode</code> from the given output, an {{InvalidAccessError}} exception MUST be thrown.</span>
+			destinationNode: The <code>destinationNode</code> parameter is the {{AudioNode}} to disconnect. <span class="synchronous">If there is no connection to the <code>destinationNode</code> from the given input to the given output, an {{InvalidAccessError}} exception MUST be thrown.</span>
 			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If this parameter is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span>
 			input: The <code>input</code> parameter is an index describing which input of the destination {{AudioNode}} to disconnect. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span>
 		</pre>
@@ -3195,87 +3248,6 @@ Dictionary {{AudioNodeOptions}} Members</h5>
 	: <dfn>channelInterpretation</dfn>
 	:: Desired mode for the {{AudioNode/channelInterpretation}} attribute.
 </dl>
-
-<h4 id="lifetime-AudioNode">
-Lifetime</h4>
-
-The following behaviors provide a normative description of the
-conditions under which an {{AudioNode}} is alive, meaning that
-it MUST be retained in the graph by an implementation. Where these
-conditions do not apply, {{AudioNode}}s MAY be released by an
-implementation.
-
-There are several types of references:
-
-1. A <em>normal</em> reference obeying normal garbage collection rules.
-
-2. A <em>playing</em> reference for
-	{{AudioBufferSourceNode}}s,
-	{{MediaElementAudioSourceNode}}s,
-	{{MediaStreamAudioSourceNode}}s and
-	{{OscillatorNode}}s. These nodes maintain a
-	<em>playing</em> reference to themselves while they are currently
-	playing.
-
-3. A <em>connection</em> reference which occurs if another
-	{{AudioNode}} is connected to one or more of its inputs.
-	Connections to a node's {{AudioParam}}s do not imply a
-	connection reference.
-
-4. A <em><dfn>tail-time</dfn></em> reference which an
-	{{AudioNode}} maintains on itself as long as it has
-	any internal processing state which has not yet been emitted. For
-	example, a {{ConvolverNode}} has a tail which
-	continues to play even after receiving silent input (think about
-	clapping your hands in a large concert hall and continuing to hear
-	the sound reverberate throughout the hall). Some
-	{{AudioNode}}s have this property. Please see
-	details for specific nodes.
-
-5. [[mediacapture-streams#mediastream|MediaStream]]s keep a
-	{{MediaStreamAudioSourceNode}} alive as long as the underlying
-	[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]] that is playing through the
-	{{MediaStreamAudioSourceNode}} has not <a href="https://w3c.github.io/mediacapture-main/#track-ended">ended</a>
-	(as per [[!mediacapture-streams]]).
-
-6. {{HTMLMediaElement}}s keep their associated
-	{{MediaElementAudioSourceNode}} alive as long as the
-	{{HTMLMediaElement}} is in a state where audio could
-	ever be played in the future.
-
-	Note: An {{HTMLMediaElement}} that has its
-	<code>src</code> attribute set to <code>""</code>, and all
-	its references dropped allows the
-	{{MediaElementAudioSourceNode}} to be released as well
-	(granted nothing keeps the {{MediaElementAudioSourceNode}}
-	alive).
-
-Any {{AudioNode}}s which are connected in a cycle
-<em>and</em> are directly or indirectly connected to a
-{{AudioDestinationNode}} or
-{{MediaStreamAudioDestinationNode}} within the
-{{AudioContext}} will stay alive as long as the
-{{AudioContext}} is alive.
-
-Note: The uninterrupted operation of {{AudioNode}}s implies that as
-long as live references exist to a node, the node will continue
-processing its inputs and evolving its internal state even if it is
-disconnected from the audio graph. Since this processing will
-consume CPU and power, developers should carefully consider the
-resource usage of disconnected nodes. In particular, it is a good
-idea to minimize resource consumption by explicitly putting
-disconnected nodes into a stopped state when possible.
-
-When an {{AudioNode}} has no references it will be
-deleted. Before it is deleted, it will disconnect itself from any
-other {{AudioNode}}s which it is connected to. In
-this way it releases all connection references (3) it has to other
-nodes.
-
-Regardless of any of the above references, it can be assumed that
-the {{AudioNode}} will be deleted when its
-{{AudioContext}} is deleted.
-
 
 <!--
    ███    ██     ██ ████████  ████  ███████  ████████     ███    ████████     ███    ██     ██
@@ -4032,6 +4004,11 @@ the source MUST then output silence (0).
 {{AudioScheduledSourceNode}} cannot be instantiated directly, but
 is instead extended by the concrete interfaces for the source nodes.
 
+An {{AudioScheduledSourceNode}} is said to be <dfn>playing</dfn> when
+its associated {{BaseAudioContext}}'s {{BaseAudioContext|currentTime}} is
+greater or equal to the time the {{AudioScheduledSourceNode}} is set to start,
+and less than the time it's set to stop.
+
 <pre class="idl">
 [Exposed=Window]
 interface AudioScheduledSourceNode : AudioNode {
@@ -4088,6 +4065,14 @@ Methods</h4>
 			3. <a>Queue a control message</a> to start the
 				{{AudioScheduledSourceNode}}, including the parameter
 				values in the messsage.
+
+			4. Send a <a>control message</a> to the associated {{AudioContext}} to
+				<a href="#context-resume">run it in the rendering thread</a> only when
+				the following conditions are met:
+				1. The context's <code>control thread state</code> is
+					<code>suspended</code>.
+				2. The context is <a>allowed to start</a>.
+				3. {{[[suspended by user]]}} flag is <code>false</code>.
 		</div>
 
 		<pre class=argumentdef for="AudioScheduledSourceNode/start(when)">
@@ -4772,13 +4757,20 @@ Methods</h4>
 			3. <a>Queue a control message</a> to start the
 				{{AudioBufferSourceNode}}, including the parameter values
 				in the messsage.
+
+			4. Send a <a>control message</a> to the associated {{AudioContext}} to
+				<a href="#context-resume">run it in the rendering thread</a> only when
+				the following conditions are met:
+				1. The context's <code>control thread state</code> is
+					<code>suspended</code>.
+				2. The context is <a>allowed to start</a>.
+				3. {{[[suspended by user]]}} flag is <code>false</code>.
 		</div>
 
 		<div algorithm="run a control message to start the AudioBufferSourceNode">
-			Running a <a>control message</a> to start the
-			{{AudioBufferSourceNode}} means invoking the
-			<code>handleStart()</code> function in the <a href="#playback-AudioBufferSourceNode">playback algorithm</a> which
-			follows.
+			Running a <a>control message</a> to start the {{AudioBufferSourceNode}}
+			means invoking the <code>handleStart()</code> function in the
+			[[#playback-AudioBufferSourceNode|playback algorithm]] which follows.
 		</div>
 
 		<pre class=argumentdef for="AudioBufferSourceNode/start(when, offset, duration)">
@@ -6065,8 +6057,15 @@ $$
 
 
 The initial filter state is 0.
+
+Note: While fixed filters are stable, it is possible to create
+unstable biquad filters using automations of {{AudioParam}}s.  It is
+the developers responsibility to manage this.
+
+Note: The UA may produce a warning to notify the user that NaN values have occurred in the filter state.  This is usually indicative of an unstable filter.
+
 The coefficients in the transfer function above are different for
-each node type. The following intermediate variable are necessary for
+each node type. The following intermediate variables are necessary for
 their computation, based on the <a>computedValue</a> of the
 {{AudioParam}}s of the
 {{BiquadFilterNode}}.
@@ -6999,7 +6998,7 @@ macros:
 	cc-mode-notes: Has <a>channelCountMode constraints</a>
 	cc-interp: speakers
 	tail-time: Yes
-	tail-time-notes:  This node has a <a>tail-time</a> reference such that this node continues to output non-silent audio with zero input due to the look-ahead delay.
+	tail-time-notes:  This node has a <a>tail-time</a> such that this node continues to output non-silent audio with zero input due to the look-ahead delay.
 </pre>
 
 <pre class="idl">
@@ -7664,6 +7663,8 @@ $$
 </pre>
 
 The initial filter state is the all-zeroes state.
+
+Note: The UA may produce a warning to notify the user that NaN values have occurred in the filter state.  This is usually indicative of an unstable filter.
 
 
 <!--
@@ -8375,7 +8376,7 @@ macros:
 	cc-mode-notes: Has <a>channelCountMode constraints</a>
 	cc-interp: speakers
 	tail-time: Maybe
-	tail-time-notes:  If the {{PannerNode/panningModel}} is set to "{{PanningModelType/HRTF}}", the node will produce non-silent output for silent input due to the inherent processing for head responses. Otherwise there are no tail-time references.
+	tail-time-notes:  If the {{PannerNode/panningModel}} is set to "{{PanningModelType/HRTF}}", the node will produce non-silent output for silent input due to the inherent processing for head responses. Otherwise the tail-time is zero.
 </pre>
 
 The input of this node is either mono (1 channel) or stereo (2
@@ -9347,7 +9348,7 @@ macros:
 	cc-mode: max
 	cc-interp: speakers
 	tail-time: Maybe
-	tail-time-notes: There is a <a>tail-time</a> reference only if the {{WaveShaperNode/oversample}} attribute is set to "{{OverSampleType/2x}}" or "{{OverSampleType/4x}}". The actual duration of this <a>tail-time</a> depends on the implementation.
+	tail-time-notes: There is a <a>tail-time</a> only if the {{WaveShaperNode/oversample}} attribute is set to "{{OverSampleType/2x}}" or "{{OverSampleType/4x}}". The actual duration of this <a>tail-time</a> depends on the implementation.
 </pre>
 
 The number of channels of the output always equals the number of
@@ -9653,9 +9654,11 @@ for that context. This prevents data races from occurring in global
 scope code running within concurrent threads.
 
 <pre class="idl">
+callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object options);
+
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
-	void registerProcessor (DOMString name, VoidFunction processorCtor);
+	void registerProcessor (DOMString name, AudioWorkletProcessorConstructor processorCtor);
 	readonly attribute unsigned long long currentFrame;
 	readonly attribute double currentTime;
 	readonly attribute float sampleRate;
@@ -10062,7 +10065,7 @@ in the node.
 
 		* {{[[callable process]]}} is `true`.
 
-		* <dfn dfn>active processing conditions</dfn> are `true`, meaning
+		* The {{AudioWorkletNode}} is [=actively processing=], meaning
 			ANY of the following states are met:
 
 			* The associated {{AudioWorkletProcessor}}'s
@@ -10086,7 +10089,8 @@ in the node.
 				while connected inputs and/or script references exist. Such
 				nodes SHOULD return <code>false</code> from
 				{{process()}} which allows the presence or absence of
-				connected inputs to determine whether active processing occurs.
+				connected inputs to determine whether the {{AudioWorkletNode}} is
+				[=actively processing=].
 
 			* Nodes that transform their inputs, but which remain active
 				for a <a>tail-time</a> after their inputs are disconnected. In
@@ -10112,10 +10116,6 @@ in the node.
 			any {{AudioWorkletProcessor}} that is active only when it has
 			active inputs.
 		</div>
-
-		If {{process()}} is not called during some rendering
-		quantum due to the lack of any applicable [=active processing conditions=], the result is as if the processor emitted
-		silence for this period.
 
 		<pre class=argumentdef for="AudioWorkletProcessor/process(inputs, outputs, parameters))">
 			inputs:
@@ -11188,11 +11188,14 @@ Here's how the above diagram could be constructed in JavaScript:
 <h2 id="DynamicLifetime">
 Dynamic Lifetime</h2>
 
-<h3 id="dynamic-lifetime-background">
+<h3 id="dynamic-lifetime-background" class="informative">
 Background</h3>
 
-<em>This section is non-normative. Please see <a href="#lifetime-AudioContext">AudioContext lifetime</a> and <a href="#lifetime-AudioNode">AudioNode lifetime</a> for normative
-requirements.</em>
+Note: The normative description of {{AudioContext}} and {{AudioNode}} lifetime characteristics is
+	described by the <a href="#lifetime-AudioContext">AudioContext lifetime</a> and <a
+	href="#AudioNode-actively-processing">AudioNode lifetime</a>.
+
+<em>This section is non-normative.</em>
 
 In addition to allowing the creation of static routing
 configurations, it should also be possible to do custom effect

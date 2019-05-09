@@ -3496,10 +3496,9 @@ Attributes</h4>
 		initialized to the <code>defaultValue</code>.
 
 		Getting this attribute returns the contents of the
-		{{[[current value]]}} slot, which maintains the value of
-		this parameter at the conclusion of the most recent render
-		quantum on the audio rendering thread, or the most recently
-		assigned value if no rendering has taken place.
+		{{[[current value]]}} slot. See
+intr		[[#computation-of-value]] for the algorithm for the
+		value that is returned.
 
 		Setting this attribute has the effect of assigning the
 		requested value to the {{[[current value]]}} slot, and
@@ -3860,35 +3859,40 @@ parameters</dfn> are {{AudioParam}}s that are used with other
 {{AudioParam}}s to compute a value that is then used as an input
 to compute the output of an {{AudioNode}}.
 
+
+The <dfn>computedValue</dfn> is the final value controlling the audio
+DSP and is computed by the audio rendering thread during each
+rendering time quantum.
+
+<div algorithm="computation-of-value">
 The computation of the value of an {{AudioParam}} consists of two parts:
-	- the <dfn>intrinsic</dfn> value that is computed from the {{AudioParam/value}}
+	- the <var>paramIntrinsicValue</var> value that is computed from the {{AudioParam/value}}
 		attribute and any <a href="#dfn-automation-event">automation events</a>
-	- the <dfn>computedValue</dfn> that is the final value controlling the
+	- the <var>paramComputedValue</var> that is the final value controlling the
 		audio DSP and is computed by the audio rendering thread during each
 		rendering time quantum.
 
-The <a>computedValue</a>It MUST be internally computed as follows:
+These values MUST be computed as follows:
 
-<div algorithm="computation-of-value">
-	1. An <a><var>intrinsic</var></a> parameter value will be calculated at
+	1. <var>paramIntrinsicValue</var> will be calculated at
 		each time, which is either the value set directly to the
 		{{AudioParam/value}} attribute, or, if there are any <a href="#dfn-automation-event">automation events</a> with times before or
-		at this time, the value as calculated from these events. When read,
-		the {{AudioParam/value}} attribute always returns the
-		<var>intrinsic</var> value for the current time. If automation events
-		are removed from a given time range, then the <var>intrinsic</var>
+		at this time, the value as calculated from these events.  If automation events
+		are removed from a given time range, then the <var>paramIntrinsicValue</var>
 		value will remain unchanged and stay at its previous value until
 		either the {{AudioParam/value}} attribute is directly set, or
 		automation events are added for the time range.
 
-	2. The <a><var>computedValue</var></a> is the sum of the <var>intrinsic</var>
+	1. Set {{[[current value]]}} to the value of <var>paramIntrinsicValue</var> at the beginning of this <a>render quantum</a>.
+
+	2. <var>paramComputedValue</var> is the sum of the <var>paramIntrinsicValue</var>
 		value and the value of the <a href="#input-audioparam-buffer">input
-		AudioParam buffer</a>. When read, the
-		<code>value</code> attribute always returns the
-		<var>computedValue</var> for the current time.
+		AudioParam buffer</a>.
 
 	3. If this {{AudioParam}} is a <a>compound parameter</a>,
 		compute its final value with other {{AudioParam}}s.
+
+	4. Set <a>computedValue</a> to <var>paramComputedValue</var>.  
 </div>
 
 The <dfn>nominal range</dfn> for a <a>computedValue</a> are the
@@ -10926,8 +10930,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 					{{AudioParam}} for this block.
 
 				3. [=Queue a control message=] to set the {{[[current value]]}} slot
-					of this {{AudioParam}} to the last <a>intrinsic</a> value computed in the preceding
-					step.
+					of this {{AudioParam}} according to [[#computation-of-value]].
 
 			2. If this {{AudioNode}} has any {{AudioNode}}s connected to its input,
 				[[#SummingJunction|sum]] the buffers

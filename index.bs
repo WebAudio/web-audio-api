@@ -4000,7 +4000,7 @@ http://googlechrome.github.io/web-audio-samples/samples/audio/timeline.html -->
 <h3 id="AudioScheduledSourceNode" interface lt="AudioScheduledSourceNode">
 The {{AudioScheduledSourceNode}} Interface</h3>
 
-The interface represents the common features of the source nodes such
+The interface represents the common features of source nodes such
 as {{AudioBufferSourceNode}}, {{ConstantSourceNode}}, and
 {{OscillatorNode}}.
 
@@ -4035,7 +4035,7 @@ Attributes</h4>
 		A property used to set the <code>EventHandler</code> (described
 		in <cite><a href="https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler">
 		HTML</a></cite>[[!HTML]]) for the ended event that is
-		dispatched to {{AudioScheduledSourceNode}} node
+		dispatched for {{AudioScheduledSourceNode}} node
 		types. When the source node has stopped playing (as determined
 		by the concrete node), an event of type {{Event}}
 		(described in <cite><a href="https://html.spec.whatwg.org/multipage/infrastructure.html#event">
@@ -4084,7 +4084,7 @@ Methods</h4>
 		</div>
 
 		<pre class=argumentdef for="AudioScheduledSourceNode/start(when)">
-			when: The {{AudioScheduledSourceNode/start(when)/when}} parameter describes at what time (in seconds) the sound should start playing. It is in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. When the signal emitted by the {{AudioScheduledSourceNode}} depends on the sound's start time, the exact value of <code>when</code> is always used without rounding to the nearest sample frame. If 0 is passed in for this value or if the value is less than <b>currentTime</b>, then the sound will start playing immediately. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>when</code> is negative.</span>
+			when: The {{AudioScheduledSourceNode/start(when)/when}} parameter describes at what time (in seconds) the sound should start playing. It is in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. When the signal emitted by the {{AudioScheduledSourceNode}} depends on the sound's start time, the exact value of <code>when</code> is always used without rounding to the nearest sample frame. If 0 is passed in for this value or if the value is less than {{BaseAudioContext/currentTime}}, then the sound will start playing immediately. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>when</code> is negative.</span>
 		</pre>
 
 		<div>
@@ -4215,8 +4215,9 @@ Attributes</h4>
 		Note that increasing {{AnalyserNode/fftSize}} does mean that the
 		<a>current time-domain data</a> must be expanded to include past
 		frames that it previously did not. This means that the
-		{{AnalyserNode}} effectively MUST keep around the last 32768 sample-
-		frames and the <a>current time-domain data</a> is the most recent
+		{{AnalyserNode}} effectively MUST keep around the last
+		32768 sample-rames and the <a>current time-domain
+		data</a> is the most recent
 		{{AnalyserNode/fftSize}} sample-frames out of that.
 
 	: <dfn>frequencyBinCount</dfn>
@@ -4439,12 +4440,12 @@ performed:
 	2. <a href="#blackman-window">Apply a Blackman window</a> to the time domain input data.
 
 	3. <a href="#fourier-transform">Apply a Fourier transform</a> to the
-		windowed time domain input data to get imaginary and real
+		windowed time domain input data to get real and imaginary
 		frequency data.
 
 	4. <a href="#smoothing-over-time">Smooth over time</a> the frequency domain data.
 
-	5. <a href="#conversion-to-db">Conversion to dB</a>.
+	5. <a href="#conversion-to-db">Convert to dB</a>.
 </div>
 
 In the following, let \(N\) be the value of the
@@ -4485,11 +4486,11 @@ In the following, let \(N\) be the value of the
 
 	<pre nohighlight>
 	$$
-		X[k] = \frac{1}{N} \sum_{n = 0}^{N - 1} \hat{x}[n]\, e^{\frac{-2\pi i k n}{N}}
+		X[k] = \frac{1}{N} \sum_{n = 0}^{N - 1} \hat{x}[n]\, W^{-kn}_{N}
 	$$
 	</pre>
 
-	for \(k = 0, \dots, N/2-1\).
+	for \(k = 0, \dots, N/2-1\) where \(W_N = e^{2\pi i/N}\).
 </div>
 
 <div algorithm="smoothing over time">
@@ -4510,7 +4511,7 @@ In the following, let \(N\) be the value of the
 
 	<pre nohighlight>
 	$$
-		\hat{X}[k] = \tau\, \hat{X}_{-1}[k] + (1 - \tau)\, |X[k]|
+		\hat{X}[k] = \tau\, \hat{X}_{-1}[k] + (1 - \tau)\, \left|X[k]\right|
 	$$
 	</pre>
 

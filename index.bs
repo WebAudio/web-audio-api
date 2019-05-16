@@ -8070,7 +8070,7 @@ object.
 
 Oscillators are common foundational building blocks in audio
 synthesis. An OscillatorNode will start emitting sound at the time
-specified by the <code>start()</code> method.
+specified by the {{AudioScheduledSourceNode/start()}} method.
 
 Mathematically speaking, a <em>continuous-time</em> periodic waveform
 can have very high (or infinitely high) frequency information when
@@ -8079,10 +8079,10 @@ a discrete-time digital audio signal at a particular sample-rate,
 then care MUST be taken to discard (filter out) the high-frequency
 information higher than the <a>Nyquist frequency</a> before
 converting the waveform to a digital form. If this is not done, then
-<em>aliasing</em> of higher frequencies (than the <a>Nyquist
+<a href="https://en.wikipedia.org/wiki/Aliasing"><em>aliasing</em></a> of higher frequencies (than the <a>Nyquist
 frequency</a>) will fold back as mirror images into frequencies lower
 than the <a>Nyquist frequency</a>. In many cases this will cause
-audibly objectionable artifacts. This is a basic and well understood
+audibly objectionable artifacts. This is a basic and well-understood
 principle of audio DSP.
 
 There are several practical approaches that an implementation may
@@ -8176,7 +8176,7 @@ Attributes</h4>
 <dl dfn-type=attribute dfn-for="OscillatorNode">
 	: <dfn>detune</dfn>
 	::
-		A detuning value (in cents) which will offset the
+		A detuning value (in <a href="https://en.wikipedia.org/wiki/Cent_(music)">cents</a>) which will offset the
 		{{OscillatorNode/frequency}} by the given amount. Its default
 		<code>value</code> is 0. This parameter is <a>a-rate</a>. It
 		forms a <a>compound parameter</a> with {{OscillatorNode/frequency}}
@@ -8192,7 +8192,7 @@ Attributes</h4>
 			min: \(\approx -153600\)
 			min-notes:
 			max: \(\approx 153600\)
-			max-notes: This value is approximately \(1200 \log_2 \mathrm{FLT\_MAX}\) where FLT_MAX is the largest {{float}} value.
+			max-notes: This value is approximately \(1200\ \log_2 \mathrm{FLT\_MAX}\) where FLT_MAX is the largest {{float}} value.
 			rate: "{{AutomationRate/a-rate}}"
 		</pre>
 
@@ -8215,11 +8215,11 @@ Attributes</h4>
 
 	: <dfn>type</dfn>
 	::	The shape of the periodic waveform. It may directly be set to any
-		of the type constant values except for "custom". <span class="synchronous">Doing so MUST throw an
+		of the type constant values except for "{{OscillatorType/custom}}". <span class="synchronous">Doing so MUST throw an
 		{{InvalidStateError}} exception.</span> The
 		{{OscillatorNode/setPeriodicWave()}} method can be
 		used to set a custom waveform, which results in this attribute
-		being set to "custom". The default value is "sine". When this
+		being set to "{{OscillatorType/custom}}". The default value is "{{OscillatorType/sine}}". When this
 		attribute is set, the phase of the oscillator MUST be conserved.
 </dl>
 
@@ -8232,7 +8232,7 @@ Methods</h4>
 		Sets an arbitrary custom periodic waveform given a {{PeriodicWave}}.
 
 		<pre class=argumentdef for="OscillatorNode/setPeriodicWave()">
-			periodicWave:
+			periodicWave: custom waveform to be used by the oscillator
 		</pre>
 
 		<div>
@@ -8272,7 +8272,7 @@ Dictionary {{OscillatorOptions}} Members</h5>
 		The {{PeriodicWave}} for the
 		{{OscillatorNode}}. If this is specified, then
 		any valid value for {{OscillatorOptions/type}} is ignored; it is
-		treated as if "custom" were specified.
+		treated as if "{{OscillatorType/custom}}" were specified.
 
 	: <dfn>type</dfn>
 	::
@@ -8288,14 +8288,14 @@ Dictionary {{OscillatorOptions}} Members</h5>
 Basic Waveform Phase</h4>
 
 The idealized mathematical waveforms for the various oscillator
-types are defined here. In summary, all waveforms are defined
+types are defined below. In summary, all waveforms are defined
 mathematically to be an odd function with a positive slope at time 0.
 The actual waveforms produced by the oscillator may differ to
 prevent aliasing affects.
 
-The oscillator MUST produce the same result as if a PeriodicWave
+The oscillator MUST produce the same result as if a {{PeriodicWave}},
 with the appropriate <a href="#oscillator-coefficients">Fourier
-series</a> and with normalization enabled were used to create these
+series</a> and with {{PeriodicWaveConstraints/disableNormalization}} set to false, were used to create these
 basic waveforms.
 
 : "{{OscillatorType/sine}}"
@@ -8304,7 +8304,7 @@ basic waveforms.
 
 	<pre nohighlight>
 	$$
-		x(t) = \sin t
+		x(t) = \sin\ t
 	$$
 	</pre>
 
@@ -8345,7 +8345,7 @@ basic waveforms.
 	$$
 		x(t) = \begin{cases}
 						 \frac{2}{\pi} t & \mbox{for } 0 ≤ t ≤ \frac{\pi}{2} \\
-						 1-\frac{2}{\pi} (t-\frac{\pi}{2}) & \mbox{for }
+						 1-\frac{2}{\pi} \left(t-\frac{\pi}{2}\right) & \mbox{for }
 						 \frac{\pi}{2} &lt; t ≤ \pi.
 					 \end{cases}
 	$$
@@ -8363,8 +8363,8 @@ The {{PannerNode}} Interface</h3>
 This interface represents a processing node which
 <a href="#Spatialization">positions / spatializes</a> an incoming audio
 stream in three-dimensional space. The spatialization is in relation
-to the {{AudioContext}}'s {{AudioListener}}
-(<code>listener</code> attribute).
+to the {{BaseAudioContext}}'s {{AudioListener}}
+({{BaseAudioContext/listener}} attribute).
 
 <pre class=include>
 path: audionode.include
@@ -8434,13 +8434,13 @@ Otherwise the [=effective automation rate=] is the value of
 
 The {{DistanceModelType}} enum determines which
 algorithm will be used to reduce the volume of an audio source as it
-moves away from the listener. The default is "inverse".
+moves away from the listener. The default is "{{DistanceModelType/inverse}}".
 
 In the description of each distance model below, let \(d\) be the
 distance between the listener and the panner; \(d_{ref}\) be the
-value of the <code>refDistance</code> attribute; \(d_{max}\) be the
-value of the <code>maxDistance</code> attribute; and \(f\) be the
-value of the <code>rolloffFactor</code> attribute.
+value of the {{PannerNode/refDistance}} attribute; \(d_{max}\) be the
+value of the {{PannerNode/maxDistance}} attribute; and \(f\) be the
+value of the {{PannerNode/rolloffFactor}} attribute.
 
 <pre class="idl">
 enum DistanceModelType {
@@ -8463,17 +8463,17 @@ enum DistanceModelType {
 
 				<pre nohighlight>
 				$$
-					1 - f\frac{\max(\min(d, d'_{max}), d'_{ref}) - d'_{ref}}{d'_{max} - d'_{ref}}
+					1 - f\ \frac{\max\left[\min\left(d, d'_{max}\right), d'_{ref}\right] - d'_{ref}}{d'_{max} - d'_{ref}}
 				$$
 				</pre>
 
-				where \(d'_{ref} = \min(d_{ref}, d_{max})\) and \(d'_{max} =
-				\max(d_{ref}, d_{max})\). In the case where \(d'_{ref} =
+				where \(d'_{ref} = \min\left(d_{ref}, d_{max}\right)\) and \(d'_{max} =
+				\max\left(d_{ref}, d_{max}\right)\). In the case where \(d'_{ref} =
 				d'_{max}\), the value of the linear model is taken to be
 				\(1-f\).
 
-				Note that \(d\) is clamped to the interval \([d'_{ref},\,
-				d'_{max}]\).
+				Note that \(d\) is clamped to the interval \(\left[d'_{ref},\,
+				d'_{max}\right]\).
 
 		<tr>
 			<td>"<dfn>inverse</dfn>"
@@ -8483,12 +8483,12 @@ enum DistanceModelType {
 
 				<pre nohighlight>
 				$$
-					\frac{d_{ref}}{d_{ref} + f (\max(d, d_{ref}) - d_{ref})}
+					\frac{d_{ref}}{d_{ref} + f\ \left[\max\left(d, d_{ref}\right) - d_{ref}\right]}
 				$$
 				</pre>
 
-				That is, \(d\) is clamped to the interval \([d_{ref},\,
-				\infty)\). If \(d_{ref} = 0\), the value of the inverse model
+				That is, \(d\) is clamped to the interval \(\left[d_{ref},\,
+				\infty\right)\). If \(d_{ref} = 0\), the value of the inverse model
 				is taken to be 0, independent of the value of \(d\) and \(f\).
 
 		<tr>
@@ -8499,12 +8499,12 @@ enum DistanceModelType {
 
 				<pre nohighlight>
 				$$
-					\left(\frac{\max(d, d_{ref})}{d_{ref}}\right)^{-f}
+					\left[\frac{\!\max\!\left(d, d_{ref}\right)}{d_{ref}}\right]^{-f}
 				$$
 				</pre>
 
-				That is, \(d\) is clamped to the interval \([d_{ref},\,
-				\infty)\). If \(d_{ref} = 0\), the value of the exponential
+				That is, \(d\) is clamped to the interval \(\left[d_{ref},\,
+				\infty\right)\). If \(d_{ref} = 0\), the value of the exponential
 				model is taken to be 0, independent of \(d\) and \(f\).
 </table>
 </div>
@@ -8563,14 +8563,14 @@ Attributes</h4>
 <dl dfn-type=attribute dfn-for="PannerNode">
 	: <dfn>coneInnerAngle</dfn>
 	::
-		A parameter for directional audio sources, this is an angle, in
+		A parameter for directional audio sources that is an angle, in
 		degrees, inside of which there will be no volume reduction. The
 		default value is 360. The behavior is undefined if the angle is
 		outside the interval [0, 360].
 
 	: <dfn>coneOuterAngle</dfn>
 	::
-		A parameter for directional audio sources, this is an angle, in
+		A parameter for directional audio sources that is an angle, in
 		degrees, outside of which the volume will be reduced to a
 		constant value of {{PannerNode/coneOuterGain}}. The default
 		value is 360. The behavior is undefined if the angle is outside
@@ -8578,7 +8578,7 @@ Attributes</h4>
 
 	: <dfn>coneOuterGain</dfn>
 	::
-		A parameter for directional audio sources, this is the gain
+		A parameter for directional audio sources that is the gain
 		outside of the {{PannerNode/coneOuterAngle}}. The default
 		value is 0. It is a linear value (not dB) in the range [0, 1]. An
 		{{InvalidStateError}} MUST be thrown if the parameter is
@@ -8599,7 +8599,7 @@ Attributes</h4>
 
 	: <dfn>orientationX</dfn>
 	::
-		Describes the x component of the vector of the direction the
+		Describes the \(x\)-component of the vector of the direction the
 		audio source is pointing in 3D Cartesian coordinate space.
 		Depending on how directional the sound is (controlled by the
 		<b>cone</b> attributes), a sound pointing away from the
@@ -8619,7 +8619,7 @@ Attributes</h4>
 
 	: <dfn>orientationY</dfn>
 	::
-		Describes the y component of the vector of the direction the
+		Describes the \(y\)-component of the vector of the direction the
 		audio source is pointing in 3D cartesian coordinate space.
 
 		<pre class=include>
@@ -8636,7 +8636,7 @@ Attributes</h4>
 
 	: <dfn>orientationZ</dfn>
 	::
-		Describes the Z component of the vector of the direction the
+		Describes the \(z\)-component of the vector of the direction the
 		audio source is pointing in 3D cartesian coordinate space.
 
 		<pre class=include>
@@ -8659,7 +8659,7 @@ Attributes</h4>
 
 	: <dfn>positionX</dfn>
 	::
-		Sets the x coordinate position of the audio source in a 3D
+		Sets the \(x\)-coordinate position of the audio source in a 3D
 		Cartesian system.
 
 		<pre class=include>
@@ -8676,7 +8676,7 @@ Attributes</h4>
 
 	: <dfn>positionY</dfn>
 	::
-		Sets the y coordinate position of the audio source in a 3D
+		Sets the \(y\)-coordinate position of the audio source in a 3D
 		Cartesian system.
 
 		<pre class=include>
@@ -8693,7 +8693,7 @@ Attributes</h4>
 
 	: <dfn>positionZ</dfn>
 	::
-		Sets the z coordinate position of the audio source in a 3D
+		Sets the \(z\)-coordinate position of the audio source in a 3D
 		Cartesian system.
 
 		<pre class=include>
@@ -8860,25 +8860,25 @@ Dictionary {{PannerOptions}} Members</h5>
 	:: The initial value for the {{PannerNode/maxDistance}} attribute of the node.
 
 	: <dfn>orientationX</dfn>
-	:: The initial X value for the {{PannerNode/orientationX}} AudioParam.
+	:: The initial \(x\)-component value for the {{PannerNode/orientationX}} AudioParam.
 
 	: <dfn>orientationY</dfn>
-	:: The initial Y value for the {{PannerNode/orientationY}} AudioParam.
+	:: The initial \(y\)-component value for the {{PannerNode/orientationY}} AudioParam.
 
 	: <dfn>orientationZ</dfn>
-	:: The initial Z value for the {{PannerNode/orientationZ}} AudioParam.
+	:: The initial \(z\)-component value for the {{PannerNode/orientationZ}} AudioParam.
 
 	: <dfn>panningModel</dfn>
 	:: The panning model to use for the node.
 
 	: <dfn>positionX</dfn>
-	:: The initial X value for the {{PannerNode/positionX}} AudioParam.
+	:: The initial \(x\)-coordinate value for the {{PannerNode/positionX}} AudioParam.
 
 	: <dfn>positionY</dfn>
-	:: The initial Y value for the {{PannerNode/positionY}} AudioParam.
+	:: The initial \(y\)-coordinate value for the {{PannerNode/positionY}} AudioParam.
 
 	: <dfn>positionZ</dfn>
-	:: The initial Z value for the {{PannerNode/positionZ}} AudioParam.
+	:: The initial \(z\)-coordinate  value for the {{PannerNode/positionZ}} AudioParam.
 
 	: <dfn>refDistance</dfn>
 	:: The initial value for the {{PannerNode/refDistance}} attribute of the node.
@@ -8939,8 +8939,8 @@ Constructors</h4>
 
 			4. Otherwise, let {{[[real]]}} and
 				{{[[imag]]}} be two internal slots of type
-				{{Float32Array}}, both of length equal to the maximum
-				length of the {{PeriodicWaveOptions/real}} and {{PeriodicWaveOptions/imag}} attributes of
+				{{Float32Array}}, both of length equal to the maximum of the
+				lengths of the {{PeriodicWaveOptions/real}} and {{PeriodicWaveOptions/imag}} attributes of
 				the {{PeriodicWaveOptions}} passed in.
 				<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-copy">
 				Make a copy</a> of those arrays into their respective
@@ -8965,7 +8965,7 @@ Constructors</h4>
 {{PeriodicWaveConstraints}}</h4>
 
 The {{PeriodicWaveConstraints}} dictionary is used to
-specify how the waveform is normalized.
+specify how the waveform is [[#waveform-normalization|normalized]].
 
 <pre class="idl">
 dictionary PeriodicWaveConstraints {
@@ -8988,14 +8988,14 @@ Dictionary {{PeriodicWaveConstraints}} Members</h5>
 {{PeriodicWaveOptions}}</h4>
 
 The {{PeriodicWaveOptions}} dictionary is used to specify
-how the waveform is constructed. If only one of <code>real</code>
-or <code>imag</code> is specified. the other is treated as if it
+how the waveform is constructed. If only one of {{PeriodicWaveOptions/real}}
+or {{PeriodicWaveOptions/imag}} is specified. the other is treated as if it
 were an array of all zeroes of the same length, as specified below
 in <a href="#dictionary-periodicwaveoptions-members">description of
 the dictionary members</a>. If neither is given, a
 {{PeriodicWave}} is created that MUST be equivalent
 to an {{OscillatorNode}} with
-{{OscillatorNode/type}} "sine". If
+{{OscillatorNode/type}} "{{OscillatorType/sine}}". If
 both are given, the sequences must have the same length; otherwise
 an <span class="synchronous">error of type
 {{NotSupportedError}} MUST be thrown</span>.
@@ -9042,13 +9042,13 @@ Waveform Generation</h4>
 
 The {{BaseAudioContext/createPeriodicWave()}}
 method takes two arrays to specify the Fourier coefficients of the
-PeriodicWave. Let \(a\) and \(b\) represent the real and imaginary
+{{PeriodicWave}}. Let \(a\) and \(b\) represent the {{[[real]]}} and {{[[imag]]}}
 arrays of length \(L\). Then the basic time-domain waveform,
 \(x(t)\), can be computed using:
 
 <pre nohighlight>
 $$
-	x(t) = \sum_{k=1}^{L-1} \left(a[k]\cos2\pi k t + b[k]\sin2\pi k t\right)
+	x(t) = \sum_{k=1}^{L-1} \left[a[k]\cos2\pi k t + b[k]\sin2\pi k t\right]
 $$
 </pre>
 
@@ -9096,7 +9096,7 @@ waveforms.
 Oscillator Coefficients</h4>
 
 The builtin oscillator types are created using {{PeriodicWave}}
-objects. For completeness the coefficients for the PeriodicWave for
+objects. For completeness the coefficients for the {{PeriodicWave}} for
 each of the builtin oscillator types is given here. This is useful
 if a builtin type is desired but without the default normalization.
 

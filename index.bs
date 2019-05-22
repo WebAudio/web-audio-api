@@ -2233,8 +2233,7 @@ Dictionary {{OfflineAudioCompletionEventInit}} Members</h6>
 <h3 id="AudioBuffer">
 The {{AudioBuffer}} Interface</h3>
 
-This interface represents a memory-resident audio asset (for one-shot
-sounds and other short audio clips). Its format is non-interleaved
+This interface represents a memory-resident audio asset. Its format is non-interleaved
 32-bit floating-point [=linear PCM=] values with a normal range of \([-1,
 1]\), but values are not limited to this range. It can contain one or
 more channels. Typically, it would be expected that the length of the
@@ -10645,7 +10644,7 @@ Background</h3>
 Real-time audio systems that require low latency are often
 implemented using <em>callback functions</em>, where the operating
 system calls the program back when more audio has to be computed in
-order for the playback to stay uninterrupted. Such callback is called
+order for the playback to stay uninterrupted. Such a callback is ideally called
 on a high priority thread (often the highest priority on the system).
 This means that a program that deals with audio only executes code
 from this callback, as any buffering between a rendering thread and
@@ -10682,8 +10681,7 @@ manipulate the audio graph, that is, from where the operation on a
 is the thread on which the actual audio output is computed, in
 reaction to the calls from the <a>control thread</a>. It can be a
 real-time, callback-based audio thread, if computing audio for an
-{{AudioContext}}, or a normal thread if rendering and audio graph
-offline using an {{OfflineAudioContext}}.
+{{AudioContext}}, or a normal thread if computing audio for an {{OfflineAudioContext}}.
 
 The <a>control thread</a> uses a traditional event loop, as described
 in [[HTML]].
@@ -10698,7 +10696,7 @@ Communication in the other direction is done using regular event loop
 tasks.
 
 Each {{AudioContext}} has a single <dfn>control message
-queue</dfn>, that is a list of <dfn lt="control message">control
+queue</dfn> that is a list of <dfn lt="control message">control
 messages</dfn> that are operations running on the <a>control
 thread</a>.
 
@@ -10737,7 +10735,7 @@ one at the front of the <a>control message queue</a>.
 Asynchronous Operations</h3>
 
 Calling methods on {{AudioNode}}s is effectively asynchronous, and
-MUST to be done in two phases, a synchronous part and an asynchronous
+MUST to be done in two phases: a synchronous part and an asynchronous
 part. For each method, some part of the execution happens on the
 <a>control thread</a> (for example, throwing an exception in case of
 invalid parameters), and some part happens on the <a>rendering
@@ -10784,10 +10782,10 @@ in the algorithm of <a href="#rendering-a-graph">rendering a graph</a>.
 
 <div class="note">
 	In practice, the {{AudioContext}} <a>rendering thread</a> is
-	often running off a system level audio callback, that executes in
+	often running off a system-level audio callback, that executes in
 	an isochronous fashion. This callback passes in a buffer that has
 	to be filled with the audio that will be output. The size of the
-	buffer is often larger than a rendering quantum. In this case,
+	buffer may be larger than a rendering quantum. In this case,
 	multiple invocations of the rendering algorithm will be called in a
 	rapid succession, in the same callback, before returning. After
 	some time, the underlying audio system will call the callback
@@ -10799,7 +10797,7 @@ in the algorithm of <a href="#rendering-a-graph">rendering a graph</a>.
 	until {{OfflineAudioContext/length}} frames have been rendered.
 </div>
 
-The system level audio callback is also queued as a task in the
+The system-level audio callback is also queued as a task in the
 <a href="#control-message-queue">control message queue</a>. The UA MUST perform
 the following algorithms to process render quanta to fulfill such task by
 filling up the requested buffer size. Along with the primary message queue, the
@@ -11239,7 +11237,7 @@ connected from the one-shot sound. So when it has finished playing
 the context will automatically release them (everything within the
 dotted line). If there are no longer any references to the one-shot
 sound and connected nodes, then they will be immediately removed from
-the graph and deleted. The streaming source, has a global reference
+the graph and deleted. The streaming source has a global reference
 and will remain connected until it is explicitly disconnected. Here's
 how it might look in JavaScript:
 
@@ -11296,21 +11294,21 @@ Channel Up-Mixing and Down-Mixing</h2>
 {{AudioNode}} can be connected from one or more outputs
 of an {{AudioNode}}. Each of these connections from an
 output represents a stream with a specific non-zero number of channels.
-An input has <em>mixing rules</em> for combining the channels from all
+An input has <dfn dfn>mixing rules</dfn> for combining the channels from all
 of the connections to it. As a simple example, if an input is connected
 from a mono output and a stereo output, then the mono connection will
 usually be up-mixed to stereo and summed with the stereo connection.
-But, of course, it's important to define the exact <em>mixing
-rules</em> for every input to every {{AudioNode}}. The
+But, of course, it's important to define the exact <a>mixing
+rules</a> for every input to every {{AudioNode}}. The
 default mixing rules for all of the inputs have been chosen so that
 things "just work" without worrying too much about the details,
 especially in the very common case of mono and stereo streams. Of
 course, the rules can be changed for advanced use cases, especially
 multi-channel.
 
-To define some terms, <em>up-mixing</em> refers to the process of
+To define some terms, <dfn dfn>up-mixing</dfn> refers to the process of
 taking a stream with a smaller number of channels and converting it to
-a stream with a larger number of channels. <em>down-mixing</em> refers
+a stream with a larger number of channels. <dfn dfn>down-mixing</dfn> refers
 to the process of taking a stream with a larger number of channels and
 converting it to a stream with a smaller number of channels.
 
@@ -11327,22 +11325,23 @@ number of channels of the input at any given time.
 
 	2. For each connection to the input:
 
-		1. up-mix or down-mix the connection to
+		1. [=up-mix=] or [=down-mix=] the connection to
 			<a>computedNumberOfChannels</a> according to the
 			{{ChannelInterpretation}}
 			value given by the node's {{AudioNode/channelInterpretation}} attribute.
 
 		2. Mix it together with all of the other mixed streams (from other
-			connections). This is a straight-forward mixing together of each of
-			the corresponding channels from each connection.
-</div>
+			connections). This is a straight-forward summing together of each of
+			the corresponding channels that have been
+			[=up-mix|up-mixed=] or [=down-mix|down-mixed=]
+			in step 1 for each connection.  </div>
 
 <h3 id="ChannelLayouts">
 Speaker Channel Layouts</h3>
 
 When {{AudioNode/channelInterpretation}} is
 "{{ChannelInterpretation/speakers}}" then the
-up-mixing and down-mixing is defined for specific channel layouts.
+[=up-mix|up-mixing=] and [=down-mix|down-mixing=] is defined for specific channel layouts.
 
 Mono (one channel), stereo (two channels), quad (four channels), and
 5.1 (six channels) MUST be supported. Other channel layouts may be
@@ -11547,7 +11546,7 @@ format where the audio values are sampled at a regular interval, and where the
 quantization levels between two successive values are linearly uniform.
 
 Whenever signal values are exposed to script in this specification, they are in
-linear 32-bit floating point pulse code modulation format (linear 32bits float
+linear 32-bit floating point pulse code modulation format (linear 32-bit float
 PCM), often in the form of {{Float32Array}} objects.
 
 <h3 id="audio-values-rendering">

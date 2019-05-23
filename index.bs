@@ -234,7 +234,7 @@ Features</h3>
 The API supports these primary features:
 
 * [[#ModularRouting|Modular routing]] for simple or complex
-	mixing/effect architectures, including [[#mixer-gain-structure|multiple sends and submixes]].
+	mixing/effect architectures.
 
 * High dynamic range, using 32-bit floats for internal processing.
 
@@ -574,10 +574,7 @@ The interfaces defined are:
 	{{AudioNode}} for dynamics compression.
 
 * A {{GainNode}} interface, an
-	{{AudioNode}} for explicit gain control. Because
-	inputs to {{AudioNode}}s support multiple connections
-	(as a unity-gain summing junction), mixers can be
-	[[#mixer-gain-structure|easily built]] with GainNodes.
+	{{AudioNode}} for explicit gain control.
 
 * An {{IIRFilterNode}} interface, an
 	{{AudioNode}} for a general IIR filter.
@@ -2563,10 +2560,9 @@ channels at any given time. This number can change depending on the
 connections then it has one channel which is silent.
 
 For each <a>input</a>, an {{AudioNode}} performs a
-mixing (usually an up-mixing) of all connections to that input.
-Please see <a href="#mixer-gain-structure"></a> for more informative
-details, and <a href="#channel-up-mixing-and-down-mixing"></a>
-for normative requirements.
+mixing of all connections to that input.
+Please see <a href="#channel-up-mixing-and-down-mixing"></a>
+for normative requirements and details.
 
 The processing of inputs and the internal operations of an
 {{AudioNode}} take place continuously with respect to
@@ -5185,7 +5181,7 @@ graph. There is only a single AudioDestinationNode per
 {{AudioContext}}.
 
 The output of a {{AudioDestinationNode}} is produced
-by <a href="#SummingJunction">summing its input</a>, allowing to
+by <a href="#channel-up-mixing-and-down-mixing">summing its input</a>, allowing to
 capture the output of an {{AudioContext}} into, for
 example, a {{MediaStreamAudioDestinationNode}}, or a
 <code>MediaRecorder</code> (described in [[mediastream-recording]]).
@@ -7420,8 +7416,7 @@ of the same shape.
 The {{GainNode}} Interface</h3>
 
 Changing the gain of an audio signal is a fundamental operation in
-audio applications. The {{GainNode}} is one of the building
-blocks for creating <a href="#mixer-gain-structure">mixers</a>. This
+audio applications. This
 interface is an {{AudioNode}} with a single input and
 single output:
 
@@ -10902,7 +10897,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 			1. For each {{AudioParam}} of this {{AudioNode}}, execute these steps:
 
 				1. If this {{AudioParam}} has any {{AudioNode}} connected to it,
-					[[#SummingJunction|sum]] the buffers
+					[[#channel-up-mixing-and-down-mixing|sum]] the buffers
 					[=Making a buffer available for reading|made available for reading=] by
 					all {{AudioNode}} connected to this {{AudioParam}},
 					[[#down-mix|down mix]] the resulting buffer down to a mono
@@ -10916,7 +10911,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 					of this {{AudioParam}} according to [[#computation-of-value]].
 
 			2. If this {{AudioNode}} has any {{AudioNode}}s connected to its input,
-				[[#SummingJunction|sum]] the buffers
+				[[#channel-up-mixing-and-down-mixing|sum]] the buffers
 				[=Making a buffer available for reading|made available for reading=] by all
 				{{AudioNode}}s connected to this {{AudioNode}}. The resulting buffer is
 				called the <dfn>input buffer</dfn>.
@@ -11007,169 +11002,6 @@ sample-frames.
 running the algorithm for an {{AudioNode}}, using an <a>input
 buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 {{AudioNode}} as the input for this algorithm.
-
-<h2 id="mixer-gain-structure">
-Mixer Gain Structure</h2>
-
-<h3 id="background">
-Background</h3>
-
-One of the most important considerations when dealing with audio
-processing graphs is how to adjust the gain (volume) at various points.
-For example, in a standard mixing board model, each input bus has
-pre-gain, post-gain, and send-gains. Submix and master out busses also
-have gain control. The gain control described here can be used to
-implement standard mixing boards as well as other architectures.
-
-<h3 id="SummingJunction">
-Summing Inputs</h3>
-
-The inputs to {{AudioNode}}s have the ability to
-accept connections from multiple outputs. The input then acts as a
-unity gain summing junction with each output signal being added with
-the others:
-
-<figure>
-	<img alt="unity gain summing junction" src="images/unity-gain-summing-junction.png" width="442" height="198">
-	<figcaption>
-		A graph showing Source 1 and Source 2 output summed at the input of
-		Destination
-	</figcaption>
-</figure>
-
-In cases where the channel layouts of the outputs do not match, a mix
-(usually up-mix) will occur according to the <a href="#channel-up-mixing-and-down-mixing">mixing rules</a>.
-
-No clipping is applied at the inputs or outputs of the
-{{AudioNode}} to allow a maximum of dynamic range
-within the audio graph.
-
-<h3 id="gain-control">
-Gain Control</h3>
-
-In many scenarios, it's important to be able to control the gain for
-each of the output signals. The {{GainNode}} gives
-this control:
-
-<figure>
-	<img alt="" src="images/mixer-architecture-new.png" width="455" height="198">
-	<figcaption>
-		A graph featuring volume control for each voice
-	</figcaption>
-</figure>
-
-Using these two concepts of unity gain summing junctions and
-GainNodes, it's possible to construct simple or complex mixing
-scenarios.
-
-<h3 id="Example-mixer-with-send-busses">
-Example: Mixer with Send Busses</h3>
-
-In a routing scenario involving multiple sends and submixes, explicit
-control is needed over the volume or "gain" of each connection to a
-mixer. Such routing topologies are very common and exist in even the
-simplest of electronic gear sitting around in a basic recording
-studio.
-
-Here's an example with two send mixers and a main mixer. Although
-possible, for simplicity's sake, pre-gain control and insert effects
-are not illustrated:
-
-<figure>
-	<img alt="" src="images/mixer-gain-structure.png"
-	width="710" height="634">
-	<figcaption>
-		A graph showing a full mixer with send busses.
-	</figcaption>
-</figure>
-
-This diagram is using a shorthand notation where "send 1", "send 2",
-and "main bus" are actually inputs to {{AudioNode}}s,
-but here are represented as summing busses, where the intersections
-g2_1, g3_1, etc. represent the "gain" or volume for the given source
-on the given mixer. In order to expose this gain, a
-{{GainNode}} is used:
-
-Here's how the above diagram could be constructed in JavaScript:
-
-<pre line-numbers class="example" highlight="js">
-	var context = 0;
-	var compressor = 0;
-	var reverb = 0;
-	var delay = 0;
-	var s1 = 0;
-	var s2 = 0;
-
-	var source1 = 0;
-	var source2 = 0;
-	var g1_1 = 0;
-	var g2_1 = 0;
-	var g3_1 = 0;
-	var g1_2 = 0;
-	var g2_2 = 0;
-	var g3_2 = 0;
-
-	// Setup routing graph
-	function setupRoutingGraph() {
-			context = new AudioContext();
-
-			compressor = context.createDynamicsCompressor();
-
-			// Send1 effect
-			reverb = context.createConvolver();
-			// Convolver impulse response may be set here or later
-
-			// Send2 effect
-			delay = context.createDelay();
-
-			// Connect final compressor to final destination
-			compressor.connect(context.destination);
-
-			// Connect sends 1 & 2 through effects to main mixer
-			s1 = context.createGain();
-			reverb.connect(s1);
-			s1.connect(compressor);
-
-			s2 = context.createGain();
-			delay.connect(s2);
-			s2.connect(compressor);
-
-			// Create a couple of sources
-			source1 = context.createBufferSource();
-			source2 = context.createBufferSource();
-			source1.buffer = manTalkingBuffer;
-			source2.buffer = footstepsBuffer;
-
-			// Connect source1
-			g1_1 = context.createGain();
-			g2_1 = context.createGain();
-			g3_1 = context.createGain();
-			source1.connect(g1_1);
-			source1.connect(g2_1);
-			source1.connect(g3_1);
-			g1_1.connect(compressor);
-			g2_1.connect(reverb);
-			g3_1.connect(delay);
-
-			// Connect source2
-			g1_2 = context.createGain();
-			g2_2 = context.createGain();
-			g3_2 = context.createGain();
-			source2.connect(g1_2);
-			source2.connect(g2_2);
-			source2.connect(g3_2);
-			g1_2.connect(compressor);
-			g2_2.connect(reverb);
-			g3_2.connect(delay);
-
-			// We now have explicit control over all the volumes g1_1, g2_1, ..., s1, s2
-			g2_1.gain.value = 0.2; // For example, set source1 reverb gain
-
-			// Because g2_1.gain is an "AudioParam",
-			// an automation curve could also be attached to it.
-			// A "mixing board" UI could be created in canvas or WebGL controlling these gains.
-	}
-</pre>
 
 <h2 id="DynamicLifetime">
 Dynamic Lifetime</h2>
@@ -11287,11 +11119,7 @@ Channel Up-Mixing and Down-Mixing</h2>
 
 <em>This section is normative.</em>
 
-<a href="#mixer-gain-structure"></a> describes how an input to an
-{{AudioNode}} can be connected from one or more outputs
-of an {{AudioNode}}. Each of these connections from an
-output represents a stream with a specific non-zero number of channels.
-An input has <dfn dfn>mixing rules</dfn> for combining the channels from all
+An AudioNode input has <dfn dfn>mixing rules</dfn> for combining the channels from all
 of the connections to it. As a simple example, if an input is connected
 from a mono output and a stereo output, then the mono connection will
 usually be up-mixed to stereo and summed with the stereo connection.

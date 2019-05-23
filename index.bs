@@ -9522,7 +9522,7 @@ Concepts</h4>
 The {{AudioWorklet}} object allows developers to supply scripts
 (such as JavaScript or WebAssembly code) to process audio on the
 <a>rendering thread</a>, supporting custom {{AudioNode}}s. This
-processing mechanism ensures the synchronous execution of the
+processing mechanism ensures synchronous execution of the
 script code with other built-in {{AudioNode}}s in the audio
 graph.
 
@@ -9543,8 +9543,8 @@ within a special scope named {{AudioWorkletGlobalScope}}.
 
 Each {{BaseAudioContext}} possesses exactly one
 {{AudioWorklet}}. Scripts imported using this {{AudioWorklet}}
-are run in one or more {{AudioWorkletGlobalScope}} global scopes,
-which are created to process audio associated with that
+are run in one {{AudioWorkletGlobalScope}},
+which is created to process audio associated with that
 {{BaseAudioContext}}.
 
 Importing a script via the {{addModule()|addModule(moduleUrl)}}
@@ -9740,7 +9740,7 @@ Methods</h5>
 			</ol>
 		</div>
 
-		Note: The class constructor should only be looked up once, thus it
+		Note: The class constructor should only be looked up once; thus it
 		does not have the opportunity to dynamically change its
 		definition.
 
@@ -9759,7 +9759,7 @@ The {{AudioWorkletNode}} Interface</h4>
 
 This interface represents a user-defined {{AudioNode}} which
 lives on the <a>control thread</a>. The user can create an
-{{AudioWorkletNode}} from an {{BaseAudioContext}}, and such a
+{{AudioWorkletNode}} from a {{BaseAudioContext}}, and such a
 node can be connected with other built-in {{AudioNode}}s to form
 an audio graph.
 
@@ -9797,7 +9797,8 @@ This interface has "entries", "forEach", "get", "has", "keys",
 <pre class="idl">
 [Exposed=Window,
  SecureContext,
- Constructor (BaseAudioContext context, DOMString name, optional AudioWorkletNodeOptions options)]
+ Constructor (BaseAudioContext context, DOMString name,
+              optional AudioWorkletNodeOptions options)]
 interface AudioWorkletNode : AudioNode {
 	readonly attribute AudioParamMap parameters;
 	readonly attribute MessagePort port;
@@ -9821,7 +9822,7 @@ Constructors</h5>
 
 		<pre class=argumentdef for="AudioWorkletNode/AudioWorkletNode()">
 			context: The {{BaseAudioContext}} this new {{AudioWorkletNode}} will be <a href="#associated">associated</a> with.
-			name: A string that can be used as a key in the {{BaseAudioContext}}’s <a>node name to parameter descriptor map</a>.
+			name: A string that is a key for the {{BaseAudioContext}}’s <a>node name to parameter descriptor map</a>.
 			options: Optional initial parameters value for this {{AudioWorkletNode}}.
 		</pre>
 </dl>
@@ -9851,11 +9852,11 @@ Attributes</h5>
 	: <dfn>port</dfn>
 	::
 		Every {{AudioWorkletNode}} has an associated
-		<code>port</code> which is a
+		<code>port</code> which is the
 		{{MessagePort}}. It is connected to the port on the
 		corresponding {{AudioWorkletProcessor}} object allowing
-		bidirectional communication between a pair of
-		{{AudioWorkletNode}} and {{AudioWorkletProcessor}}.
+		bidirectional communication between the
+		{{AudioWorkletNode}} and its {{AudioWorkletProcessor}}.
 
 </dl>
 
@@ -9883,12 +9884,12 @@ Dictionary {{AudioWorkletNodeOptions}} Members</h6>
 <dl dfn-type=dict-member dfn-for="AudioWorkletNodeOptions">
 	: <dfn>numberOfInputs</dfn>
 	::
-		This is used to initialize the value of {{AudioNode}}
+		This is used to initialize the value of the {{AudioNode}}
 		{{AudioNode/numberOfInputs}} attribute.
 
 	: <dfn>numberOfOutputs</dfn>
 	::
-		This is used to initialize the value of {{AudioNode}}
+		This is used to initialize the value of the {{AudioNode}}
 		{{AudioNode/numberOfOutputs}} attribute.
 
 	: <dfn>outputChannelCount</dfn>
@@ -9896,20 +9897,20 @@ Dictionary {{AudioWorkletNodeOptions}} Members</h6>
 		This array is used to configure the number of channels in
 		each output. For example, <code>outputChannelCount: [n,
 		m]</code> specifies the number of channels in the first
-		output to <code>n</code> and the second output to
-		<code>m</code> respectively. {{IndexSizeError}} MUST
-		be thrown if the length of sequence does not match
+		output to be <code>n</code> and the second output to be
+		<code>m</code>, respectively. {{IndexSizeError}} MUST
+		be thrown if the length of {{outputChannelCount}} does not match
 		{{AudioWorkletNodeOptions/numberOfOutputs}}. A
 		{{NotSupportedError}} exception MUST be thrown if a
-		channel count is not in the valid range of AudioNode's
+		channel count is not in the valid range of an {{AudioNode}}'s
 		{{AudioNode/channelCount}}.
 
 	: <dfn>parameterData</dfn>
 	::
 		This is a list of user-defined key-value pairs that are used
-		to initialize {{AudioParam}} values in
+		to initialize {{AudioParam}} objects in
 		{{AudioWorkletNode}}. If the string key of an entry in the
-		list does not match any name of {{AudioParam}} objects in
+		list does not match the name of any {{AudioParam}} objects in
 		the node, it is ignored.
 	: <dfn>processorOptions</dfn>
 	::
@@ -9945,8 +9946,8 @@ various channel configurations can be achieved.
 The {{AudioWorkletProcessor}} Interface</h4>
 
 This interface represents an audio processing code that runs on the
-audio <a>rendering thread</a>. It lives in an
-{{AudioWorkletGlobalScope}} and the definition of
+audio <a>rendering thread</a>. It lives in the
+{{AudioWorkletGlobalScope}}, and the definition of
 the class manifests the actual audio processing mechanism of a
 custom audio node. {{AudioWorkletProcessor}} can
 only be instantiated by the construction of an
@@ -9990,7 +9991,7 @@ Constructors</h5>
 				be called internally by the UA.
 
 			1. Initialize the {{AudioWorkletProcessor}} using the
-				contents of the <code>options</code> dictionary that was
+				contents of the {{AudioWorkletNode/AudioWorkletNode()/options!!argument}} dictionary that was
 				passed to the constructor for {{AudioWorkletNode}}. The
 				contents of this dictionary will have been serialized and
 				deserialized according to the algorithm for <a href=
@@ -10020,14 +10021,14 @@ Constructors</h5>
 		Every {{AudioWorkletProcessor}} has an associated
 		<code>port</code> which is a {{MessagePort}}. It is connected to the port on the
 		corresponding {{AudioWorkletProcessor}} object allowing
-		bidirectional communication between a pair of
-		{{AudioWorkletNode}} and {{AudioWorkletProcessor}}.
+		bidirectional communication between an
+		{{AudioWorkletNode}} and its {{AudioWorkletProcessor}}.
 </dl>
 
 <h5 id="AudioWorkletProcessor-methods">
 Methods</h5>
 
-User can define a custom audio processor by extending
+Users can define a custom audio processor by extending
 {{AudioWorkletProcessor}}. The subclass MUST define a method
 named {{process()}} that implements the audio processing
 algorithm and may have a valid static property named
@@ -10050,7 +10051,7 @@ in the node.
 		* {{[[callable process]]}} is `true`.
 
 		* The {{AudioWorkletNode}} is [=actively processing=], meaning
-			ANY of the following states are met:
+			ANY of the following conditions are met:
 
 			* The associated {{AudioWorkletProcessor}}'s
 				<a>active source</a> flag is equal to `true`.
@@ -10102,17 +10103,17 @@ in the node.
 
 		<pre class=argumentdef for="AudioWorkletProcessor/process(inputs, outputs, parameters))">
 			inputs:
-				The input audio buffer from the incoming connections provided by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>. <code>inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on computedNumberOfChannels.
+				The input audio buffer from the incoming connections provided by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>. <code>inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on [=computedNumberOfChannels=].
 
 				If no connections exist to the \(n\)th input of the node during the current render quantum, then the content of <code>inputs[n]</code> is an empty array, indicating that zero channels of input are available. This is the only circumstance under which the number of elements of <code>inputs[n]</code> can be zero.
 
 			outputs:
-				The output audio buffer that is to be consumed by the user agent. It has type <code>&lt;sequence&lt;sequence&lt;Float32Array>></code>. <code>outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. Each of the {{Float32Array}}s are zero-filled. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has single output.
+				The output audio buffer that is to be consumed by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>. <code>outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. Each of the {{Float32Array}}s are zero-filled. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has a single output.
 
 			parameters:
-				A map of string keys and associated {{Float32Array}}s. <code>parameters["name"]</code> corresponds to the automation values of the AudioParam named <code>"name"</code>.
+				A map of string keys and associated {{Float32Array}}s. <code>parameters["name"]</code> corresponds to the automation values of the {{AudioParam}} named <code>"name"</code>.
 
-				For each array, the array contains the [=computedValue=] or the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
+				For each array, the array contains the [=computedValue=] of the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
 		</pre>
 
 		<div>
@@ -10182,12 +10183,12 @@ Dictionary {{AudioParamDescriptor}} Members</h6>
 	::
 		Represents the default value of the parameter. If this value
 		is out of the range of float data type or the range defined
-		by {{AudioParamDescriptor/minValue}} and {{AudioParamDescriptor/maxValue}}, an
+		by {{AudioParamDescriptor/minValue}} and {{AudioParamDescriptor/maxValue}}, a
 		{{NotSupportedError}} exception MUST be thrown.
 
 	: <dfn>maxValue</dfn>
 	::
-		Represents the maximum value. An
+		Represents the maximum value. A
 		{{NotSupportedError}} exception MUST be thrown if
 		this value is out of range of float data type or it is
 		smaller than <code>minValue</code>. This value is the most
@@ -10195,7 +10196,7 @@ Dictionary {{AudioParamDescriptor}} Members</h6>
 
 	: <dfn>minValue</dfn>
 	::
-		Represents the minimum value. An
+		Represents the minimum value. A
 		{{NotSupportedError}} exception MUST be thrown if
 		this value is out of range of float data type or it is
 		greater than <code>maxValue</code>. This value is the most
@@ -10203,7 +10204,7 @@ Dictionary {{AudioParamDescriptor}} Members</h6>
 
 	: <dfn>name</dfn>
 	::
-		Represents the name of a parameter. An
+		Represents the name of the parameter. A
 		{{NotSupportedError}} exception MUST be thrown when
 		a duplicated name is found when registering the class
 		definition.
@@ -10214,9 +10215,9 @@ The instantiation of {{AudioWorkletNode}} and {{AudioWorkletProcessor}}</h4>
 
 When the constructor of {{AudioWorkletNode}} is invoked in the
 main global scope, the corresponding {{AudioWorkletProcessor}}
-instance is automatically created in
+instance is automatically created in the
 {{AudioWorkletGlobalScope}}. After the construction, they
-maintain the internal reference to each other until the
+maintain an internal reference to each other until the
 {{AudioWorkletNode}} instance is destroyed.
 
 Note that the instantiation of these two objects spans the control
@@ -10228,27 +10229,27 @@ thread and the rendering thread.
 	the user agent MUST perform the following steps on the control
 	thread, where the constructor was called.
 
-	1. Let <var>node</var> be the instance being created by
-		constructor of {{AudioWorkletNode}} or its subclass.
+	1. Let <var>node</var> be the instance being created by the
+		constructor of the {{AudioWorkletNode}} or its subclass.
 
 	2. If <var>nodeName</var> does not exists as a key in the
 		{{BaseAudioContext}}’s <a>node name to parameter descriptor
 		map</a>, throw a {{NotSupportedError}} exception and abort
 		these steps.
 
-	4. Let <var>messageChannel</var> be a new <a href="https://html.spec.whatwg.org/multipage/web-messaging.html#message-channels">MessageChannel</a>.
+	4. Let <var>messageChannel</var> be a new {{MessageChannel}}.
 
 	5. Let <var>nodePort</var> be the value of
-		<var>messageChannel</var>'s <code>port1</code> attribute.
+		<var>messageChannel</var>'s {{MessageChannel/port1}} attribute.
 
 	6. Let <var>processorPortOnThisSide</var> be the value of
-		<var>messageChannel</var>'s <code>port2</code> attribute.
+		<var>messageChannel</var>'s {{MessageChannel/port2}} attribute.
 
-	7. Let <var>processorPortSerialization</var> be
+	7. Let <var>processorPortSerialization</var> be the result of
 			[$StructuredSerializeWithTransfer$](<var>processorPortOnThisSide</var>,
 			« <var>processorPortOnThisSide</var> »).
 
-	7. Let <var>optionsSerialization</var> be
+	7. Let <var>optionsSerialization</var> be the result of
 		[$StructuredSerialize$](<var>options</var>).
 
 	8. Set <var>node</var>'s {{AudioWorkletNode/port}} to <var>nodePort</var>.
@@ -10286,7 +10287,7 @@ thread and the rendering thread.
 		4. Set <var>node</var>'s {{AudioWorkletNode/parameters}} to <var>audioParamMap</var>.
 
 	10. <a>Queue a control message</a> to create an
-		{{AudioWorkletProcessor}}, given <var>nodeName</var>,
+		{{AudioWorkletProcessor}}, given the <var>nodeName</var>,
 		<var>processorPortSerialization</var>, <var>optionsSerialization</var>,  and <var>node</var>.
 
 	11. Return <var>node</var>.
@@ -10316,7 +10317,7 @@ thread and the rendering thread.
 		name to processor definition map</a>.
 
 	1. If <var>processorConstructor</var> is <code>undefined</code>,
-		throw a {{NotSupportedError}} DOMException.
+		throw a {{NotSupportedError}} exception.
 
 	1. Let <var>processor</var> be the result of
 		Construct(<var>processorConstructor</var>, « <var>options</var> »).

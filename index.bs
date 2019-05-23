@@ -236,7 +236,7 @@ The API supports these primary features:
 * [[#ModularRouting|Modular routing]] for simple or complex
 	mixing/effect architectures, including [[#mixer-gain-structure|multiple sends and submixes]].
 
-* High dynamic range, using 32bits floats for internal processing.
+* High dynamic range, using 32-bit floats for internal processing.
 
 * [[#AudioParam|Sample-accurate scheduled sound playback]]
 	with low [[#latency|latency]] for musical applications
@@ -254,7 +254,7 @@ The API supports these primary features:
 	{{MediaElementAudioSourceNode|media element}}.
 
 * Processing live audio input using a {{MediaStreamTrackAudioSourceNode|MediaStream}} from
-	getUserMedia().
+	[[mediacapture-streams#dom-mediadevices-getusermedia|getUserMedia()]].
 
 * Integration with WebRTC
 	* Processing audio received from a remote peer using a
@@ -295,7 +295,7 @@ The API supports these primary features:
 
 * Dynamics compression for overall control and sweetening of the mix
 
-* Efficient [[#analysernode|real-time time-domain and frequency analysis / music visualizer support]].
+* Efficient [[#analysernode|real-time time-domain and frequency-domain analysis / music visualizer support]].
 
 * Efficient biquad filters for lowpass, highpass, and other common filters.
 
@@ -1177,7 +1177,7 @@ Methods</h4>
 
 					1.Let <var>buffer</var> be an
 						{{AudioBuffer}} containing the final result
-						(after possibly sample-rate conversion).
+						(after possibly performing sample-rate conversion).
 
 					2. Resolve <var>promise</var> with <var>buffer</var>.
 
@@ -2233,8 +2233,7 @@ Dictionary {{OfflineAudioCompletionEventInit}} Members</h6>
 <h3 id="AudioBuffer">
 The {{AudioBuffer}} Interface</h3>
 
-This interface represents a memory-resident audio asset (for one-shot
-sounds and other short audio clips). Its format is non-interleaved
+This interface represents a memory-resident audio asset. Its format is non-interleaved
 32-bit floating-point [=linear PCM=] values with a normal range of \([-1,
 1]\), but values are not limited to this range. It can contain one or
 more channels. Typically, it would be expected that the length of the
@@ -2574,14 +2573,6 @@ The processing of inputs and the internal operations of an
 {{AudioContext}} time, regardless of whether the node has
 connected outputs, and regardless of whether these outputs ultimately
 reach an {{AudioContext}}'s {{AudioDestinationNode}}.
-
-For performance reasons, practical implementations will need to use
-block processing, with each {{AudioNode}} processing
-a fixed number of sample-frames of size <em>block-size</em>. In order
-to get uniform behavior across implementations, we will define this
-value explicitly. <em>block-size</em> is defined to be 128
-sample-frames which corresponds to roughly 3ms at a sample-rate of
-44.1 kHz.
 
 <pre class="idl">
 [Exposed=Window]
@@ -3044,7 +3035,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioNode/connect(destinationNode, output, input)">
 			destinationNode: The <code>destination</code> parameter is the {{AudioNode}} to connect to. <span class="synchronous">If the <code>destination</code> parameter is an {{AudioNode}} that has been created using another {{AudioContext}}, an {{InvalidAccessError}} MUST be thrown</span>. That is, {{AudioNode}}s cannot be shared between {{AudioContext}}s. Multiple {{AudioNode}}s can be connected to the same {{AudioNode}}, this is described in [[#channel-up-mixing-and-down-mixing|Channel Upmixing and down mixing]] section.
-			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to connect. <span class="synchronous">If this parameter is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span> It is possible to connect an {{AudioNode}} output to more than one input with multiple calls to connect(). Thus, "fan-out" is supported.
+			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to connect. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span> It is possible to connect an {{AudioNode}} output to more than one input with multiple calls to connect(). Thus, "fan-out" is supported.
 			input:  The <code>input</code> parameter is an index describing which input of the destination {{AudioNode}} to connect to. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span> It is possible to connect an {{AudioNode}} to another {{AudioNode}} which creates a <dfn dfn for>cycle</dfn>: an {{AudioNode}} may connect to another {{AudioNode}}, which in turn connects back to the input or {{AudioParam}} of the first {{AudioNode}}. This is allowed only if there is at least one {{DelayNode}} in the <em>cycle</em> <span class="synchronous">or a {{NotSupportedError}} exception MUST be thrown.</span>
 		</pre>
 
@@ -3103,7 +3094,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioNode/connect(destinationParam, output)">
 			destinationParam: The <code>destination</code> parameter is the {{AudioParam}} to connect to. This method does not return the <code>destination</code> {{AudioParam}} object. <span class="synchronous">If {{AudioNode/connect(destinationParam, output)/destinationParam}} belongs to an {{AudioNode}} that belongs to a {{BaseAudioContext}} that is different from the {{BaseAudioContext}} that has created the {{AudioNode}} on which this method was called, an {{InvalidAccessError}} MUST be thrown.</span>
-			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to connect. <span class="synchronous">If the <code>parameter</code> is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span>
+			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to connect. <span class="synchronous">If the <code>parameter</code> is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span>
 		</pre>
 
 		<div>
@@ -3158,7 +3149,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioNode/disconnect(destinationNode, output)">
 			destinationNode: The <code>destinationNode</code> parameter is the {{AudioNode}} to disconnect. <span class="synchronous">If there is no connection to the <code>destinationNode</code> from the given output, an {{InvalidAccessError}} exception MUST be thrown.</span>
-			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If this parameter is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span>
+			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span>
 		</pre>
 
 		<div>
@@ -3173,7 +3164,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioNode/disconnect(destinationNode, output, input)">
 			destinationNode: The <code>destinationNode</code> parameter is the {{AudioNode}} to disconnect. <span class="synchronous">If there is no connection to the <code>destinationNode</code> from the given input to the given output, an {{InvalidAccessError}} exception MUST be thrown.</span>
-			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If this parameter is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span>
+			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span>
 			input: The <code>input</code> parameter is an index describing which input of the destination {{AudioNode}} to disconnect. <span class="synchronous">If this parameter is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span>
 		</pre>
 
@@ -3208,7 +3199,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioNode/disconnect(destinationParam, output)">
 			destinationParam: The <code>destinationParam</code> parameter is the {{AudioParam}} to disconnect. <span class="synchronous">If there is no connection to the <code>destinationParam</code>, an {{InvalidAccessError}} exception MUST be thrown.</span>
-			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If the <code>parameter</code> is out-of-bound, an {{IndexSizeError}} exception MUST be thrown.</span>
+			output: The <code>output</code> parameter is an index describing which output of the {{AudioNode}} from which to disconnect. <span class="synchronous">If the <code>parameter</code> is out-of-bounds, an {{IndexSizeError}} exception MUST be thrown.</span>
 		</pre>
 		<div>
 			<em>Return type:</em> <code>void</code>
@@ -4071,9 +4062,9 @@ Methods</h4>
 
 			4. Send a <a>control message</a> to the associated {{AudioContext}} to
 				<a href="#context-resume">run it in the rendering thread</a> only when
-				the following conditions are met:
-				1. The context's <code>control thread state</code> is
-					<code>suspended</code>.
+				all the following conditions are met:
+				1. The context's <code>control thread state</code> is not
+					<code>closed</code>.
 				2. The context is <a>allowed to start</a>.
 				3. {{[[suspended by user]]}} flag is <code>false</code>.
 		</div>
@@ -4906,15 +4897,15 @@ Playback of AudioBuffer Contents</h4>
 
 This normative section specifies the playback of the contents of
 the buffer, accounting for the fact that playback is influenced by
-the following factors working in combination, which can vary
-dynamically during playback:
+the following factors working in combination:
 
 * A starting offset, which can expressed with sub-sample precision.
 
-* Loop points, which can expressed with sub-sample precision.
+* Loop points, which can expressed with sub-sample precision and can
+	 vary dynamically during playback.
 
 * Playback rate and detuning parameters, which combine to yield a
-	single computed playback rate that can assume non-infinite values
+	single <a>computedPlaybackRate</a> that can assume finite values
 	which may be positive or negative.
 
 The algorithm to be followed internally to generate output from an
@@ -5736,8 +5727,6 @@ enum BiquadFilterType {
 			: <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a>
 			:: Controls how peaked the response will be at the cutoff
 				frequency. A large value makes the response more peaked.
-				Please note that for this filter type, this value is not a
-				traditional Q, but is a resonance value in decibels.
 			: gain
 			:: Not used in this filter type
 	<tr>
@@ -5755,8 +5744,6 @@ enum BiquadFilterType {
 			: <a href="https://en.wikipedia.org/wiki/Q_factor">Q</a>
 			:: Controls how peaked the response will be at the cutoff
 				frequency. A large value makes the response more peaked.
-				Please note that for this filter type, this value is not a
-				traditional Q, but is a resonance value in decibels.
 			: gain
 			:: Not used in this filter type
 	<tr>
@@ -7706,6 +7693,31 @@ channels of the media referenced by the
 <code>src</code> attribute can change the number of channels output
 by this node.
 
+A {{MediaElementAudioSourceNode}} is created given an
+{{HTMLMediaElement}} using the {{AudioContext}}
+{{createMediaElementSource()}} method or the {{MediaElementAudioSourceOptions/mediaElement}} member of the {{MediaElementAudioSourceOptions}} dictionary for the {{MediaElementAudioSourceNode/MediaElementAudioSourceNode()|constructor}}.
+
+The number of channels of the single output equals the number of
+channels of the audio referenced by the {{HTMLMediaElement}}
+passed in as the argument to {{createMediaElementSource()}},
+or is 1 if the {{HTMLMediaElement}} has no audio.
+
+The {{HTMLMediaElement}} MUST behave in an identical fashion
+after the {{MediaElementAudioSourceNode}} has been created,
+<em>except</em> that the rendered audio will no longer be heard
+directly, but instead will be heard as a consequence of the
+{{MediaElementAudioSourceNode}} being connected through the
+routing graph. Thus pausing, seeking, volume, <code>src</code>
+attribute changes, and other aspects of the
+{{HTMLMediaElement}} MUST behave as they normally would if
+<em>not</em> used with a {{MediaElementAudioSourceNode}}.
+
+<pre class="example" highlight="js">
+	var mediaElement = document.getElementById('mediaElementID');
+	var sourceNode = context.createMediaElementSource(mediaElement);
+	sourceNode.connect(filterNode);
+</pre>
+
 <pre class="idl">
 [Exposed=Window,
  Constructor (AudioContext context, MediaElementAudioSourceOptions options)]
@@ -7741,31 +7753,6 @@ Attributes</h4>
 		The {{HTMLMediaElement}} used when constructing this
 		{{MediaElementAudioSourceNode}}.
 </dl>
-
-A {{MediaElementAudioSourceNode}} is created given an
-{{HTMLMediaElement}} using the {{AudioContext}}
-{{createMediaElementSource()}} method or the {{MediaElementAudioSourceOptions/mediaElement}} member of the {{MediaElementAudioSourceOptions}} dictionary for the {{MediaElementAudioSourceNode/MediaElementAudioSourceNode()|constructor}}.
-
-The number of channels of the single output equals the number of
-channels of the audio referenced by the {{HTMLMediaElement}}
-passed in as the argument to {{createMediaElementSource()}},
-or is 1 if the {{HTMLMediaElement}} has no audio.
-
-The {{HTMLMediaElement}} MUST behave in an identical fashion
-after the {{MediaElementAudioSourceNode}} has been created,
-<em>except</em> that the rendered audio will no longer be heard
-directly, but instead will be heard as a consequence of the
-{{MediaElementAudioSourceNode}} being connected through the
-routing graph. Thus pausing, seeking, volume, <code>src</code>
-attribute changes, and other aspects of the
-{{HTMLMediaElement}} MUST behave as they normally would if
-<em>not</em> used with a {{MediaElementAudioSourceNode}}.
-
-<pre class="example" highlight="js">
-	var mediaElement = document.getElementById('mediaElementID');
-	var sourceNode = context.createMediaElementSource(mediaElement);
-	sourceNode.connect(filterNode);
-</pre>
 
 <h4 dictionary lt="MediaElementAudioSourceOptions">
 {{MediaElementAudioSourceOptions}}</h4>
@@ -7820,7 +7807,7 @@ whose <code>kind</code> is <code>"audio"</code>. This [[mediacapture-streams#med
 created when the node is created and is accessible via the
 {{MediaStreamAudioDestinationNode/stream}} attribute. This stream can be used in a similar way
 as a [[mediacapture-streams#mediastream|MediaStream]] obtained via
-<code>getUserMedia()</code>, and can, for example, be sent to a
+[[mediacapture-streams#dom-mediadevices-getusermedia|getUserMedia()]], and can, for example, be sent to a
 remote peer using the <code>RTCPeerConnection</code> (described in
 [[!webrtc]]) <code>addStream()</code> method.
 
@@ -9397,7 +9384,7 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="WaveShaperNode">
 	: <dfn>WaveShaperNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{WaveShaperNode}} object. Initialize <var>node</var>. Set an internal boolean slot <dfn attribute for="WaveShaperNode">[[curve set]]</dfn>, and initialize it to false. Return <var>node</var>.
+		Let <var>node</var> be a new {{WaveShaperNode}} object, and let <dfn attribute for="WaveShaperNode">[[curve set]]</dfn> be an internal slot of the <var>node</var>, initialized to <code>false</code>.  <a href="#audionode-constructor-init">Initialize</a> <var>node</var>. If {{WaveShaperNode/WaveShaperNode()/options!!argument}} is given and specifies a {{WaveShaperOptions/curve}}, set {{[[curve set]]}} to <code>true</code>. Return <var>node</var>.
 
 		<pre class=argumentdef for="WaveShaperNode/WaveShaperNode()">
 			context: The {{BaseAudioContext}} this new {{WaveShaperNode}} will be <a href="#associated">associated</a> with.
@@ -10081,7 +10068,6 @@ in the node.
 		{{process()}} method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in [[!ECMASCRIPT]])
 		is applied to the return value and the result is assigned to the associated AudioWorkletProcessor's <a>active source</a> flag. This in turn affects whether subsequent
 		invocations of {{process()}} occur, and has an impact on the lifetime of the node.
-		To propagate the flag change <a>queue a task</a> on the control thread to update the corresponding {{AudioWorkletNode}}'s <code>state</code> property accordingly.
 
 		<div class="note">
 			This lifetime policy can support a variety of approaches found in
@@ -10287,7 +10273,8 @@ thread and the rendering thread.
 			3. Append (<var>paramName</var>, <var>audioParam</var>) to
 				<var>audioParamMap</var>'s entries.
 
-		3. For each <var>paramNameInOption</var> → <var>value</var> of <var>options</var>:
+		3. For each key-value pair (<var>paramNameInOption</var> to
+			<var>value</var>) of <var>options</var>:
 			1. If there exists an entry with name member equal to
 				<var>paramNameInOption</var> inside
 				<var>audioParamMap</var>, set that {{AudioParam}}'s
@@ -10508,9 +10495,8 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 
 Note: In the definition of {{AudioWorkletProcessor}} class, an
 {{InvalidStateError}} will be thrown if the
-author-supplied constructor uses JavaScript's return-override
-feature, or does not properly call <code>super()</code>.
-
+author-supplied constructor has an explicit return value that is not
+<code>this</code> or does not properly call <code>super()</code>.
 
 <h5 id="vu-meter-mode">
 VU Meter Node</h5>
@@ -10655,7 +10641,7 @@ Background</h3>
 Real-time audio systems that require low latency are often
 implemented using <em>callback functions</em>, where the operating
 system calls the program back when more audio has to be computed in
-order for the playback to stay uninterrupted. Such callback is called
+order for the playback to stay uninterrupted. Such a callback is ideally called
 on a high priority thread (often the highest priority on the system).
 This means that a program that deals with audio only executes code
 from this callback, as any buffering between a rendering thread and
@@ -10692,8 +10678,7 @@ manipulate the audio graph, that is, from where the operation on a
 is the thread on which the actual audio output is computed, in
 reaction to the calls from the <a>control thread</a>. It can be a
 real-time, callback-based audio thread, if computing audio for an
-{{AudioContext}}, or a normal thread if rendering and audio graph
-offline using an {{OfflineAudioContext}}.
+{{AudioContext}}, or a normal thread if computing audio for an {{OfflineAudioContext}}.
 
 The <a>control thread</a> uses a traditional event loop, as described
 in [[HTML]].
@@ -10708,7 +10693,7 @@ Communication in the other direction is done using regular event loop
 tasks.
 
 Each {{AudioContext}} has a single <dfn>control message
-queue</dfn>, that is a list of <dfn lt="control message">control
+queue</dfn> that is a list of <dfn lt="control message">control
 messages</dfn> that are operations running on the <a>control
 thread</a>.
 
@@ -10747,7 +10732,7 @@ one at the front of the <a>control message queue</a>.
 Asynchronous Operations</h3>
 
 Calling methods on {{AudioNode}}s is effectively asynchronous, and
-MUST to be done in two phases, a synchronous part and an asynchronous
+MUST to be done in two phases: a synchronous part and an asynchronous
 part. For each method, some part of the execution happens on the
 <a>control thread</a> (for example, throwing an exception in case of
 invalid parameters), and some part happens on the <a>rendering
@@ -10794,10 +10779,10 @@ in the algorithm of <a href="#rendering-a-graph">rendering a graph</a>.
 
 <div class="note">
 	In practice, the {{AudioContext}} <a>rendering thread</a> is
-	often running off a system level audio callback, that executes in
+	often running off a system-level audio callback, that executes in
 	an isochronous fashion. This callback passes in a buffer that has
 	to be filled with the audio that will be output. The size of the
-	buffer is often larger than a rendering quantum. In this case,
+	buffer may be larger than a rendering quantum. In this case,
 	multiple invocations of the rendering algorithm will be called in a
 	rapid succession, in the same callback, before returning. After
 	some time, the underlying audio system will call the callback
@@ -10809,7 +10794,7 @@ in the algorithm of <a href="#rendering-a-graph">rendering a graph</a>.
 	until {{OfflineAudioContext/length}} frames have been rendered.
 </div>
 
-The system level audio callback is also queued as a task in the
+The system-level audio callback is also queued as a task in the
 <a href="#control-message-queue">control message queue</a>. The UA MUST perform
 the following algorithms to process render quanta to fulfill such task by
 filling up the requested buffer size. Along with the primary message queue, the
@@ -11249,7 +11234,7 @@ connected from the one-shot sound. So when it has finished playing
 the context will automatically release them (everything within the
 dotted line). If there are no longer any references to the one-shot
 sound and connected nodes, then they will be immediately removed from
-the graph and deleted. The streaming source, has a global reference
+the graph and deleted. The streaming source has a global reference
 and will remain connected until it is explicitly disconnected. Here's
 how it might look in JavaScript:
 
@@ -11306,21 +11291,21 @@ Channel Up-Mixing and Down-Mixing</h2>
 {{AudioNode}} can be connected from one or more outputs
 of an {{AudioNode}}. Each of these connections from an
 output represents a stream with a specific non-zero number of channels.
-An input has <em>mixing rules</em> for combining the channels from all
+An input has <dfn dfn>mixing rules</dfn> for combining the channels from all
 of the connections to it. As a simple example, if an input is connected
 from a mono output and a stereo output, then the mono connection will
 usually be up-mixed to stereo and summed with the stereo connection.
-But, of course, it's important to define the exact <em>mixing
-rules</em> for every input to every {{AudioNode}}. The
+But, of course, it's important to define the exact <a>mixing
+rules</a> for every input to every {{AudioNode}}. The
 default mixing rules for all of the inputs have been chosen so that
 things "just work" without worrying too much about the details,
 especially in the very common case of mono and stereo streams. Of
 course, the rules can be changed for advanced use cases, especially
 multi-channel.
 
-To define some terms, <em>up-mixing</em> refers to the process of
+To define some terms, <dfn dfn>up-mixing</dfn> refers to the process of
 taking a stream with a smaller number of channels and converting it to
-a stream with a larger number of channels. <em>down-mixing</em> refers
+a stream with a larger number of channels. <dfn dfn>down-mixing</dfn> refers
 to the process of taking a stream with a larger number of channels and
 converting it to a stream with a smaller number of channels.
 
@@ -11337,22 +11322,23 @@ number of channels of the input at any given time.
 
 	2. For each connection to the input:
 
-		1. up-mix or down-mix the connection to
+		1. [=up-mix=] or [=down-mix=] the connection to
 			<a>computedNumberOfChannels</a> according to the
 			{{ChannelInterpretation}}
 			value given by the node's {{AudioNode/channelInterpretation}} attribute.
 
 		2. Mix it together with all of the other mixed streams (from other
-			connections). This is a straight-forward mixing together of each of
-			the corresponding channels from each connection.
-</div>
+			connections). This is a straight-forward summing together of each of
+			the corresponding channels that have been
+			[=up-mix|up-mixed=] or [=down-mix|down-mixed=]
+			in step 1 for each connection.  </div>
 
 <h3 id="ChannelLayouts">
 Speaker Channel Layouts</h3>
 
 When {{AudioNode/channelInterpretation}} is
 "{{ChannelInterpretation/speakers}}" then the
-up-mixing and down-mixing is defined for specific channel layouts.
+[=up-mix|up-mixing=] and [=down-mix|down-mixing=] is defined for specific channel layouts.
 
 Mono (one channel), stereo (two channels), quad (four channels), and
 5.1 (six channels) MUST be supported. Other channel layouts may be
@@ -11557,7 +11543,7 @@ format where the audio values are sampled at a regular interval, and where the
 quantization levels between two successive values are linearly uniform.
 
 Whenever signal values are exposed to script in this specification, they are in
-linear 32-bit floating point pulse code modulation format (linear 32bits float
+linear 32-bit floating point pulse code modulation format (linear 32-bit float
 PCM), often in the form of {{Float32Array}} objects.
 
 <h3 id="audio-values-rendering">
@@ -12127,7 +12113,7 @@ to Consider</a>
 	No. Credit card information and the like is not used in Web Audio.
 	It is possible to use Web Audio to process or analyze voice data,
 	which might be a privacy concern, but access to the user's
-	microphone is permission-based via getUserMedia.
+	microphone is permission-based via [[mediacapture-streams#dom-mediadevices-getusermedia|getUserMedia()]].
 
 3. Does this specification introduce new state for an origin that
 	persists across browsing sessions?
@@ -12203,8 +12189,7 @@ to Consider</a>
 	document, but it will involve gaining access to the client
 	machine's audio input or microphone. This will require asking the
 	user for permission in an appropriate way, probably via the
-	<a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">
-	getUserMedia() API</a>.
+	[[mediacapture-streams#dom-mediadevices-getusermedia|getUserMedia() API]].
 
 9. Does this specification allow an origin access to aspects of a
 	user’s local computing environment?

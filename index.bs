@@ -11391,13 +11391,12 @@ Background</h3>
 
 A common feature requirement for modern 3D games is the ability to
 dynamically spatialize and move multiple audio sources in 3D space.
-Game audio engines such as OpenAL, FMOD, Creative's EAX, Microsoft's
-XACT Audio, etc. have this ability.
+For example <a href="https://openal.org">OpenAL</a> has this ability.
 
 Using a {{PannerNode}}, an audio stream can be
 spatialized or positioned in space relative to an
-{{AudioListener}}. An
-{{AudioContext}} will contain a single
+{{AudioListener}}. A
+{{BaseAudioContext}} will contain a single
 {{AudioListener}}. Both panners and listeners have a
 position in 3D space using a right-handed cartesian coordinate
 system. The units used in the coordinate system are not defined, and
@@ -11411,7 +11410,7 @@ example, the sound could be omnidirectional, in which case it would
 be heard anywhere regardless of its orientation, or it can be more
 directional and heard only if it is facing the listener.
 {{AudioListener}} objects (representing a person's
-ears) have <em>forward</em> and <em>up</em> vectors
+ears) have [=front|forward=] and [=up=] vectors
 representing in which direction the person is facing.
 
 The coordinate system for spatialization is shown in the diagram
@@ -11438,7 +11437,7 @@ Azimuth and Elevation</h3>
 
 The following algorithm MUST be used to calculate the
 <em>azimuth</em> and <em>elevation</em> for the
-{{PannerNode}}:
+{{PannerNode}}.  The implementation must appropriately account for whether the various {{AudioParam}}s below are "{{AutomationRate/a-rate}}" or "{{AutomationRate/k-rate}}".
 
 <xmp highlight="js" line-numbers>
 // Let |context| be a BaseAudioContext and let |panner| be a
@@ -11520,7 +11519,10 @@ provides basic, but reasonable results. It is used for the for the
 {{PannerNode}} when the {{PannerNode/panningModel}} attribute is set to
 "{{PanningModelType/equalpower}}", in which case the <em>elevation</em>
 value is ignored. This algorithm MUST be implemented using
-<a>a-rate</a> parameters.
+the appropriate rate as specified by the
+{{AudioParam/automationRate}}.  If any of the {{PannerNode}}'s
+{{AudioParam}}s or the {{AudioListener}}'s {{AudioParam}}s are
+"{{AutomationRate/a-rate}}", <a>a-rate</a> processing must be used.
 
 <div algorithm="equalpower panning">
 	1. For each sample to be computed by this {{AudioNode}}:
@@ -11687,7 +11689,7 @@ Distance Effects</h3>
 
 Sounds which are closer are louder, while sounds further away are
 quieter. Exactly <em>how</em> a sound's volume changes according to
-distance from the listener depends on the <em>distanceModel</em>
+distance from the listener depends on the {{PannerNode/distanceModel}}
 attribute.
 
 During audio rendering, a <em>distance</em> value will be calculated
@@ -11706,11 +11708,9 @@ function distance(panner) {
 </xmp>
 
 <em>distance</em> will then be used to calculate
-<em>distanceGain</em> which depends on the <em>distanceModel</em>
+<em>distanceGain</em> which depends on the {{PannerNode/distanceModel}}
 attribute. See the {{DistanceModelType}} section for details of how
-this is calculated for each distance model. The value computed by the
-{{DistanceModelType}} equations
-are to be clamped to [0, 1].
+this is calculated for each distance model.
 
 As part of its processing, the {{PannerNode}}
 scales/multiplies the input audio signal by <em>distanceGain</em> to
@@ -11986,7 +11986,7 @@ to Consider</a>
 	been demonstrated
 	<a href="https://pdfs.semanticscholar.org/cfd2/6a17234696593919df3f880a235d6ac5871d.pdf">
 	by Nakibly et. al. for HTML</a>. The <a href="https://w3c.github.io/hr-time/#sec-privacy-security">
-	Security & Privacy appending of High Resolution Time</a> should be consulted for further
+	Privacy & Security appendix of High Resolution Time</a> should be consulted for further
 	information on clock resolution and drift.
 
     Fingerprinting via latency is also possible; it might be possible to deduce this

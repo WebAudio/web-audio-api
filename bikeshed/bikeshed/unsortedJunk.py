@@ -735,7 +735,6 @@ def classifyLink(el):
 
 def processBiblioLinks(doc):
     biblioLinks = findAll("a[data-link-type='biblio']", doc)
-    usedBiblioKeys = set()
     for el in biblioLinks:
         biblioType = el.get('data-biblio-type')
         if biblioType == "normative":
@@ -755,8 +754,6 @@ def processBiblioLinks(doc):
         okayToFail = el.get('data-okay-to-fail') is not None
 
         ref = doc.refs.getBiblioRef(linkText, status=refStatus, generateFakeRef=okayToFail, quiet=okayToFail, el=el)
-        if ref:
-            usedBiblioKeys.add(linkText)
         if not ref:
             if not okayToFail:
                 closeBiblios = biblio.findCloseBiblios(doc.refs.biblioKeys, linkText)
@@ -786,10 +783,8 @@ def processBiblioLinks(doc):
         el.set('href', '#biblio-' + id)
         storage[ref.linkText] = ref
 
-    verifyUsageOfAllLocalBiblios(doc, usedBiblioKeys)
 
-
-def verifyUsageOfAllLocalBiblios(doc, usedBiblioKeys):
+def verifyUsageOfAllLocalBiblios(doc):
     '''
     Verifies that all the locally-declared biblios
     (those written inline in a <pre class=biblio> block,
@@ -797,7 +792,8 @@ def verifyUsageOfAllLocalBiblios(doc, usedBiblioKeys):
     were used in the spec,
     so you can remove entries when they're no longer necessary.
     '''
-    localBiblios = [b["linkText"] for bs in doc.refs.biblios.values() for b in bs if b['order'] == 1]
+    usedBiblioKeys = set(x.lower() for x in doc.normativeRefs.keys() + doc.informativeRefs.keys())
+    localBiblios = [b["linkText"].lower() for bs in doc.refs.biblios.values() for b in bs if b['order'] == 1]
     unusedBiblioKeys = []
     for b in localBiblios:
         if b not in usedBiblioKeys:

@@ -3871,7 +3871,7 @@ These values MUST be computed as follows:
 	3. If this {{AudioParam}} is a <a>compound parameter</a>,
 		compute its final value with other {{AudioParam}}s.
 
-	4. Set <a>computedValue</a> to <var>paramComputedValue</var>.  
+	4. Set <a>computedValue</a> to <var>paramComputedValue</var>.
 </div>
 
 The <dfn>nominal range</dfn> for a <a>computedValue</a> are the
@@ -9536,21 +9536,21 @@ which is created to process audio associated with that
 Importing a script via the {{addModule()|addModule(moduleUrl)}}
 method registers class definitions of {{AudioWorkletProcessor}}
 under the {{AudioWorkletGlobalScope}}. There are two internal
-storage areas for the imported class definitions and the active
-instances created from the definition.
+storage areas for the imported class constructor and the active
+instances created from the constructor.
 
-: <dfn>node name to processor definition map</dfn>
+: <dfn>node name to processor constructor map</dfn>
 ::
 	Belongs to {{AudioWorkletGlobalScope}}. This map associates a
 	string key to the corresponding {{AudioWorkletProcessor}}
-	definition. Initially this map is empty and becomes populated
+	constructor. Initially this map is empty and becomes populated
 	when {{AudioWorkletGlobalScope/registerProcessor()}} method is called.
 
 : <dfn>node name to parameter descriptor map</dfn>
 ::
 	Belongs to {{BaseAudioContext}}. This map contains an
 	identical set of string keys from <a>node name to processor
-	definition map</a> that are associated with the matching
+	constructor map</a> that are associated with the matching
 	<a>parameterDescriptors</a> values. This internal storage is
 	populated as a consequence of calling the {{registerProcessor()}} method in the
         <a>rendering thread</a>. The population is guaranteed to complete
@@ -9607,7 +9607,7 @@ Exactly one {{AudioWorkletGlobalScope}} exists for each
 performed by the UA as defined in [[!worklets-1]].
 
 {{AudioWorkletGlobalScope}} has a <a>node name to processor
-definition map</a>. This map stores definitions of
+constructor map</a>. This map stores constructors of
 {{AudioWorkletProcessor}} with the associated string key.
 Initially it is empty and populated when
 {{registerProcessor()}} method is called, but this storage
@@ -9664,7 +9664,7 @@ Methods</h5>
 <dl dfn-type=method dfn-for="AudioWorkletGlobalScope">
 	: <dfn>registerProcessor(name, processorCtor)</dfn>
 	::
-		Registers a class definition derived from
+		Registers a class constructor derived from
 		{{AudioWorkletProcessor}}.
 
 		<div algorithm="AudioWorkletGlobalScope.registerProcess()">
@@ -9677,9 +9677,9 @@ Methods</h5>
 				steps because the empty string is not a valid key</span>.
 
 			<li> If the <code><em>name</em></code> exists as a key in the
-				<a>node name to processor definition map</a>, <span class="synchronous">throw a {{NotSupportedError}}
+				<a>node name to processor constructor map</a>, <span class="synchronous">throw a {{NotSupportedError}}
 				exception and abort these steps</span> because registering a
-				definition with a duplicated key is not allowed.
+				constructor with a duplicated key is not allowed.
 
 			<li> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
 				IsConstructor</a>(argument=<i>processorCtor</i>)</code>
@@ -9708,15 +9708,10 @@ Methods</h5>
 			<li> If <var>descriptors</var> is neither an array nor
 				<code>undefined</code>, <span class="synchronous">throw a
 				{{TypeError}} and abort these steps</span>.
-			<li> Let <em>definition</em> be a new
-				{{AudioWorkletProcessor}} definition with:
-
-				* node name being <em>name</em>
-				* processor class constructor being <em>processorCtor</em>
 
 			<li> Add the key-value pair (<em>name</em> -
-				<em>definition</em>) to the <a>node name to processor
-				definition map</a> of the associated
+				<em>processorCtor</em>) to the <a>node name to processor
+				constructor map</a> of the associated
 				{{AudioWorkletGlobalScope}}.
 
 			<li> <a>Queue a task</a> to the <a>control thread</a> to add the
@@ -9726,13 +9721,12 @@ Methods</h5>
 			</ol>
 		</div>
 
-		Note: The class constructor should only be looked up once; thus it
-		does not have the opportunity to dynamically change its
-		definition.
+		Note: The class constructor should only be looked up once, thus it
+		does not have the opportunity to dynamically change after registration.
 
 		<pre class=argumentdef for="AudioWorkletGlobalScope/registerProcessor(name, processorCtor)">
-			name: A string key that represents a class definition to be registered. This key is used to look up the constructor of {{AudioWorkletProcessor}} during construction of an {{AudioWorkletNode}}.
-			processorCtor: A class definition extended from {{AudioWorkletProcessor}}.
+			name: A string key that represents a class constructor to be registered. This key is used to look up the constructor of {{AudioWorkletProcessor}} during construction of an {{AudioWorkletNode}}.
+			processorCtor: A class constructor extended from {{AudioWorkletProcessor}}.
 		</pre>
 
 		<div>
@@ -9832,7 +9826,7 @@ Attributes</h5>
 		The <code>parameters</code> attribute is a collection of
 		{{AudioParam}} objects with associated names. This maplike
 		object is populated from a list of {{AudioParamDescriptor}}s
-		in the {{AudioWorkletProcessor}} class definition at the
+		in the {{AudioWorkletProcessor}} class constructor at the
 		instantiation.
 
 	: <dfn>port</dfn>
@@ -10031,17 +10025,8 @@ in the node.
 
 		The {{process()}} method is called
 		synchronously by the audio <a>rendering thread</a> at
-		every <a>render quantum</a>, if both conditions are met:
-
-		* {{[[callable process]]}} is `true`.
-
-		* The {{AudioWorkletNode}} is [=actively processing=], meaning
-			ANY of the following conditions are met:
-
-			* The associated {{AudioWorkletProcessor}}'s
-				<a>active source</a> flag is equal to `true`.
-
-			* There are one or more connected inputs to the {{AudioWorkletNode}}.
+		every <a>render quantum</a>, if {{AudioWorkletNode}} is
+		[=actively processing=].
 
 		The return value of this method controls the lifetime of the
 		{{AudioWorkletProcessor}}'s associated
@@ -10297,15 +10282,12 @@ thread and the rendering thread.
 		  [$StructuredDeserialize$](<code>optionsSerialization</code>, the
 		  current Realm).
 
-	1. Let <var>processorConstructor</var> be the result of looking up
+	1. Let <var>processorCtor</var> be the result of looking up
 		<var>nodeName</var> on the {{AudioWorkletGlobalScope}}'s <a>node
-		name to processor definition map</a>.
-
-	1. If <var>processorConstructor</var> is <code>undefined</code>,
-		throw a {{NotSupportedError}} exception.
+		name to processor constructor map</a>.
 
 	1. Let <var>processor</var> be the result of
-		Construct(<var>processorConstructor</var>, « <var>options</var> »).
+		Construct(<var>processorCtor</var>, « <var>options</var> »).
 
 	1. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to
 		<var>processorPort</var>.

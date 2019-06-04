@@ -1222,7 +1222,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version e036b293b2a1c6b3630bc094922f64bed031a220" name="generator">
   <link href="https://www.w3.org/TR/webaudio/" rel="canonical">
   <link href="favicon.png" rel="icon">
-  <meta content="099e144fb26efee9096d2095ab1f8818eb2b6bb0" name="document-revision">
+  <meta content="c9818b7e95b57aad598ea1dd0d23ac9609f8b1f0" name="document-revision">
   <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML" rel="preload">
   <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/jax.js?rev=2.6.1" rel="preload">
   <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.6.1" rel="preload">
@@ -1624,7 +1624,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <p data-fill-with="logo"><a class="logo" href="https://www.w3.org/"> <img alt="W3C" height="48" src="https://www.w3.org/StyleSheets/TR/2016/logos/W3C" width="72"> </a> </p>
    <h1 class="p-name no-ref" id="title">Web Audio API</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Editor’s Draft, <time class="dt-updated" datetime="2019-06-03">3 June 2019</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Editor’s Draft, <time class="dt-updated" datetime="2019-06-04">4 June 2019</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -7643,7 +7643,8 @@ applications and would often be used in conjunction with <code class="idl"><a da
 combining channels from multiple audio streams into a single audio
 stream. It has a variable number of inputs (defaulting to 6), but not
 all of them need be connected. There is a single output whose audio
-stream has a number of channels equal to the number of inputs.</p>
+stream has a number of channels equal to the number of inputs when any
+of the inputs is <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①②">actively processing</a>.  If none of the inputs are <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①③">actively processing</a>, then output is a single channel of silence.</p>
    <p>To merge multiple inputs into one stream, each input gets downmixed
 into one channel (mono) based on the specified mixing rule. An
 unconnected input still counts as <b>one silent channel</b> in the
@@ -8087,6 +8088,9 @@ mono impulse response, and generating a mono output. The remaining
 images in the diagram illustrate the supported cases for mono and
 stereo playback where the number of channels of the input is 1 or 2, and the number of channels in the <code class="idl"><a data-link-type="idl" href="#dom-convolvernode-buffer" id="ref-for-dom-convolvernode-buffer①⑥">buffer</a></code> is 1, 2, or 4.
 Developers desiring more complex and arbitrary matrixing can use a <code class="idl"><a data-link-type="idl" href="#channelsplitternode" id="ref-for-channelsplitternode①⑧">ChannelSplitterNode</a></code>, multiple single-channel <code class="idl"><a data-link-type="idl" href="#ConvolverNode" id="ref-for-ConvolverNode②⑦">ConvolverNode</a></code>s and a <code class="idl"><a data-link-type="idl" href="#channelmergernode" id="ref-for-channelmergernode①⑦">ChannelMergerNode</a></code>.</p>
+   <p>If this node is not <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①④">actively processing</a>, the output is a single
+channel of silence.</p>
+   <p class="note" role="note"><span>Note:</span> The diagrams below show the outputs when <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①⑤">actively processing</a>.</p>
    <figure id="convolver-diagram">
      <img alt="reverb matrixing" src="images/convolver-diagram.png"> 
     <figcaption> A graphical representation of supported input and output channel
@@ -9766,8 +9770,10 @@ to the <code class="idl"><a data-link-type="idl" href="#baseaudiocontext" id="re
 channels) and cannot be increased. Connections from nodes with fewer
 or more channels will be <a href="#channel-up-mixing-and-down-mixing">up-mixed or down-mixed
 appropriately</a>.</p>
-   <p>The output of this node is hard-coded to stereo (2 channels) and
-cannot be configured.</p>
+   <p>If the node is <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①⑥">actively processing</a>, the output of this node is
+hard-coded to stereo (2 channels) and cannot be configured.  If the node
+is not <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①⑦">actively processing</a>, then the output is a single channel of
+silence.</p>
    <p>The <code class="idl"><a data-link-type="idl" href="#enumdef-panningmodeltype" id="ref-for-enumdef-panningmodeltype">PanningModelType</a></code> enum determines which
 spatialization algorithm will be used to position the audio in 3D
 space. The default is "<code class="idl"><a data-link-type="idl" href="#dom-panningmodeltype-equalpower" id="ref-for-dom-panningmodeltype-equalpower">equalpower</a></code>".</p>
@@ -11319,7 +11325,7 @@ in the node.</p>
      <p>Implements the audio processing algorithm for the <code class="idl"><a data-link-type="idl" href="#audioworkletprocessor" id="ref-for-audioworkletprocessor③⑤">AudioWorkletProcessor</a></code>.</p>
      <p>The <code class="idl"><a data-link-type="idl" href="#dom-audioworkletprocessor-process" id="ref-for-dom-audioworkletprocessor-process②">process()</a></code> method is called
 synchronously by the audio <a data-link-type="dfn" href="#rendering-thread" id="ref-for-rendering-thread①⓪">rendering thread</a> at
-every <a data-link-type="dfn" href="#render-quantum" id="ref-for-render-quantum①⑥">render quantum</a>, if <code class="idl"><a data-link-type="idl" href="#audioworkletnode" id="ref-for-audioworkletnode③③">AudioWorkletNode</a></code> is <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①②">actively processing</a>.</p>
+every <a data-link-type="dfn" href="#render-quantum" id="ref-for-render-quantum①⑥">render quantum</a>, if <code class="idl"><a data-link-type="idl" href="#audioworkletnode" id="ref-for-audioworkletnode③③">AudioWorkletNode</a></code> is <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①⑧">actively processing</a>.</p>
      <p>The return value of this method controls the lifetime of the <code class="idl"><a data-link-type="idl" href="#audioworkletprocessor" id="ref-for-audioworkletprocessor③⑥">AudioWorkletProcessor</a></code>'s associated <code class="idl"><a data-link-type="idl" href="#audioworkletnode" id="ref-for-audioworkletnode③④">AudioWorkletNode</a></code>. At the conclusion of each call to the <code class="idl"><a data-link-type="idl" href="#dom-audioworkletprocessor-process" id="ref-for-dom-audioworkletprocessor-process③">process()</a></code> method, <a href="https://tc39.github.io/ecma262/#sec-toboolean"><code>ToBoolean</code></a> (described in <a data-link-type="biblio" href="#biblio-ecmascript">[ECMASCRIPT]</a>)
 is applied to the return value and the result is assigned to the associated AudioWorkletProcessor’s <a data-link-type="dfn" href="#active-source" id="ref-for-active-source①">active source</a> flag. This in turn affects whether subsequent
 invocations of <code class="idl"><a data-link-type="idl" href="#dom-audioworkletprocessor-process" id="ref-for-dom-audioworkletprocessor-process④">process()</a></code> occur, and has an impact on the lifetime of the node.</p>
@@ -11331,7 +11337,7 @@ invocations of <code class="idl"><a data-link-type="idl" href="#dom-audioworklet
         <p>Nodes that transform their inputs, and are active only
 while connected inputs and/or script references exist. Such
 nodes SHOULD return <code>false</code> from <code class="idl"><a data-link-type="idl" href="#dom-audioworkletprocessor-process" id="ref-for-dom-audioworkletprocessor-process⑤">process()</a></code> which allows the presence or absence of
-connected inputs to determine whether the <code class="idl"><a data-link-type="idl" href="#audioworkletnode" id="ref-for-audioworkletnode③⑤">AudioWorkletNode</a></code> is <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①③">actively processing</a>.</p>
+connected inputs to determine whether the <code class="idl"><a data-link-type="idl" href="#audioworkletnode" id="ref-for-audioworkletnode③⑤">AudioWorkletNode</a></code> is <a data-link-type="dfn" href="#actively-processing" id="ref-for-actively-processing①⑨">actively processing</a>.</p>
        <li data-md>
         <p>Nodes that transform their inputs, but which remain active
 for a <a data-link-type="dfn" href="#tail-time" id="ref-for-tail-time⑧">tail-time</a> after their inputs are disconnected. In
@@ -17256,8 +17262,14 @@ Implication of tail-time on input and output channel count</a> <a href="#ref-for
    <b><a href="#actively-processing">#actively-processing</a></b><b>Referenced in:</b>
    <ul>
     <li><a href="#ref-for-actively-processing">1.5.3. AudioNode Lifetime</a> <a href="#ref-for-actively-processing①">(2)</a> <a href="#ref-for-actively-processing②">(3)</a> <a href="#ref-for-actively-processing③">(4)</a> <a href="#ref-for-actively-processing④">(5)</a> <a href="#ref-for-actively-processing⑤">(6)</a> <a href="#ref-for-actively-processing⑥">(7)</a> <a href="#ref-for-actively-processing⑦">(8)</a> <a href="#ref-for-actively-processing⑧">(9)</a> <a href="#ref-for-actively-processing⑨">(10)</a> <a href="#ref-for-actively-processing①⓪">(11)</a> <a href="#ref-for-actively-processing①①">(12)</a>
-    <li><a href="#ref-for-actively-processing①②">1.32.4.3. 
-Methods</a> <a href="#ref-for-actively-processing①③">(2)</a>
+    <li><a href="#ref-for-actively-processing①②">1.14. 
+The ChannelMergerNode Interface</a> <a href="#ref-for-actively-processing①③">(2)</a>
+    <li><a href="#ref-for-actively-processing①④">1.17.4. 
+Channel Configurations for Input, Impulse Response and Output</a> <a href="#ref-for-actively-processing①⑤">(2)</a>
+    <li><a href="#ref-for-actively-processing①⑥">1.27. 
+The PannerNode Interface</a> <a href="#ref-for-actively-processing①⑦">(2)</a>
+    <li><a href="#ref-for-actively-processing①⑧">1.32.4.3. 
+Methods</a> <a href="#ref-for-actively-processing①⑨">(2)</a>
    </ul>
   </aside>
   <aside class="dfn-panel" data-for="dom-audionode-channelcount">

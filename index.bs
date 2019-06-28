@@ -2452,11 +2452,8 @@ The [=acquire the contents of an AudioBuffer=] operation is invoked in the follo
 	nothing is played.
 
 * When a {{ConvolverNode}}'s {{ConvolverNode/buffer}} is set to an
-	{{AudioBuffer}} while the node is connected to an output node, or
-	a {{ConvolverNode}} is connected to an output node while the
-	{{ConvolverNode}}'s {{ConvolverNode/buffer}} is set to an
-	{{AudioBuffer}}, it <a href="#acquire-the-content">acquires the
-	content</a> of the {{AudioBuffer}}.
+	{{AudioBuffer}} it <a href="#acquire-the-content">acquires the content</a> of
+	the {{AudioBuffer}}.
 
 * When the dispatch of an {{AudioProcessingEvent}} completes, it
 	<a href="#acquire-the-content">acquires the contents</a> of its
@@ -6597,19 +6594,24 @@ Attributes</h4>
 <dl dfn-type=attribute dfn-for="ConvolverNode">
 	: <dfn>buffer</dfn>
 	::
-		A mono, stereo, or 4-channel {{AudioBuffer}}
-		containing the (possibly multi-channel) impulse response used
-		by the {{ConvolverNode}}. <span class="synchronous">The {{AudioBuffer}} MUST have 1, 2, or 4
-		channels or a {{NotSupportedError}} exception MUST be
-		thrown</span>. <span class="synchronous">This
-		{{AudioBuffer}} MUST be of the same sample-rate
-		as the {{AudioContext}} or a
-		{{NotSupportedError}} exception MUST be thrown</span>.
+
 		At the time when this attribute is set, the {{ConvolverNode/buffer}} and
 		the state of the {{normalize}} attribute will be used to
 		configure the {{ConvolverNode}} with this
 		impulse response having the given normalization. The initial
 		value of this attribute is null.
+
+<div algorithm="set convolver buffer">
+	When setting the <dfn>buffer attribute</dfn>, execute the following <span
+		class="synchronously">steps synchronously</span>:
+	1. If the buffer {{AudioBuffer/numberOfChannels|number of channels}} is not 1, 2, 4, or if the
+		{{AudioBuffer/sampleRate|sample-rate}} of the buffer is not the same as the
+		{{BaseAudioContext/sampleRate|sample-rate}} of its <a
+			href="#associated">associated</a> {{BaseAudioContext}}, a
+		{{NotSupportedError}} MUST be thrown.
+	2. <a href="#acquire-the-content">Acquire the content</a> of the
+		{{AudioBuffer}}.
+</div>
 
 		Note: If the {{ConvolverNode/buffer}} is set to an new
 		buffer, audio may glitch.  If this is undesirable, it

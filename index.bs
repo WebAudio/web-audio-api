@@ -4934,18 +4934,18 @@ let dt = 1 / context.sampleRate;
 
 // Handle invocation of start method call
 function handleStart(when, pos, dur) {
-	if (arguments.length >= 1) {
+	if (arguments.length &gt;= 1) {
 		start = when;
 	}
 	offset = pos;
-	if (arguments.length >= 3) {
+	if (arguments.length &gt;= 3) {
 		duration = dur;
 	}
 }
 
 // Handle invocation of stop method call
 function handleStop(when) {
-	if (arguments.length >= 1) {
+	if (arguments.length &gt;= 1) {
 		stop = when;
 	} else {
 		stop = context.currentTime;
@@ -4983,8 +4983,8 @@ function process(numberOfFrames) {
 
 	// Determine loop endpoints as applicable
 	let actualLoopStart, actualLoopEnd;
-	if (loop &amp;& buffer != null) {
-		if (loopStart >= 0 &amp;& loopEnd > 0 &amp;& loopStart &lt; loopEnd) {
+	if (loop &amp;&amp; buffer != null) {
+		if (loopStart &gt;= 0 &amp;&amp; loopEnd &gt; 0 &amp;&amp; loopStart &lt; loopEnd) {
 			actualLoopStart = loopStart;
 			actualLoopEnd = Math.min(loopEnd, buffer.duration);
 		} else {
@@ -5005,7 +5005,7 @@ function process(numberOfFrames) {
 	for (let index = 0; index &lt; numberOfFrames; index++) {
 		// Check that currentTime and bufferTimeElapsed are
 		// within allowable range for playback
-		if (currentTime &lt; start || currentTime >= stop || bufferTimeElapsed >= duration) {
+		if (currentTime &lt; start || currentTime &gt;= stop || bufferTimeElapsed &gt;= duration) {
 			output.push(0); // this sample frame is silent
 			currentTime += dt;
 			continue;
@@ -5022,12 +5022,12 @@ function process(numberOfFrames) {
 		if (loop) {
 			// Determine if looped portion has been entered for the first time
 			if (!enteredLoop) {
-				if (offset &lt; actualLoopEnd &amp;& bufferTime >= actualLoopStart) {
+				if (offset &lt; actualLoopEnd &amp;&amp; bufferTime &gt;= actualLoopStart) {
 					// playback began before or within loop, and playhead is
 					// now past loop start
 					enteredLoop = true;
 				}
-				if (offset >= actualLoopEnd &amp;& bufferTime &lt; actualLoopEnd) {
+				if (offset &gt;= actualLoopEnd &amp;&amp; bufferTime &lt; actualLoopEnd) {
 					// playback began after loop, and playhead is now prior
 					// to the loop end
 					enteredLoop = true;
@@ -5037,7 +5037,7 @@ function process(numberOfFrames) {
 			// Wrap loop iterations as needed. Note that enteredLoop
 			// may become true inside the preceding conditional.
 			if (enteredLoop) {
-				while (bufferTime >= actualLoopEnd) {
+				while (bufferTime &gt;= actualLoopEnd) {
 					bufferTime -= actualLoopEnd - actualLoopStart;
 				}
 				while (bufferTime &lt; actualLoopStart) {
@@ -5046,7 +5046,7 @@ function process(numberOfFrames) {
 			}
 		}
 
-		if (bufferTime >= 0 &amp;& bufferTime &lt; buffer.duration) {
+		if (bufferTime &gt;= 0 &amp;&amp; bufferTime &lt; buffer.duration) {
 			output.push(playbackSignal(bufferTime));
 		} else {
 			output.push(0); // past end of buffer, so output silent frame
@@ -5057,7 +5057,7 @@ function process(numberOfFrames) {
 		currentTime += dt;
 	} // End of render quantum loop
 
-	if (currentTime >= stop) {
+	if (currentTime &gt;= stop) {
 		// End playback state of this node.  No further invocations of process()
 		// will occur.  Schedule a change to set the number of output channels to 1.
 	}
@@ -9100,8 +9100,8 @@ for \(n \ge 1\) is specified below.
 		<pre nohighlight>
 		$$
 			b[n] = \begin{cases}
-							 1 & \mbox{for } n = 1 \\
-							 0 & \mbox{otherwise}
+							 1 &amp; \mbox{for } n = 1 \\
+							 0 &amp; \mbox{otherwise}
 						 \end{cases}
 		$$
 		</pre>
@@ -10129,8 +10129,8 @@ class MyProcessor extends AudioWorkletProcessor {
     // A simple amplifier for single input and output. Note that the
     // automationRate is "k-rate", so it will have a single value at index [0]
     // for each render quantum.
-    for (let channel = 0; channel < output.length; ++channel) {
-      for (let i = 0; i < output[channel].length; ++i) {
+    for (let channel = 0; channel &lt; output.length; ++channel) {
+      for (let i = 0; i &lt; output[channel].length; ++i) {
         output[channel][i] = input[channel][i] * myParam[0];
       }
     }
@@ -10429,7 +10429,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 		const frequencyReduction = parameters.frequencyReduction;
 		let frequencyReductionLength = parameters.frequencyReduction.length;
 
-		if (bitDepthLength > 1) {
+		if (bitDepthLength &gt; 1) {
 			// General case
 			for (let channel = 0; channel &lt; output.length; ++channel) {
 				for (let i = 0; i &lt; output[channel].length; ++i) {
@@ -10438,7 +10438,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 					// Use modulo for indexing to handle the case where
 					// the length of the frequencyReduction array is 1.
 					this._phase += frequencyReduction[i % frequencyReductionLength];
-					if (this._phase >= 1.0) {
+					if (this._phase &gt;= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
 							step * Math.floor(input[channel][i] / step + 0.5);
@@ -10454,7 +10454,7 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 			for (let channel = 0; channel &lt; output.length; ++channel) {
 				for (let i = 0; i &lt; output[channel].length; ++i) {
 					this._phase += frequencyReduction[i % frequencyReductionLength];
-					if (this._phase >= 1.0) {
+					if (this._phase &gt;= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
 							step * Math.floor(input[channel][i] / step + 0.5);
@@ -10544,7 +10544,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 		this._updatingInterval = options.updatingInterval;
 		this._nextUpdateFrames = this._updatingInterval;
 
-		this.port.onmessage = event => {
+		this.port.onmessage = event =&gt; {
 			if (event.data.updatingInterval)
 				this._updatingInterval = event.data.updatingInterval;
 		}
@@ -10558,7 +10558,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 	process (inputs, outputs, parameters) {
 		// Note that the input will be down-mixed to mono; however, if no inputs are
 		// connected then zero channels will be passed in.
-		if (inputs[0].length > 0) {
+		if (inputs[0].length &gt; 0) {
 			let buffer = inputs[0][0];
 			let bufferLength = buffer.length;
 			let sum = 0, x = 0, rms = 0;
@@ -10584,7 +10584,7 @@ registerProcessor('VUMeter', class extends AudioWorkletProcessor {
 		// Keep on processing if the volume is above a threshold, so that
 		// disconnecting inputs does not immediately cause the meter to stop
 		// computing its smoothed value.
-		return this._volume >= meterMinimum;
+		return this._volume &gt;= meterMinimum;
 	}
 
 });
@@ -11232,17 +11232,17 @@ Up Mixing Speaker Layouts</h3>
 <pre>
 Mono up-mix:
 
-	1 -> 2 : up-mix from mono to stereo
+	1 -&gt; 2 : up-mix from mono to stereo
 		output.L = input;
 		output.R = input;
 
-	1 -> 4 : up-mix from mono to quad
+	1 -&gt; 4 : up-mix from mono to quad
 		output.L = input;
 		output.R = input;
 		output.SL = 0;
 		output.SR = 0;
 
-	1 -> 5.1 : up-mix from mono to 5.1
+	1 -&gt; 5.1 : up-mix from mono to 5.1
 		output.L = 0;
 		output.R = 0;
 		output.C = input; // put in center channel
@@ -11252,13 +11252,13 @@ Mono up-mix:
 
 Stereo up-mix:
 
-	2 -> 4 : up-mix from stereo to quad
+	2 -&gt; 4 : up-mix from stereo to quad
 		output.L = input.L;
 		output.R = input.R;
 		output.SL = 0;
 		output.SR = 0;
 
-	2 -> 5.1 : up-mix from stereo to 5.1
+	2 -&gt; 5.1 : up-mix from stereo to 5.1
 		output.L = input.L;
 		output.R = input.R;
 		output.C = 0;
@@ -11268,7 +11268,7 @@ Stereo up-mix:
 
 Quad up-mix:
 
-	4 -> 5.1 : up-mix from quad to 5.1
+	4 -&gt; 5.1 : up-mix from quad to 5.1
 		output.L = input.L;
 		output.R = input.R;
 		output.C = 0;
@@ -11286,28 +11286,28 @@ material, but playing back stereo.
 <pre>
 Mono down-mix:
 
-	2 -> 1 : stereo to mono
+	2 -&gt; 1 : stereo to mono
 		output = 0.5 * (input.L + input.R);
 
-	4 -> 1 : quad to mono
+	4 -&gt; 1 : quad to mono
 		output = 0.25 * (input.L + input.R + input.SL + input.SR);
 
-	5.1 -> 1 : 5.1 to mono
+	5.1 -&gt; 1 : 5.1 to mono
 		output = sqrt(0.5) * (input.L + input.R) + input.C + 0.5 * (input.SL + input.SR)
 
 Stereo down-mix:
 
-	4 -> 2 : quad to stereo
+	4 -&gt; 2 : quad to stereo
 		output.L = 0.5 * (input.L + input.SL);
 		output.R = 0.5 * (input.R + input.SR);
 
-	5.1 -> 2 : 5.1 to stereo
+	5.1 -&gt; 2 : 5.1 to stereo
 		output.L = L + sqrt(0.5) * (input.C + input.SL)
 		output.R = R + sqrt(0.5) * (input.C + input.SR)
 
 Quad down-mix:
 
-	5.1 -> 4 : 5.1 to quad
+	5.1 -&gt; 4 : 5.1 to quad
 		output.L = L + sqrt(0.5) * input.C
 		output.R = R + sqrt(0.5) * input.C
 		output.SL = input.SL
@@ -11471,11 +11471,11 @@ azimuth = 180 * Math.acos(projectedSource.dot(listenerRightNorm)) / Math.PI;
 
 // Source in front or behind the listener.
 let frontBack = projectedSource.dot(listenerForwardNorm);
-if (frontBack < 0)
+if (frontBack &lt; 0)
   azimuth = 360 - azimuth;
 
 // Make azimuth relative to "forward" and not "right" listener vector.
-if ((azimuth >= 0) && (azimuth <= 270))
+if ((azimuth &gt;= 0) &amp;&amp; (azimuth &lt;= 270))
   azimuth = 90 - azimuth;
 else
   azimuth = 450 - azimuth;
@@ -11484,7 +11484,7 @@ elevation = 90 - 180 * Math.acos(sourceListener.dot(up)) / Math.PI;
 
 if (elevation > 90)
   elevation = 180 - elevation;
-else if (elevation < -90)
+else if (elevation &lt; -90)
   elevation = -180 - elevation;
 </xmp>
 
@@ -11525,7 +11525,7 @@ the appropriate rate as specified by the
 			// Then wrap to range [-90, 90].
 			if (azimuth &lt; -90)
 				azimuth = -180 - azimuth;
-			else if (azimuth > 90)
+			else if (azimuth &gt; 90)
 				azimuth = 180 - azimuth;
 			</pre>
 
@@ -11539,10 +11539,10 @@ the appropriate rate as specified by the
 			Or for a stereo input as:
 
 			<pre highlight="js">
-			if (azimuth &lt;= 0) { // -90 -> 0
+			if (azimuth &lt;= 0) { // -90 -&gt; 0
 				// Transform the azimuth value from [-90, 0] degrees into the range [-90, 90].
 				x = (azimuth + 90) / 90;
-			} else { // 0 -> 90
+			} else { // 0 -&gt; 90
 				// Transform the azimuth value from [0, 90] degrees into the range [-90, 90].
 				x = azimuth / 90;
 			}
@@ -11736,7 +11736,7 @@ function coneGain() {
   let sourceOrientation =
       new Vec3(source.orientationX, source.orientationY, source.orientationZ);
   if (sourceOrientation.magnitude == 0 ||
-      ((source.coneInnerAngle == 360) && (source.coneOuterAngle == 360)))
+      ((source.coneInnerAngle == 360) &amp;&amp; (source.coneOuterAngle == 360)))
     return 1; // no cone specified - unity gain
 
   // Normalized source-listener vector
@@ -11760,15 +11760,15 @@ function coneGain() {
   let absOuterAngle = Math.abs(source.coneOuterAngle) / 2;
   let gain = 1;
 
-  if (absAngle <= absInnerAngle) {
+  if (absAngle &lt;= absInnerAngle) {
     // No attenuation
     gain = 1;
-  } else if (absAngle >= absOuterAngle) {
+  } else if (absAngle &gt;= absOuterAngle) {
     // Max attenuation
     gain = source.coneOuterGain;
   } else {
     // Between inner and outer cones
-    // inner -> outer, x goes from 0 -> 1
+    // inner -&gt; outer, x goes from 0 -&gt; 1
     var x = (absAngle - absInnerAngle) / (absOuterAngle - absInnerAngle);
     gain = (1 - x) + source.coneOuterGain * x;
   }
@@ -11971,7 +11971,7 @@ to Consider</a>
 	been demonstrated
 	<a href="https://pdfs.semanticscholar.org/cfd2/6a17234696593919df3f880a235d6ac5871d.pdf">
 	by Nakibly et. al. for HTML</a>. The <a href="https://w3c.github.io/hr-time/#sec-privacy-security">
-	Privacy & Security appendix of High Resolution Time</a> should be consulted for further
+	Privacy &amp; Security appendix of High Resolution Time</a> should be consulted for further
 	information on clock resolution and drift.
 
     Fingerprinting via latency is also possible; it might be possible to deduce this

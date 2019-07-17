@@ -9578,11 +9578,11 @@ instances created from the constructor.
 class BypassProcessor extends AudioWorkletProcessor {
 	process (inputs, outputs) {
 		// Single input, single channel.
-		let input = inputs[0];
-		let output = outputs[0];
+		const input = inputs[0];
+		const output = outputs[0];
 		output[0].set(input[0]);
 
-		// Process only while there are inputs.
+		// Process only while there are active inputs.
 		return false;
 	}
 };
@@ -9592,9 +9592,9 @@ registerProcessor('bypass-processor', BypassProcessor);
 
 <pre class="example" highlight="js" title="Importing a script and creating AudioWorkletNode">
 // The main global scope
-let context = new AudioContext();
+const context = new AudioContext();
 context.audioWorklet.addModule('bypass-processor.js').then(() =&gt; {
-	let bypassNode = new AudioWorkletNode(context, 'bypass-processor');
+	const bypassNode = new AudioWorkletNode(context, 'bypass-processor');
 });
 </pre>
 
@@ -10122,9 +10122,9 @@ class MyProcessor extends AudioWorkletProcessor {
 
   process(inputs, outputs, parameters) {
     // Get the first input and output.
-    let input = inputs[0];
-    let output = outputs[0];
-    let myParam = parameters.myParam;
+    const input = inputs[0];
+    const output = outputs[0];
+    const myParam = parameters.myParam;
 
     // A simple amplifier for single input and output. Note that the
     // automationRate is "k-rate", so it will have a single value at index [0]
@@ -10379,18 +10379,17 @@ a lower bit-depth), and by quantizing in time resolution
 {{AudioWorkletProcessor}}.
 
 <pre line-numbers class="example" highlight="js" title="BitCrusher - Global Scope">
-let context = new AudioContext();
+const context = new AudioContext();
 context.audioWorklet.addModule('bitcrusher.js').then(() =&gt; {
-	let osc = new OscillatorNode(context);
-	let amp = new GainNode(context);
+	const osc = new OscillatorNode(context);
+	const amp = new GainNode(context);
 
 	// Create a worklet node. 'BitCrusher' identifies the
 	// AudioWorkletProcessor previously registered when
 	// bitcrusher.js was imported. The options automatically
 	// initialize the correspondingly named AudioParams.
-	let bitcrusher = new AudioWorkletNode(context, 'BitCrusher', {
-		bitDepth: 8,
-		frequencyReduction: 0.5
+	const bitcrusher = new AudioWorkletNode(context, 'bitcrusher', {
+		parameterData: {bitDepth: 8}
 	});
 
 	osc.connect(bitcrusher).connect(amp).connect(context.destination);
@@ -10399,8 +10398,7 @@ context.audioWorklet.addModule('bitcrusher.js').then(() =&gt; {
 </pre>
 
 <pre line-numbers class="example" highlight="js" title="BitCrusher - AudioWorkletGlobalScope (bitcrusher.js)">
-registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
-
+class Bitcrusher extends AudioWorkletProcessor {
 	static get parameterDescriptors () {
 		return [{
 			name: 'bitDepth',
@@ -10416,31 +10414,29 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 	}
 
 	constructor (options) {
-		// We don't need to look at options: only AudioParams are initialized,
-		// which were taken care of by the node.
+		// The initial parameter value can be set by passing |options|
+		// to the processor's constructor.
 		super(options);
 		this._phase = 0;
 		this._lastSampleValue = 0;
 	}
 
 	process (inputs, outputs, parameters) {
-		let input = inputs[0];
-		let output = outputs[0];
+		const input = inputs[0];
+		const output = outputs[0];
 		const bitDepth = parameters.bitDepth;
-		let bitDepthLength = parameters.bitDepth.length;
 		const frequencyReduction = parameters.frequencyReduction;
-		let frequencyReductionLength = parameters.frequencyReduction.length;
 
-		if (bitDepthLength &gt; 1) {
-			// General case
+		if (bitDepth.length > 1) {
+			// The bitDepth parameter array has 128 sample values.
 			for (let channel = 0; channel &lt; output.length; ++channel) {
 				for (let i = 0; i &lt; output[channel].length; ++i) {
 					let step = Math.pow(0.5, bitDepth[i]);
 
 					// Use modulo for indexing to handle the case where
 					// the length of the frequencyReduction array is 1.
-					this._phase += frequencyReduction[i % frequencyReductionLength];
-					if (this._phase &gt;= 1.0) {
+					this._phase += frequencyReduction[i % frequencyReduction.length];
+					if (this._phase >= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
 							step * Math.floor(input[channel][i] / step + 0.5);
@@ -10452,11 +10448,11 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 			// Because we know bitDepth is constant for this call,
 			// we can lift the computation of step outside the loop,
 			// saving many operations.
-			let step = Math.pow(0.5, bitDepth[0]);
+			const step = Math.pow(0.5, bitDepth[0]);
 			for (let channel = 0; channel &lt; output.length; ++channel) {
 				for (let i = 0; i &lt; output[channel].length; ++i) {
-					this._phase += frequencyReduction[i % frequencyReductionLength];
-					if (this._phase &gt;= 1.0) {
+					this._phase += frequencyReduction[i % frequencyReduction.length];
+					if (this._phase >= 1.0) {
 						this._phase -= 1.0;
 						this._lastSampleValue =
 							step * Math.floor(input[channel][i] / step + 0.5);
@@ -10468,8 +10464,9 @@ registerProcessor('BitCrusher', class extends AudioWorkletProcessor {
 		// No need to return a value; this node's lifetime is dependent only on its
 		// input connections.
 	}
-
 });
+
+registerProcessor('bitcrusher', Bitcrusher);
 </pre>
 
 Note: In the definition of {{AudioWorkletProcessor}} class, an
@@ -10489,21 +10486,21 @@ communication (asynchronous) between
 {{AudioWorkletProcessor}}. This node does not use any output.
 
 <pre line-numbers class="example" highlight="js" title="VUMeterNode - Global Scope (vumeternode.js)">
-class VUMeterNode extends AudioWorkletNode {
+/* vumeter-node.js: Main global scope */
 
-	constructor (context, options) {
-		// Setting default values for the input, the output and the channel count.
-		options.numberOfInputs = 1;
-		options.numberOfOutputs = 0;
-		options.channelCount = 1;
-		options.updatingInterval = options.hasOwnProperty('updatingInterval')
-			? options.updatingInterval
-			: 100;
-
-		super(context, 'VUMeter', options);
+export default class VUMeterNode extends AudioWorkletNode {
+	constructor (context, updateIntervalInMS) {
+		super(context, 'vumeter', {
+			numberOfInputs: 1,
+			numberOfOutputs: 0,
+			channelCount: 1,
+			processorOptions: {
+				updateIntervalInMS: updateIntervalInMS || 16.67;
+			}
+		});
 
 		// States in AudioWorkletNode
-		this._updatingInterval = options.updatingInterval;
+		this._updateIntervalInMS = updateIntervalInMS;
 		this._volume = 0;
 
 		// Handles updated values from AudioWorkletProcessor
@@ -10514,101 +10511,97 @@ class VUMeterNode extends AudioWorkletNode {
 		this.port.start();
 	}
 
-	get updatingInterval() {
-		return this._updatingInterval;
+	get updateInterval() {
+		return this._updateIntervalInMS;
 	}
 
-	set updatingInterval (intervalValue) {
-		this._updatingInterval = intervalValue;
-		this.port.postMessage({ updatingInterval: intervalValue });
+	set updateInterval(updateIntervalInMS) {
+		this._updateIntervalInMS = updateIntervalInMS;
+		this.port.postMessage({updateIntervalInMS: updateIntervalInMS});
 	}
 
 	draw () {
-		/* Draw the meter based on the volume value. */
+		// Draws the VU meter based on the volume value
+		// every |this._updateIntervalInMS| milliseconds.
 	}
-
-}
-
-// The application can use the node when this promise resolves.
-let context = new AudioContext();
-let importAudioWorkletNode = context.audioWorklet.addModule('vumeterprocessor.js');
+};
 </pre>
 
 <pre line-numbers class="example" highlight="js" title="VUMeterNode - AudioWorkletGlobalScope (vumeterprocessor.js)">
-registerProcessor('VUMeter', class extends AudioWorkletProcessor {
+/* vumeter-processor.js: AudioWorkletGlobalScope */
 
-	static meterSmoothingFactor = 0.9;
-	static meterMinimum = 0.00001;
+const SMOOTHING_FACTOR = 0.9;
+const MINIMUM_VALUE = 0.00001;
 
+registerProcessor('vumeter', class extends AudioWorkletProcessor {
 	constructor (options) {
-		super(options);
+		super();
 		this._volume = 0;
-		this._updatingInterval = options.updatingInterval;
-		this._nextUpdateFrames = this._updatingInterval;
+		this._updateIntervalInMS = options.processorOptions.updateIntervalInMS;
+		this._nextUpdateFrame = this._updateIntervalInMS;
 
-		this.port.onmessage = event =&gt; {
-			if (event.data.updatingInterval)
-				this._updatingInterval = event.data.updatingInterval;
+		this.port.onmessage = event => {
+			if (event.data.updateIntervalInMS)
+				this._updateIntervalInMS = event.data.updateIntervalInMS;
 		}
-		this.port.start();
 	}
 
-	get interval () {
-		return this._updatingInterval / 1000 * sampleRate;
+	get intervalInFrames () {
+		return this._updateIntervalInMS / 1000 * sampleRate;
 	}
 
 	process (inputs, outputs, parameters) {
+		const input = inputs[0];
 		// Note that the input will be down-mixed to mono; however, if no inputs are
 		// connected then zero channels will be passed in.
-		if (inputs[0].length &gt; 0) {
-			let buffer = inputs[0][0];
-			let bufferLength = buffer.length;
-			let sum = 0, x = 0, rms = 0;
+		if (input.length > 0) {
+			const samples = input[0];
+			let sum = 0;
+			let rms = 0;
 
 			// Calculated the squared-sum.
-			for (let i = 0; i &lt; bufferLength; ++i) {
-				x = buffer[i];
-				sum += x * x;
-			}
+			for (let i = 0; i &lt; samples.length; ++i)
+				sum += samples[i] * samples[i];
 
 			// Calculate the RMS level and update the volume.
-			rms = Math.sqrt(sum / bufferLength);
-			this._volume = Math.max(rms, this._volume * meterSmoothingFactor);
+			rms = Math.sqrt(sum / samples.length);
+			this._volume = Math.max(rms, this._volume * SMOOTHING_FACTOR);
 
 			// Update and sync the volume property with the main thread.
-			this._nextUpdateFrame -= bufferLength;
+			this._nextUpdateFrame -= samples.length;
 			if (this._nextUpdateFrame &lt; 0) {
-				this._nextUpdateFrame += this.interval;
-				this.port.postMessage({ volume: this._volume });
+				this._nextUpdateFrame += this.intervalInFrames;
+				this.port.postMessage({volume: this._volume});
 			}
 		}
 
 		// Keep on processing if the volume is above a threshold, so that
 		// disconnecting inputs does not immediately cause the meter to stop
 		// computing its smoothed value.
-		return this._volume &gt;= meterMinimum;
+		return this._volume >= MINIMUM_VALUE;
 	}
 
 });
 </pre>
 
-<pre line-numbers class="example" highlight="js" title="VUMeterNode - Global Scope (main HTML file)">
-&lt;script src="vumeternode.js">&lt;/script>
-&lt;script>
-	importAudioWorkletNode.then(() =&gt; {
-		let oscillator = new OscillatorNode(context);
-		let vuMeterNode = new VUMeterNode(context, { updatingInterval: 50 });
+<pre line-numbers class="example" highlight="js" title="VUMeterNode - Global Scope (main JS file)">
+/* index.js: Main global scope, entry point */
+import VUMeterNode from './vumeter-node.js';
 
-		oscillator.connect(vuMeterNode);
+const context = new AudioContext();
+context.audioWorklet.addModule('vumeter-processor.js').then(() =&lt; {
+	const oscillator = new OscillatorNode(context);
+	const vuMeterNode = new VUMeterNode(context, 25);
+	oscillator.connect(vuMeterNode);
+	oscillator.start();
 
-		function drawMeter () {
-			vuMeterNode.draw();
-			requestAnimationFrame(drawMeter);
-		}
+	function drawMeter () {
+		vuMeterNode.draw();
+		requestAnimationFrame(drawMeter);
+	}
 
-		drawMeter();
-	});
-&lt;/script>
+	drawMeter();
+});
 </pre>
 
 <h2 id="processing-model">

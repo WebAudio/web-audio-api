@@ -1222,13 +1222,13 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 9c51ae462b4b8b2f14dbddcd7d4b5224375eccc0" name="generator">
   <link href="https://www.w3.org/TR/webaudio/" rel="canonical">
   <link href="favicon.png" rel="icon">
-  <meta content="06882c0508e16a5493c32c346c040373bad37e39" name="document-revision">
-  <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML" rel="preload">
-  <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/jax.js?rev=2.6.1" rel="preload">
-  <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.6.1" rel="preload">
-  <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/config/TeX-AMS-MML_HTMLorMML.js?rev=2.6.1" rel="preload">
-  <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/element/mml/optable/BasicLatin.js?rev=2.6.1" rel="preload">
-  <link as="script" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/autoload/mtable.js?rev=2.6.1" rel="preload">
+  <meta content="1d263eba3ab1f300a2dc60504e3c0d5eec63101d" name="document-revision">
+  <link as="script" href="https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" rel="preload">
+  <link as="script" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/jax.js?rev=2.7.5" rel="preload">
+  <link as="script" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.7.5" rel="preload">
+  <link as="script" href="https://www.w3.org/scripts/MathJax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js?rev=2.7.5" rel="preload">
+  <link as="script" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/element/mml/optable/BasicLatin.js?rev=2.7.5" rel="preload">
+  <link as="script" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/autoload/mtable.js?rev=2.7.5" rel="preload">
 <style>
 .todo {
 	border: 1px solid red;
@@ -2198,7 +2198,7 @@ window.addEventListener("DOMContentLoaded", function () {
 	"use strict";
 	new Promise(function (resolve, reject) {
 		var mathjax = document.createElement('script');
-		var url = "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+		var url = "https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
 		// Safari doesn’t (yet) support load event on scripts so we have to poll. So 😢.
 		var id = setInterval(function () {
 			if (window.MathJax) {
@@ -10844,7 +10844,36 @@ to its output without modification.</p>
 1] range. This means that a <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve①">curve</a></code> with a
 even number of value will not have a value for a signal at
 zero, and a <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve②">curve</a></code> with an odd number of
-value will have a value for a signal at zero.</p>
+value will have a value for a signal at zero.  The
+output is determined by the following algorithm.</p>
+     <div class="algorithm" data-algorithm="wave-shaper-curve">
+      <ol>
+       <li data-md>
+        <p>Let \(x\) be the input sample, \(y\) be the
+corresponding output of the node,
+\(c_k\) be the \(k\)'th element of the <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve③">curve</a></code>, and \(N\) be
+the length of the <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve④">curve</a></code>.</p>
+       <li data-md>
+        <p>Compute the output \(y\) according to</p>
+<pre>$$
+y = \left(1-f\right)c_k + fc_{k+1}
+$$
+</pre>
+        <p>where</p>
+<pre>$$
+  \begin{align*}
+  v &amp;= 
+    \begin{cases}
+    0 &amp; x \lt -1 \\
+    1 &amp; x > 1 \\
+    \frac{N-1}{2}(x + 1) &amp; \mathrm{otherwise}
+    \end{cases} \\
+  f &amp;= v - \lfloor v \rfloor \\
+  \end{align*}
+$$
+</pre>
+      </ol>
+     </div>
      <p><span class="synchronous">A <code class="idl"><a data-link-type="idl" href="https://heycam.github.io/webidl/#invalidstateerror" id="ref-for-invalidstateerror③①">InvalidStateError</a></code> MUST be thrown if this
 attribute is set with a <code class="idl"><a data-link-type="idl" href="https://heycam.github.io/webidl/#idl-Float32Array" id="ref-for-idl-Float32Array②②">Float32Array</a></code> that has a <code>length</code> less than 2.</span></p>
      <p>When this attribute is set, an internal copy of the curve is
@@ -10852,17 +10881,17 @@ created by the <code class="idl"><a data-link-type="idl" href="#waveshapernode" 
 modifications of the contents of the array used to set the
 attribute therefore have no effect.</p>
      <div class="algorithm" data-algorithm="WaveShaperNode.curve">
-       To set the <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve③">curve</a></code> attribute, execute these steps: 
+       To set the <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve⑤">curve</a></code> attribute, execute these steps: 
       <ol>
        <li data-md>
-        <p>Let <var>new curve</var> be a <code class="idl"><a data-link-type="idl" href="https://heycam.github.io/webidl/#idl-Float32Array" id="ref-for-idl-Float32Array②③">Float32Array</a></code> to be assigned to <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve④">curve</a></code> or <code>null</code>.
+        <p>Let <var>new curve</var> be a <code class="idl"><a data-link-type="idl" href="https://heycam.github.io/webidl/#idl-Float32Array" id="ref-for-idl-Float32Array②③">Float32Array</a></code> to be assigned to <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve⑥">curve</a></code> or <code>null</code>.
 .</p>
        <li data-md>
         <p>If <var>new curve</var> is not <code>null</code> and <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve-set-slot" id="ref-for-dom-waveshapernode-curve-set-slot①">[[curve set]]</a></code> is true, throw an <code class="idl"><a data-link-type="idl" href="https://heycam.github.io/webidl/#invalidstateerror" id="ref-for-invalidstateerror③②">InvalidStateError</a></code> and abort these steps.</p>
        <li data-md>
         <p>If <var>new curve</var> is not <code>null</code>, set <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve-set-slot" id="ref-for-dom-waveshapernode-curve-set-slot②">[[curve set]]</a></code> to true.</p>
        <li data-md>
-        <p>Assign <var>new curve</var> to the <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve⑤">curve</a></code> attribute.</p>
+        <p>Assign <var>new curve</var> to the <code class="idl"><a data-link-type="idl" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve⑦">curve</a></code> attribute.</p>
       </ol>
      </div>
     <dt data-md><dfn class="dfn-paneled idl-code" data-dfn-for="WaveShaperNode" data-dfn-type="attribute" data-export id="dom-waveshapernode-oversample"><code>oversample</code></dfn>, <span> of type <a data-link-type="idl-name" href="#enumdef-oversampletype" id="ref-for-enumdef-oversampletype①">OverSampleType</a></span>
@@ -15411,7 +15440,7 @@ AudioWorklet Sequence of Events</a>
 [<a class="idl-code" data-link-type="extended-attribute" href="https://heycam.github.io/webidl/#Exposed" id="ref-for-Exposed③①①"><c- g>Exposed</c-></a>=<c- n>Window</c->,
  <a class="idl-code" data-link-type="constructor" href="#dom-waveshapernode-waveshapernode" id="ref-for-dom-waveshapernode-waveshapernode①"><c- g>Constructor</c-></a> (<a class="n" data-link-type="idl-name" href="#baseaudiocontext" id="ref-for-baseaudiocontext⑥⑥①"><c- n>BaseAudioContext</c-></a> <a href="#dom-waveshapernode-waveshapernode-context-options-context"><code><c- g>context</c-></code></a>, <c- b>optional</c-> <a class="n" data-link-type="idl-name" href="#dictdef-waveshaperoptions" id="ref-for-dictdef-waveshaperoptions④"><c- n>WaveShaperOptions</c-></a> <a href="#dom-waveshapernode-waveshapernode-context-options-options"><code><c- g>options</c-></code></a>)]
 <c- b>interface</c-> <a class="idl-code" data-link-type="interface" href="#waveshapernode" id="ref-for-waveshapernode⑥①"><c- g>WaveShaperNode</c-></a> : <a class="n" data-link-type="idl-name" href="#audionode" id="ref-for-audionode①⑦③①"><c- n>AudioNode</c-></a> {
-  <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://heycam.github.io/webidl/#idl-Float32Array" id="ref-for-idl-Float32Array②⓪①"><c- b>Float32Array</c-></a>? <a class="idl-code" data-link-type="attribute" data-type="Float32Array?" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve⑥"><c- g>curve</c-></a>;
+  <c- b>attribute</c-> <a class="idl-code" data-link-type="interface" href="https://heycam.github.io/webidl/#idl-Float32Array" id="ref-for-idl-Float32Array②⓪①"><c- b>Float32Array</c-></a>? <a class="idl-code" data-link-type="attribute" data-type="Float32Array?" href="#dom-waveshapernode-curve" id="ref-for-dom-waveshapernode-curve⑧"><c- g>curve</c-></a>;
   <c- b>attribute</c-> <a class="n" data-link-type="idl-name" href="#enumdef-oversampletype" id="ref-for-enumdef-oversampletype④"><c- n>OverSampleType</c-></a> <a class="idl-code" data-link-type="attribute" data-type="OverSampleType" href="#dom-waveshapernode-oversample" id="ref-for-dom-waveshapernode-oversample①①"><c- g>oversample</c-></a>;
 };
 
@@ -21583,7 +21612,7 @@ Constructors</a>
     <li><a href="#ref-for-dom-waveshapernode-curve">1.31. 
 The WaveShaperNode Interface</a>
     <li><a href="#ref-for-dom-waveshapernode-curve①">1.31.2. 
-Attributes</a> <a href="#ref-for-dom-waveshapernode-curve②">(2)</a> <a href="#ref-for-dom-waveshapernode-curve③">(3)</a> <a href="#ref-for-dom-waveshapernode-curve④">(4)</a> <a href="#ref-for-dom-waveshapernode-curve⑤">(5)</a>
+Attributes</a> <a href="#ref-for-dom-waveshapernode-curve②">(2)</a> <a href="#ref-for-dom-waveshapernode-curve③">(3)</a> <a href="#ref-for-dom-waveshapernode-curve④">(4)</a> <a href="#ref-for-dom-waveshapernode-curve⑤">(5)</a> <a href="#ref-for-dom-waveshapernode-curve⑥">(6)</a> <a href="#ref-for-dom-waveshapernode-curve⑦">(7)</a>
    </ul>
   </aside>
   <aside class="dfn-panel" data-for="dom-waveshapernode-oversample">

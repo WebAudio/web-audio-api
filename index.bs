@@ -44,18 +44,18 @@ Markup Shorthands: markdown on, dfn on, css off
 spec: ECMAScript; url: https://tc39.github.io/ecma262/#sec-data-blocks; type: dfn; text: data block;
 </pre>
 
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/jax.js?rev=2.6.1" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.6.1" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.6.1/config/TeX-AMS-MML_HTMLorMML.js?rev=2.6.1" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/element/mml/optable/BasicLatin.js?rev=2.6.1" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.6.1/jax/output/HTML-CSS/autoload/mtable.js?rev=2.6.1" as="script">
+<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" as="script">
+<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/jax.js?rev=2.7.5" as="script">
+<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.7.5" as="script">
+<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js?rev=2.7.5" as="script">
+<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/element/mml/optable/BasicLatin.js?rev=2.7.5" as="script">
+<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/autoload/mtable.js?rev=2.7.5" as="script">
 <script>
 window.addEventListener("DOMContentLoaded", function () {
 	"use strict";
 	new Promise(function (resolve, reject) {
 		var mathjax = document.createElement('script');
-		var url = "https://www.w3.org/scripts/MathJax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+		var url = "https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
 		// Safari doesn't (yet) support load event on scripts so we have to poll. So 😢.
 		var id = setInterval(function () {
 			if (window.MathJax) {
@@ -9415,7 +9415,38 @@ Attributes</h4>
 		1] range. This means that a {{WaveShaperNode/curve}} with a
 		even number of value will not have a value for a signal at
 		zero, and a {{WaveShaperNode/curve}} with an odd number of
-		value will have a value for a signal at zero.
+		value will have a value for a signal at zero.  The
+		output is determined by the following algorithm.
+
+		<div algorithm="wave-shaper-curve">
+			1. Let \(x\) be the input sample, \(y\) be the
+				corresponding output of the node,
+				\(c_k\) be the \(k\)'th element of the
+				{{WaveShaperNode/curve}}, and \(N\) be
+				the length of the
+				{{WaveShaperNode/curve}}.
+
+			1. Compute the output \(y\) according to
+				<pre nohighlight>
+					$$
+					y = \left(1-f\right)c_k + fc_{k+1}
+					$$
+				</pre>
+				where
+				<pre nohighlight>
+				$$
+					\begin{align*}
+					v &= 
+						\begin{cases}
+						0 & x \lt -1 \\
+						1 & x > 1 \\
+						\frac{N-1}{2}(x + 1) & \mathrm{otherwise}
+						\end{cases} \\
+					f &= v - \lfloor v \rfloor \\
+					\end{align*}
+				$$
+				</pre>
+		</div>
 
 		<span class="synchronous">A {{InvalidStateError}} MUST be thrown if this
 		attribute is set with a {{Float32Array}} that has a

@@ -9713,64 +9713,99 @@ Methods</h5>
 		Registers a class constructor derived from
 		{{AudioWorkletProcessor}}.
 
-		<div algorithm="AudioWorkletGlobalScope.registerProcess()">
-			When the {{AudioWorkletGlobalScope/registerProcessor(name, processorCtor)}} method is called,
-			the user agent MUST run the following steps:
-			<ol>
-			<li> If the <code><em>name</em></code> is the empty string,
+		<div algorithm="AudioWorkletGlobalScope.registerProcess(name, processorCtr)">
+			When the {{AudioWorkletGlobalScope/registerProcessor(name, processorCtor)}}
+			method is called, perform the following steps. If an
+			exception is thrown in any step, abort the remaining
+			steps.
+
+			1. If <var>name<var> is an empty string,
 				<span class="synchronous">throw a
-				{{NotSupportedError}} exception and abort these
-				steps because the empty string is not a valid key</span>.
+				{{NotSupportedError}}.</span>.
 
-			<li> If the <code><em>name</em></code> exists as a key in the
-				<a>node name to processor constructor map</a>, <span class="synchronous">throw a {{NotSupportedError}}
-				exception and abort these steps</span> because registering a
-				constructor with a duplicated key is not allowed.
+			1. If <var>name<var> alredy exists as a key in the
+				<a>node name to processor constructor map</a>,
+				<span class="synchronous">throw a
+				{{NotSupportedError}}</span>.
 
-			<li> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">
-				IsConstructor</a>(argument=<i>processorCtor</i>)</code>
-				is false, <span class="synchronous">throw a
-				{{TypeError}} and abort these steps</span>.
+			1. If the result of
+				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-isconstructor">IsConstructor</a>(argument=<var>processorCtor</var>)</code>
+				is <code>false</code>,
+				<span class="synchronous">throw a {{TypeError}}
+				</span>.
 
-			<li> Let <code><em>prototype</em></code> be the result of
+			1. Let <code><em>prototype</em></code> be the result of
 				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
 				Get</a>(O=<i>processorCtor</i>,
 				P="prototype")</code>.
 
-			<li id="check-prototype-type"> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">
-				Type</a>(argument=<i>prototype</i>)</code> is not
-				<code>Object</code>, <span class="synchronous">throw a
-				{{TypeError}} and abort all these steps</span>.
+			<li id="check-prototype-type"> If the result of
+				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-data-types-and-values">Type</a>(argument=<i>prototype</i>)</code>
+				is not <code>Object</code>,
+				<span class="synchronous">throw a {{TypeError}}
+				</span>.
 
-			<li id="check-is-callable"> If the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">
-				IsCallable</a>(argument=Get(O=<i>prototype</i>,
-				P="process"))</code> is false, <span class="synchronous">throw a {{TypeError}} and abort
-				these steps</span>.
+			<li id="check-is-callable"> If the result of
+				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-iscallable">IsCallable</a>(argument=Get(O=<i>prototype</i>, P="process"))</code>
+				is false,
+				<span class="synchronous">throw a {{TypeError}}
+				</span>.
 
-			<li> Let <var>parameterDescriptorsValue</var> be the result of <code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">
-				Get</a>(O=<i>processorCtor</i>, P="parameterDescriptors")</code>.
-				If <var>parameterDescriptorsValue</var> is neither an iterable nor
-				<code>undefined</code>, <span class="synchronous">throw a
-				{{TypeError}} and abort these steps</span>.
+			1. Let <var>parameterDescriptorsValue</var> be the
+				result of
+				<code><a href="http://www.ecma-international.org/ecma-262/6.0/#sec-get-o-p">Get</a>(O=<i>processorCtor</i>, P="parameterDescriptors")</code>.
 
-			<li> Let <var>parameterDescriptorSequence</var>,
-				which is <code>sequence&lt;AudioParamDescriptor&gt;</code>,
-				be the result of the
-				<a href="https://heycam.github.io/webidl/#create-sequence-from-iterable">conversion</a>
-				from the iterable <var>parameterDescriptorsValue</var>.
-				<span class="synchronous">Throw a {{TypeError}} and abort these steps if any exeception
-				happens during the conversion.</span>
+			1. Let <var>parameterDescriptorSequence</var>
+				be the result of
+				<a href="https://heycam.github.io/webidl/#es-to-sequence">
+				the conversion</a> from
+				<var>parameterDescriptorsValue</var>
+				to an IDL value of type
+				<code>sequence&lt;AudioParamDescriptor&gt;</code>.
 
-			<li> Add the key-value pair (<em>name</em> -
-				<em>processorCtor</em>) to the <a>node name to processor
-				constructor map</a> of the associated
-				{{AudioWorkletGlobalScope}}.
+			1. Let <var>paranNames</var> be an empty Array.
 
-			<li> <a>Queue a task</a> to the <a>control thread</a> to add the
-				key-value pair (<em>name</em> - <var>parameterDescriptorSequence</var>) to the
-				<a>node name to parameter descriptor map</a> of the
-				associated {{BaseAudioContext}}.
-			</ol>
+			1. For each <var>descriptor</var> of
+				<var>parameterDescriptorSequence</var>:
+
+				1. Let <var>paramName</var> be the value of
+					{{AudioParamDescriptor/name}}
+					member in <var>descriptor</var>. Throw
+					a {{NotSupported}} if
+					<var>paranNames</var> already
+					contains <var>paramName</var> value.
+
+				1. Append <var>paramName</var> to
+					<var>paramNames</var> array.
+
+				1. Let <var>defaultValue</var> be the value of
+					{{AudioParamDescriptor/defaultValue}}
+					member in <var>descriptor</var>.
+
+				1. Let <var>minValue</var> be the value of
+					{{AudioParamDescriptor/minValue}}
+					member in <var>descriptor</var>.
+
+				1. Let <var>maxValue</var> be the value of
+					{{AudioParamDescriptor.maxValue}}
+					member in <var>descriptor</var>.
+
+				1. If <var>defaultValue</var> is less than
+					<var>minValue</var> or greater than
+					<var>maxValue</var>,
+					<span class="synchronous">throw a
+					{{InvalidStateError}}</span>.
+
+			1. Append the key-value pair <var>name</var> →
+				<var>processorCtor</var> to
+				<a>node name to processor constructor map</a>
+				of the associated {{AudioWorkletGlobalScope}}.
+
+			1. <a>Queue a task</a> to the <a>control thread</a> to
+				append the key-value pair <var>name</var> →
+				<var>parameterDescriptorSequence</var> to
+				<a>node name to parameter descriptor map</a> of
+				the associated {{BaseAudioContext}}.
 		</div>
 
 		Note: The class constructor should only be looked up once, thus it

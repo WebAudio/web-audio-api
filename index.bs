@@ -2263,8 +2263,8 @@ interface AudioBuffer {
 	readonly attribute double duration;
 	readonly attribute unsigned long numberOfChannels;
 	Float32Array getChannelData (unsigned long channel);
-	void copyFromChannel (Float32Array destination, unsigned long channelNumber, optional unsigned long startInChannel = 0);
-	void copyToChannel (Float32Array source, unsigned long channelNumber, optional unsigned long startInChannel = 0);
+	void copyFromChannel (Float32Array destination, unsigned long channelNumber, optional unsigned long bufferOffset = 0);
+	void copyToChannel (Float32Array source, unsigned long channelNumber, optional unsigned long bufferOffset = 0);
 };
 </pre>
 
@@ -2329,7 +2329,7 @@ Attributes</h4>
 Methods</h4>
 
 <dl dfn-type=method dfn-for="AudioBuffer">
-	: <dfn>copyFromChannel(destination, channelNumber, startInChannel)</dfn>
+	: <dfn>copyFromChannel(destination, channelNumber, bufferOffset)</dfn>
 	::
 		The {{AudioBuffer/copyFromChannel()}} method copies the samples from
 		the specified channel of the {{AudioBuffer}} to the
@@ -2338,23 +2338,23 @@ Methods</h4>
 		Let <code>buffer</code> be the {{AudioBuffer}} with
 		\(N_b\) frames, let \(N_f\) be the number of elements in the
 		{{AudioBuffer/copyFromChannel()/destination}} array, and \(k\) be the value of
-		{{AudioBuffer/copyFromChannel()/startInChannel}}. Then the number of frames copied
+		{{AudioBuffer/copyFromChannel()/bufferOffset}}. Then the number of frames copied
 		from <code>buffer</code> to {{AudioBuffer/copyFromChannel()/destination}} is
-		\(\min(N_b - k, N_f)\). If this is less than \(N_f\), then the
+		\(\max(0, \min(N_b - k, N_f))\). If this is less than \(N_f\), then the
 		remaining elements of {{AudioBuffer/copyFromChannel()/destination}} are not
 		modified.
 
 		<pre class=argumentdef for="AudioBuffer/copyFromChannel()">
 		destination: The array the channel data will be copied to.
 		channelNumber: The index of the channel to copy the data from. If <code>channelNumber</code> is greater or equal than the number of channels of the {{AudioBuffer}}, <span class="synchronous">an {{IndexSizeError}} MUST be thrown</span>.
-		startInChannel: An optional offset to copy the data from. If <code>startInChannel</code> is greater than the <code>length</code> of the {{AudioBuffer}}, <span class="synchronous">an {{IndexSizeError}} MUST be thrown</span>.
+		bufferOffset: An optional offset, defaulting to 0.  Data from the {{AudioBuffer}} starting at this offset is copied to the {{AudioBuffer/copyFromChannel()/destination}}.
 		</pre>
 
 		<div>
 			<em>Return type:</em> <code>void</code>
 		</div>
 
-	: <dfn>copyToChannel(source, channelNumber, startInChannel)</dfn>
+	: <dfn>copyToChannel(source, channelNumber, bufferOffset)</dfn>
 	::
 		The {{AudioBuffer/copyToChannel()}} method copies the samples to
 		the specified channel of the {{AudioBuffer}} from the
@@ -2367,16 +2367,16 @@ Methods</h4>
 		Let <code>buffer</code> be the {{AudioBuffer}} with
 		\(N_b\) frames, let \(N_f\) be the number of elements in the
 		{{AudioBuffer/copyToChannel()/source}} array, and \(k\) be the value of
-		{{AudioBuffer/copyToChannel()/startInChannel}}. Then the number of frames copied
+		{{AudioBuffer/copyToChannel()/bufferOffset}}. Then the number of frames copied
 		from {{AudioBuffer/copyToChannel()/source}} to the <code>buffer</code> is
-		\(\min(N_b - k, N_f)\). If this is less than \(N_f\), then the
+		\(\max(0, \min(N_b - k, N_f))\). If this is less than \(N_f\), then the
 		remaining elements of <code>buffer</code> are not
 		modified.
 
 		<pre class=argumentdef for="AudioBuffer/copyToChannel()">
 		source: The array the channel data will be copied from.
 		channelNumber: The index of the channel to copy the data to. If <code>channelNumber</code> is greater or equal than the number of channels of the {{AudioBuffer}}, <span class="synchronous">an {{IndexSizeError}} MUST be thrown</span>.
-		startInChannel: An optional offset to copy the data to. If <code>startInChannel</code> is greater than the <code>length</code> of the {{AudioBuffer}}, <span class="synchronous">an {{IndexSizeError}} MUST be thrown</span>.
+		bufferOffset: An optional offset, defaulting to 0.  Data from the {{AudioBuffer/copyToChannel()/source}} is copied to the {{AudioBuffer}} starting at this offset.
 		</pre>
 
 		<div>
@@ -7925,7 +7925,7 @@ Constructors</h4>
 			[[mediacapture-streams#mediastream|MediaStream]] that was passed to
 			the constructor do not affect the underlying output of this {{AudioNode}}.
 
-			The slot {{}}[[input track]]}} is only used to keep a reference to the
+			The slot {{[[input track]]}} is only used to keep a reference to the
 			[[mediacapture-streams#mediastreamtrack|MediaStreamTrack]].
 
 			Note: This means that when removing the track chosen by the constructor
@@ -9854,6 +9854,11 @@ Constructors</h5>
 		Note that the instantiation of these object pairs spans the
 		control thread and the rendering thread.
 
+		Once the construction of the node is completed,
+		<dfn>processor construction data</dfn> will be created and
+		trasnferred to the matching {{AudioWorkletProcessor}}'s
+		{{AudioWorkletProcessor()|constructor}}.
+
 		<pre class=argumentdef for="AudioWorkletNode/AudioWorkletNode()">
 			context: The {{BaseAudioContext}} this new {{AudioWorkletNode}} will be <a href="#associated">associated</a> with.
 			name: A string that is a key for the {{BaseAudioContext}}’s <a>node name to parameter descriptor map</a>.
@@ -9964,7 +9969,7 @@ Constructors</h5>
 		1. <a>Queue a control message</a> to invoke the
 			{{AudioWorkletProcessor()|constructor}} of
 			the corresponding {{AudioWorkletProcessor}} with
-			the processor construction data that consists of:
+			the {{processor construction data}} that consists of:
 			<var>nodeName</var>,
 			<var>serializedProcessorPort</var>,
 			<var>serializedOptions</var>,
@@ -10032,7 +10037,7 @@ dictionary AudioWorkletNodeOptions : AudioNodeOptions {
 	unsigned long numberOfOutputs = 1;
 	sequence<unsigned long> outputChannelCount;
 	record<DOMString, double> parameterData;
-	object? processorOptions = null;
+	object processorOptions;
 };
 </xmp>
 
@@ -10145,16 +10150,16 @@ Constructors</h5>
 		If any of these steps throws an exception, abort the rest of
 		steps and <a>queue a task</a> to fire an
 		<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
-		named "processorerror" at the AudioWorkletNode on the
-		<a>control thread</a> with the relevant information about the
-		error.
+		named <code>processorerror</code> at the {{AudioWorkletNode}}
+		on the <a>control thread</a> with the relevant information about
+		the error.
 
 		<div algorithm="AudioWorkletProcessor()">
 			This constructor is invoked by processing a control
-			message queued by the
-			{{AudioWorkletNode()|constructor}} of the associated
-			{{AudioWorkletNode}}. This control message carries
-			the processor construction data:
+			message queued by the {{AudioWorkletNode()|constructor}}
+			of the associated {{AudioWorkletNode}}. This control
+			message carries the {{processor construction data}} that
+			consists of:
 			<var>nodeName</var>,
 			<var>serializedProcessorPort</var>,
 			<var>serializedOptions</var>,

@@ -9895,128 +9895,122 @@ Constructors</h5>
 			options: Optional initial parameters value for this {{AudioWorkletNode}}.
 		</pre>
 
-		When the constructor of {{AudioWorkletNode}} is invoked in the
-		main global scope, the following construction algorithm MUST be
-		performed.
+		When the constructor was called, the user agent MUST perform the
+		following steps on the control thread:
+
+		<div algorithm="AudioWorkletNode()">
+			When the {{AudioWorkletNode()|AudioWorkletNode}} constructor
+			is invoked with <var ignore>context</var>, <var>nodeName</var>, <var>options</var>:
+
+			1. Perform the validity check on <var>options</var>. If the
+				check throws any exception, propagate the exception
+				and abort these steps.
+
+			1. If <var>nodeName</var> does not exist as a key in the
+				{{BaseAudioContext}}’s <a>node name to parameter
+				descriptor map</a>, throw a {{InvalidStateError}}
+				exception and abort these steps.
+
+			1. Let <var>node</var> be the instance being created by the
+				constructor of the {{AudioWorkletNode}} or its subclass.
+
+			1. Let <var>messageChannel</var> be a new {{MessageChannel}}.
+
+			1. Let <var>nodePort</var> be the value of
+				<var>messageChannel</var>'s {{MessageChannel/port1}} attribute.
+
+			1. Let <var>processorPortOnThisSide</var> be the value of
+				<var>messageChannel</var>'s {{MessageChannel/port2}} attribute.
+
+			1. Let <var>serializedProcessorPort</var> be the result of
+				[$StructuredSerializeWithTransfer$](<var>processorPortOnThisSide</var>,
+				« <var>processorPortOnThisSide</var> »).
+
+			1. <a href="https://heycam.github.io/webidl/#dictionary-to-es">Convert</a>
+				<var>options</var> dictionary to <var>optionsObject</var>.
+
+			1. Let <var>serializedOptions</var> be the result of
+				[$StructuredSerialize$](<var>optionsObject</var>).
+
+			1. Set <var>node</var>'s {{AudioWorkletNode/port}} to <var>nodePort</var>.
+
+			1. Let <var>parameterDescriptors</var> be the result of retrieval
+				of <var>nodeName</var> from <a>node name to parameter descriptor map</a>:
+
+				1. Let <var>audioParamMap</var> be a new {{AudioParamMap}} object.
+
+				1. For each <var>descriptor</var> of
+					<var>parameterDescriptors</var>:
+
+					1. Let <var>paramName</var> be the value of
+						{{AudioParamDescriptor/name}} member in
+						<var>descriptor</var>.
+
+					1. Let <var>audioParam</var> be a new
+						{{AudioParam}} instance with
+						{{AudioParamDescriptor/automationRate}},
+						{{AudioParamDescriptor/defaultValue}},
+						{{AudioParamDescriptor/minValue}}, and
+						{{AudioParamDescriptor/maxValue}}
+						having values equal to the values of
+						corresponding members on
+						<var>descriptor</var>.
+
+					1. Append a key-value pair
+						<var>paramName</var> →
+						<var>audioParam</var> to
+						<var>audioParamMap</var>'s
+						entries.
+
+				1. If {{AudioWorkletNodeOptions/parameterData}} is
+					present on <var>options</var>, perform the
+					following steps:
+
+					1. Let <var>parameterData</var> be the value of
+						{{AudioWorkletNodeOptions/parameterData}}.
+
+					1. For each <var>paramName</var> →
+						<var>paramValue</var> of
+						<var>parameterData</var>:
+
+						1. If there exists a map entry on
+							<var>audioParamMap</var> with
+							key <var>paramName</var>, let
+							<var>audioParamInMap</var> be
+							such entry.
+
+						1. Set {{AudioParam/value}} property
+							of <var>audioParamInMap</var>
+							to <var>paramValue</var>.
+
+				1. For each key-value pair <var>paramNameInOption</var>
+					→ <var>paramValue</var> of <var>options</var>:
+
+					1. If there exists an entry with name member
+						equal to <var>paramNameInOption</var>
+						inside <var>audioParamMap</var>,
+						set that {{AudioParam}}'s value to
+						<var>paramValue</var>.
+
+				1. Set <var>node</var>'s {{AudioWorkletNode/parameters}} to <var>audioParamMap</var>.
+
+			1. <a>Queue a control message</a> to invoke the
+				{{AudioWorkletProcessor()|constructor}} of
+				the corresponding {{AudioWorkletProcessor}} with
+				the [=processor construction data=] that consists of:
+				<var>nodeName</var>,
+				<var>serializedProcessorPort</var>,
+				<var>serializedOptions</var>,
+				and <var>node</var>.
+
+			1. Return <var>node</var>.
+		</div>
 
 		During the construction of an {{AudioWorkletNode}}, a
 		corresponding {{AudioWorkletProcessor}} instance is also
 		automatically created in the {{AudioWorkletGlobalScope}}.
 		Note that the instantiation of these object pairs spans the
 		control thread and the rendering thread.
-
-	<div algorithm="AudioWorkletNode()">
-		When {{AudioWorkletNode()|AudioWorkletNode}}(
-		{{AudioWorkletNode/AudioWorkletNode(context, name, options)/context}},
-		{{AudioWorkletNode/AudioWorkletNode(context, name, options)/name|nodeName}},
-		{{AudioWorkletNode/AudioWorkletNode(context, name, options)/options}})
-		constructor is invoked, the user agent MUST perform the
-		following steps on the control thread, where the constructor was
-		called.
-
-		1. Perform the validity check on <var>options</var>. If the
-			check throws any exception, propagate the exception
-			and abort these steps.
-
-		1. If <var>nodeName</var> does not exist as a key in the
-			{{BaseAudioContext}}’s <a>node name to parameter
-			descriptor map</a>, throw a {{InvalidStateError}}
-			exception and abort these steps.
-
-		1. Let <var>node</var> be the instance being created by the
-			constructor of the {{AudioWorkletNode}} or its subclass.
-
-		1. Let <var>messageChannel</var> be a new {{MessageChannel}}.
-
-		1. Let <var>nodePort</var> be the value of
-			<var>messageChannel</var>'s {{MessageChannel/port1}} attribute.
-
-		1. Let <var>processorPortOnThisSide</var> be the value of
-			<var>messageChannel</var>'s {{MessageChannel/port2}} attribute.
-
-		1. Let <var>serializedProcessorPort</var> be the result of
-			[$StructuredSerializeWithTransfer$](<var>processorPortOnThisSide</var>,
-			« <var>processorPortOnThisSide</var> »).
-
-		1. <a href="https://heycam.github.io/webidl/#dictionary-to-es">Convert</a>
-			<var>options</var> dictionary to <var>optionsObject</var>.
-
-		1. Let <var>serializedOptions</var> be the result of
-			[$StructuredSerialize$](<var>optionsObject</var>).
-
-		1. Set <var>node</var>'s {{AudioWorkletNode/port}} to <var>nodePort</var>.
-
-		1. Let <var>parameterDescriptors</var> be the result of retrieval
-			of <var>nodeName</var> from <a>node name to parameter descriptor map</a>:
-
-			1. Let <var>audioParamMap</var> be a new {{AudioParamMap}} object.
-
-			1. For each <var>descriptor</var> of
-				<var>parameterDescriptors</var>:
-
-				1. Let <var>paramName</var> be the value of
-					{{AudioParamDescriptor/name}} member in
-					<var>descriptor</var>.
-
-				1. Let <var>audioParam</var> be a new
-					{{AudioParam}} instance with
-					{{AudioParamDescriptor/automationRate}},
-					{{AudioParamDescriptor/defaultValue}},
-					{{AudioParamDescriptor/minValue}}, and
-					{{AudioParamDescriptor/maxValue}}
-					having values equal to the values of
-					corresponding members on
-					<var>descriptor</var>.
-
-				1. Append a key-value pair
-					<var>paramName</var> →
-					<var>audioParam</var> to
-					<var>audioParamMap</var>'s
-					entries.
-
-			1. If {{AudioWorkletNodeOptions/parameterData}} is
-				present on <var>options</var>, perform the
-				following steps:
-
-				1. Let <var>parameterData</var> be the value of
-					{{AudioWorkletNodeOptions/parameterData}}.
-
-				1. For each <var>paramName</var> →
-					<var>paramValue</var> of
-					<var>parameterData</var>:
-
-					1. If there exists a map entry on
-						<var>audioParamMap</var> with
-						key <var>paramName</var>, let
-						<var>audioParamInMap</var> be
-						such entry.
-
-					1. Set {{AudioParam/value}} property
-						of <var>audioParamInMap</var>
-						to <var>paramValue</var>.
-
-			1. For each key-value pair <var>paramNameInOption</var>
-				→ <var>paramValue</var> of <var>options</var>:
-
-				1. If there exists an entry with name member
-					equal to <var>paramNameInOption</var>
-					inside <var>audioParamMap</var>,
-					set that {{AudioParam}}'s value to
-					<var>paramValue</var>.
-
-			1. Set <var>node</var>'s {{AudioWorkletNode/parameters}} to <var>audioParamMap</var>.
-
-		1. <a>Queue a control message</a> to invoke the
-			{{AudioWorkletProcessor()|constructor}} of
-			the corresponding {{AudioWorkletProcessor}} with
-			the [=processor construction data=] that consists of:
-			<var>nodeName</var>,
-			<var>serializedProcessorPort</var>,
-			<var>serializedOptions</var>,
-			and <var>node</var>.
-
-		1. Return <var>node</var>.
-	</div>
 </dl>
 
 <h5 id="AudioWorkletNode-attributes">

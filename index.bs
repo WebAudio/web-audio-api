@@ -9882,19 +9882,136 @@ Constructors</h5>
 <dl dfn-type=constructor dfn-for="AudioWorkletNode">
 	: <dfn>AudioWorkletNode(context, name, options)</dfn>
 	::
-		Let <var>node</var> be a new {{AudioWorkletNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>. Perform the <a href="#instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
-		construction procedure</a> of an
-		{{AudioWorkletNode}} and the corresponding
-		{{AudioWorkletProcessor}} object. Return
-		<var>node</var>.
-
 		<pre class=argumentdef for="AudioWorkletNode/AudioWorkletNode()">
 			context: The {{BaseAudioContext}} this new {{AudioWorkletNode}} will be <a href="#associated">associated</a> with.
 			name: A string that is a key for the {{BaseAudioContext}}’s <a>node name to parameter descriptor map</a>.
 			options: Optional initial parameters value for this {{AudioWorkletNode}}.
 		</pre>
+
+		Once the construction of the node is completed,
+		<dfn dfn>processor construction data</dfn> will be created and
+		transferred to the matching {{AudioWorkletProcessor}}'s
+		{{AudioWorkletProcessor()|constructor}}. This data contains
+		a set of objects and references that is required for
+		{{AudioWorkletProcessor}}'s construction. See the step 12 in
+		the algorithm below.
+
+		When the constructor was called, the user agent MUST perform the
+		following steps on the control thread:
+
+		<div algorithm="AudioWorkletNode()">
+			When the {{AudioWorkletNode()|AudioWorkletNode}} constructor
+			is invoked with <var ignore>context</var>, <var>nodeName</var>, <var>options</var>:
+
+			1. Perform the validity check on <var>options</var>. If the
+				check throws any exception, propagate the exception
+				and abort these steps.
+
+			1. If <var>nodeName</var> does not exist as a key in the
+				{{BaseAudioContext}}’s <a>node name to parameter
+				descriptor map</a>, throw a {{InvalidStateError}}
+				exception and abort these steps.
+
+			1. Let <var>node</var> be the instance being created by the
+				constructor of the {{AudioWorkletNode}} or its subclass.
+
+			1. Let <var>messageChannel</var> be a new {{MessageChannel}}.
+
+			1. Let <var>nodePort</var> be the value of
+				<var>messageChannel</var>'s {{MessageChannel/port1}} attribute.
+
+			1. Let <var>processorPortOnThisSide</var> be the value of
+				<var>messageChannel</var>'s {{MessageChannel/port2}} attribute.
+
+			1. Let <var>serializedProcessorPort</var> be the result of
+				[$StructuredSerializeWithTransfer$](<var>processorPortOnThisSide</var>,
+				« <var>processorPortOnThisSide</var> »).
+
+			1. <a href="https://heycam.github.io/webidl/#dictionary-to-es">Convert</a>
+				<var>options</var> dictionary to <var>optionsObject</var>.
+
+			1. Let <var>serializedOptions</var> be the result of
+				[$StructuredSerialize$](<var>optionsObject</var>).
+
+			1. Set <var>node</var>'s {{AudioWorkletNode/port}} to <var>nodePort</var>.
+
+			1. Let <var>parameterDescriptors</var> be the result of retrieval
+				of <var>nodeName</var> from <a>node name to parameter descriptor map</a>:
+
+				1. Let <var>audioParamMap</var> be a new {{AudioParamMap}} object.
+
+				1. For each <var>descriptor</var> of
+					<var>parameterDescriptors</var>:
+
+					1. Let <var>paramName</var> be the value of
+						{{AudioParamDescriptor/name}} member in
+						<var>descriptor</var>.
+
+					1. Let <var>audioParam</var> be a new
+						{{AudioParam}} instance with
+						{{AudioParamDescriptor/automationRate}},
+						{{AudioParamDescriptor/defaultValue}},
+						{{AudioParamDescriptor/minValue}}, and
+						{{AudioParamDescriptor/maxValue}}
+						having values equal to the values of
+						corresponding members on
+						<var>descriptor</var>.
+
+					1. Append a key-value pair
+						<var>paramName</var> →
+						<var>audioParam</var> to
+						<var>audioParamMap</var>'s
+						entries.
+
+				1. If {{AudioWorkletNodeOptions/parameterData}} is
+					present on <var>options</var>, perform the
+					following steps:
+
+					1. Let <var>parameterData</var> be the value of
+						{{AudioWorkletNodeOptions/parameterData}}.
+
+					1. For each <var>paramName</var> →
+						<var>paramValue</var> of
+						<var>parameterData</var>:
+
+						1. If there exists a map entry on
+							<var>audioParamMap</var> with
+							key <var>paramName</var>, let
+							<var>audioParamInMap</var> be
+							such entry.
+
+						1. Set {{AudioParam/value}} property
+							of <var>audioParamInMap</var>
+							to <var>paramValue</var>.
+
+				1. For each key-value pair <var>paramNameInOption</var>
+					→ <var>paramValue</var> of <var>options</var>:
+
+					1. If there exists an entry with name member
+						equal to <var>paramNameInOption</var>
+						inside <var>audioParamMap</var>,
+						set that {{AudioParam}}'s value to
+						<var>paramValue</var>.
+
+				1. Set <var>node</var>'s {{AudioWorkletNode/parameters}} to <var>audioParamMap</var>.
+
+			1. <a>Queue a control message</a> to invoke the
+				{{AudioWorkletProcessor()|constructor}} of
+				the corresponding {{AudioWorkletProcessor}} with
+				the [=processor construction data=] that consists of:
+				<var>nodeName</var>,
+				<var>serializedProcessorPort</var>,
+				<var>serializedOptions</var>,
+				and <var>node</var>.
+
+			1. Return <var>node</var>.
+		</div>
+
+		During the construction of an {{AudioWorkletNode}}, a
+		corresponding {{AudioWorkletProcessor}} instance is also
+		automatically created in the {{AudioWorkletGlobalScope}}.
+		Note that the instantiation of these object pairs spans the
+		control thread and the rendering thread.
 </dl>
 
 <h5 id="AudioWorkletNode-attributes">
@@ -9941,9 +10058,13 @@ Attributes</h5>
 {{AudioWorkletNodeOptions}}</h5>
 
 The {{AudioWorkletNodeOptions}} dictionary can be used
-for the custom initialization of {{AudioNode}}
-attributes in the {{AudioWorkletNode}}
-constructor.
+to initialize attibutes in the instance of an {{AudioWorkletNode}} and
+an {{AudioWorkletProcessor}}.
+
+The base implementation of {{AudioWorkletProcessor}} does not examine the values
+in this dictionary. However, an user-defined subclass of the
+{{AudioWorkletProcessor}} can use this dictionary to initialize custom
+properties in its instance.
 
 <xmp class="idl">
 dictionary AudioWorkletNodeOptions : AudioNodeOptions {
@@ -10026,12 +10147,10 @@ various channel configurations can be achieved.
 The {{AudioWorkletProcessor}} Interface</h4>
 
 This interface represents an audio processing code that runs on the
-audio <a>rendering thread</a>. It lives in the
-{{AudioWorkletGlobalScope}}, and the definition of
-the class manifests the actual audio processing mechanism of a
-custom audio node. {{AudioWorkletProcessor}} can
-only be instantiated by the construction of an
-{{AudioWorkletNode}} instance.
+audio <a>rendering thread</a>. It lives in the {{AudioWorkletGlobalScope}},
+and the definition of the class manifests the actual audio processing.
+Note that the an {{AudioWorkletProcessor}} construction can only happen as a
+result of an {{AudioWorkletNode}} contruction.
 
 <pre class="idl">
 [Exposed=AudioWorklet,
@@ -10056,35 +10175,60 @@ interface AudioWorkletProcessor {
 
 <h5 id="AudioWorketProcessor-constructors">
 Constructors</h5>
+
 <dl dfn-type="constructor" dfn-for="AudioWorkletProcessor">
 	: <dfn>AudioWorkletProcessor(options)</dfn>
 	::
-		When the constructor for {{AudioWorkletProcessor}} is invoked, the following steps are performed:
+		When the constructor for {{AudioWorkletProcessor}} is invoked,
+		the following steps are performed on the <a>rendering thread</a>.
+
 		<div algorithm="AudioWorkletProcessor()">
-			1. Compare the value of <a href="https://www.ecma-international.org/ecma-262/6.0/#sec-built-in-function-objects">NewTarget</a>
-				with the <a href="https://www.ecma-international.org/ecma-262/6.0/#sec-execution-contexts">active function object</a>;
-				if the two are equal, throw a {{TypeError}}.
+			This constructor is invoked by processing a control
+			message queued by the {{AudioWorkletNode()|constructor}}
+			of the associated {{AudioWorkletNode}}. This control
+			message carries the [=processor construction data=] that
+			consists of:
+			<var>nodeName</var>,
+			<var>serializedProcessorPort</var>,
+			<var>serializedOptions</var>,
+			and <var>node</var>.
 
-				Note: This check prevents the invocation of the constructor
-				directly from JavaScript. The interface object may only
-				be called internally by the UA.
+			If any of these steps throws an exception, abort the rest of
+			steps and <a>queue a task</a> to fire an
+			<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
+			named <code>processorerror</code> at the {{AudioWorkletNode}}
+			on the <a>control thread</a> with the relevant information about
+			the error.
 
-			1. Initialize the {{AudioWorkletProcessor}} using the
-				contents of the {{AudioWorkletNode/AudioWorkletNode()/options!!argument}} dictionary that was
-				passed to the constructor for {{AudioWorkletNode}}. The
-				contents of this dictionary will have been serialized and
-				deserialized according to the algorithm for <a href=
-				"#instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor"> instantiating an AudioWorkletProcessor</a>.
+			1. If there is no [=processor construction data=]
+				passed from the associated {{AudioWorkletNode}},
+				throw a {{TypeError}}.
 
-				Note: The base implementation of {{AudioWorkletProcessor}}
-				does not examine the values in the {{AudioWorkletProcessor/AudioWorkletProcessor()/options!!argument}}
-				dictionary. However, processor classes that extend
-				{{AudioWorkletProcessor}} will use this dictionary to
-				initialize themselves based on the options relevant to
-				their specific node type.
+			1. Let <var>processorPort</var> be
+				[$StructuredDeserializeWithTransfer$](<var>serializedProcessorPort</var>,
+				the current Realm).
 
-			1. Set {{[[node reference]]}} to `null` and {{[[callable process]]}} to
-				`false`.
+			1. Let <var>options</var> be
+				[$StructuredDeserialize$](<var>serializedOptions</var>,
+				the current Realm).
+
+			1. Let <var>processorCtor</var> be the result of looking
+				up <var>nodeName</var> on the
+				{{AudioWorkletGlobalScope}}'s
+				<a>node name to processor constructor map</a>.
+
+			1. Let <var>processor</var> be the result of
+				Construct(<var>processorCtor</var>, « <var>options</var> »).
+
+			1. Set <var>processor</var>’s port to <var>processorPort</var>.
+
+			1. Set <var>processor</var>'s {{[[node reference]]}} to
+				<var>node</var>.
+
+			1. Set {{[[callable process]]}} to `true`.
+
+			1. Set <var>node</var>'s <a>processor reference</a> to
+				<var>processor</var>.
 		</div>
 
 		<pre class="argumentdef" for="AudioWorkletProcessor/AudioWorkletProcessor()">
@@ -10279,129 +10423,6 @@ Dictionary {{AudioParamDescriptor}} Members</h6>
 		a duplicated name is found when registering the class
 		definition.</span>
 </dl>
-
-<h4 id="instantiation-of-AudioWorkletNode-and-AudioWorkletProcessor">
-The instantiation of {{AudioWorkletNode}} and {{AudioWorkletProcessor}}</h4>
-
-When the constructor of {{AudioWorkletNode}} is invoked in the
-main global scope, the corresponding {{AudioWorkletProcessor}}
-instance is automatically created in the
-{{AudioWorkletGlobalScope}}. After the construction, they
-maintain an internal reference to each other until the
-{{AudioWorkletNode}} instance is destroyed.
-
-Note that the instantiation of these two objects spans the control
-thread and the rendering thread.
-
-<div algorithm="audioworklet construction">
-	When {{AudioWorkletNode()|AudioWorkletNode}}({{AudioWorkletNode/AudioWorkletNode(context, name, options)/context}},
-	{{AudioWorkletNode/AudioWorkletNode(context, name, options)/name|nodeName}}, {{AudioWorkletNode/AudioWorkletNode(context, name, options)/options}}) constructor is invoked,
-	the user agent MUST perform the following steps on the control
-	thread, where the constructor was called.
-
-	1. Let <var>node</var> be the instance being created by the
-		constructor of the {{AudioWorkletNode}} or its subclass.
-
-	1. If <var>nodeName</var> does not exists as a key in the
-		{{BaseAudioContext}}’s <a>node name to parameter descriptor
-		map</a>, throw a {{NotSupportedError}} exception and abort
-		these steps.
-
-	1. Let <var>messageChannel</var> be a new {{MessageChannel}}.
-
-	1. Let <var>nodePort</var> be the value of
-		<var>messageChannel</var>'s {{MessageChannel/port1}} attribute.
-
-	1. Let <var>processorPortOnThisSide</var> be the value of
-		<var>messageChannel</var>'s {{MessageChannel/port2}} attribute.
-
-	1. Let <var>processorPortSerialization</var> be the result of
-		[$StructuredSerializeWithTransfer$](<var>processorPortOnThisSide</var>,
-		« <var>processorPortOnThisSide</var> »).
-
-	1. <a href="https://heycam.github.io/webidl/#dictionary-to-es">Convert</a>
-		<var>options</var> dictionary to <var>optionsObject</var>.
-
-	1. Let <var>optionsSerialization</var> be the result of
-		[$StructuredSerialize$](<var>optionsObject</var>).
-
-	1. Set <var>node</var>'s {{AudioWorkletNode/port}} to <var>nodePort</var>.
-
-	1. Let <var>parameterDescriptors</var> be the result of retrieval
-		of <var>nodeName</var> from <a>node name to parameter descriptor map</a>:
-
-		1. Let <var>audioParamMap</var> be a new {{AudioParamMap}} object.
-
-		1. For each <var>descriptor</var> of <var>parameterDescriptors</var>:
-			1. Let <var>paramName</var> be the value of
-				<var>descriptor</var>'s {{AudioParamDescriptor/name}}.
-
-			1. Let <var>audioParam</var> be a new {{AudioParam}}
-				instance.
-
-			1. Append (<var>paramName</var>, <var>audioParam</var>) to
-				<var>audioParamMap</var>'s entries.
-
-		1. For each key-value pair (<var>paramNameInOption</var> to
-			<var>value</var>) of <var>options</var>:
-			1. If there exists an entry with name member equal to
-				<var>paramNameInOption</var> inside
-				<var>audioParamMap</var>, set that {{AudioParam}}'s
-				value to <var>value</var>.
-
-			1. <var>paramNameInOption</var> will be ignored when:
-				* <var>audioParamMap</var> does not have any entry with
-					the same name member.
-
-				* <var>value</var> is out of the range specified in
-					{{AudioParamDescriptor}}.
-
-		1. Set <var>node</var>'s {{AudioWorkletNode/parameters}} to <var>audioParamMap</var>.
-
-	1. <a>Queue a control message</a> to create an
-		{{AudioWorkletProcessor}}, given the <var>nodeName</var>,
-		<var>processorPortSerialization</var>, <var>optionsSerialization</var>,  and <var>node</var>.
-
-	1. Return <var>node</var>.
-</div>
-
-<div algorithm="process control message">
-	In order to process a control message for the construction of an
-	{{AudioWorkletProcessor}}, given a string <var>nodeName</var>, a
-	serialization record <var>processorPortSerialization</var>, and an
-	{{AudioWorkletNode}} <var>node</var>, perform the following
-	steps on the <a>rendering thread</a>. If any of these steps throws
-	an exception (either explicitly or implicitly), abort the rest of
-	steps and <a>queue a task</a> on the <a>control thread</a> to fire
-	{{AudioWorkletNode/onprocessorerror}} event to
-	<var>node</var>.
-
-	1. Let <var>processorPort</var> be
-		[$StructuredDeserializeWithTransfer$](<var>processorPortSerialization</var>,
-		the current Realm).
-
-	1. Let <var>options</var> be
-		  [$StructuredDeserialize$](<code>optionsSerialization</code>, the
-		  current Realm).
-
-	1. Let <var>processorCtor</var> be the result of looking up
-		<var>nodeName</var> on the {{AudioWorkletGlobalScope}}'s <a>node
-		name to processor constructor map</a>.
-
-	1. Let <var>processor</var> be the result of
-		Construct(<var>processorCtor</var>, « <var>options</var> »).
-
-	1. Set <var>processor</var>'s {{AudioWorkletProcessor/port}} to
-		<var>processorPort</var>.
-
-	1. Set <var>processor</var>'s {{[[node reference]]}}to
-		<var>node</var>.
-
-	1. Set {{[[callable process]]}} to `true`.
-
-	1. Set <var>node</var>'s <a>processor reference</a> to
-		<var>processor</var>.
-</div>
 
 <h4 id="AudioWorklet-Sequence">
 AudioWorklet Sequence of Events</h4>

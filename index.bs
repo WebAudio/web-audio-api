@@ -9824,6 +9824,45 @@ Methods</h5>
 		</div>
 </dl>
 
+<h5 id="AudioWorkletProcessor-instantiation">
+Instantiation of AudioWorkletProcessor</h5>
+
+The construction of an {{AudioWorkletNode}} is followed by the construction
+of a corresponding {{AudioWorkletProcessor}} instance in the
+{{AudioWorkletGlobalScope}}.
+
+At the end of the {{AudioWorkletNode}} construction,
+<dfn>processor construction data</dfn> will be prepared for the cross-thread
+transfer. This data contains:
+
+<dl dfn-type=attribute dfn-for="processor-construction-data">
+	:<dfn>nodeName</dfn>
+	::
+		A {{DOMString}} of the {{AudioWorkletProcessr}} name that is to
+		be looked up <a>node name to processor constructor map</a>.
+	:<dfn>nodePort</dfn>
+	::
+		A serialized {{MessagePort}} that is paired with
+		the associated {{AudioWorkletNode}}'s {{AudioWorkletNode/port}}.
+	:<dfn>nodeOptions</dfn>
+	::
+		A serialzied {{AudioWorkletNodeOptions}} dictionary that is
+		given to the {{AudioWorkletNode}}
+		{{AudioWorkletNode()|constructor}}.
+</dl>
+
+This is transferred to
+the {{AudioWorkletGlobalScope}} to invoke {{AudioWorkletProcessor()|constructor}}.
+
+	<div algorithm="AudioWorkletProcessor-instantiation">
+	If the instantiation is invoked without a valid processor construction data
+	abort the following step, and fire error event on no.onprocessorerror
+
+		1. processor construction data -> nodeName
+		1. find a constructor from the AWGS
+		1. invoke constructor with processor construction data (port, options)
+	</div>
+
 <h4 interface lt="AudioWorkletNode">
 The {{AudioWorkletNode}} Interface</h4>
 
@@ -9887,14 +9926,6 @@ Constructors</h5>
 			name: A string that is a key for the {{BaseAudioContext}}’s <a>node name to parameter descriptor map</a>.
 			options: Optional initial parameters value for this {{AudioWorkletNode}}.
 		</pre>
-
-		Once the construction of the node is completed,
-		<dfn dfn>processor construction data</dfn> will be created and
-		transferred to the matching {{AudioWorkletProcessor}}'s
-		{{AudioWorkletProcessor()|constructor}}. This data contains
-		a set of objects and references that is required for
-		{{AudioWorkletProcessor}}'s construction. See the step 12 in
-		the algorithm below.
 
 		When the constructor was called, the user agent MUST perform the
 		following steps on the control thread:
@@ -10006,12 +10037,6 @@ Constructors</h5>
 
 			1. Return <var>node</var>.
 		</div>
-
-		During the construction of an {{AudioWorkletNode}}, a
-		corresponding {{AudioWorkletProcessor}} instance is also
-		automatically created in the {{AudioWorkletGlobalScope}}.
-		Note that the instantiation of these object pairs spans the
-		control thread and the rendering thread.
 </dl>
 
 <h5 id="AudioWorkletNode-attributes">

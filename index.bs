@@ -9825,7 +9825,7 @@ Methods</h5>
 </dl>
 
 <h5 id="AudioWorkletProcessor-instantiation">
-Instantiation of AudioWorkletProcessor</h5>
+The instantiation of AudioWorkletProcessor</h5>
 
 The construction of an {{AudioWorkletNode}} is followed by the construction
 of a corresponding {{AudioWorkletProcessor}} instance in the
@@ -9835,32 +9835,50 @@ At the end of the {{AudioWorkletNode}} construction,
 <dfn>processor construction data</dfn> will be prepared for the cross-thread
 transfer. This data contains:
 
-<dl dfn-type=attribute dfn-for="processor-construction-data">
-	:<dfn>nodeName</dfn>
+<dl>
+	: <dfn dfn>nodeName</dfn>
 	::
-		A {{DOMString}} of the {{AudioWorkletProcessr}} name that is to
+		A {{DOMString}} of the {{AudioWorkletProcessor}} name that is to
 		be looked up <a>node name to processor constructor map</a>.
-	:<dfn>nodePort</dfn>
+	: <dfn dfn>nodePort</dfn>
 	::
 		A serialized {{MessagePort}} that is paired with
 		the associated {{AudioWorkletNode}}'s {{AudioWorkletNode/port}}.
-	:<dfn>nodeOptions</dfn>
+	: <dfn dfn>nodeOptions</dfn>
 	::
-		A serialzied {{AudioWorkletNodeOptions}} dictionary that is
+		A serialized {{AudioWorkletNodeOptions}} dictionary that is
 		given to the {{AudioWorkletNode}}
 		{{AudioWorkletNode()|constructor}}.
 </dl>
 
-This is transferred to
-the {{AudioWorkletGlobalScope}} to invoke {{AudioWorkletProcessor()|constructor}}.
+Upon the arrival of the transferred data on the {{AudioWorkletGlobalScope}},
+the <a>rendering thread</a> will trigger the algorithm below:
 
-	<div algorithm="AudioWorkletProcessor-instantiation">
-	If the instantiation is invoked without a valid processor construction data
-	abort the following step, and fire error event on no.onprocessorerror
+	<div id="invoking-processor-constructor" algorithm="invoking processor constructor">
+		Upon the arrival of <a>processor construction data</a>
+		<var>constructionData</var>, perform the following steps. If
+		any step throws an exception, abort the remaining steps and
+		<a>queue a task</a> to fire an
+		<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">
+		ErrorEvent</a> named <code>processorerror</code> at the
+		{{AudioWorkletNode}} on the <a>control thread</a> with the
+		relevant information about the error.
 
-		1. processor construction data -> nodeName
-		1. find a constructor from the AWGS
-		1. invoke constructor with processor construction data (port, options)
+		1. Let <var>name</var> be the [=nodeName=] member of
+			<var>constructionData</var>.
+
+		1. Let <var>options</var> be the [=nodeOptions=] member of
+			<var>constructionData</var>.
+
+		1. Let <var>port</var> be the [=nodePort=] member of
+			<var>constructionData</var>.
+
+		1. Let <var>processorCtor</var> be the result of looking
+			up <var>name</var> on the {{AudioWorkletGlobalScope}}'s
+			<a>node name to processor constructor map</a>.
+
+		1. Perform Construct(<var>processorCtor</var>,
+			« <var>options</var> ») with the given <var>port</var>.
 	</div>
 
 <h4 interface lt="AudioWorkletNode">
@@ -9883,10 +9901,6 @@ macros:
 	tail-time: See notes
 	tail-time-notes:  Any <a>tail-time</a> is handled by the node itself
 </pre>
-
-Every {{AudioWorkletNode}} has an associated <dfn>processor
-reference</dfn>, initially null, which refers to the
-{{AudioWorkletProcessor}} handling the processing for this node.
 
 Every {{AudioWorkletProcessor}} has an associated <dfn>active source</dfn> flag, initially `true`. This flag causes
 the node to be retained in memory and perform audio processing in
@@ -10026,14 +10040,14 @@ Constructors</h5>
 
 				1. Set <var>node</var>'s {{AudioWorkletNode/parameters}} to <var>audioParamMap</var>.
 
-			1. <a>Queue a control message</a> to invoke the
-				{{AudioWorkletProcessor()|constructor}} of
+			1. <a>Queue a control message</a> to
+				<a href="#invoking-processor-constructor">invoke</a>
+				the {{AudioWorkletProcessor()|constructor}} of
 				the corresponding {{AudioWorkletProcessor}} with
 				the [=processor construction data=] that consists of:
 				<var>nodeName</var>,
 				<var>serializedProcessorPort</var>,
-				<var>serializedOptions</var>,
-				and <var>node</var>.
+				<var>serializedOptions</var>.
 
 			1. Return <var>node</var>.
 		</div>
@@ -10208,16 +10222,6 @@ Constructors</h5>
 		the following steps are performed on the <a>rendering thread</a>.
 
 		<div algorithm="AudioWorkletProcessor()">
-			This constructor is invoked by processing a control
-			message queued by the {{AudioWorkletNode()|constructor}}
-			of the associated {{AudioWorkletNode}}. This control
-			message carries the [=processor construction data=] that
-			consists of:
-			<var>nodeName</var>,
-			<var>serializedProcessorPort</var>,
-			<var>serializedOptions</var>,
-			and <var>node</var>.
-
 			If any of these steps throws an exception, abort the rest of
 			steps and <a>queue a task</a> to fire an
 			<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
@@ -10225,35 +10229,17 @@ Constructors</h5>
 			on the <a>control thread</a> with the relevant information about
 			the error.
 
-			1. If there is no [=processor construction data=]
-				passed from the associated {{AudioWorkletNode}},
-				throw a {{TypeError}}.
+			1. If there is no provided [=nodePort=] at the
+				invocation of the constructor throw a
+				{{TypeError}}.
 
-			1. Let <var>processorPort</var> be
-				[$StructuredDeserializeWithTransfer$](<var>serializedProcessorPort</var>,
-				the current Realm).
+			1. Let <var>processorPort</var> be [$StructuredDeserializeWithTransfer$](
+				[=nodePort=], the current Realm).
 
-			1. Let <var>options</var> be
-				[$StructuredDeserialize$](<var>serializedOptions</var>,
-				the current Realm).
-
-			1. Let <var>processorCtor</var> be the result of looking
-				up <var>nodeName</var> on the
-				{{AudioWorkletGlobalScope}}'s
-				<a>node name to processor constructor map</a>.
-
-			1. Let <var>processor</var> be the result of
-				Construct(<var>processorCtor</var>, « <var>options</var> »).
-
-			1. Set <var>processor</var>’s port to <var>processorPort</var>.
-
-			1. Set <var>processor</var>'s {{[[node reference]]}} to
-				<var>node</var>.
+			1. Set <var>processor</var>’s {{AudioWorkletProcessor/port}}
+				to <var>processorPort</var>.
 
 			1. Set <var>processor</var>'s {{[[callable process]]}} to `true`.
-
-			1. Set <var>node</var>'s <a>processor reference</a> to
-				<var>processor</var>.
 		</div>
 
 		<pre class="argumentdef" for="AudioWorkletProcessor/AudioWorkletProcessor()">

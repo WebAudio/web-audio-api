@@ -10061,11 +10061,6 @@ The {{AudioWorkletNodeOptions}} dictionary can be used
 to initialize attibutes in the instance of an {{AudioWorkletNode}} and
 an {{AudioWorkletProcessor}}.
 
-The base implementation of {{AudioWorkletProcessor}} does not examine the values
-in this dictionary. However, an user-defined subclass of the
-{{AudioWorkletProcessor}} can use this dictionary to initialize custom
-properties in its instance.
-
 <xmp class="idl">
 dictionary AudioWorkletNodeOptions : AudioNodeOptions {
 	unsigned long numberOfInputs = 1;
@@ -10118,30 +10113,49 @@ Dictionary {{AudioWorkletNodeOptions}} Members</h6>
 		{{AudioWorkletNode}}.
 </dl>
 
-<h6 id="configuring-channels-with-audioworkletnodeoptions">
-Configuring Channels with {{AudioWorkletNodeOptions}}</h6>
+<h6>Configuring Channels with {{AudioWorkletNodeOptions}}</h6>
 
-With a combination of {{AudioWorkletNodeOptions/numberOfInputs}},
-{{AudioWorkletNodeOptions/numberOfOutputs}},
-and {{AudioWorkletNodeOptions/outputChannelCount}},
-various channel configurations can be achieved.
+The following algorithm describes how an {{AudioWorkletNodeOptions}} can be
+used to configure various channel configurations.
 
-: {{AudioWorkletNodeOptions/numberOfInputs}} = 0,
-	{{AudioWorkletNodeOptions/numberOfOutputs}} = 0
-:: {{NotSupportedError}} MUST be thrown by the constructor.
+<div id="configuring-channels-with-audioworkletnodeoptions" algorithm="configuring channels with AudioWorkletNodeOptions">
+	1. Let <var>node</var> be an {{AudioWorkletNode}} instance that is
+		given to this algorithm.
 
-: {{AudioWorkletNodeOptions/numberOfInputs}} = 1,
-	{{AudioWorkletNodeOptions/numberOfOutputs}} = 1
-:: If {{AudioWorkletNodeOptions/outputChannelCount}} is
-	unspecified, the output channel count will match
-	<a>computedNumberOfChannels</a> from the input. If
-	{{AudioWorkletNodeOptions/outputChannelCount}} is specified
-	with one value, the output channel count will match the given value.
+	1. If both {{AudioWorkletNodeOptions/numberOfInputs}} and
+		{{AudioWorkletNodeOptions/numberOfOutputs}} are zero,
+		throw a {{NotSupportedError}} and abort the remaining steps.
 
-: All other cases
-:: If {{AudioWorkletNodeOptions/outputChannelCount}} is
-	unspecified, it will be mono for all outputs. If specified,
-	the values will be used as given.
+	1. If the length of {{AudioWorkletNodeOptions/outputChannelCount}}
+		does not match {{AudioWorkletNodeOptions/numberOfOutputs}},
+		throw an {{IndexSizeError}} and abort the remaining steps.
+
+	1. If any value in {{AudioWorkletNodeOptions/outputChannelCount}}
+		is zero or greater than the implementation’s maximum number of
+		channels, throw a {{NotSupportedError}} and abort the remaining
+		steps.
+
+	1. If both {{AudioWorkletNodeOptions/numberOfInputs}} and
+		{{AudioWorkletNodeOptions/numberOfOutputs}} are 1,
+
+		1. If {{AudioWorkletNodeOptions/outputChannelCount}} is
+			given and it contains a value, the channel count of the
+			<var>node</var> output will be set to the value and
+			return.
+
+		1. If {{AudioWorkletNodeOptions/outputChannelCount}} is
+			unspecified, the output channel will match
+			<a>computedNumberOfChannels</a> based on the input and
+			return.
+
+	1. If {{AudioWorkletNodeOptions/outputChannelCount}} is unspecified,
+		all the outputs of the <var>node</var> will be set to mono and
+		return.
+
+	1. If {{AudioWorkletNodeOptions/outputChannelCount}} is specified,
+		each value in the sequence will be used to set the channel count
+		of each output of the <var>node</var>.
+</div>
 
 <h4 interface lt="AudioWorkletProcessor">
 The {{AudioWorkletProcessor}} Interface</h4>

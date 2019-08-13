@@ -9903,10 +9903,6 @@ Constructors</h5>
 			When the {{AudioWorkletNode()|AudioWorkletNode}} constructor
 			is invoked with <var ignore>context</var>, <var>nodeName</var>, <var>options</var>:
 
-			1. Perform the validity check on <var>options</var>. If the
-				check throws any exception, propagate the exception
-				and abort these steps.
-
 			1. If <var>nodeName</var> does not exist as a key in the
 				{{BaseAudioContext}}’s <a>node name to parameter
 				descriptor map</a>, throw a {{InvalidStateError}}
@@ -9914,6 +9910,12 @@ Constructors</h5>
 
 			1. Let <var>node</var> be the instance being created by the
 				constructor of the {{AudioWorkletNode}} or its subclass.
+
+			1. <a href="#configure-with-audioworkletnodeoptions">
+				Configure input, output and output channels</a>
+				of <var>node</var> with <var>options</var>.
+				Abort the remaining steps if any exception is
+				thrown.
 
 			1. Let <var>messageChannel</var> be a new {{MessageChannel}}.
 
@@ -10088,37 +10090,28 @@ Dictionary {{AudioWorkletNodeOptions}} Members</h6>
 	: <dfn>outputChannelCount</dfn>
 	::
 		This array is used to configure the number of channels in
-		each output. For example, <code>outputChannelCount: [n,
-		m]</code> specifies the number of channels in the first
-		output to be <code>n</code> and the second output to be
-		<code>m</code>, respectively. <span class="synchronous">{{IndexSizeError}} MUST
-		be thrown if the length of {{outputChannelCount}} does not match
-		{{AudioWorkletNodeOptions/numberOfOutputs}}. A
-		{{NotSupportedError}} exception MUST be thrown if a
-		channel count is not in the valid range of an {{AudioNode}}'s
-		{{AudioNode/channelCount}}.</span>
+		each output.
 
 	: <dfn>parameterData</dfn>
 	::
 		This is a list of user-defined key-value pairs that are used
-		to initialize {{AudioParam}} objects in
-		{{AudioWorkletNode}}. If the string key of an entry in the
-		list does not match the name of any {{AudioParam}} objects in
-		the node, it is ignored.
+		to set the initial {{AudioParam/value}} of an {{AudioParam}}
+		with the matched name in the {{AudioWorkletNode}}.
 
 	: <dfn>processorOptions</dfn>
 	::
-		This holds any additional user-defined data that may be used to
-		initialize the corresponding {{AudioWorkletProcessor}} for this
-		{{AudioWorkletNode}}.
+		This holds any user-defined data that may be used to initialize
+		custom properties in an {{AudioWorkletProcessor}} instance
+		that is associated with the {{AudioWorkletNode}}.
 </dl>
 
-<h6>Configuring Channels with {{AudioWorkletNodeOptions}}</h6>
+<h6 id="configuring-channels-with-audioworkletnodeoptions">
+Configuring Channels with {{AudioWorkletNodeOptions}}</h6>
 
 The following algorithm describes how an {{AudioWorkletNodeOptions}} can be
 used to configure various channel configurations.
 
-<div id="configuring-channels-with-audioworkletnodeoptions" algorithm="configuring channels with AudioWorkletNodeOptions">
+<div id="configure-with-audioworkletnodeoptions" algorithm="configure with AudioWorkletNodeOptions">
 	1. Let <var>node</var> be an {{AudioWorkletNode}} instance that is
 		given to this algorithm.
 

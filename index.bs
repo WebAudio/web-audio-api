@@ -9903,17 +9903,19 @@ Constructors</h5>
 			When the {{AudioWorkletNode()|AudioWorkletNode}} constructor
 			is invoked with <var ignore>context</var>, <var>nodeName</var>, <var>options</var>:
 
-			1. Perform the validity check on <var>options</var>. If the
-				check throws any exception, propagate the exception
-				and abort these steps.
-
 			1. If <var>nodeName</var> does not exist as a key in the
 				{{BaseAudioContext}}’s <a>node name to parameter
 				descriptor map</a>, throw a {{InvalidStateError}}
 				exception and abort these steps.
 
-			1. Let <var>node</var> be the instance being created by the
-				constructor of the {{AudioWorkletNode}} or its subclass.
+			1. Let <var>node</var> be
+				<a spec="webidl" lt="this">this</a> value.
+
+			1. <a href="#configure-with-audioworkletnodeoptions">
+				Configure input, output and output channels</a>
+				of <var>node</var> with <var>options</var>.
+				Abort the remaining steps if any exception is
+				thrown.
 
 			1. Let <var>messageChannel</var> be a new {{MessageChannel}}.
 
@@ -10003,8 +10005,6 @@ Constructors</h5>
 				<var>serializedProcessorPort</var>,
 				<var>serializedOptions</var>,
 				and <var>node</var>.
-
-			1. Return <var>node</var>.
 		</div>
 
 		During the construction of an {{AudioWorkletNode}}, a
@@ -10061,11 +10061,6 @@ The {{AudioWorkletNodeOptions}} dictionary can be used
 to initialize attibutes in the instance of an {{AudioWorkletNode}} and
 an {{AudioWorkletProcessor}}.
 
-The base implementation of {{AudioWorkletProcessor}} does not examine the values
-in this dictionary. However, an user-defined subclass of the
-{{AudioWorkletProcessor}} can use this dictionary to initialize custom
-properties in its instance.
-
 <xmp class="idl">
 dictionary AudioWorkletNodeOptions : AudioNodeOptions {
 	unsigned long numberOfInputs = 1;
@@ -10093,55 +10088,77 @@ Dictionary {{AudioWorkletNodeOptions}} Members</h6>
 	: <dfn>outputChannelCount</dfn>
 	::
 		This array is used to configure the number of channels in
-		each output. For example, <code>outputChannelCount: [n,
-		m]</code> specifies the number of channels in the first
-		output to be <code>n</code> and the second output to be
-		<code>m</code>, respectively. <span class="synchronous">{{IndexSizeError}} MUST
-		be thrown if the length of {{outputChannelCount}} does not match
-		{{AudioWorkletNodeOptions/numberOfOutputs}}. A
-		{{NotSupportedError}} exception MUST be thrown if a
-		channel count is not in the valid range of an {{AudioNode}}'s
-		{{AudioNode/channelCount}}.</span>
+		each output.
 
 	: <dfn>parameterData</dfn>
 	::
 		This is a list of user-defined key-value pairs that are used
-		to initialize {{AudioParam}} objects in
-		{{AudioWorkletNode}}. If the string key of an entry in the
-		list does not match the name of any {{AudioParam}} objects in
-		the node, it is ignored.
+		to set the initial {{AudioParam/value}} of an {{AudioParam}}
+		with the matched name in the {{AudioWorkletNode}}.
 
 	: <dfn>processorOptions</dfn>
 	::
-		This holds any additional user-defined data that may be used to
-		initialize the corresponding {{AudioWorkletProcessor}} for this
-		{{AudioWorkletNode}}.
+		This holds any user-defined data that may be used to initialize
+		custom properties in an {{AudioWorkletProcessor}} instance
+		that is associated with the {{AudioWorkletNode}}.
 </dl>
 
 <h6 id="configuring-channels-with-audioworkletnodeoptions">
 Configuring Channels with {{AudioWorkletNodeOptions}}</h6>
 
-With a combination of {{AudioWorkletNodeOptions/numberOfInputs}},
-{{AudioWorkletNodeOptions/numberOfOutputs}},
-and {{AudioWorkletNodeOptions/outputChannelCount}},
-various channel configurations can be achieved.
+The following algorithm describes how an {{AudioWorkletNodeOptions}} can be
+used to configure various channel configurations.
 
-: {{AudioWorkletNodeOptions/numberOfInputs}} = 0,
-	{{AudioWorkletNodeOptions/numberOfOutputs}} = 0
-:: {{NotSupportedError}} MUST be thrown by the constructor.
+<div id="configure-with-audioworkletnodeoptions" algorithm="configure with AudioWorkletNodeOptions">
+	1. Let <var>node</var> be an {{AudioWorkletNode}} instance that is
+		given to this algorithm.
 
-: {{AudioWorkletNodeOptions/numberOfInputs}} = 1,
-	{{AudioWorkletNodeOptions/numberOfOutputs}} = 1
-:: If {{AudioWorkletNodeOptions/outputChannelCount}} is
-	unspecified, the output channel count will match
-	<a>computedNumberOfChannels</a> from the input. If
-	{{AudioWorkletNodeOptions/outputChannelCount}} is specified
-	with one value, the output channel count will match the given value.
+	1. If both {{AudioWorkletNodeOptions/numberOfInputs}} and
+		{{AudioWorkletNodeOptions/numberOfOutputs}} are zero,
+		throw a {{NotSupportedError}} and abort the remaining steps.
 
-: All other cases
-:: If {{AudioWorkletNodeOptions/outputChannelCount}} is
-	unspecified, it will be mono for all outputs. If specified,
-	the values will be used as given.
+	1. If {{AudioWorkletNodeOptions/outputChannelCount}} is
+		<a spec="webidl" lt="present">present</a>,
+
+		1. If any value in
+			{{AudioWorkletNodeOptions/outputChannelCount}} is zero
+			or greater than the implementation’s maximum number
+			of channels, throw a {{NotSupportedError}} and abort
+			the remaining steps.
+
+		1. If the length of
+			{{AudioWorkletNodeOptions/outputChannelCount}} does not
+			equal {{AudioWorkletNodeOptions/numberOfOutputs}},
+			throw an {{IndexSizeError}} and abort the remaining
+			steps.
+
+		1. If both {{AudioWorkletNodeOptions/numberOfInputs}} and
+			{{AudioWorkletNodeOptions/numberOfOutputs}} are 1,
+			set the channel count of the <var>node</var> output to
+			the one value in
+			{{AudioWorkletNodeOptions/outputChannelCount}}.
+
+		1. Otherwise set the channel count of the <em>k</em>th output
+			of the <node>node</node> to the <em>k</em>th element
+			of {{AudioWorkletNodeOptions/outputChannelCount}}
+			sequence and return.
+
+	1. If {{AudioWorkletNodeOptions/outputChannelCount}} is
+		<a spec="webidl" lt="present">not present</a>,
+
+		1. If both {{AudioWorkletNodeOptions/numberOfInputs}} and
+			{{AudioWorkletNodeOptions/numberOfOutputs}} are 1,
+			set the initial channel count of the <var>node</var>
+			output to 1 and return.
+
+			NOTE: For this case, the output chanel count will
+			change to <a>computedNumberOfChannels</a> dynamically
+			based on the input and the
+			{{AudioNode/channelCountMode}} at runtime.
+
+		1. Otherwise set the channel count of each output of the
+			<var>node</var> to 1 and return.
+</div>
 
 <h4 interface lt="AudioWorkletProcessor">
 The {{AudioWorkletProcessor}} Interface</h4>
@@ -10193,12 +10210,13 @@ Constructors</h5>
 			<var>serializedOptions</var>,
 			and <var>node</var>.
 
-			If any of these steps throws an exception, abort the rest of
-			steps and <a>queue a task</a> to fire an
+			If any of these steps throws an exception,
+			abort the rest of steps and
+			<a>queue a task</a> to the <a>control thread</a>
+			<a spec="dom" lt="fire an event">fire</a> an
 			<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
-			named <code>processorerror</code> at the {{AudioWorkletNode}}
-			on the <a>control thread</a> with the relevant information about
-			the error.
+			named <code>processorerror</code> at the associated
+			{{AudioWorkletNode}}.
 
 			1. If there is no [=processor construction data=]
 				passed from the associated {{AudioWorkletNode}},
@@ -11030,8 +11048,11 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
             					<a href="#available-for-reading">made available for reading</a>.
 
 					1. Else if {{[[callable process]]}} is `false`,
-						<a>Queue a control message</a> to fire `onprocessorerror` event on
-						the associated {{AudioWorkletNode}}.
+						<a>queue a task</a> to the <a>control thread</a>
+						<a spec="dom" lt="fire an event">fire</a> an
+						<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
+						named <code>processorerror</code> at the associated
+						{{AudioWorkletNode}}.
 
 				1. If {{[[callable process]]}} of <var>processor</var> is `false`,
 					execute the following steps:

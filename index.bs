@@ -9828,54 +9828,64 @@ Methods</h5>
 The instantiation of AudioWorkletProcessor</h5>
 
 At the end of the {{AudioWorkletNode}} construction,
-<dfn>processor construction data</dfn> will be prepared for the cross-thread
-transfer. This data contains:
+A [=struct=] named
+<dfn>processor construction data</dfn>
+will be prepared for the cross-thread transfer. This
+<a spec="infra" lt="struct">struct</a> contains the following
+<a spec="infra" for="struct" lt="item">items</a>:
 
-<dl>
-	: <dfn dfn>nodeName</dfn>
-	::
-		A {{DOMString}} which is the {{AudioWorkletProcessor}} name
-		that is to be looked up in the <a>node name to processor
-		constructor map</a>.
-	: <dfn dfn>nodePort</dfn>
-	::
-		A serialized {{MessagePort}} that is paired with
-		the associated {{AudioWorkletNode}}'s {{AudioWorkletNode/port}}.
-	: <dfn dfn>nodeOptions</dfn>
-	::
-		A serialized {{AudioWorkletNodeOptions}} dictionary that is
-		given to the {{AudioWorkletNode}}
-		{{AudioWorkletNode()|constructor}}.
-</dl>
+- <dfn for="processor construction data">name</dfn> which is a {{DOMString}}
+	that is to be looked up in the
+	<a>node name to processor constructor map</a>.
+- <dfn for="processor construction data">node</dfn> which is a reference to
+	the {{AudioWorkletNode}} created.
+- <dfn for="processor construction data">options</dfn> which a serialized
+	{{AudioWorkletNodeOptions}} given to the {{AudioWorkletNode}}'s
+	{{AudioWorkletNode()|constructor}}.
+- <dfn for="processor construction data">port</dfn> which a serialized
+	{{MessagePort}} paired with the {{AudioWorkletNode}}'s
+	{{AudioWorkletNode/port}}.
 
 Upon the arrival of the transferred data on the {{AudioWorkletGlobalScope}},
-the <a>rendering thread</a> will trigger the algorithm below:
+the <a>rendering thread</a> will invoke the algorithm below:
 
 	<div id="invoking-processor-constructor" algorithm="invoking processor constructor">
-		Upon the arrival of <a>processor construction data</a>
-		<var>constructionData</var>, perform the following steps. If
-		any step throws an exception, abort the remaining steps and
-		<a>queue a task</a> to fire an
-		<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">
-		ErrorEvent</a> named <code>processorerror</code> at the
-		{{AudioWorkletNode}} on the <a>control thread</a> with the
-		relevant information about the error.
+		1. Let <var>constructionData</var> be the
+			[=processor construction data=] transferred from the
+			[=control thread=].
 
-		1. Let <var>name</var> be the [=nodeName=] member of
-			<var>constructionData</var>.
+		1. Let <var>processorName</var> be <var>constructionData</var>'s
+			[=processor construction data/name=].
 
-		1. Let <var>options</var> be the [=nodeOptions=] member of
-			<var>constructionData</var>.
+		1. Let <var>nodeReference</var> be <var>constructionData</var>'s
+			[=processor construction data/node=].
 
-		1. Let <var>port</var> be the [=nodePort=] member of
-			<var>constructionData</var>.
+		1. Let <var>serializedPort</var> be <var>constructionData</var>'s
+			[=processor construction data/port=].
+		
+		1. Let <var>serializedOptions</var> be
+			<var>constructionData</var>'s
+			[=processor construction data/options=].
+		
+		1. Let <var>deserializedPort</var> be the result of
+			[$StructuredDeserialize$](<var>serializedPort</var>,
+			the current Realm).
 
+		1. Let <var>deserializedOptions</var> be the result of
+			[$StructuredDeserialize$](<var>serializedOptions</var>,
+			the current Realm).
+		
 		1. Let <var>processorCtor</var> be the result of looking
-			up <var>name</var> on the {{AudioWorkletGlobalScope}}'s
+			up  <var>processorName</var> on the
+			{{AudioWorkletGlobalScope}}'s
 			<a>node name to processor constructor map</a>.
+		
+		1. Make <var>nodeReference</var>, <var>deserializedPort</var>,
+			<var>deserializedOptions</var> available for the
+			execution of <var>processorCtor</var>.
 
-		1. Perform Construct(<var>processorCtor</var>,
-			« <var>options</var> ») with the given <var>port</var>.
+		1. Invoke the <var>processorCtor</var> with the argument of
+			<var>deserializedOptions</var>.
 	</div>
 
 <h4 interface lt="AudioWorkletNode">
@@ -9898,10 +9908,6 @@ macros:
 	tail-time: See notes
 	tail-time-notes:  Any <a>tail-time</a> is handled by the node itself
 </pre>
-
-Every {{AudioWorkletNode}} has an associated <dfn>processor
-reference</dfn>, initially null, which refers to the
-{{AudioWorkletProcessor}} handling the processing for this node.
 
 Every {{AudioWorkletProcessor}} has an associated <dfn>active source</dfn> flag, initially `true`. This flag causes
 the node to be retained in memory and perform audio processing in
@@ -10049,9 +10055,9 @@ Constructors</h5>
 				the corresponding {{AudioWorkletProcessor}} with
 				the [=processor construction data=] that consists of:
 				<var>nodeName</var>,
-				<var>serializedProcessorPort</var>,
-				<var>serializedOptions</var>,
-				and <var>node</var>.
+				<var>node</var>,
+				<var>serializedOptions</var>, and
+				<var>serializedProcessorPort</var>.
 		</div>
 </dl>
 
@@ -10064,7 +10070,8 @@ Attributes</h5>
 		When an unhandled exception is thrown from the processor's
 		<code>constructor</code>, <code>process</code> method,
 		or any user-defined class method, the processor will
-		<a>queue a task</a> to fire an
+		<a>queue a task</a> to
+		<a spec="dom" lt="fire an event">fire</a> an
 		<a href="https://html.spec.whatwg.org/multipage/webappapis.html#the-errorevent-interface">
 		ErrorEvent</a> to the associated {{AudioWorkletNode}}.
 
@@ -10241,46 +10248,34 @@ Constructors</h5>
 		the following steps are performed on the <a>rendering thread</a>.
 
 		<div algorithm="AudioWorkletProcessor()">
-			This constructor is invoked by processing a control
-			message queued by the {{AudioWorkletNode()|constructor}}
-			of the associated {{AudioWorkletNode}}. This control
-			message carries the [=processor construction data=] that
-			consists of:
-			<var>nodeName</var>,
-			<var>serializedProcessorPort</var>,
-			<var>serializedOptions</var>,
-			and <var>node</var>.
-
-			If any of these steps throws an exception,
-			abort the rest of steps and
-			<a>queue a task</a> to the <a>control thread</a>
+			1. Find <var>nodeReference</var> that is made available
+				for this constructor. Throw a {{TypeError}}
+				exception if not found.
+			
+			If any of following steps throws any exception,
+			abort the rest of steps and <a>queue a task</a> to the
+			<a>control thread</a> to
 			<a spec="dom" lt="fire an event">fire</a> an
 			<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
-			named <code>processorerror</code> at the associated
-			{{AudioWorkletNode}}.
-
-			1. If there is no provided [=nodePort=] at the
-				invocation of the constructor throw a
-				{{TypeError}}.
+			named <code>processorerror</code> on
+			<var>nodeReference</var>.
 
 			1. Let <var>processor</var> be
 				<a spec="webidl" lt="this">this</a> value.
-
-			1. Let <var>processorPort</var> be
-				[$StructuredDeserializeWithTransfer$](
-				[=nodePort=], the current Realm).
-
-			1. Set <var>processor</var>’s {{AudioWorkletProcessor/port}}
-				to <var>processorPort</var>.
-
+			
 			1. Set <var>processor</var>'s {{[[node reference]]}} to
-				<var>node</var>.
+				<var>nodeReference</var>.
+			
+			1. Set <var>processor</var>'s {{[[callable process]]}}
+				to `true`.
 
-			1. Set <var>processor</var>'s {{[[callable process]]}} to
-				`true`.
+			1. Find <var>deserializedPort</var> that is made
+				available for this constructor. Throw
+				{{TypeError}} exception if not found.
 
-			1. Set <var>node</var>'s <a>processor reference</a> to
-				<var>processor</var>.
+			1. Set <var>processor</var>’s
+				{{AudioWorkletProcessor/port}}
+				to <var>deserializedPort</var>.
 		</div>
 
 		<pre class="argumentdef" for="AudioWorkletProcessor/AudioWorkletProcessor()">

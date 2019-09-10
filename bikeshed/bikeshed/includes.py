@@ -26,6 +26,8 @@ def processInclusions(doc):
             handleBikeshedInclude(el, doc)
     for el in findAll("pre.include-code", doc):
         handleCodeInclude(el, doc)
+    for el in findAll("pre.include-raw", doc):
+        handleRawInclude(el, doc)
 
 def handleBikeshedInclude(el, doc):
     macros = {}
@@ -53,14 +55,14 @@ def handleBikeshedInclude(el, doc):
             # This came from another included file, check if it's a loop-include
             if hash in el.get('hash'):
                 # WHOOPS
-                die("Include loop detected - “{0}” is included in itself.", path)
+                die("Include loop detected - “{0}” is included in itself.", path, el=el)
                 removeNode(el)
                 return
             hash += " " + el.get('hash')
         depth = int(el.get('depth')) if el.get('depth') is not None else 0
         if depth > 100:
             # Just in case you slip past the nesting restriction
-            die("Nesting depth > 100, literally wtf are you doing.")
+            die("Nesting depth > 100, literally wtf are you doing.", el=el)
             removeNode(el)
             return
         lines = datablocks.transformDataBlocks(doc, lines)
@@ -73,13 +75,13 @@ def handleBikeshedInclude(el, doc):
             childInclude.set("depth", str(depth + 1))
         replaceNode(el, *subtree)
     else:
-        die("Whoops, an include block didn't get parsed correctly, so I can't include anything.")
+        die("Whoops, an include block didn't get parsed correctly, so I can't include anything.", el=el)
         removeNode(el)
         return
 
 def handleCodeInclude(el, doc):
     if not el.get("path"):
-        die("Whoops, an include-code block didn't get parsed correctly, so I can't include anything.")
+        die("Whoops, an include-code block didn't get parsed correctly, so I can't include anything.", el=el)
         removeNode(el)
         return
     path = el.get("path")
@@ -108,6 +110,23 @@ def handleCodeInclude(el, doc):
                     # but otherwise DWIM.
                     el.set("line-start", unicode(start))
     appendChild(el, *lines)
+
+
+def handleRawInclude(el, doc):
+    if not el.get("path"):
+        die("Whoops, an include-raw block didn't get parsed correctly, so I can't include anything.", el=el)
+        removeNode(el)
+        return
+    path = el.get("path")
+    try:
+        with io.open(config.docPath(doc, path), 'r', encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as err:
+        die("Couldn't find include-raw file '{0}'. Error was:\n{1}", path, err, el=el)
+        removeNode(el)
+        return
+    subtree = parseHTML(''.join(lines))
+    replaceNode(el, *subtree)
 
 def parseRangeString(rangeStr):
     rangeStr = re.sub(r"\s*", "", rangeStr)

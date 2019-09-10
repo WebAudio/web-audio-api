@@ -210,35 +210,35 @@ If you think you might want to commit back to Bikeshed,
 instead download it over SSH.
 I won’t explain how to do that here.)
 
-Finally, run:
+Finally, depending on your environment, run:
 
-In a Virtualenv environment:
+: In a Virtualenv environment:
+::
+    ```
+    (venv) $ pip install --editable /path/to/cloned/bikeshed
+    (venv) $ bikeshed update
+    ```
 
-```
-(venv) $ pip install --editable /path/to/cloned/bikeshed
-(venv) $ bikeshed update
-```
+: For Linux/OSX (Omit the `sudo` for OSX under Homebrew):
+::
+    ```
+    $ sudo pip install --editable /path/to/cloned/bikeshed
+    $ bikeshed update
+    ```
 
-For Linux/OSX (Omit the `sudo` for OSX under Homebrew):
+: On Windows:
+::
+    ```
+    $ python -m pip install --editable /path/to/cloned/bikeshed
+    $ bikeshed update
+    ```
 
-```
-$ sudo pip install --editable /path/to/cloned/bikeshed
-$ bikeshed update
-```
-
-On Windows:
-
-```
-$ python -m pip install --editable /path/to/cloned/bikeshed
-$ bikeshed update
-```
-
-On Termux:
-
-```
-$ pip2 install --editable /path/to/cloned/bikeshed
-$ bikeshed update
-```
+: On Termux:
+::
+    ```
+    $ pip2 install --editable /path/to/cloned/bikeshed
+    $ bikeshed update
+    ```
 
 This’ll install Bikeshed,
 making it available to your Python environment as the `bikeshed` package,
@@ -1895,6 +1895,12 @@ data blocks of various kinds (&lt;pre class=anchors>, &lt;pre class=railroad>, e
 and both provide definitions for the outer document
 and refer to ones defined by the outer document.
 
+Note: All include paths are processed relative to the outermost spec document's location.
+If you're including a document in another folder,
+and it includes a document itself,
+take care that your paths are correctly relative to the outermost spec,
+not to the included file.
+
 If you're including a block of repetitive markup multiple times,
 and want to vary how it's displayed,
 you can pass additional "local" text macros in the block,
@@ -1927,7 +1933,9 @@ without having to go in and fiddle with all the chunks you've inlined into your 
 Normal includes don't work for this,
 as they include the whole file
 and assume that it's more Bikeshed code;
-instead, use `<pre class=include-code>`!
+instead, use `<pre class=include-code>`
+to include part (or all) of a file
+and have it rendered as highlightable source code.
 
 <xmp highlight=html>
 	<pre class=include-code>
@@ -1962,6 +1970,54 @@ You can override this with `line-start`, as usual.
 
 Note that, unlike `<pre class=include>`,
 there is no `macros` option.
+
+
+### Including Non-Bikeshed HTML/SVG/etc ### {#including-raw}
+
+`<pre class=include>` lets you insert chunks of Bikeshed source code
+into a larger outer document.
+But what if you want to include some markup
+that isn't formatted as Bikeshed code?
+For example, SVG outputted by a design tool
+might not conform to Bikeshed's syntax--
+it might not indent properly,
+or it might use markup that will get messed up if parsed as Markdown,
+etc.
+
+To avoid this,
+you can use `<pre class=include-raw>`.
+Just like `<pre class=include>`,
+it takes a single `path` line:
+
+<xmp highlight=html>
+	<pre class=include-raw>
+	path: myDiagram.svg
+	</pre>
+</xmp>
+
+&hellip;and replaces itself with that markup directly,
+without doing any additional Bikeshed syntax processing.
+
+Note: Unlike `<pre class=include>`,
+there are no local `macros`,
+as macro substitution is part of Bikeshed's syntax processing,
+which is skipped here.
+
+Note: Most parts of later Bikeshed processing *do* work,
+such as linking to definitions,
+etc.,
+because inclusions are processed *very* early
+in Bikeshed's transformation pipeline.
+However,
+if you're writing something that's intended to use Bikeshed's features,
+you should really write Bikeshed source code
+and use `<pre class=include>`,
+in case some things move to being part of syntax processing.
+For example, inline autolinking shorthands currently aren't,
+and so will work in include-raw substitutions,
+but that will change in the future.
+
+
 
 
 <!--

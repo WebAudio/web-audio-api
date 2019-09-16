@@ -1,4 +1,4 @@
-# Web Audio API Spec
+# Web Audio API 1.0 Spec
 
 
 [![Build Status](https://travis-ci.com/WebAudio/web-audio-api.svg?branch=master)](https://travis-ci.com/WebAudio/web-audio-api)
@@ -15,3 +15,7 @@ both PRs will be merged at the same time. Note that a test change that contradic
 not be merged before the corresponding spec change. If testing is not practical, please explain why
 and if appropriate [file an issue](https://github.com/web-platform-tests/wpt/issues/new) to follow
 up later. Add the `type:untestable` or `type:missing-coverage` label as appropriate.
+
+# v2.0
+
+See [Web Audio API v.2.0](https://github.com/WebAudio/web-audio-api-v2) .

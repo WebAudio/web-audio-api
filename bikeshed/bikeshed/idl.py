@@ -188,21 +188,27 @@ class IDLMarker(object):
         So, if both were optional,
         "foo(bar)" and "foo()" would both also be valid linking texts.
         '''
-        if getattr(method, "arguments", None) is None:
-            return [method.normalName]
-        for i,arg in enumerate(method.arguments):
+        for i,arg in enumerate(method.arguments or []):
             if arg.optional or arg.variadic:
                 optStart = i
                 break
         else:
-            # No optionals, so no work to be done
-            return [method.normalName]
-        prefix = method.name + "("
+            optStart = None
+
         texts = []
-        for i in range(optStart, len(method.arguments)):
-            argText = ', '.join(arg.name for arg in method.arguments[:i])
-            texts.append(prefix + argText + ")")
+        
+        if optStart is not None:
+            prefixes = [method.name]
+            if method.name == "constructor":
+                prefixes.append(method.parent.name)
+            for i in range(optStart, len(method.arguments)):
+                argText = ', '.join(arg.name for arg in method.arguments[:i])
+                for prefix in prefixes:
+                    texts.append(prefix + "(" + argText + ")")
+
         texts.append(method.normalName)
+        if method.name == "constructor":
+            texts.append(method.parent.name + method.normalName[11:])
         return reversed(texts)
 
 

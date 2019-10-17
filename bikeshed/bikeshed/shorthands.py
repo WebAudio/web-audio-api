@@ -13,9 +13,9 @@ def transformProductionPlaceholders(doc):
         (\S+)
         (?:\s+
             \[\s*
-            (-?(?:\d+|∞|Infinity))\s*
+            (-?(?:\d+[\w-]*|∞|Infinity))\s*
             ,\s*
-            (-?(?:\d+|∞|Infinity))\s*
+            (-?(?:\d+[\w-]*|∞|Infinity))\s*
             \]\s*
         )?$
         """, re.X)
@@ -72,9 +72,13 @@ def transformProductionPlaceholders(doc):
                 rangeEnd = formatValue(rangeEnd)
                 if rangeStart is None or rangeEnd is None:
                     die("Shorthand <<{0}>> has an invalid range.", text, el=el)
-                if not correctlyOrderedRange(rangeStart, rangeEnd):
-                    die("Shorthand <<{0}>> has a range whose start is not less than its end.", text, el=el)
-                interior += " [{0}, {1}]".format(rangeStart, rangeEnd)
+                try:
+                    if not correctlyOrderedRange(rangeStart, rangeEnd):
+                        die("Shorthand <<{0}>> has a range whose start is not less than its end.", text, el=el)
+                except:
+                    print text
+                    raise
+                interior += " [{0},{1}]".format(rangeStart, rangeEnd)
                 el.set("data-lt", "<{0}>".format(term))
             el.text = "<{0}>".format(interior)
             continue
@@ -95,11 +99,12 @@ def formatValue(val):
         return ("−" if negative else "") + val
 
     try:
-        val = int(val)
+        (num, unit) = re.match(r"(\d+)([\w-]*)", val).groups()
+        val = int(num)
     except ValueError:
         return None
 
-    return ("−" if negative else "") + unicode(val)
+    return ("−" if negative else "") + unicode(val) + unit
 
 def correctlyOrderedRange(start, end):
     start = numFromRangeVal(start)
@@ -113,6 +118,7 @@ def numFromRangeVal(val):
         val = val[1:]
     if val == "∞":
         return sign * float("inf")
+    val = re.match(r"(\d+)", val).group(1)
     return sign * int(val)
 
 def transformMaybePlaceholders(doc):
@@ -282,7 +288,9 @@ def transformProductionGrammars(doc):
             if isinstance(el, basestring):
                 newChildren.extend(transformText(el))
             elif isElement(el):
-                transformElement(el)
+                if el.tag != "a":
+                    # Transforms all add links, which aren't allowed in <a>...
+                    transformElement(el)
                 newChildren.append(el)
         appendChild(parentEl, *newChildren)
 
@@ -408,7 +416,11 @@ def idlReplacer(match):
         die("Shorthand {0} gives type as '{1}', but only IDL types are allowed.", match.group(0), linkType)
         return E.span(match.group(0))
     if linkText is None:
-        linkText = lt
+        if lt.startswith("constructor(") and linkFor and linkFor != "/":
+            # make {{Foo/constructor()}} output as "Foo()" so you know what it's linking to.
+            linkText = linkFor + lt[11:]
+        else:
+            linkText = lt
     return E.code({"class":"idl", "nohighlight":""},
                   E.a({"data-link-type":linkType, "for": linkFor, "lt":lt, "bs-autolink-syntax":match.group(0)}, linkText))
 

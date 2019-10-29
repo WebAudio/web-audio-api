@@ -4753,7 +4753,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioBufferSourceNode/start(when, offset, duration)">
 			when: The <code>when</code> parameter describes at what time (in seconds) the sound should start playing. It is in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. If 0 is passed in for this value or if the value is less than <b>currentTime</b>, then the sound will start playing immediately. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>when</code> is negative.</span>
-			offset: The <code>offset</code> parameter supplies a <a>playhead position</a> where playback will begin. If 0 is passed in for this value, then playback will start from the beginning of the buffer. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>offset</code> is negative.</span> If <code>offset</code> is greater than {{AudioBufferSourceNode/loopEnd}} and {{AudioBufferSourceNode/loop}} is <code>true</code>, playback will begin at {{AudioBufferSourceNode/loopEnd}}. <code>offset</code> is silently clamped to [0, <code>duration</code>], when <code>startTime</code> is reached, where <code>duration</code> is the value of the <code>duration</code> attribute of the {{AudioBuffer}} set to the {{AudioBufferSourceNode/buffer}} attribute of this <code>AudioBufferSourceNode</code>.
+			offset: The <code>offset</code> parameter supplies a <a>playhead position</a> where playback will begin. If 0 is passed in for this value, then playback will start from the beginning of the buffer. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>offset</code> is negative.</span> If <code>offset</code> is greater than {{AudioBufferSourceNode/loopEnd}}, {{AudioBufferSourceNode/playbackRate}} is positive or zero, and {{AudioBufferSourceNode/loop}} is <code>true</code>, playback will begin at {{AudioBufferSourceNode/loopEnd}} (and immediately loop to {{AudioBufferSourceNode/loopStart}}).  If <code>offset</code> is greater than {{AudioBufferSourceNode/loopStart}}, {{AudioBufferSourceNode/playbackRate}} is negative, and {{AudioBufferSourceNode/loop}} is <code>true</code>, playback will begin at {{AudioBufferSourceNode/loopStart}} (and immediately loop to {{AudioBufferSourceNode/loopEnd}}). <code>offset</code> is silently clamped to [0, <code>duration</code>], when <code>startTime</code> is reached, where <code>duration</code> is the value of the <code>duration</code> attribute of the {{AudioBuffer}} set to the {{AudioBufferSourceNode/buffer}} attribute of this <code>AudioBufferSourceNode</code>.
 			duration: The {{AudioBufferSourceNode/start(when, offset, duration)/duration}} parameter describes the duration of sound to be played, expressed as seconds of total buffer content to be output, including any whole or partial loop iterations. The units of {{AudioBufferSourceNode/start(when, offset, duration)/duration}} are independent of the effects of {{AudioBufferSourceNode/playbackRate}}. For example, a {{AudioBufferSourceNode/start(when, offset, duration)/duration}} of 5 seconds with a playback rate of 0.5 will output 5 seconds of buffer content at half speed, producing 10 seconds of audible output. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>duration</code> is negative.</span>
 		</pre>
 
@@ -5011,6 +5011,12 @@ function process(numberOfFrames) {
 		if (!started) {
 			// Take note that buffer has started playing and get initial
 			// playhead position.
+			if (computedPlaybackRate &gt;= 0 &amp;&amp; loop &amp;&amp; offset &gt;= actualLoopEnd) {
+				offset = actualLoopEnd;
+			}
+			if (computedPlaybackRate &lt; 0 &amp;&amp; loop &amp;&amp; offset &lt; actualLoopStart) {
+				offset = actualLoopStart;
+			}
 			bufferTime = offset;
 			started = true;
 		}

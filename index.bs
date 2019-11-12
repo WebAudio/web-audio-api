@@ -4907,7 +4907,7 @@ The algorithm to be followed internally to generate output from an
 
 The description of the algorithm is as follows:
 
-<pre highlight="js" line-numbers>
+<xmp highlight="js" line-numbers>
 let buffer; // AudioBuffer employed by this node
 let context; // AudioContext employed by this node
 
@@ -4931,18 +4931,18 @@ let dt = 1 / context.sampleRate;
 
 // Handle invocation of start method call
 function handleStart(when, pos, dur) {
-	if (arguments.length &gt;= 1) {
+	if (arguments.length >= 1) {
 		start = when;
 	}
 	offset = pos;
-	if (arguments.length &gt;= 3) {
+	if (arguments.length >= 3) {
 		duration = dur;
 	}
 }
 
 // Handle invocation of stop method call
 function handleStop(when) {
-	if (arguments.length &gt;= 1) {
+	if (arguments.length >= 1) {
 		stop = when;
 	} else {
 		stop = context.currentTime;
@@ -4980,8 +4980,8 @@ function process(numberOfFrames) {
 
 	// Determine loop endpoints as applicable
 	let actualLoopStart, actualLoopEnd;
-	if (loop &amp;&amp; buffer != null) {
-		if (loopStart &gt;= 0 &amp;&amp; loopEnd &gt; 0 &amp;&amp; loopStart &lt; loopEnd) {
+	if (loop && buffer != null) {
+		if (loopStart >= 0 && loopEnd > 0 && loopStart < loopEnd) {
 			actualLoopStart = loopStart;
 			actualLoopEnd = Math.min(loopEnd, buffer.duration);
 		} else {
@@ -4999,10 +4999,10 @@ function process(numberOfFrames) {
 	}
 
 	// Render each sample frame in the quantum
-	for (let index = 0; index &lt; numberOfFrames; index++) {
+	for (let index = 0; index < numberOfFrames; index++) {
 		// Check that currentTime and bufferTimeElapsed are
 		// within allowable range for playback
-		if (currentTime &lt; start || currentTime &gt;= stop || bufferTimeElapsed &gt;= duration) {
+		if (currentTime < start || currentTime >= stop || bufferTimeElapsed >= duration) {
 			output.push(0); // this sample frame is silent
 			currentTime += dt;
 			continue;
@@ -5011,10 +5011,10 @@ function process(numberOfFrames) {
 		if (!started) {
 			// Take note that buffer has started playing and get initial
 			// playhead position.
-			if (computedPlaybackRate &gt;= 0 &amp;&amp; loop &amp;&amp; offset &gt;= actualLoopEnd) {
+			if (computedPlaybackRate >= 0 && loop && offset >= actualLoopEnd) {
 				offset = actualLoopEnd;
 			}
-			if (computedPlaybackRate &lt; 0 &amp;&amp; loop &amp;&amp; offset &lt; actualLoopStart) {
+			if (computedPlaybackRate < 0 && loop && offset < actualLoopStart) {
 				offset = actualLoopStart;
 			}
 			bufferTime = offset;
@@ -5025,12 +5025,12 @@ function process(numberOfFrames) {
 		if (loop) {
 			// Determine if looped portion has been entered for the first time
 			if (!enteredLoop) {
-				if (offset &lt; actualLoopEnd &amp;&amp; bufferTime &gt;= actualLoopStart) {
+				if (offset < actualLoopEnd && bufferTime >= actualLoopStart) {
 					// playback began before or within loop, and playhead is
 					// now past loop start
 					enteredLoop = true;
 				}
-				if (offset &gt;= actualLoopEnd &amp;&amp; bufferTime &lt; actualLoopEnd) {
+				if (offset >= actualLoopEnd && bufferTime < actualLoopEnd) {
 					// playback began after loop, and playhead is now prior
 					// to the loop end
 					enteredLoop = true;
@@ -5040,16 +5040,16 @@ function process(numberOfFrames) {
 			// Wrap loop iterations as needed. Note that enteredLoop
 			// may become true inside the preceding conditional.
 			if (enteredLoop) {
-				while (bufferTime &gt;= actualLoopEnd) {
+				while (bufferTime >= actualLoopEnd) {
 					bufferTime -= actualLoopEnd - actualLoopStart;
 				}
-				while (bufferTime &lt; actualLoopStart) {
+				while (bufferTime < actualLoopStart) {
 					bufferTime += actualLoopEnd - actualLoopStart;
 				}
 			}
 		}
 
-		if (bufferTime &gt;= 0 &amp;&amp; bufferTime &lt; buffer.duration) {
+		if (bufferTime >= 0 && bufferTime < buffer.duration) {
 			output.push(playbackSignal(bufferTime));
 		} else {
 			output.push(0); // past end of buffer, so output silent frame
@@ -5060,14 +5060,14 @@ function process(numberOfFrames) {
 		currentTime += dt;
 	} // End of render quantum loop
 
-	if (currentTime &gt;= stop) {
+	if (currentTime >= stop) {
 		// End playback state of this node.  No further invocations of process()
 		// will occur.  Schedule a change to set the number of output channels to 1.
 	}
 
 	return output;
 }
-</pre>
+</xmp>
 
 The following non-normative figures illustrate the behavior of the
 algorithm in assorted key scenarios. Dynamic resampling of the

@@ -2592,80 +2592,52 @@ method, the <a>associated <code>BaseAudioContext</code></a> of the
 {{AudioNode}} is the {{BaseAudioContext}} this factory method
 is called on.
 
-<div algorithm="construct an AudioNode">
-	To create a new {{AudioNode}} of a particular type <var>n</var>
-	using its constructor, with a {{BaseAudioContext}} <var>c</var>
-	as first argument, and an <a>associated option object</a>
-	<var>option</var> as second argument,
-	from the <a href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-relevant-global">relevant global</a>
-	of <var>c</var>, execute these steps:
-
-	1. Let <var>o</var> be a new object of type <var>n</var>.
-
-	2. <a href="#audionode-constructor-init">Initialize</a>
-		<var>o</var>, with <var>c</var> and <var>option</var> as
-		arguments.
-
-	3. Return <var>o</var>
-</div>
-
 <div algorithm="AudioNode factory method">
 	To create a new {{AudioNode}} of a particular type <var>n</var>
 	using its <a>factory method</a>, called on a
 	{{BaseAudioContext}} <var>c</var>, execute these steps:
 
-	1. Let <var>o</var> be a new object of type <var>n</var>.
+	1. Let <var>node</var> be a new object of type <var>n</var>.
 
-	2. Let <var>option</var> be a dictionary of the type <a lt="associated option object">associated</a> to the interface
-		<a lt="associated interface">associated</a> to this factory method.
+	2. Let <var>option</var> be a dictionary of the type <a lt="associated option
+		object">associated</a> to the interface <a lt="associated interface">
+		associated</a> to this factory method.
 
 	3. For each parameter passed to the factory method, set the
 		dictionary member of the same name on <var>option</var> to the
 		value of this parameter.
 
-	4. <a href="#audionode-constructor-init">Initialize</a> <var>o</var>
-		with <var>c</var> and <var>option</var> as arguments.
+	4. Call the constructor for <var>n</var> on <var>node</var> with
+		<var>c</var> and <var>option</var> as arguments.
 
-	5. Return <var>o</var>
+	5. Return <var>node</var>
 </div>
 
 <div algorithm="initialize an AudioNode">
 	<dfn id="audionode-constructor-init">Initializing</dfn> an object
-	<var>o</var> of interface <var>n</var> that inherits from
-	{{AudioNode}} means executing the following steps, given the
-	arguments <var>context</var> and <var>dict</var> passed to the
-	constructor of this interface.
+	<var>o</var> that inherits from {{AudioNode}} means executing the following
+	steps, given the arguments <var>context</var> and <var>dict</var> passed to
+	the constructor of this interface.
 
 	1. Set <var>o</var>'s associated {{BaseAudioContext}} to <var>context</var>.
 
-	2. Set its value for {{AudioNode/numberOfInputs}}, {{AudioNode/numberOfOutputs}}, {{AudioNode/channelCount}}, {{AudioNode/channelCountMode}}, {{AudioNode/channelInterpretation}} to the default value for this
+	2. Set its value for {{AudioNode/numberOfInputs}},
+		{{AudioNode/numberOfOutputs}}, {{AudioNode/channelCount}},
+		{{AudioNode/channelCountMode}}, {{AudioNode/channelInterpretation}} to the
+		default value for this
 		specific interface outlined in the section for each {{AudioNode}}.
 
-	3. If the {{AudioNode}} being constructed is a
-		{{ConvolverNode}}, set its {{ConvolverNode/normalize}} attribute with the inverse of the
-		value of the {{ConvolverOptions/disableNormalization}} in <var>dict</var>, and
-		then set its {{ConvolverNode/buffer}} attribute
-		to the value of the {{ConvolverOptions/buffer}}
-		in <var>dict</var> member, in this order, and jump to the last step
-		of this algorithm.
+	3. For each member of <var>dict</var> passed in, execute these steps, with
+		<var>k</var> the key of the member, and <var>v</var> its value. If any
+		exceptions is thrown when executing these steps, abort the iteration and
+		propagate the exception to the caller of the algorithm (constructor or
+		factory method).
 
-		Note: This means that the buffer will be normalized according to the
-		value of the {{ConvolverNode/normalize}}
-		attribute.
-
-	4. For each member of <var>dict</var> passed in, execute these
-		steps, with <var>k</var> the key of the member, and <var>v</var>
-		its value:
-
-		1. If <var>k</var> is {{ConvolverOptions/disableNormalization}} or
-			{{ConvolverOptions/buffer}} and <var>n</var> is {{ConvolverNode}},
-			jump to the beginning of this loop.
-
-		2. If <var>k</var> is the name of an {{AudioParam}} on this
+		1. If <var>k</var> is the name of an {{AudioParam}} on this
 			interface, set the {{AudioParam/value}}
 			attribute of this {{AudioParam}} to <var>v</var>.
 
-		3. Else if <var>k</var> is the name of an attribute on this
+		2. Else if <var>k</var> is the name of an attribute on this
 			interface, set the object associated with this attribute to
 			<var>v</var>.
 </div>
@@ -4155,6 +4127,11 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="AnalyserNode">
 	: <dfn>AnalyserNode(context, options)</dfn>
 	::
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
+
 		<pre class=argumentdef for="AnalyserNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{AnalyserNode}} will be <a href="#associated">associated</a> with.
 			options: Optional initial parameter value for this {{AnalyserNode}}.
@@ -4611,9 +4588,10 @@ Constructors</h4>
 <dl dfn-type=method dfn-for="AudioBufferSourceNode/constructor">
 	: <dfn>AudioBufferSourceNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{AudioBufferSourceNode}}
-		object. <a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="AudioBufferSourceNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{AudioBufferSourceNode}} will be <a href="#associated">associated</a> with.
@@ -4753,7 +4731,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="AudioBufferSourceNode/start(when, offset, duration)">
 			when: The <code>when</code> parameter describes at what time (in seconds) the sound should start playing. It is in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute. If 0 is passed in for this value or if the value is less than <b>currentTime</b>, then the sound will start playing immediately. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>when</code> is negative.</span>
-			offset: The <code>offset</code> parameter supplies a <a>playhead position</a> where playback will begin. If 0 is passed in for this value, then playback will start from the beginning of the buffer. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>offset</code> is negative.</span> If <code>offset</code> is greater than {{AudioBufferSourceNode/loopEnd}} and {{AudioBufferSourceNode/loop}} is <code>true</code>, playback will begin at {{AudioBufferSourceNode/loopEnd}}. <code>offset</code> is silently clamped to [0, <code>duration</code>], when <code>startTime</code> is reached, where <code>duration</code> is the value of the <code>duration</code> attribute of the {{AudioBuffer}} set to the {{AudioBufferSourceNode/buffer}} attribute of this <code>AudioBufferSourceNode</code>.
+			offset: The <code>offset</code> parameter supplies a <a>playhead position</a> where playback will begin. If 0 is passed in for this value, then playback will start from the beginning of the buffer. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>offset</code> is negative.</span> If <code>offset</code> is greater than {{AudioBufferSourceNode/loopEnd}}, {{AudioBufferSourceNode/playbackRate}} is positive or zero, and {{AudioBufferSourceNode/loop}} is <code>true</code>, playback will begin at {{AudioBufferSourceNode/loopEnd}}.  If <code>offset</code> is greater than {{AudioBufferSourceNode/loopStart}}, {{AudioBufferSourceNode/playbackRate}} is negative, and {{AudioBufferSourceNode/loop}} is <code>true</code>, playback will begin at {{AudioBufferSourceNode/loopStart}}. <code>offset</code> is silently clamped to [0, <code>duration</code>], when <code>startTime</code> is reached, where <code>duration</code> is the value of the <code>duration</code> attribute of the {{AudioBuffer}} set to the {{AudioBufferSourceNode/buffer}} attribute of this <code>AudioBufferSourceNode</code>.
 			duration: The {{AudioBufferSourceNode/start(when, offset, duration)/duration}} parameter describes the duration of sound to be played, expressed as seconds of total buffer content to be output, including any whole or partial loop iterations. The units of {{AudioBufferSourceNode/start(when, offset, duration)/duration}} are independent of the effects of {{AudioBufferSourceNode/playbackRate}}. For example, a {{AudioBufferSourceNode/start(when, offset, duration)/duration}} of 5 seconds with a playback rate of 0.5 will output 5 seconds of buffer content at half speed, producing 10 seconds of audible output. <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>duration</code> is negative.</span>
 		</pre>
 
@@ -4907,7 +4885,7 @@ The algorithm to be followed internally to generate output from an
 
 The description of the algorithm is as follows:
 
-<pre highlight="js" line-numbers>
+<xmp highlight="js" line-numbers>
 let buffer; // AudioBuffer employed by this node
 let context; // AudioContext employed by this node
 
@@ -4931,18 +4909,18 @@ let dt = 1 / context.sampleRate;
 
 // Handle invocation of start method call
 function handleStart(when, pos, dur) {
-	if (arguments.length &gt;= 1) {
+	if (arguments.length >= 1) {
 		start = when;
 	}
 	offset = pos;
-	if (arguments.length &gt;= 3) {
+	if (arguments.length >= 3) {
 		duration = dur;
 	}
 }
 
 // Handle invocation of stop method call
 function handleStop(when) {
-	if (arguments.length &gt;= 1) {
+	if (arguments.length >= 1) {
 		stop = when;
 	} else {
 		stop = context.currentTime;
@@ -4980,8 +4958,8 @@ function process(numberOfFrames) {
 
 	// Determine loop endpoints as applicable
 	let actualLoopStart, actualLoopEnd;
-	if (loop &amp;&amp; buffer != null) {
-		if (loopStart &gt;= 0 &amp;&amp; loopEnd &gt; 0 &amp;&amp; loopStart &lt; loopEnd) {
+	if (loop && buffer != null) {
+		if (loopStart >= 0 && loopEnd > 0 && loopStart < loopEnd) {
 			actualLoopStart = loopStart;
 			actualLoopEnd = Math.min(loopEnd, buffer.duration);
 		} else {
@@ -4999,10 +4977,10 @@ function process(numberOfFrames) {
 	}
 
 	// Render each sample frame in the quantum
-	for (let index = 0; index &lt; numberOfFrames; index++) {
+	for (let index = 0; index < numberOfFrames; index++) {
 		// Check that currentTime and bufferTimeElapsed are
 		// within allowable range for playback
-		if (currentTime &lt; start || currentTime &gt;= stop || bufferTimeElapsed &gt;= duration) {
+		if (currentTime < start || currentTime >= stop || bufferTimeElapsed >= duration) {
 			output.push(0); // this sample frame is silent
 			currentTime += dt;
 			continue;
@@ -5011,6 +4989,12 @@ function process(numberOfFrames) {
 		if (!started) {
 			// Take note that buffer has started playing and get initial
 			// playhead position.
+			if (loop && computedPlaybackRate >= 0 && offset >= actualLoopEnd) {
+				offset = actualLoopEnd;
+			}
+			if (computedPlaybackRate < 0 && loop && offset < actualLoopStart) {
+				offset = actualLoopStart;
+			}
 			bufferTime = offset;
 			started = true;
 		}
@@ -5019,12 +5003,12 @@ function process(numberOfFrames) {
 		if (loop) {
 			// Determine if looped portion has been entered for the first time
 			if (!enteredLoop) {
-				if (offset &lt; actualLoopEnd &amp;&amp; bufferTime &gt;= actualLoopStart) {
+				if (offset < actualLoopEnd && bufferTime >= actualLoopStart) {
 					// playback began before or within loop, and playhead is
 					// now past loop start
 					enteredLoop = true;
 				}
-				if (offset &gt;= actualLoopEnd &amp;&amp; bufferTime &lt; actualLoopEnd) {
+				if (offset >= actualLoopEnd && bufferTime < actualLoopEnd) {
 					// playback began after loop, and playhead is now prior
 					// to the loop end
 					enteredLoop = true;
@@ -5034,16 +5018,16 @@ function process(numberOfFrames) {
 			// Wrap loop iterations as needed. Note that enteredLoop
 			// may become true inside the preceding conditional.
 			if (enteredLoop) {
-				while (bufferTime &gt;= actualLoopEnd) {
+				while (bufferTime >= actualLoopEnd) {
 					bufferTime -= actualLoopEnd - actualLoopStart;
 				}
-				while (bufferTime &lt; actualLoopStart) {
+				while (bufferTime < actualLoopStart) {
 					bufferTime += actualLoopEnd - actualLoopStart;
 				}
 			}
 		}
 
-		if (bufferTime &gt;= 0 &amp;&amp; bufferTime &lt; buffer.duration) {
+		if (bufferTime >= 0 && bufferTime < buffer.duration) {
 			output.push(playbackSignal(bufferTime));
 		} else {
 			output.push(0); // past end of buffer, so output silent frame
@@ -5054,14 +5038,14 @@ function process(numberOfFrames) {
 		currentTime += dt;
 	} // End of render quantum loop
 
-	if (currentTime &gt;= stop) {
+	if (currentTime >= stop) {
 		// End playback state of this node.  No further invocations of process()
 		// will occur.  Schedule a change to set the number of output channels to 1.
 	}
 
 	return output;
 }
-</pre>
+</xmp>
 
 The following non-normative figures illustrate the behavior of the
 algorithm in assorted key scenarios. Dynamic resampling of the
@@ -5846,9 +5830,10 @@ Constructors</h4>
 <dl dfn-type=method dfn-for="BiquadFilterNode">
 	: <dfn>BiquadFilterNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{BiquadFilterNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="BiquadFilterNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{BiquadFilterNode}} will be <a href="#associated">associated</a> with.
@@ -6297,9 +6282,10 @@ Constructors</h4>
 <dl dfn-type=method dfn-for="ChannelMergerNode/constructor">
 	: <dfn>ChannelMergerNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{ChannelMergerNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="ChannelMergerNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{ChannelMergerNode}} will be <a href="#associated">associated</a> with.
@@ -6409,9 +6395,10 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="ChannelSplitterNode/constructor()">
 	: <dfn>ChannelSplitterNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{ChannelSplitterNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="ChannelSplitterNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{ChannelSplitterNode}} will be <a href="#associated">associated</a> with.
@@ -6491,9 +6478,10 @@ Constructors</h4>
 <dl dfn-type=method dfn-for="ConstantSourceNode/constructor()">
 	: <dfn>ConstantSourceNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{ConstantSourceNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="ConstantSourceNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{ConstantSourceNode}} will be <a href="#associated">associated</a> with.
@@ -6597,11 +6585,34 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="ConvolverNode/constructor()">
 	: <dfn>ConvolverNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{ConvolverNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>. Set an internal boolean slot
-		<dfn attribute for="ConvolverNode">[[buffer set]]</dfn>, and initialize it to <code>false</code>. Return
-		<var>node</var>.
+		When the constructor is called with a {{BaseAudioContext}} <var>c</var> and
+		an option object <var>option</var>, execute these steps:
+
+		1. Set the attributes {{ConvolverNode/normalize}} to the inverse of the
+			value of {{ConvolverOptions/disableNormalization}}.
+		2. If {{ConvolverNode/buffer}} is
+			<a href="https://heycam.github.io/webidl/#dfn-present">present</a>, set the
+			{{ConvolverNode/buffer}} attribute to its value.
+
+			Note: This means that the buffer will be normalized according to the
+			value of the {{ConvolverNode/normalize}}
+			attribute.
+
+		3. Let <var>o</var> be new {{AudioNodeOptions}} dictionnary.
+		4. If {{AudioNodeOptions/channelCount}} is
+			<a href="https://heycam.github.io/webidl/#dfn-present">present</a> in
+			<var>options</var>, set {{AudioNodeOptions/channelCount}} on <var>o</var>
+			with the same value.
+		5. If {{AudioNodeOptions/channelCountMode}} is
+			<a href="https://heycam.github.io/webidl/#dfn-present">present</a> in
+			<var>options</var>, set {{AudioNodeOptions/channelCountMode}} on
+			<var>o</var> with the same value.
+		6. If {{AudioNodeOptions/channelInterpretation}} is <a
+			href="https://heycam.github.io/webidl/#dfn-present">present</a> in
+			<var>options</var>, set {{AudioNodeOptions/channelInterpretation}} on
+			<var>o</var> with the same value.
+		7. <a href="#audionode-constructor-init">Initialize the AudioNode</a>
+			<var>this</var>, with <var>c</var> and <var>o</var> as argument.
 
 		<pre class=argumentdef for="ConvolverNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{ConvolverNode}} will be <a href="#associated">associated</a> with.
@@ -6861,8 +6872,10 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="DelayNode/constructor()">
 	: <dfn>DelayNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{DelayNode}} object. <a href="#audionode-constructor-init">Initialize</a> <var>node</var>,
-		and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="DelayNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{DelayNode}} will be <a href="#associated">associated</a> with.
@@ -7022,12 +7035,14 @@ Constructors</h4>
 <dl dfn-type="method" dfn-for="DynamicsCompressorNode/constructor()">
 	: <dfn>DynamicsCompressorNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{DynamicsCompressorNode}}
-		object. <a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>. Let <dfn attribute for="DynamicsCompressorNode">[[internal reduction]]</dfn> be a private slot
-		on this {{DynamicsCompressorNode}}, that holds a floating
-		point number, in decibels. Set {{[[internal reduction]]}} to 0.0.
-		Return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
+
+		Let <dfn attribute for="DynamicsCompressorNode">[[internal reduction]]</dfn>
+		be a private slot on <var>this</var>, that holds a floating point number, in
+		decibels. Set {{[[internal reduction]]}} to 0.0.
 
 		<pre class=argumentdef for="DynamicsCompressorNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{DynamicsCompressorNode}} will be <a href="#associated">associated</a> with.
@@ -7467,9 +7482,10 @@ Constructors</h4>
 <dl dfn-type=method dfn-for="GainNode/constructor()">
 	: <dfn>GainNode(context, options)</dfn>
 	::
-		Let <var>gain</var> be a new {{GainNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a> <var>gain</var>,
-		and return <var>gain</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="GainNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{GainNode}} will be <a href="#associated">associated</a> with.
@@ -7578,6 +7594,11 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="IIRFilterNode/constructor()">
 	: <dfn>IIRFilterNode(context, options)</dfn>
 	::
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
+
 		<pre class=argumentdef for="IIRFilterNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{IIRFilterNode}} will be <a href="#associated">associated</a> with.
 			options: Optional initial parameter value for this {{IIRFilterNode}}.
@@ -7747,9 +7768,8 @@ Constructors</h4>
 	::
 		1. If <var>context</var> is not an {{AudioContext}}, throw an
 			{{NotSupportedError}} exception and abort these steps.
-		2. Let <var>node</var> be a new {{MediaElementAudioSourceNode}} object.
-			<a href="#audionode-constructor-init">Initialize</a> <var>node</var>, and
-			return <var>node</var>.
+		2. <a href="#audionode-constructor-init">initialize the AudioNode</a>
+			<var>this</var>, with <var>c</var> and <var>option</var> as arguments.
 
 		<pre class=argumentdef for="MediaElementAudioSourceNode/constructor(context, options)">
 			context: The {{AudioContext}} this new {{MediaElementAudioSourceNode}} will be <a href="#associated">associated</a> with.
@@ -7853,9 +7873,8 @@ Constructors</h4>
 	::
 		1. If <code>context</code> is not an {{AudioContext}}, throw an
 			{{NotSupportedError}} and abort these steps.
-		2. Let <var>node</var> be a new {{MediaStreamAudioDestinationNode}} object.
-			<a href="#audionode-constructor-init">Initialize</a> <var>node</var>, and
-			return <var>node</var>.
+		2. <a href="#audionode-constructor-init">Initialize the AudioNode</a>
+			<var>this</var>, with <var>c</var> and <var>option</var> as arguments.
 
 		<pre class=argumentdef for="MediaStreamAudioDestinationNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{MediaStreamAudioDestinationNode}} will be <a href="#associated">associated</a> with.
@@ -7926,14 +7945,13 @@ Constructors</h4>
 			4. Sort the elements in <var>tracks</var> based on their <code>id</code>
 				attribute using lexicographic ordering on sequences of code unit
 				values.
-			5. Let <var>node</var> be a new {{MediaStreamAudioSourceNode}}
-				object. <a href="#audionode-constructor-init">Initialize</a>
-				<var>node</var>.
-			6. Set an internal slot <dfn attribute for="MediaStreamAudioSourceNode">[[input track]]</dfn> on this
+			5. <a href="#audionode-constructor-init">Initialize the AudioNode</a>
+				<var>this</var>, with <var>c</var> and <var>options</var> as arguments.
+			6. Set an internal slot <dfn attribute
+				for="MediaStreamAudioSourceNode">[[input track]]</dfn> on this
 				{{MediaStreamAudioSourceNode}} to be the first element of
 				<var>tracks</var>.  This is the track used as the input audio for this
 				{{MediaStreamAudioSourceNode}}.
-			7. Return <var>node</var>.
 
 			After construction, any change to the
 			{{MediaStream}} that was passed to
@@ -8024,9 +8042,8 @@ Constructors</h4>
 		2. If the {{MediaStreamTrackAudioSourceOptions/mediaStreamTrack}}'s
 			<code>kind</code> attribute is not <code>"audio"</code>, throw an
 			{{InvalidStateError}} and abort these steps.
-		3. Let <var>node</var> be a new {{MediaStreamTrackAudioSourceNode}} object.
-			<a href="#audionode-constructor-init">Initialize</a> <var>node</var>, and
-			return <var>node</var>.
+		3. <a href="#audionode-constructor-init">Initialize the AudioNode</a>
+			<var>this</var>, with <var>c</var> and <var>options</var> as arguments.
 
 		<pre class=argumentdef for="MediaStreamTrackAudioSourceNode/constructor(context, options)">
 			context: The {{AudioContext}} this new {{MediaStreamTrackAudioSourceNode}} will be <a href="#associated">associated</a> with.
@@ -8163,9 +8180,10 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="OscillatorNode">
 	: <dfn>OscillatorNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{OscillatorNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="OscillatorNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{OscillatorNode}} will be <a href="#associated">associated</a> with.
@@ -8543,18 +8561,10 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="PannerNode">
 	: <dfn>PannerNode(context, options)</dfn>
 	::
-		If {{PannerNode/PannerNode()/options}} is given, check
-		for valid values.  If values are not valid, an error
-		is thrown.  Validity is determined as if the
-		attribute of the same name as the
-		{{PannerNode/PannerNode()/options}} member were set to
-		the given value. <span class="synchronous">If an error would be thrown for when
-		setting this value, the same error MUST be thrown when
-		constructing this node.</span>
 
-		Otherwise, let <var>node</var> be a new {{PannerNode}} object.
-		<a href="#audionode-constructor-init">Initialize</a> <var>node</var>,
-		and return <var>node</var>.
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="PannerNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{PannerNode}} will be <a href="#associated">associated</a> with.
@@ -9265,9 +9275,10 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="StereoPannerNode">
 	: <dfn>StereoPannerNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{StereoPannerNode}}
-		object. <a href="#audionode-constructor-init">Initialize</a>
-		<var>node</var>, and return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="StereoPannerNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{StereoPannerNode}} will be <a href="#associated">associated</a> with.
@@ -9396,7 +9407,10 @@ Constructors</h4>
 <dl dfn-type=constructor dfn-for="WaveShaperNode">
 	: <dfn>WaveShaperNode(context, options)</dfn>
 	::
-		Let <var>node</var> be a new {{WaveShaperNode}} object, and let <dfn attribute for="WaveShaperNode">[[curve set]]</dfn> be an internal slot of the <var>node</var>, initialized to <code>false</code>.  <a href="#audionode-constructor-init">Initialize</a> <var>node</var>. If {{WaveShaperNode/WaveShaperNode()/options!!argument}} is given and specifies a {{WaveShaperOptions/curve}}, set {{[[curve set]]}} to <code>true</code>. Return <var>node</var>.
+
+		<pre class=include>
+			path: audionode-init.include
+		</pre>
 
 		<pre class=argumentdef for="WaveShaperNode/constructor(context, options)">
 			context: The {{BaseAudioContext}} this new {{WaveShaperNode}} will be <a href="#associated">associated</a> with.
@@ -9983,7 +9997,7 @@ Constructors</h5>
 
 		<div algorithm="AudioWorkletNode()">
 			When the {{AudioWorkletNode()|AudioWorkletNode}} constructor
-			is invoked with <var ignore>context</var>, <var>nodeName</var>, <var>options</var>:
+			is invoked with <var>context</var>, <var>nodeName</var>, <var>options</var>:
 
 			1. If <var>nodeName</var> does not exist as a key in the
 				{{BaseAudioContext}}’s <a>node name to parameter
@@ -9992,6 +10006,10 @@ Constructors</h5>
 
 			1. Let <var>node</var> be
 				<a spec="webidl" lt="this">this</a> value.
+
+			1. <a href="#audionode-constructor-init">Initialize the AudioNode</a>
+				<var>node</var> with <var>context</var> and <var>options</var> as
+				arguments.
 
 			1. <a href="#configure-with-audioworkletnodeoptions">
 				Configure input, output and output channels</a>

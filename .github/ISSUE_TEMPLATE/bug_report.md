@@ -1,7 +1,10 @@
 ---
 name: Bug Report
 about: Create a report to fix the specification
-labels: Untriaged, Needs WG Review
+title: ''
+labels: Needs WG review, Untriaged
+assignees: ''
+
 ---
 
 **Describe the issue**
@@ -16,4 +19,3 @@ Provide a link to where the problem is in the spec
 
 **Additional Information**
 Provide any additional information
-

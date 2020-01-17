@@ -521,6 +521,21 @@ class ReferenceManager(object):
 
         return bib
 
+    def vNamesFromSpecNames(self, specName):
+        # Takes an unversioned specName,
+        # returns the versioned names that Shepherd knows about.
+
+        chosenVNames = []
+        for vSpecName in self.specs.keys():
+            if not vSpecName.startswith(specName):
+                continue
+            match = re.match(r"-?(\d+)", vSpecName[len(specName):])
+            if match is None:
+                continue
+            chosenVNames.append(vSpecName)
+        return chosenVNames
+
+
 
 def simplifyPossibleRefs(refs, alwaysShowFor=False):
     # "Simplifies" the set of possible refs according to their 'for' value;

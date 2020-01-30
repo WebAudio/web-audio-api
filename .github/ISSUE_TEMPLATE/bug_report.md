@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to fix the specification
+about: Create a report to fix the specification.  New feature?  See https://github.com/WebAudio/web-audio-api-v2/issues
 title: ''
 labels: Needs WG review, Untriaged
 assignees: ''

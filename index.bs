@@ -3981,6 +3981,10 @@ its associated {{BaseAudioContext}}'s {{BaseAudioContext|currentTime}} is
 greater or equal to the time the {{AudioScheduledSourceNode}} is set to start,
 and less than the time it's set to stop.
 
+{{AudioScheduledSourceNode}}s are created with an internal boolean
+slot <dfn attribute for="AudioScheduledSourceNode">[[source started]]</dfn>, initially
+set to false.
+
 <pre class="idl">
 [Exposed=Window]
 interface AudioScheduledSourceNode : AudioNode {
@@ -4027,18 +4031,21 @@ Methods</h4>
 			<span class="synchronous">When this method is called, execute
 			these steps:</span>
 
-			1. <span class="synchronous">If {{AudioScheduledSourceNode/stop()}} has been called on this node, or if an
-				earlier call to {{AudioScheduledSourceNode/start()}} has already occurred, an
+			1. <span class="synchronous">If this {{AudioScheduledSourceNode}} internal
+				slot {{AudioScheduledSourceNode/[[source started]]}} is true, an
 				{{InvalidStateError}} exception MUST be thrown.</span>
 
 			2. Check for any errors that must be thrown due to parameter
 				constraints described below.
 
-			3. <a>Queue a control message</a> to start the
+			3. Set the internal slot {{AudioScheduledSourceNode/[[source started]]}} on
+				this {{AudioScheduledSourceNode}} to <code>true</code>.
+
+			4. <a>Queue a control message</a> to start the
 				{{AudioScheduledSourceNode}}, including the parameter
 				values in the messsage.
 
-			4. Send a <a>control message</a> to the associated {{AudioContext}} to
+			5. Send a <a>control message</a> to the associated {{AudioContext}} to
 				<a href="#context-resume">run it in the rendering thread</a> only when
 				the following conditions are met:
 				1. The context's <a>control thread state</a> is
@@ -4070,9 +4077,9 @@ Methods</h4>
 		<div algorithm="AudioScheduledSourceNode.stop()">
 			<span class="synchronous">When this method is called, execute these steps:</span>
 
-			1. <span class="synchronous">If an earlier call to <code>start</code> has not already
-				occurred, an {{InvalidStateError}} exception MUST be
-				thrown.</span>
+			1. <span class="synchronous">If this {{AudioScheduledSourceNode}} internal
+				slot {{AudioScheduledSourceNode/[[source started]]}} is not <code>true</code>,
+				an {{InvalidStateError}} exception MUST be thrown.</span>
 
 			2. Check for any errors that must be thrown due to parameter
 				constraints described below.

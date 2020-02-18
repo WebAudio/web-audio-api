@@ -8953,35 +8953,29 @@ Constructors</h4>
 	: <dfn>PeriodicWave(context, options)</dfn>
 	::
 		<div algorithm="construct periodic wave">
-			1. Let <var>p</var> be a new {{PeriodicWave}} object. Let
-				<dfn attribute for="PeriodicWave">[[associated context]]</dfn> be a reference to the
-				{{BaseAudioContext}} passed as first argument of this
-				constructor.
+			1. Let <var>p</var> be a new {{PeriodicWave}} object. Let <dfn attribute for="PeriodicWave">\[[real]]</dfn> and <dfn attribute for="PeriodicWave">\[[imag]]</dfn> be two internal slots of type {{Float32Array}}, and let <dfn attribute for="PeriodicWave">\[[normalize]]</dfn> be an internal slot.
 
-			2. <span class="synchronous">If the {{PeriodicWaveOptions/real}} and {{PeriodicWaveOptions/imag}} parameters of
-				the {{PeriodicWaveOptions}} are not of the same length, an
-				{{IndexSizeError}} exception MUST be thrown.</span>
+			1. Process {{PeriodicWave/PeriodicWave(context, options)/options!!argument}} according to one of the following cases:
+				1. If both {{PeriodicWaveOptions/real|options.real}} and {{PeriodicWaveOptions/imag|options.imag}} are given
+					1. <span class="synchronous">If the lengths are different or if either length is less than 2, throw an {{IndexSizeError}}error and abort this algorithm.</span>
+					1. Set {{[[real]]}} and {{[[imag]]}} to new arrays with a length of {{PeriodicWaveOptions/real|options.real}}
+					1. Copy all elements from {{PeriodicWaveOptions/real|options.real}} to {{[[real]]}} and {{PeriodicWaveOptions/imag|options.imag}} to {{[[imag]]}}
+				1. If only {{PeriodicWaveOptions/real|options.real}} is given
+					1. <span class="synchronous">If length is less than 2, throw an {{IndexSizeError}} and abort this algorithm.</span>
+					1. Set {{[[real]]}} and {{[[imag]]}} to arrays with the same length as {{PeriodicWaveOptions/real|options.real}}.
+					1. Copy {{PeriodicWaveOptions/real|options.real}} to {{[[real]]}} and set {{[[imag]]}} to all zeros.
+				1. If only {{PeriodicWaveOptions/imag|options.imag}} is given
+					1. <span class="synchronous">If length is less than 2, throw an {{IndexSizeError}} and abort this algorithm.</span>
+					1. Set {{[[real]]}} and {{[[imag]]}} to arrays with the same length as {{PeriodicWaveOptions/real|options.imag}}.
+					1. Copy {{PeriodicWaveOptions/imag|options.imag}} to {{[[imag]]}} and set {{[[real]]}} to all zeros.
+				1. Otherwise
+					1. Set {{[[real]]}} and {{[[imag]]}} to zero-filled arrays of length 2
+					1. Set element 1 of {{[[imag]]}} to 1.
 
-			3. If {{PeriodicWave/PeriodicWave(context, options)/options!!argument}} has not been passed in, let
-				<dfn attribute for="PeriodicWave">\[[real]]</dfn> and <dfn attribute for="PeriodicWave">\[[imag]]</dfn> be two internal
-				slots of type {{Float32Array}} and length 2. Set the
-				second element of the {{[[imag]]}} array to 1.
-
-				Note: When setting this {{PeriodicWave}} on an
-				{{OscillatorNode}}, this is equivalent to using the
-				built-in type <code>"sine"</code>.
-
-			4. Otherwise, let {{[[real]]}} and
-				{{[[imag]]}} be two internal slots of type
-				{{Float32Array}}, both of length equal to the maximum of the
-				lengths of the {{PeriodicWaveOptions/real}} and {{PeriodicWaveOptions/imag}} attributes of
-				the {{PeriodicWaveOptions}} passed in.
-				<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-copy">
-				Make a copy</a> of those arrays into their respective
-				internal slots.
-
-			5. Let <dfn attribute for="PeriodicWave">\[[normalize]]</dfn> be an internal slot of the
-				{{PeriodicWave}} that is initialized to the inverse of the
+					Note: When setting this {{PeriodicWave}} on an {{OscillatorNode}}, this is equivalent to using the built-in type "{{OscillatorType/sine}}".
+			1. Set element 0 of both {{[[real]]}} and {{[[imag]]}} to 0.  (This sets the DC component to 0.)
+	
+			5. Initialize {{[[normalize]]}} to the inverse of the
 				{{PeriodicWaveConstraints/disableNormalization}} attribute of the
 				{{PeriodicWaveConstraints}} on the
 				{{PeriodicWaveOptions}}.
@@ -9049,27 +9043,17 @@ Dictionary {{PeriodicWaveOptions}} Members</h5>
 	::
 		The {{PeriodicWaveOptions/imag}} parameter represents an array of
 		<code>sine</code> terms. The first element (index 0) does not
-		exist in the Fourier series. Implementations MUST set it to
-		zero when computing the waveform. The second element (index
-		1) represents the fundamental frequency. The third element
-		represents the first overtone, and so on.
-
-		This defaults to a sequence of all zeroes of the same length
-		as {{PeriodicWaveOptions/real}} if {{PeriodicWaveOptions/real}} is given.
+		exist in the Fourier series.  The second element
+		(index 1) represents the fundamental frequency.  The
+		third represents the first overtone and so on.
 
 	: <dfn>real</dfn>
 	::
 		The {{PeriodicWaveOptions/real}} parameter represents an array of
 		<code>cosine</code> terms. The first element (index 0) is the
-		DC-offset of the periodic waveform. Implementations MUST set
-		it to zero when computing the waveform. The second element
-		(index 1) represents the fundamental frequency. The third
-		element represents the first overtone, and so on.
-
-		This defaults to a sequence of all zeroes of the same length
-		as {{PeriodicWaveOptions/imag}} if {{PeriodicWaveOptions/imag}} is
-		given.
-</dl>
+		DC-offset of the periodic waveform. The second element
+		(index 1) represents the fundmental frequency.  The
+		third represents the first overtone and so on.  </dl>
 
 <h4 id="waveform-generation">
 Waveform Generation</h4>

@@ -644,6 +644,11 @@ but is instead extended by the concrete interfaces
 {{AudioContext}} (for real-time rendering) and
 {{OfflineAudioContext}} (for offline rendering).
 
+{{BaseAudioContext}} are created with an internal slot 
+<dfn attribute for="BaseAudioContext">[[pending promises]]</dfn>  that is an
+initialy empty ordered list of promises.
+
+
 <pre class="idl">
 enum AudioContextState {
 	"suspended",
@@ -1100,23 +1105,27 @@ Methods</h4>
 			called, the following steps MUST be performed on the control
 			thread:</span>
 
-			1. Let <var>promise</var> be a new promise.
+			1. Let <var>promise</var> be a new Promise.
 
 			2. If the operation <a href="https://tc39.github.io/ecma262/#sec-isdetachedbuffer"><code>IsDetachedBuffer</code></a>
 				(described in [[!ECMASCRIPT]]) on {{BaseAudioContext/decodeAudioData(audioData, successCallback, errorCallback)/audioData!!argument}} is
 				<code>false</code>, execute the following steps:
 
-				1. <a href="https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
-					the {{BaseAudioContext/decodeAudioData(audioData, successCallback,
-					errorCallback)/audioData!!argument}} {{ArrayBuffer}}. This operation is
-					described in [[!ECMASCRIPT]]. If this operations throws, jump to
-					the step 3.
-				2. Queue a decoding operation to be performed on another thread.
+				1. Append <var>promise</var> to {{BaseAudioContext/[[pending promises]]}}.
+
+				2. <a href="https://tc39.github.io/ecma262/#sec-detacharraybuffer">
+					Detach</a> the {{BaseAudioContext/decodeAudioData(audioData,
+					successCallback, errorCallback)/audioData!!argument}} {{ArrayBuffer}}.
+					This operation is described in [[!ECMASCRIPT]]. If this operations
+					throws, jump to the step 3.
+
+				3. Queue a decoding operation to be performed on another thread.
 
 			3. Else, execute the following error steps:
 
 				1. Let <var>error</var> be a {{DataCloneError}}.
-				2. Reject <var>promise</var> with <var>error</var>.
+				2. Reject <var>promise</var> with <var>error</var>, and remove it from
+					{{BaseAudioContext/[[pending promises]]}}.
 				3. <a>Queue a task</a> to invoke {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} with <var>error</var>.
 
 			4. Return <var>promise</var>.
@@ -1126,9 +1135,9 @@ Methods</h4>
 			When queuing a decoding operation to be performed on another
 			thread, the following steps MUST happen on a thread that is not
 			the <a>control thread</a> nor the <a>rendering thread</a>,
-			called the <em>decoding thread</em>.
+			called the <dfn attribute for=BaseAudioContext>decoding thread</dfn>.
 
-			Note: Multiple <em>decoding threads</em> can run in parallel to
+			Note: Multiple {{decoding thread}}s can run in parallel to
 			service multiple calls to <code>decodeAudioData</code>.
 
 			1. Let <var>can decode</var> be a boolean flag, initially set to true.
@@ -1152,7 +1161,8 @@ Methods</h4>
 				1. Let <var>error</var> be a <code>DOMException</code>
 					whose name is {{EncodingError}}.
 
-				2. Reject <var>promise</var> with <var>error</var>.
+					2. Reject <var>promise</var> with <var>error</var>, and remove it from
+						{{BaseAudioContext/[[pending promises]]}}.
 
 				3. If {{BaseAudioContext/decodeAudioData()/errorCallback!!argument}} is
 					not missing, invoke
@@ -1354,6 +1364,17 @@ Constructors</h4>
 	: <dfn>AudioContext(contextOptions)</dfn>
 	::
 		<div algorithm="AudioContext()">
+			
+			<p>
+			If the <a href=
+				"https://html.spec.whatwg.org/#concept-current-everything">current
+				settings object</a>'s <a href=
+				"https://html.spec.whatwg.org/#responsible-document">responsible
+				document</a> is NOT <a href=
+				"https://html.spec.whatwg.org/multipage/browsers.html#fully-active">
+				fully active</a>, throw an <code>InvalidStateError</code> and
+			abort these steps.
+			</p>
 			<span class="synchronous">When creating an {{AudioContext}},
 			execute these steps:</span>
 
@@ -1361,7 +1382,9 @@ Constructors</h4>
 
 			2. Set a <a>rendering thread state</a> to <code>suspended</code> on the {{AudioContext}}.
 
-			3. Let <dfn dfn for>pendingResumePromises</dfn> be an empty ordered list of promises.
+			3. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
+				slot on this {{AudioContext}}, that is an initialy empty ordered list of
+				promises.
 
 			4. If <code>contextOptions</code> is given, apply the options:
 
@@ -1470,16 +1493,16 @@ Methods</h4>
 		<div algorithm="AudioContext.close()">
 			<span class="synchronous">When close is called, execute these steps:</span>
 
-			1. Let <em>promise</em> be a new Promise.
+			1. Let <var>promise</var> be a new Promise.
 
 			1. If the <a>control thread state</a> flag on the
 				{{AudioContext}} is <code>closed</code> reject the promise
 				with {{InvalidStateError}}, abort these steps,
-				returning <em>promise</em>.
+				returning <var>promise</var>.
 
 			1. Set the <a>control thread state</a> flag on the {{AudioContext}} to <code>closed</code>.
 
-			1. <a>Queue a control message</a> to the {{AudioContext}}.
+			1. <a>Queue a control message</a> to close the {{AudioContext}}.
 
 			1. Return <em>promise</em>.
 		</div>
@@ -1492,8 +1515,17 @@ Methods</h4>
 			1. Attempt to <a>release system resources</a>.
 
 			2. Set the <a>rendering thread state</a> to <code>suspended</code>.
+				<div class="note">
+					This will stop rendering.
+				</div>
 
-			3. <a>Queue a task</a> on the <a>control thread</a>'s event loop, to execute these steps:
+			3. If this <a>control message</a> is being run in a reaction to the
+				document being unloaded, abort this algorithm.
+				<div class="note">
+					There is no need to notify the control thread in this case.
+				</div>
+
+			4. <a>Queue a task</a> on the <a>control thread</a>'s event loop, to execute these steps:
 				1. Resolve <em>promise</em>.
 				2. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is not already "{{AudioContextState/closed}}":
 					1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/closed}}".
@@ -1654,8 +1686,9 @@ Methods</h4>
 			3. Set {{[[suspended by user]]}} to <code>false</code>.
 
 			4. If the context is not <a>allowed to start</a>, append
-				<var>promise</var> to <a>pendingResumePromises</a> and abort these
-				steps, returning <var>promise</var>.
+				<var>promise</var> to {{BaseAudioContext/[[pending promises]]}} and
+				{{AudioContext/[[pending resume promises]]}} and abort these steps, returning
+				<var>promise</var>.
 
 			5. Set the <a>control thread state</a> on the
 				{{AudioContext}} to <code>running</code>.
@@ -1679,14 +1712,18 @@ Methods</h4>
 			4. In case of failure, queue a task on the <a>control thread</a> to execute the following,
 				and abort these steps:
 
-				1. Reject all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+				1. Reject all promises from {{AudioContext/[[pending resume promises]]}} in order, then
+					clear {{AudioContext/[[pending resume promises]]}}. Additionaly, remove those promises
+					from {{BaseAudioContext/[[pending promises]]}}.
 
 				2. Reject <em>promise</em>.
 
 			5. Queue a task on the <a>control thread</a>'s event loop, to
 				execute these steps:
 
-				1. Resolve all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+
+				1. clear {{AudioContext/[[pending resume promises]]}}. Additionally, remove those
+					promises from {{BaseAudioContext/[[pending promises]]}}.
 
 				2. Resolve <em>promise</em>.
 
@@ -1724,20 +1761,22 @@ Methods</h4>
 		<div algorithm="AudioContext.suspend()">
 			<span class="synchronous">When suspend is called, execute these steps:</span>
 
-			1. Let <em>promise</em> be a new Promise.
+			1. Let <var>promise</var> be a new Promise.
 
 			2. If the <a>control thread state</a> on the
 				{{AudioContext}} is <code>closed</code> reject the promise
 				with {{InvalidStateError}}, abort these steps,
-				returning <em>promise</em>.
+				returning <var>promise</var>.
 
-			3. Set {{[[suspended by user]]}} to <code>true</code>.
+			3. Append <var>promise</var> to {{BaseAudioContext/[[pending promises]]}}.
 
-			4. Set the <a>control thread state</a> on the {{AudioContext}} to <code>suspended</code>.
+			4. Set {{[[suspended by user]]}} to <code>true</code>.
 
-			5. <a>Queue a control message</a> to suspend the {{AudioContext}}.
+			5. Set the <a>control thread state</a> on the {{AudioContext}} to <code>suspended</code>.
 
-			6. Return <em>promise</em>.
+			6. <a>Queue a control message</a> to suspend the {{AudioContext}}.
+
+			7. Return <var>promise</var>.
 		</div>
 
 		<div algorithm="run a control message to suspend an AudioContext">
@@ -1894,6 +1933,17 @@ Constructors</h4>
 	: <dfn>OfflineAudioContext(contextOptions)</dfn>
 	::
 		<div algorithm="OfflineAudioContext.OfflineAudioContext(contextOptions)">
+			
+		<p>
+			If the <a href=
+			"https://html.spec.whatwg.org/#concept-current-everything">current
+			settings object</a>'s <a href=
+			"https://html.spec.whatwg.org/#responsible-document">responsible
+			document</a> is NOT <a href=
+			"https://html.spec.whatwg.org/multipage/browsers.html#fully-active">
+			fully active</a>, throw an <code>InvalidStateError</code> and
+			abort these steps.
+		</p>
 			Let <var>c</var> be a new {{OfflineAudioContext}} object.
 			Initialize <var>c</var> as follows:
 
@@ -2000,6 +2050,8 @@ Methods</h4>
 				<li>Otherwise, in the case that the buffer was successfully
 				constructed, <a>begin offline rendering</a>.
 
+				<li>Append <var>promise</var> to {{BaseAudioContext/[[pending promises]]}}.
+
 				<li>Return <var>promise</var>.
 			</ol>
 		</div>
@@ -2084,22 +2136,28 @@ Methods</h4>
 			3. In case of failure, queue a task on the <a>control thread</a> to execute the following,
 				and abort these steps:
 
-				1. Reject all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+				1. Reject all promises from {{AudioContext/[[pending resume promises]]}}
+					in order, then clear {{AudioContext/[[pending resume promises]]}}.
 
 				2. Reject <em>promise</em>.
 
 			4. Queue a task on the <a>control thread</a>'s event loop, to
 				execute these steps:
 
-				1. Resolve all promises from <a>pendingResumePromises</a> in order, then clear <a>pendingResumePromises</a>.
+				1. Resolve all promises from {{AudioContext/[[pending resume
+					promises]]}} in order, then clear {{AudioContext/[[pending resume
+					promises]]}}.
 
 				2. Resolve <em>promise</em>.
 
-				3. If the {{BaseAudioContext/state}} attribute of the {{OfflineAudioContext}} is not already "{{AudioContextState/running}}":
+				3. If the {{BaseAudioContext/state}} attribute of the
+					{{OfflineAudioContext}} is not already "{{AudioContextState/running}}":
 
-					1. Set the {{BaseAudioContext/state}} attribute of the {{OfflineAudioContext}} to "{{AudioContextState/running}}".
+					1. Set the {{BaseAudioContext/state}} attribute of the
+						{{OfflineAudioContext}} to "{{AudioContextState/running}}".
 
-					2. Queue a task to fire a simple event named <code>statechange</code> at the {{OfflineAudioContext}}.
+					2. Queue a task to fire a simple event named <code>statechange</code>
+						at the {{OfflineAudioContext}}.
 		</div>
 
 		<div>
@@ -11205,6 +11263,20 @@ sample-frames.
 running the algorithm for an {{AudioNode}}, using an <a>input
 buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 {{AudioNode}} as the input for this algorithm.
+
+<h3 id="unloading-a-document">Unloading a document</h3>
+	Additional <a href=
+	"https://html.spec.whatwg.org/#unloading-document-cleanup-steps">unloading
+	document cleanup steps</a> are defined for document that uses
+	{{BaseAudioContext}}:
+
+1. Reject all the promises of {{BaseAudioContext/[[pending promises]]}} with
+	<code>InvalidStateError</code>, for each {{AudioContext}} and
+	{{OfflineAudioContext}} whose relevant global object is the same as
+	the document's associated Window.
+2. Stop all {{decoding thread}}s.
+3. <a>Queue a control message</a> to close the
+	{{AudioContext}} or {{OfflineAudioContext}}.
 
 <h2 id="DynamicLifetime">
 Dynamic Lifetime</h2>

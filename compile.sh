@@ -15,6 +15,8 @@ trap "rm $ERRLOG" 0
 # Run bikeshed and save the output.  You can use this output as is
 # to update expected-errs.txt.
 bikeshed --print=plain -f spec 2>&1 | tee $BSLOG
+echo "Tail of exptected errors"
+tail expected-rrs.txt
 # Remove the line numbers from the log, and make sure it ends with a
 # newline.
 sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG

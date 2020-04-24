@@ -1,5 +1,24 @@
 #!/bin/bash
 
+usage () {
+    echo "compile.sh [-Kh?]"
+    echo "   -K       Keep the actual-errs.txt.  Useful for updating"
+    echo "            expected-errs.txt.  (Otherwise removed when done.)"
+    echo "   -h       This help"
+    echo "   -?       This help"
+    exit 0
+}
+
+KEEP=no
+while getopts "Kh?" arg
+do
+  case $arg in
+      K) KEEP=yes ;;
+      h) usage ;;
+      \?) usage ;;
+  esac
+done
+  
 # So we can see what we're doing
 set -x
 
@@ -10,7 +29,9 @@ ERRLOG="actual-errs.txt"
 
 # Remove ERRLOG when we're done with this script, but keep BSLOG so we
 # can update the expected errors.
+if [ "$KEEP" = "no" ]; then
 trap "rm $ERRLOG" 0
+fi
 
 # Run bikeshed and save the output.  You can use this output as is
 # to update expected-errs.txt.

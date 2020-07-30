@@ -2285,10 +2285,11 @@ Dictionary {{OfflineAudioCompletionEventInit}} Members</h6>
 <h3 id="AudioBuffer">
 The {{AudioBuffer}} Interface</h3>
 
-This interface represents a memory-resident audio asset. Its format is non-interleaved
-32-bit floating-point [=linear PCM=] values with a normal range of \([-1,
-1]\), but values are not limited to this range. It can contain one or
-more channels. Typically, it would be expected that the length of the
+This interface represents a memory-resident audio asset. It can contain one or
+more channels with each channel appearing to be 32-bit floating-point
+[=linear PCM=] values with a nominal range of \([-1,1]\) but the
+values are not limited to this range. Typically, it would be expected
+that the length of the
 PCM data would be fairly short (usually somewhat less than a minute).
 For longer sounds, such as music soundtracks, streaming should be
 used with the <{audio}> element and
@@ -12278,7 +12279,7 @@ to Consider</a>
 	Privacy &amp; Security appendix of High Resolution Time</a> should be consulted for further
 	information on clock resolution and drift.
 
-    Fingerprinting via latency is also possible; it might be possible to deduce this
+	Fingerprinting via latency is also possible; it might be possible to deduce this
 	from {{baseLatency}} and {{outputLatency}}. Mitigation
 	strategies include adding jitter (dithering) and quantization so that the exact
 	skew is incorrectly reported. Note however that most audio systems aim
@@ -12287,6 +12288,39 @@ to Consider</a>
 	audio or video sources or to visual cues (for example in a game, or an audio
 	recording or music making environment). Excessive latency decreases usability and may be
 	an accessibility issue.
+
+	Fingerprining via the sample rate of the {{AudioContext}} is also possible.  We
+	recommend the following steps to be taken to minimize this:
+
+	1. 44.1 kHz and 48 kHz are allowed as default rates; the system will choose
+		between them for best applicability. (Obviously, if the audio device is
+		natively 44.1, 44.1 will be chosen, etc., but also the system may choose
+		the most "compatible" rate&mdash;e.g. if the system is natively 96kHz,
+		48kHz would likely be chosen, not 44.1kHz.
+	1. The system should resample to one of those two rates for devices that are
+		natively at different rates, despite the fact that this may cause extra
+		battery drain due to resampled audio. (Again, the system will choose the
+		most compatible rate&mdash;e.g. if the native system is 16kHz, it's
+		expected that 48kHz would be chosen.)
+	1. It is expected (though not mandated) that browsers would offer a user
+		affordance to force use of the native rate&mdash;e.g. by setting a flag in
+		the browser on the device. This setting would not be exposed in the API.
+	1. It is also expected behavior that a different rate could be explicitly
+		requested in the constructor for {{AudioContext}} (this is already in the
+		specification; it normally causes the audio rendering to be done at the
+		requested sampleRate, and then up- or down-sampled to the device output),
+		and if that rate is natively supported, the rendering could be passed
+		straight through. This would enable apps to render to higher rates without
+		user intervention (although it's not observable from Web Audio that the
+		audio output is not downsampled on output)&mdash;for example, if
+		{{MediaDevices}} capabilities were read (with user intervention) and indicated
+		a higher rate was supported.
+
+	Fingerprinting via the number of output channels for the
+	{{AudioContext}} is possible as well.  We recommend that
+	{{AudioDestinationNode/maxChannelCount}} be set to two
+	(stereo).  Stereo is by far the most common number of
+	channels.
 
 6. Does this specification enable new script execution/loading
 	mechanisms?

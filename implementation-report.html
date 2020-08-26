@@ -1,114 +1,305 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    <title>Web Audio 1.0 Implementation report</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>
+      Web Audio 1.0 Implementation report
+    </title>
     <style type="text/css">
             a {
-				text-decoration: none
-				}
+                                text-decoration: none
+                                }
             a:hover {
-				text-decoration: underline; 
-				background: #FE9 
-				}
-			
-			#ua h3::before { 
-				content: ""; 
-				background-size: 1.2em 1.2em;
-				background-repeat: no-repeat;
-    			display: inline-block;
-    			width: 2.2em; 
-				height: 1.2em;}
-			#webkit::before { 
-				background-image: url('images/safari-logo.png'); 
-				}
-			#blink::before {
-				background-image: url('images/chrome-logo.png')
-			}
-			#gecko::before {
-				background-image: url('images/firefox-logo.png')
-			}
-			#edge::before {
-				background-image: url('images/edge-logo.png')
-			}
-        </style>
-    <link href="https://www.w3.org/StyleSheets/TR/base.css" media="screen" type="text/css" rel="stylesheet" />
+                                text-decoration: underline; 
+                                background: #FE9 
+                                }
+                        
+                        #ua h3::before { 
+                                content: ""; 
+                                background-size: 1.2em 1.2em;
+                                background-repeat: no-repeat;
+                        display: inline-block;
+                        width: 2.2em; 
+                                height: 1.2em;}
+                        #webkit::before { 
+                                background-image: url('images/safari-logo.png'); 
+                                }
+                        #blink::before {
+                                background-image: url('images/chrome-logo.png')
+                        }
+                        #gecko::before {
+                                background-image: url('images/firefox-logo.png')
+                        }
+                        #edge::before {
+                                background-image: url('images/edge-logo.png')
+                        }
+    </style>
+    <link href="https://www.w3.org/StyleSheets/TR/base.css" media="screen"
+    type="text/css" rel="stylesheet">
   </head>
   <body>
-    <div class="head"> <a href="https://www.w3.org/"> <img alt="W3C" src="https://www.w3.org/Icons/WWW/w3c_home" />
-      </a>
-      <h1>Web Audio API 1.0 Implementation Report</h1>
-      <h2>2018-Sept-06</h2>
-      <hr />
+    <div class="head">
+      <a href="https://www.w3.org/"><img alt="W3C" src=
+      "https://www.w3.org/Icons/WWW/w3c_home"></a>
+      <h1>
+        Web Audio API 1.0 Implementation Report
+      </h1>
+      <h2>
+        2018-Sept-06
+      </h2>
+      <hr>
     </div>
-
     <div class="main">
-    <p>This report will document the overall implementation status and detailed test results for Web Audio API 1.0. 
-		[<a href="http://caniuse.com/#feat=audio-api">CanIUse WebAudio</a>].
-	</p>
-    
-		<section id="ua">
-      <h2 id="UserAgents">User Agents</h2>
-	  
-      <h3 id="webkit">Safari</h3>
-	  <p>Safari 6 on OSX, and Safari on iOS6 onwards, 
-		  <a href="https://developer.apple.com/library/iad/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/PlayingandSynthesizingSounds/PlayingandSynthesizingSounds.html">support 
-		  the Web Audio API</a>. It has a <a href="https://bugs.webkit.org/enter_bug.cgi?product=WebKit&component=Web%20Audio">bugtracker</a>.
-      
-	  <h3 id="blink">Blink</h3>
-	  <p>Chrome supports Web Audio API from version 10 on, with -webkit prefix, and from version 
-		  34 onwards <a href="https://developers.google.com/web/updates/2014/07/Web-Audio-Changes-in-m36">unprefixed</a>. 
-		  Chrome for Android supports Web Audio API from version 49 on. Blink
-		  has an <a href="https://groups.google.com/a/chromium.org/forum/#!msg/Blink-dev/kl8ct3ub3a8/-WfzBTkCAgAJ">intent 
-		  to implement worklet</a>.</p>
-		  
-		  <p>Opera supports Web Audio API from version 15 on, with -webkit prefix, and from version 
-		  22 onwards unprefixed.</p>
-		 <p>The Blink implementation postdates the Webkit/Blink split, and should be considered a separate implementation.
-			 Blink has a <a href="https://bugs.chromium.org/p/chromium/issues/list?can=2&q=webaudio&x=m&y=releaseblock&cells=ids">bugtracker</a>.
-		 </p>
-		  
-		<h3 id="gecko">Firefox</h3>
-		<p>Firefox supports Web Audio API from version 15 on, with -webkit prefix, and from <a href="https://platform-status.mozilla.org/#webaudio">version 
-		  23 onwards unprefixed</a>. Gecko has a <a href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Web%20Audio">bugtracker</a>
-			including a <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1062849">bug to implement AudioWorklets</a>.</p>
-		  
-		<h3 id="edge">Edge</h3>
-		<p>Edge supports Web Audio API <a href="https://msdn.microsoft.com/en-us/library/dn985708%28v=vs.85%29.aspx">from 
-		version 12 (build 10240) on</a>, unprefixed.</p>
-		  
-		  <!-- See Paul Adenot's implementation survey for the degree of separation between these code bases
-		  	http://padenot.github.io/web-audio-perf/#the-different-implementations
-			  -->
-	  	</section>
-      <h2 id="tests">Tests</h2>
-	    
-	    <p>There are currently <a href="https://github.com/web-platform-tests/wpt/tree/master/webaudio">8426 
-		    WebAudio API tests on WPT</a>. <a href="https://wpt.fyi/results/webaudio?complete=true">wpt.fyi results</a>:</p> 
-	    <table>
-		  <tr><th>Browser</th><th>Version</th><th>Passes</th><th>Fails</th></tr>
-		  <tr><td>Safari</td><td>11.1, OSX</td><td>676</td><td>7750</td></tr>
-		  <tr><td>Chrome</td><td>69, Linux 16.04</td><td>8409</td><td>17</td></tr>
-		  <tr><td>Firefox</td><td>63, Linux 16.04</td><td>6489</td><td>1937</td></tr>
-		  <tr><td>Edge</td><td>17, Win 10</td><td>2593</td><td>5833</td></tr>
-	  </table>
-      
-      <p>In addition, <a href="https://github.com/mohayonao/web-audio-test-api">syntax-level DOM test</a> has <em>338 </em> automated tests.</p>
-	  
-	  <table>
-		  <tr><th>Browser</th><th>Version</th><th>Passes</th><th>Fails</th></tr>
-		  <tr><td rowspan="2">Safari</td><td>9.1, OSX</td><td>338</td><td>0</td></tr>
-		  <tr><td>9.1.1, OSX</td><td>337</td><td title="MediaStream constructor() not work when 'new' directly">1</td></tr>
-		  <tr><td rowspan="2">Chrome</td><td>71.0.3548.0, Win 10</td><td>336</td><td>2</td></tr>
-		  <tr><td>69.0.3497.86, Android</td><td>336</td><td>2</td></tr>
-		  <tr><td>Firefox</td><td>64.0a1, Win 10</td><td>336</td><td title="AnalyserNode constructor not work when 'new' directly">2</td></tr>
-		  <tr><td>Edge</td><td>18.17755, Win 10</td><td>337</td><td title="AnalyserNode constructor not work when 'new' directly">1</td></tr>
-	  </table>
-	  
-	  
-      <hr />
-      <address>Chris Lilley </address>
+      <p>
+        This report will document the overall implementation status and
+        detailed test results for Web Audio API 1.0. [<a href=
+        "http://caniuse.com/#feat=audio-api">CanIUse WebAudio</a>].
+      </p>
+      <section id="ua">
+        <h2 id="UserAgents">
+          User Agents
+        </h2>
+        <h3 id="webkit">
+          Safari
+        </h3>
+        <p>
+          Safari 6 on OSX, and Safari on iOS6 onwards, <a href=
+          "https://developer.apple.com/library/iad/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/PlayingandSynthesizingSounds/PlayingandSynthesizingSounds.html">
+          support the Web Audio API</a>. It has a <a href=
+          "https://bugs.webkit.org/enter_bug.cgi?product=WebKit&amp;component=Web%20Audio">
+          bugtracker</a>.
+        </p>
+        <h3 id="blink">
+          Blink
+        </h3>
+        <p>
+          Chrome supports Web Audio API from version 10 on, with -webkit
+          prefix, and from version 34 onwards <a href=
+          "https://developers.google.com/web/updates/2014/07/Web-Audio-Changes-in-m36">
+          unprefixed</a>. Chrome for Android supports Web Audio API from
+          version 49 on. Blink has an <a href=
+          "https://groups.google.com/a/chromium.org/forum/#!msg/Blink-dev/kl8ct3ub3a8/-WfzBTkCAgAJ">
+          intent to implement worklet</a>.
+        </p>
+        <p>
+          Opera supports Web Audio API from version 15 on, with -webkit prefix,
+          and from version 22 onwards unprefixed.
+        </p>
+        <p>
+          The Blink implementation postdates the Webkit/Blink split, and should
+          be considered a separate implementation. Blink has a <a href=
+          "https://bugs.chromium.org/p/chromium/issues/list?can=2&amp;q=webaudio&amp;x=m&amp;y=releaseblock&amp;cells=ids">
+          bugtracker</a>.
+        </p>
+        <h3 id="gecko">
+          Firefox
+        </h3>
+        <p>
+          Firefox supports Web Audio API from version 15 on, with -webkit
+          prefix, and from <a href=
+          "https://platform-status.mozilla.org/#webaudio">version 23 onwards
+          unprefixed</a>. Gecko has a <a href=
+          "https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&amp;component=Web%20Audio">
+          bugtracker</a> including a <a href=
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=1062849">bug to
+          implement AudioWorklets</a>.
+        </p>
+        <h3 id="edge">
+          Edge
+        </h3>
+        <p>
+          Edge supports Web Audio API <a href=
+          "https://msdn.microsoft.com/en-us/library/dn985708%28v=vs.85%29.aspx">
+          from version 12 (build 10240) on</a>, unprefixed.
+        </p>
+        <!-- See Paul Adenot's implementation survey for the degree of separation between these code bases
+                        http://padenot.github.io/web-audio-perf/#the-different-implementations
+                          -->
+      </section>
+      <h2 id="tests">
+        Tests
+      </h2>
+      <p>
+        There are currently <a href=
+        "https://github.com/web-platform-tests/wpt/tree/master/webaudio">8426
+        WebAudio API tests on WPT</a>. <a href=
+        "https://wpt.fyi/results/webaudio?complete=true">wpt.fyi results</a>:
+      </p>
+      <table>
+        <tr>
+          <th>
+            Browser
+          </th>
+          <th>
+            Version
+          </th>
+          <th>
+            Passes
+          </th>
+          <th>
+            Fails
+          </th>
+        </tr>
+        <tr>
+          <td>
+            Safari
+          </td>
+          <td>
+            11.1, OSX
+          </td>
+          <td>
+            676
+          </td>
+          <td>
+            7750
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Chrome
+          </td>
+          <td>
+            69, Linux 16.04
+          </td>
+          <td>
+            8409
+          </td>
+          <td>
+            17
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Firefox
+          </td>
+          <td>
+            63, Linux 16.04
+          </td>
+          <td>
+            6489
+          </td>
+          <td>
+            1937
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Edge
+          </td>
+          <td>
+            17, Win 10
+          </td>
+          <td>
+            2593
+          </td>
+          <td>
+            5833
+          </td>
+        </tr>
+      </table>
+      <p>
+        In addition, <a href=
+        "https://github.com/mohayonao/web-audio-test-api">syntax-level DOM
+        test</a> has <em>338</em> automated tests.
+      </p>
+      <table>
+        <tr>
+          <th>
+            Browser
+          </th>
+          <th>
+            Version
+          </th>
+          <th>
+            Passes
+          </th>
+          <th>
+            Fails
+          </th>
+        </tr>
+        <tr>
+          <td rowspan="2">
+            Safari
+          </td>
+          <td>
+            9.1, OSX
+          </td>
+          <td>
+            338
+          </td>
+          <td>
+            0
+          </td>
+        </tr>
+        <tr>
+          <td>
+            9.1.1, OSX
+          </td>
+          <td>
+            337
+          </td>
+          <td title="MediaStream constructor() not work when 'new' directly">
+            1
+          </td>
+        </tr>
+        <tr>
+          <td rowspan="2">
+            Chrome
+          </td>
+          <td>
+            71.0.3548.0, Win 10
+          </td>
+          <td>
+            336
+          </td>
+          <td>
+            2
+          </td>
+        </tr>
+        <tr>
+          <td>
+            69.0.3497.86, Android
+          </td>
+          <td>
+            336
+          </td>
+          <td>
+            2
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Firefox
+          </td>
+          <td>
+            64.0a1, Win 10
+          </td>
+          <td>
+            336
+          </td>
+          <td title="AnalyserNode constructor not work when 'new' directly">
+            2
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Edge
+          </td>
+          <td>
+            18.17755, Win 10
+          </td>
+          <td>
+            337
+          </td>
+          <td title="AnalyserNode constructor not work when 'new' directly">
+            1
+          </td>
+        </tr>
+      </table>
+      <hr>
+      <address>
+        Chris Lilley
+      </address>
     </div>
- 
   </body>
 </html>

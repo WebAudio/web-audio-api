@@ -10356,13 +10356,18 @@ and the definition of the class manifests the actual audio processing.
 Note that the an {{AudioWorkletProcessor}} construction can only happen as a
 result of an {{AudioWorkletNode}} contruction.
 
-<pre class="idl">
+<xmp class="idl">
 [Exposed=AudioWorklet]
 interface AudioWorkletProcessor {
 	constructor ();
 	readonly attribute MessagePort port;
 };
-</pre>
+
+callback AudioWorkletProcessorCallback =
+  boolean (FrozenArray<FrozenArray<Float32Array>> input,
+           FrozenArray<FrozenArray<Float32Array>> output,
+           FrozenArray<Float32Array> parameters);
+</xmp>
 
 {{AudioWorkletProcessor}} has two internal slots:
 
@@ -10517,15 +10522,15 @@ of {{AudioParamDescriptor}}s.
 
 		<pre class=argumentdef for="AudioWorkletProcessor/process(inputs, outputs, parameters))">
 			inputs:
- 				The input audio buffer from the incoming connections provided by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>.<code class="nobreak">inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on [=computedNumberOfChannels=].
+ 				The input audio buffer from the incoming connections provided by the user agent. It has type <code>{{FrozenArray}}&lt;{{FrozenArray}}&lt;{{Float32Array}}&gt;&gt;</code>.<code class="nobreak">inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on [=computedNumberOfChannels=].
 
 				If there are no [=actively processing=] {{AudioNode}}s connected to the \(n\)th input of the {{AudioWorkletNode}} for the current render quantum, then the content of <code>inputs[n]</code> is an empty array, indicating that zero channels of input are available. This is the only circumstance under which the number of elements of <code>inputs[n]</code> can be zero.
 
 			outputs:
-				The output audio buffer that is to be consumed by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>.<code class="nobreak">outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. Each of the {{Float32Array}}s are zero-filled. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has a single output.
+				The output audio buffer that is to be consumed by the user agent. It has type <code>{{FrozenArray}}&lt;{{FrozenArray}}&lt;{{Float32Array}}>></code>.<code class="nobreak">outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. Each of the {{Float32Array}}s are zero-filled. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has a single output.
 
 			parameters:
-				An [=ordered map=] of <var>name</var> → <var>parameterValues</var>. <code>parameters["<var>name</var>"]</code> returns <var>parameterValues</var>, which is a {{Float32Array}} with the automation values of the <var>name</var> {{AudioParam}}.
+				An [=ordered map=] of <var>name</var> → <var>parameterValues</var>. <code>parameters["<var>name</var>"]</code> returns <var>parameterValues</var>, which is a {{FrozenArray}}&lt;{{Float32Array}}> with the automation values of the <var>name</var> {{AudioParam}}.
 
 				For each array, the array contains the [=computedValue=] of the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
 		</pre>

@@ -16,6 +16,8 @@ not be merged before the corresponding spec change. If testing is not practical,
 and if appropriate [file an issue](https://github.com/web-platform-tests/wpt/issues/new) to follow
 up later. Add the `type:untestable` or `type:missing-coverage` label as appropriate.
 
+We also have an [implementation report](https://webaudio.github.io/web-audio-api/implementation-report.html).
+
 # v2.0
 
 See [Web Audio API v.2.0](https://github.com/WebAudio/web-audio-api-v2) .

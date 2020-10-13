@@ -1,0 +1,277 @@
+<pre class='metadata'>
+Title: SVG Native
+Shortname: svg-native
+Level: 1
+Status: ED
+Group: SVG
+URL: http://www.w3.org/TR/svg-native
+Editor: Myles C. Maxfield, Apple Inc https://apple.com, mmaxfield@apple.com
+Editor: Sairus Patel, Adobe https://adobe.com, sppatel@adobe.com
+Abstract: SVG Native is a profile of SVG 1.1 designed for interoperability with native apps and system libraries that execute outside the Web environment, and thus cannot rely on features such as linking, interactivity, animation, or the Web security model.
+Boilerplate: repository-issue-tracking off
+</pre>
+
+<p boilerplate="copyright">
+<a href="http://www.w3.org/Consortium/Legal/ipr-notice#Copyright">Copyright</a> © 2019 <a href="http://www.w3.org/"><abbr title="World Wide Web Consortium">W3C</abbr></a><sup>®</sup> (<a href="http://www.csail.mit.edu/"><abbr title="Massachusetts Institute of Technology">MIT</abbr></a>, <a href="http://www.ercim.eu/"><abbr title="European Research Consortium for Informatics and Mathematics">ERCIM</abbr></a>, <a href="http://www.keio.ac.jp/">Keio</a>, <a href="https://ev.buaa.edu.cn/">Beihang</a>). W3C <a href="http://www.w3.org/Consortium/Legal/ipr-notice#Legal_Disclaimer">liability</a>, <a href="http://www.w3.org/Consortium/Legal/ipr-notice#W3C_Trademarks">trademark</a> and <a href="http://www.w3.org/Consortium/Legal/copyright-documents">document use</a> rules apply. This document includes material copied from or derived from the <a href="https://www.w3.org/TR/SVG2/">Scalable Vector Graphics (SVG) 2.0 Specification</a>. Copyright 2018 W3C® (MIT, ERCIM, Keio, Beihang). It is subject to the <a href="https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document">W3C Software Document Notice and License</a>.
+</p>
+
+Introduction {#intro}
+=====================
+
+<em>This section is non-normative</em>
+
+SVG Native is a profile of SVG designed with the requirements of native apps. The environment native apps run in is different than the environment of Web browsers in a few fundamental ways:
+
+1. <b>Security</b>: Web content is usually sandboxed, and has only a fraction of the capabilities that a native app has. One of the reasons for this sandboxing is to mitigate security risks that SVG content may contain. However, native apps are usually either not sandboxed or have a more permissive sandbox than Web content. Therefore, code that runs in a native app must be held to a higher standard of security.
+2. <b>Performance</b>: Web content is usually run in a separate process, which means the performace of that process has only an indirect affect on the performance of the entire app. If this separate process stalls, the entire app can continue and gracefully degrade behavior. However, native code runs in the app's process, which requires more stringent performance targets.
+
+SVG Native aims to adhere to the native app environment by meeting the above requirements.
+
+SVG Native also has one additional goal:
+
+3. <b>Ubiquity</b>: SVG Native should be implementable as a system component on any modern computing environment. This means it should be small, lightweight, and only have few dependencies. The dependencies it does have should be standard components that already exist in most computing environments.
+
+To meet these goals, SVG Native is a subset of SVG 1.1, which removes animation, interactivity, linking, remote resource loading, scripting, and CSS (among others).
+
+Use Cases {#usecases}
+---------------------
+
+<em>This section is non-normative</em>
+
+SVG Native is designed to fit a number of use cases.
+
+1. <b>Icons</b>: Icons are often small vector graphics containing few graphical elements.
+2. <b>Emoji</b>: Emoji are often represented as small vector graphics.
+3. <b>Color Fonts</b>: Each glyph in a font is represented as a series of vector contours. Color fonts allow the glyphs to include color, in addition to their contours.
+4. <b>Drawings and sketches</b>: Drawings and sketches may be created with vector artwork tools. Depending on the complexity of the artwork, representing it using a series of vector drawing elements may result in a smaller file size than a raster format such as [[!PNG]]. Drawings and sketches often need to be viewed outside of the Web platform.
+
+Basics {#basics}
+----------------
+
+SVG Native is presented as a series of modifications of the <a href="https://svgwg.org/svg2-draft/conform.html#secure-static-mode">Secure Static Mode</a> of [[!SVG2]]. These modifications are applied as differences from that specification. Rather than being a strict line-by-line diff, this specification describes the differences directly.
+
+If functionality present in [[!SVG2]] isn't present in the SVG Native specification, SVG Native includes that functionality.
+<!-- https://www.w3.org/2019/04/15-svg-minutes.html -->
+
+There are numerous differences between the SVG Native format and the [[!SVG2]] format. Currently, all differences are reductive; all functionality in SVG Native is also present in [[!SVG2]]. A conforming SVG Native document must only include functionality present in the SVG Native format. A conforming SVG Native renderer should ignore any functionality requested by a document that is not present in the SVG Native format. If a SVG Native renderer intentionally chooses to honor functionality beyond the SVG Native specification, it must do so in accordance with the [[!SVG2]] specification. There are a few exceptions to this throughout this specification below, where an SVG Native renderer must not include some functionality from [[!SVG2]].
+
+Note: If a document uses parts of SVG that aren't part of SVG Native, then it isn't a conformant SVG Native document. When an SVG Native renderer opens such a file, it should ignore all of those parts. Therefore, all SVG Native renderers should produce the same rendering for the same document. However, there may be renderers which intentionally decide to honor parts of SVG that aren't part of SVG Native. In order to make it more likely that a given document's rendering is predictable, even in these renderers, SVG Native authoring tools are recommended to always emit documents that conform to this specification. The SVG Working Group is considering producing a validator to determine whether a given document is conformant to the SVG Native format.
+<!-- https://www.w3.org/2019/05/06-svg-minutes.html -->
+
+ISSUE: The file type and mime type is being discussed in <a href="https://github.com/w3c/svgwg/issues/664">this GitHub issue</a>.
+
+SVG Native is a standalone file type, expected to be rendered with a dedicated-purpose renderer. Therefore, SVG Native content must not be present as part of a larger XML (or HTML) document. If it is present as part of a larger XML (or HTML) document, the content should be interpreted as SVG proper.
+
+Note: This means that browsers encounting a SVG Native root element within the DOM must not interpret it as SVG Native, even if it has the 'baseAttribute' attribute set to <code>native</code>. If a Web author desires to use SVG Native on the Web, the <{img}> element may be used instead. This matches other native image formats such as [[!PNG]]. A Web browser should implement SVG Native by linking with the system's SVG Native facilities. This matches the implementation of other native image formats.
+
+The root element of an SVG Native document must have the 'baseAttribute' attribute set to <code>native</code> and the 'version' attribute set to <code>1.1</code>.
+
+The file extension for SVG Native is <code>.svn</code>. The UTI for SVG Native is <code>public.svg.native</code>. The MIME type for SVG Native is <code>image/svgnative+xml</code>.
+
+User agents may limit the reference depth of references to implementation-dependent maximas. However, this limit must be greater than or equal to 1 reference.
+
+XSL Processing is not supported by SVG Native.
+
+No namespaces other than <a href="https://www.w3.org/TR/xlink11/">xlink</a> are supported inside an SVG Native document. From the xlink namespace, only 'href' is supported.
+
+A valid SVG Native document must not contain any of the external or internal XML DTD subset.
+<!-- https://www.w3.org/2019/04/29-svg-minutes.html -->
+
+Common Attributes {#commonattributes}
+-------------------------------------
+
+SVG 2.0 defines sets of common attributes wich might apply to multiple elements. These sets of attributes are not supported by SVG Native:
+- aria attributes
+- conditional processing attributes
+- all core attributes except for 'id'
+- global event attributes
+- document element event attributes
+- graphical event attributes
+- deprecated xlink attributes except for 'xlink:href'
+- 'crossorigin'
+
+SVG Modules {#modules}
+----------------------
+
+SVG Native is a subset of the content in the [[!SVG2]] specification, and some associated modules. They are:
+- <a href="https://www.w3.org/TR/2018/REC-css-color-3-20180619/">CSS Color</a>
+- <a href="https://www.w3.org/TR/css-values-3/">CSS Values and Units</a>
+- <a href="https://www.w3.org/TR/css-masking-1/">CSS Masking</a>
+
+No other SVG modules are supported by SVG Native. This includes:
+- <a href="https://www.w3.org/TR/filter-effects-1/">CSS Filter Effects</a>
+- <a href="https://svgwg.org/specs/animations/">SVG Animations</a>
+
+Rendering Model {#render}
+=========================
+
+SVG Native does not support masking.
+
+The following attributes are not supported by SVG Native:
+- 'clipPathUnits'
+- 'clip'
+
+The ''scroll'' value on the 'overflow' property behaves identically to 'hidden'.
+
+The 'clip-path' attribute is not supported on a <{clipPath}> element.
+
+Every <{clipPath}> element must have either exactly zero or exactly one child. Anything more than that is not supported by SVG Native.
+
+The ''scroll'' and the ''auto'' values of the 'overflow' property are not supported by SVG Native.
+
+Document Structure {#struct}
+============================
+
+The root element must be an <{svg}> element, and all other <{svg}> elements are not supported by SVG Native.
+<!-- https://www.w3.org/2019/07/15-svg-minutes.html -->
+
+Conditional processesing attributes and elements are not supported in SVG Native. These include the <{switch}> element.
+
+<!-- There are too many things which are unobservable in SVG Native. Don't need to list them all out. -->
+
+The <{meta}> and <{metadata}> elements are not supported in SVG Native.
+
+Elements in foreign namespaces are not supported in SVG Native. Attributes in foreign namespaces, except the xlink (<code>http://www.w3.org/1999/xlink</code>) namespace, are not supported in SVG Native.
+
+Because SVG Native is a subset of [[!SVG2]]'s Secure Static mode, only <{image}> elements which contain base64-encoded <code>data:</code> URLs of [[!JPEG]] or [[!PNG]] images are supported. [[!APNG]] images are be rendered without animation, using standard backward-compatibility with static [[!PNG]] images. No other image format is supported by SVG Native.
+
+All external resource loading is forbidden.
+
+The <{symbol}> element is not supported by SVG Native.
+<!-- https://www.w3.org/2019/07/15-svg-minutes.html -->
+
+Styling {#styling}
+==================
+
+The <{style}> element and the 'style' attribute are not supported in SVG Native.
+<!-- https://www.w3.org/2019/05/06-svg-minutes.html -->
+
+Note: Style properties can be set by presentation attributes, which must be parsed and processed according to the SVG and CSS specifications, other than the specific restrictions outlined in this section.
+
+''calc()'' is not supported by SVG Native.
+
+''env()'' and ''var()'' are supported by SVG Native.
+<!-- https://www.w3.org/2019/05/06-svg-minutes.html -->
+<!-- https://www.w3.org/2019/05/20-svg-minutes.html -->
+
+Note: Because of the other restrictions on styling, there is no way to set new values to CSS custom properties inside an SVG Native document. However, some rendering environments (e.g., for SVG fonts) will expose custom property values from an external document, as if they were inherited by the root element of the SVG Native document; the `var()` function can therefore be used similar to the `env()` function, to access this value if it exists and set a fallback value if it doesn't.
+
+The CSS 'all' property is not supported by SVG Native.
+
+All the global CSS keywords are not supported by SVG Native. These include:
+
+1. ''initial''
+2. ''inherit''
+3. ''unset''
+4. ''revert''
+
+Percentage length values are not supported by SVG Native.
+<!-- https://www.w3.org/2019/07/01-svg-minutes.html -->
+
+<a lt="relative length">Relative units</a> are not supported by SVG Native.
+<!-- https://www.w3.org/2019/07/01-svg-minutes.html -->
+
+Geometry Properties {#geometryproperties}
+=========================================
+
+Keyword values, such as ''auto'', are not supported in the 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', and 'height' attributes.
+
+Note: Raw numbers are supported by these attributes, in accordance with the [[!SVG2]] rules on parsing presentation attributes.
+
+Coordinate Systems, Transformations, and Units {#coords}
+========================================================
+
+Only the following units are supported by SVG Native:
+- (unitless)
+- ''px''
+- ''pt''
+- ''pc''
+- ''mm''
+- ''cm''
+- ''in''
+
+The 'transform' property is only supported by SVG Native on the following elements:
+- <{svg}>
+- <{g}>
+- <{defs}>
+- <{use}>
+- <{image}>
+- <{path}>
+- <{rect}>
+- <{circle}>
+- <{ellipse}>
+- <{line}>
+- <{polyline}>
+- <{polygon}>
+- <{clipPath}>
+
+The 'viewBox' attribute is only supported by SVG Native on the <{svg}> element.
+
+The 'preserveAspectRatio' attribute is only supported by SVG Native on the following elements:
+- <{svg}>
+- <{image}>
+- <{pattern}>
+
+Paths {#paths}
+==============
+
+The 'pathLength' attribute on the <{path}> element is not supported by SVG Native.
+
+Text {#text}
+============
+
+All text and fonts facilities are not supported by SVG Native. This includes <{text}>, <{tspan}>, <{textPath}>, <{font}>, <{glyph}>, <{missingGlyph}>, <{hkern}>, <{vkern}>, <{font-face}>, <{font-face-src}>, <{font-face-uri}>, <{font-face-format}>, <{font-face-name}>, 'inline-size', 'shape-inside', 'shape-subtract', 'shape-image-threshold', 'shape-margin', 'shape-padding', 'text-anchor', 'glyph-orientation-horizontal', 'glyph-orientation-vertical', 'kerning', 'text-overflow', 'xml:space', 'text-decoration-fill', 'text-decoration-stroke', 'letter-spacing', 'text-align', 'text-align-last', 'text-indent', 'word-spacing', 'white-space', 'vertical-align', 'dominant-baseline', 'alignment-baseline', 'baseline-shift', 'direction', 'text-orientation', 'writing-mode', 'font', 'font-family', 'font-feature-settings', 'font-kerning', 'font-size', 'font-size-adjust', 'font-stretch', 'font-style', 'font-variant', the subproperties of 'font-variant', 'font-weight', 'text-decoration', 'text-decoration-line', 'text-decoration-style', 'text-decoration-color', and 'text-rendering'.
+
+Embedded Content {#embedded}
+============================
+
+HTML elements in SVG subtrees are not supported by SVG Native.
+
+<{foreignObject}> is not supported by SVG Native.
+
+Painting: Filling, Stroking, and Marker Symbols {#painting}
+===========================================================
+
+The 'display' attribute is not supported by SVG Native.
+
+Note: Hiding elements can be achieved with the 'visibility' attribute.
+
+The <{marker}> element is not supported by SVG Native, nor are the 'marker', 'marker-start', 'marker-mid', and 'marker-end' properties.
+<!-- https://www.w3.org/2019/07/15-svg-minutes.html -->
+
+The ''context-fill'' and ''context-stroke'' values are not supported by SVG Native.
+
+Note: Authors wishing to use a contextual color from the environment may use ''currentColor''.
+<!-- https://www.w3.org/2019/06/17-svg-minutes.html -->
+
+The <{color}> property is not supported by SVG Native.
+<!-- https://www.w3.org/2019/06/17-svg-minutes.html -->
+
+Note: The absence of <{color}> makes it impossible to change the value of ''currentColor'' from its initial value.
+
+The 'vector-effect', 'paint-order', 'color-interpolation', and 'will-change' attributs are not supported by SVG Native.
+
+All color interpolation occurs in the sRGB color space.
+
+Gradients and Patterns {#pservers}
+==================================
+
+Only the ''userSpaceOnUse'' value of 'gradientUnits' is supported. According to [[!SVG2]], the default value of 'gradientUnits' is ''objectBoundingBox'', which isn't supported. This means that all <{gradient}> elements must include <code>gradientUnits="userSpaceOnUse"</code> to be valid.
+<!-- https://www.w3.org/2019/11/04-svg-minutes.html -->
+
+<!-- href is supported on gradients. https://www.w3.org/2019/07/15-svg-minutes.html -->
+
+The <{pattern}> element is not supported by SVG Native.
+<!-- https://www.w3.org/2019/07/15-svg-minutes.html -->
+
+Scripting and Interactivity {#interact}
+=======================================
+
+All scripting and interactivity facilities are not supported by SVG Native. This includes the 'pointer-events' and 'zoomAndPan' attributes and the <{script}> element. No contents of the SVG Native document are focusable.
+
+Linking {#linking}
+==================
+
+All external resource loading is forbidden. All URLs must either be a data URL or only consist of a fragment identifier.
+
+The <{a}> element and <{view}> elements are not supported by SVG Native.

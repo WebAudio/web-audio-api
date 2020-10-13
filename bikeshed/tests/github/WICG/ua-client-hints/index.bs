@@ -1,0 +1,668 @@
+<pre class="metadata">
+Title: User-Agent Client Hints
+Status: CG-DRAFT
+Group: WICG
+ED: https://wicg.github.io/ua-client-hints/
+Repository: wicg/ua-client-hints
+Shortname: ua-client-hints
+Level: None
+Editor: Mike West 56384, Google Inc., mkwst@google.com
+Editor: Yoav Weiss 58673, Google Inc., yoav@yoav.ws
+Abstract:
+    This document defines a set of Client Hints that aim to provide developers with the ability to
+    perform agent-based content negotiation when necessary, while avoiding the historical baggage and
+    passive fingerprinting surface exposed by the venerable `User-Agent` header.
+Indent: 4
+Default Biblio Status: current
+Markup Shorthands: css off, markdown on
+Boilerplate: omit conformance, omit feedback-header
+!Participate: <a href="https://github.com/WICG/ua-client-hints/issues/new">File an issue</a> (<a href="https://github.com/WICG/ua-client-hints/issues">open issues</a>)
+</pre>
+<pre class="link-defaults">
+spec:fetch; type:dfn; for:/; text:request
+spec:webidl; type:dfn; text:resolve
+spec:infra; type:dfn; text:user agent
+</pre>
+<pre class="anchors">
+urlPrefix: https://tools.ietf.org/html/draft-ietf-httpbis-header-structure; spec: I-D.ietf-httpbis-header-structure
+    type: dfn
+        text: structured header; url: #
+    for: structured header
+        type: dfn
+            text: token; url: #section-3.3.6
+            text: boolean; url: #section-3.3.4
+            text: string; url: #section-3.3.3
+            text: list; url: #section-3.1
+    type: abstract-op
+        text: serialize Structured Header; url: #section-4.1
+    spec:infra; type:dfn; for:/; text:list
+</pre>
+<pre class="biblio">
+{
+  "FacebookYearClass": {
+    "href": "https://engineering.fb.com/android/year-class-a-classification-system-for-android/",
+    "title": "Year class: A classification system for Android",
+    "authors": [ "Chris Marra", "Daniel Weaver" ]
+  },
+  "I-D.ietf-httpbis-client-hints": {
+    "href": "https://tools.ietf.org/html/draft-ietf-httpbis-client-hints",
+    "title": "HTTP Client Hints",
+    "authors": [ "Ilya Grigorik" ],
+    "status": "ID",
+    "publisher": "IETF"
+  },
+  "I-D.ietf-httpbis-header-structure": {
+    "authors": [ "Mark Nottingham", "Poul-Henning Kamp" ],
+    "href": "https://tools.ietf.org/html/draft-ietf-httpbis-header-structure",
+    "title": "Structured Headers for HTTP",
+    "status": "ID",
+    "publisher": "IETF"
+  },
+  "I-D.ietf-tls-grease": {
+    "href": "https://tools.ietf.org/html/draft-ietf-tls-grease",
+    "title": "Applying GREASE to TLS Extensibility",
+    "authors": [ "David Benjamin" ],
+    "status": "ID",
+    "publisher": "IETF"
+  },
+  "Janc2014": {
+    "href": "https://dev.chromium.org/Home/chromium-security/client-identification-mechanisms#TOC-Browser-level-fingerprints",
+    "title": "Technical analysis of client identification mechanisms",
+    "authors": [ "Artur Janc", "Michal Zalweski" ]
+  },
+  "Rossi2015": {
+    "href": "https://channel9.msdn.com/Events/WebPlatformSummit/2015/The-Microsoft-Edge-Rendering-Engine-that-makes-the-Web-just-work#time=9m45s",
+    "title": "The Microsoft Edge Rendering Engine that makes the Web just work",
+    "author": [ "Jacob Rossi" ]
+  }
+}
+</pre>
+
+Introduction {#intro}
+============
+
+Today, user agents generally identify themselves to servers by sending a `User-Agent` HTTP request
+header field along with each request (defined in Section 5.5.3 of [[RFC7231]]). Ideally, this header
+would give servers the ability to perform content negotiation, sending down exactly those bits that
+best represent the requested resource in a given user agent, optimizing both bandwidth and user
+experience. In practice, however, this header's value exposes far more information about the user's
+device than seems appropriate as a default, on the one hand, and intentionally obscures the true
+user agent in order to bypass misguided server-side heuristics, on the other.
+
+For example, a recent version of Chrome on iOS identifies itself as:
+
+``` http
+  User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X)
+              AppleWebKit/605.1.15 (KHTML, like Gecko)
+              CriOS/69.0.3497.105 Mobile/15E148 Safari/605.1
+```
+
+While a recent version of Edge identifies itself as:
+
+``` http
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+              AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.2704.79
+              Safari/537.36 Edge/18.014
+```
+
+There's quite a bit of information packed into those strings (along with a fair number of lies).
+Version numbers, platform details, model information, etc. are all broadcast along with every
+request, and form the basis for fingerprinting schemes of all sorts. Individual vendors have taken
+stabs at altering their user agent strings, and have run into a few categories of feedback from
+developers that have stymied historical approaches:
+
+1.  Brand and version information (e.g. "Chrome 69") allows websites to work around known bugs in
+    specific releases that aren't otherwise detectable. For example, implementations of Content
+    Security Policy have varied wildly between vendors, and it's difficult to know what policy to
+    send in an HTTP response without knowing what browser is responsible for its parsing and
+    execution.
+
+2.  Developers will often negotiate what content to send based on the user agent and platform. Some
+    application frameworks, for instance, will style an application on iOS differently from the same
+    application on Android in order to match each platform's aesthetic and design patterns.
+
+3.  Similarly to #1, OS revisions and architecture can be responsible for specific bugs which can
+    be worked around in website's code, and narrowly useful for things like selecting appropriate
+    executables for download (32 vs 64 bit, ARM vs Intel, etc).
+
+4.  Sophisticated developers use model/make to tailor their sites to the capabilities of the
+    device (e.g. [[FacebookYearClass]]) and to pinpoint performance bugs and regressions which
+    sometimes are specific to model/make.
+
+This document proposes a mechanism which might allow user agents to be a bit more aggressive about
+removing entropy from the `User-Agent` string generally by giving servers that really need some
+specific details about the client the ability to opt-into receiving them. It introduces four new
+Client Hints ([[I-D.ietf-httpbis-client-hints]]) that can provide the client's branding and version
+information, the underlying operating system's branding and major version, as well as details about
+the underlying device. Rather than broadcasting this data to everyone, all the time, user agents can
+make reasonable decisions about how to respond to given sites' requests for more granular data,
+reducing the passive fingerprinting surface area exposed to the network.
+
+Examples {#examples}
+--------
+
+A user navigates to `https://example.com/` for the first time. Their user agent sends the following
+header along with the HTTP request:
+
+``` http
+  Sec-CH-UA: "Examplary Browser"; v="73"
+```
+
+The server is interested in rendering content consistent with the user's underlying platform, and
+asks for a little more information by sending an `Accept-CH` header (Section 2.2.1 of
+[[I-D.ietf-httpbis-client-hints]]) along with the initial response:
+
+``` http
+  Accept-CH: UA-Full-Version, UA-Platform
+```
+
+In response, the user agent includes more detailed version information, as well as information about
+the underlying platform in the next request:
+
+``` http
+  Sec-CH-UA: "Examplary Browser"; v="73"
+  Sec-CH-UA-Full-Version: "73.3R8.2H.1"
+  Sec-CH-UA-Platform: "Windows"
+```
+
+
+User Agent Hints {#http-ua-hints}
+================
+
+The following sections define a number of HTTP request header fields that expose detail about a
+given [=user agent=], which servers can opt-into receiving via the Client Hints infrastructure defined
+in [[I-D.ietf-httpbis-client-hints]]. The definitions below assume that each [=user agent=] has defined
+a number of properties for itself:
+
+*   <dfn for="user agent" export>brand</dfn> (for example: "cURL", "Edge", "The World's Best Web Browser")
+*   <dfn for="user agent" export>significant version</dfn> (for example: "72", "3", or "28")
+*   <dfn for="user agent" export>full version</dfn> (for example: "72.0.3245.12", "3.14159", or "297.70E04154A")
+*   <dfn for="user agent" export>platform brand</dfn> (for example: "Windows", "iOS", or "AmazingOS")
+*   <dfn for="user agent" export>platform version</dfn> (for example: "NT 6.0", "15", or "17G")
+*   <dfn for="user agent" export>platform architecture</dfn> (for example: "ARM64", or "ia32")
+*   <dfn for="user agent" export>model</dfn> (for example: "", or "Pixel 2 XL")
+*   <dfn for="user agent" export>mobileness</dfn> (for example: ?0 or ?1)
+
+[=User agents=] SHOULD keep these strings short and to the point, but servers MUST accept arbitrary
+values for each, as they are all values constructed at the [=user agent=]'s whim.
+
+
+The 'Sec-CH-UA-Arch' Header Field {#sec-ch-arch}
+------------------------------
+
+The <dfn http-header>`Sec-CH-UA-Arch`</dfn> request header field gives a server information about
+the architecture of the platform on which a given [=user agent=] is executing. It is a
+[=Structured Header=] whose value MUST be a [=structured header/string=]
+[[I-D.ietf-httpbis-header-structure]].
+
+The header's ABNF is:
+
+~~~ abnf
+  Sec-CH-UA-Arch = sh-string
+~~~
+
+
+The 'Sec-CH-UA-Model' Header Field {#sec-ch-model}
+-------------------------------
+
+The <dfn http-header>`Sec-CH-UA-Model`</dfn> request header field gives a server information about
+the device on which a given [=user agent=] is executing. It is a [=Structured Header=] whose value MUST
+be a [=structured header/string=] [[I-D.ietf-httpbis-header-structure]].
+
+The header's ABNF is:
+
+``` abnf
+  Sec-CH-UA-Model = sh-string
+```
+
+ISSUE(wicg/ua-client-hints): Perhaps `Sec-CH-UA-Mobile` is enough, and we don't need to expose the model?
+
+
+The 'Sec-CH-UA-Platform' Header Field {#sec-ch-platform}
+----------------------------------
+
+The <dfn http-header>`Sec-CH-UA-Platform`</dfn> request header field gives a server information about
+the platform on which a given [=user agent=] is executing. It is a [=Structured Header=] whose value
+MUST be a [=structured header/string=] [[I-D.ietf-httpbis-header-structure]].
+
+The header's ABNF is:
+
+``` abnf
+  Sec-CH-UA-Platform = sh-string
+```
+
+The 'Sec-CH-UA-Platform-Version' Header Field {#sec-ch-platform-version}
+----------------------------------
+
+The <dfn http-header>`Sec-CH-UA-Platform-Version`</dfn> request header field gives a server
+information about the platform version on which a given [=user agent=] is executing. It is a
+[=Structured Header=] whose value MUST be a [=structured header/string=]
+[[I-D.ietf-httpbis-header-structure]].
+
+The header's ABNF is:
+
+``` abnf
+  Sec-CH-UA-Platform-Version = sh-string
+```
+
+The 'Sec-CH-UA' Header Field {#sec-ch-ua}
+----------------------------
+
+The <dfn http-header>`Sec-CH-UA`</dfn> request header field gives a server information about a
+[=user agent=]'s branding and version. It is a [=Structured Header=] whose value MUST be a
+[=structured header/list=] [[I-D.ietf-httpbis-header-structure]]. The list's items MUST be
+[=structured header/string=]. The value of each item SHOULD include a "v" parameter, indicating the
+[=user agent=]'s version.
+
+The header's ABNF is:
+
+``` abnf
+  Sec-CH-UA = sh-list
+```
+
+Unlike most Client Hints, since it's included in the <a
+href="https://wicg.github.io/client-hints-infrastructure/#low-entropy-table">low-entropy table</a>,
+the `Sec-CH-UA` header will be sent with all requests, whether or not the server opted-into
+receiving the header via an `Accept-CH` header. Therefore, it includes only the [=user agent=]'s
+branding information, and the significant version number (both of which are fairly clearly
+sniffable by "examining the structure of other headers and by testing for the availability and
+semantics of the features introduced or modified between releases of a particular browser"
+[[Janc2014]]).
+
+To <dfn abstract-op local-lt="set-ua">return the `Sec-CH-UA` value for a request</dfn>, [=user agents=] MUST:
+
+1.  Let |list| be a [=/list=], initially empty.
+
+2. For each |brandVersion| in [=user agent/UA list=]:
+
+    1. Let |parameter| be a [=dictionary=], initially empty.
+
+    2. Set |parameter|["param_name"] to "v".
+
+    3. Set |parameter|["param_value"] to |brandVersion|'s {{NavigatorUABrandVersion/version}}.
+
+    2. Let |pair| be a tuple comprised of |brandVersion|'s {{NavigatorUABrandVersion/brand}} and |parameter|.
+
+    3. Append |pair| to |list|.
+
+3. Return the output of running <a href="https://httpwg.org/http-extensions/draft-ietf-httpbis-header-structure.html#ser-list">serializing a list</a> with |list| as input.
+
+The 'Sec-CH-UA-Full-Version' Header Field {#sec-ch-full-version}
+--------------------------------
+
+The <dfn http-header>`Sec-CH-UA-Full-Version`</dfn> request header field gives a server information
+about the user agent's [=user agent/full version=]. It is a [=Structured Header=]
+whose value MUST be a [=structured header/string=] [[I-D.ietf-httpbis-header-structure]].
+
+The header's ABNF is:
+
+``` abnf
+  Sec-CH-UA-Full-Version = sh-string
+```
+
+The 'Sec-CH-UA-Mobile' Header Field {#sec-ch-mobile}
+--------------------------------
+
+The <dfn http-header>`Sec-CH-UA-Mobile`</dfn> request header field gives a server information about
+whether or not a [=user agent=] prefers a "mobile" user experience. It is a [=Structured Header=]
+whose value MUST be a [=structured header/boolean=] [[I-D.ietf-httpbis-header-structure]].
+
+The header's ABNF is:
+
+``` abnf
+  Sec-CH-UA-Mobile = sh-boolean
+```
+
+Integration with Fetch {#fetch-integration}
+----------------------
+Fetch integration of this specification is defined as part of the <a href="https://wicg.github.io/client-hints-infrastructure/#fetch">Client Hints infrastructure</a> specification.
+
+
+Interface {#interface} 
+=================
+
+<pre class="idl">
+dictionary NavigatorUABrandVersion {
+  DOMString brand;
+  DOMString version;
+};
+
+dictionary UADataValues {
+  DOMString platform; 
+  DOMString platformVersion;
+  DOMString architecture;
+  DOMString model;
+  DOMString uaFullVersion;
+};
+
+[Exposed=(Window,Worker)]
+interface NavigatorUAData {
+  readonly attribute FrozenArray&lt;NavigatorUABrandVersion&gt; uaList;
+  readonly attribute boolean mobile;
+  Promise&lt;UADataValues&gt; getHighEntropyValues(sequence&lt;DOMString&gt; hints);
+};
+
+interface mixin NavigatorUA {
+  [SecureContext] readonly attribute NavigatorUAData userAgentData;
+};
+
+Navigator includes NavigatorUA;
+WorkerNavigator includes NavigatorUA;
+
+</pre>
+
+Note: The high-entropy portions of the user agent information are retrieved through a {{Promise}}, in order to give [=user agents=] the opportunity to gate their exposure behind potentially time-consuming checks (e.g. by asking the user for their permission).
+
+Processing model {#processing}
+--------------
+
+<h3 id="monkeypatch-html-windoworworkerglobalscope"><code>WindowOrWorkerGlobalScope</code></h3>
+
+Each [=user agent=] has an associated <dfn for="user agent">UA list</dfn>, which is a [=/list=] created by running [=create UA list=].
+
+Every {{WindowOrWorkerGlobalScope}} object has an associated <dfn for="WindowOrWorkerGlobalScope">UA frozen array</dfn>, which is a <code><a interface>FrozenArray</a>&lt;<a dictionary>NavigatorUABrandVersion</a>></code>. It is initially the result of [=create a frozen array|creating a frozen array=] from the [=user agent=]'s [=UA list=].
+
+<h3 id="create-ua-list-section">Create a UA list</h3>
+
+When asked to run the <dfn>create UA list</dfn> algorithm, the [=user agent=] MUST run the following steps:
+1. Let |list| be a [=/list=].
+
+2. Collect pairs of [=user agent/brand=] and [=user agent/significant version=] which represent the [=user agent=],
+    its equivalence class and/or its rendering engine.
+
+3. For each pair:
+
+    1. Let |dict| be a new {{NavigatorUABrandVersion}} dictionary,
+        with [=user agent/brand=] as {{NavigatorUABrandVersion/brand}} and [=user agent/significant version=] as {{NavigatorUABrandVersion/version}}. 
+
+    2. Append |dict| to |list|.
+
+4.  The [=user agent=] SHOULD execute the following steps:
+
+    1.  [=list/Append=] additional items to |list| containing {{NavigatorUABrandVersion}} objects,
+        initialized with arbitrary {{NavigatorUABrandVersion/brand}} and {{NavigatorUABrandVersion/version}} combinations.
+
+    2.  Randomize the order of the items in |list|.
+
+    Note: See [[#grease]] for more details on why these steps might be appropriate.
+
+5. Return |list|.
+
+<h3 id="getters">Getters</h3>
+
+On getting, the {{NavigatorUAData/uaList}} attribute MUST return [=this=]'s [=relevant global object=]'s [=WindowOrWorkerGlobalScope/UA frozen array=].
+
+On getting, the {{NavigatorUAData/mobile}} attribute must return the [=user agent=]'s [=user agent/mobileness=].
+
+<h3 id="getHighEntropyValues"><code>getHighEntropyValues</code> method</h3>
+
+The <dfn method for="NavigatorUA"><code>getHighEntropyValues(|hints|)</code></dfn> method MUST run these steps:
+
+1. Let |p| be a [=a new promise=].
+
+2.  Run the following steps [=in parallel=]:
+
+    1. Let |uaData| be a new {{UADataValues}}.
+
+    2. If |hints| [=contains=] "platform", set |uaData|["{{UADataValues/platform}}"] to the [=user agent=]'s [=user agent/platform brand=].
+
+    3. If |hints| [=contains=] "platformVersion", set |uaData|["{{UADataValues/platformVersion}}"] to the [=user agent=]'s [=user agent/platform version=].
+
+    4. If |hints| [=contains=] "architecture", set |uaData|["{{UADataValues/architecture}}"] to the [=user agent=]'s [=user agent/platform architecture=].
+
+    5. If |hints| [=contains=] "model", set |uaData|["{{UADataValues/model}}"] to the [=user agent=]'s [=user agent/model=].
+
+    6. If |hints| [=contains=] "uaFullVersion", let |uaData|["{{UADataValues/uaFullVersion}}"] be the the user agent's [=user agent/full version=].
+
+    7. [=Queue a task=] to [=resolve=] |p| with |uaData|.
+
+ISSUE: Add a specific task source this is queued on.
+
+3.  Return |p|.
+
+Security and Privacy Considerations {#security-privacy}
+===================================
+
+Secure Transport {#secure-transport}
+----------------
+
+Client Hints will not be delivered to non-secure endpoints (see the secure transport requirements in
+Section 2.2.1 of [[I-D.ietf-httpbis-client-hints]]). This means that [=user agent=] information will not
+be leaked over plaintext channels, reducing the opportunity for network attackers to build a profile
+of a given agent's behavior over time.
+
+Delegation {#delegation}
+----------
+
+Client Hints will be delegated from top-level pages via Feature Policy. This reduces the likelihood that [=user agent=]
+information will be delivered along with subresource requests, which reduces the potential for
+passive fingerprinting.
+
+That delegation is defined as part of <a href="https://wicg.github.io/client-hints-infrastructure/#abstract-opdef-append-client-hints-to-request">append client hints to request</a>.
+
+Access Restrictions {#access}
+-------------------
+
+The information in the Client Hints defined above reveals quite a bit of information about the user
+agent and the platform/device upon which it runs. [=User agents=] ought to exercise judgement before
+granting access to this information, and MAY impose restrictions above and beyond the secure
+transport and delegation requirements noted above. For instance, [=user agents=] could choose to reveal
+[=user agent/platform architecture=] only on requests it intends to download, giving the server the
+opportunity to serve the right binary. Likewise, they could offer users control over the values
+revealed to servers, or gate access on explicit user interaction via a permission prompt or via a
+settings interface.
+
+Implementation Considerations {#impl-considerations}
+=============================
+
+The 'User-Agent' Header {#user-agent}
+-----------------------
+
+[=User agents=] SHOULD deprecate the `User-Agent` header in favor of the Client Hints model described in
+this document. The header, however, is likely to be impossible to remove entirely in the near-term,
+as existing sites' content negotiation code will continue to require its presence (see
+[[Rossi2015]] for a recent example of a new browser's struggles in this area).
+
+One approach which might be advisable could be for each [=user agent=] to lock the value of its
+`User-Agent` header, ensuring backwards compatibility by maintaining the crufty declarations of
+"like Gecko" and "AppleWebKit/537.36" on into eternity. This can ratchet over time, first freezing
+the version number, then shifting platform and model information to something reasonably generic in
+order to reduce the fingerprint the header provides.
+
+GREASE-like UA Strings {#grease}
+----------------------
+
+History has shown us that there are real incentives for [=user agents=] to lie about their branding
+in order to thread the needle of sites' sniffing scripts, and prevent their users from being blocked
+by UA-based allow/block lists.
+
+Reseting expectations may help to prevent abuse of the UA string's brand in the short term, but
+probably won't help in the long run.  The world of network protocol introduced the notion of <abbr
+title="Generate Random Extensions And Sustain Extensibility">GREASE</abbr> [[I-D.ietf-tls-grease]].
+We could borrow from that concept to tackle this problem.
+
+[=User agents=]' [=user agent/UA list=] containing more than a single entry could encourage
+standardized processing of the `UA` string. By randomly including additional, intentionally
+incorrect, comma-separated entries with arbitrary ordering, they would reduce the chance that we
+ossify on a few required strings.  
+
+Let's examine a few examples:
+* In order to avoid sites from barring unknown browsers from their allow lists, Chrome could send a
+    UA set that includes an non-existent browser, and which varies once in a while.
+    - `"Chrome"; v="73", "NotBrowser"; v="12"`
+* In order to enable equivalence classes based on Chromium versions, Chrome could add the rendering
+    engine and its version to that.
+    - `"Chrome"; v="73", "NotBrowser"; v="12", "Chromium"; v="73"`
+* In order to encourage sites to rely on equivalence classes based on Chromium versions rather than
+    exact UA sniffing, Chrome might remove itself from the set entirely.
+    - `"Chromium"; v="73", "NotBrowser"; v="12"`
+* Browsers based on Chromium may use a similar UA string, but use their own brand as part of the
+    set, enabling sites to count them.
+    - `"Chrome"; v="73", "Awesome Browser"; v="60", "Chromium"; v="73"`
+
+When choosing GREASE strategies, [=user agents=] SHOULD keep caching variance in mind and minimize variance among identical [=user agent=] versions.
+
+Note: One approach to minimize caching variance could be to determine the GREASE parts of the UA set at build time, and keep them identical throughout the lifetime of the [=user agent=]'s significant version. 
+
+The 'Sec-CH-' prefix {#sec-ch}
+--------------------
+
+Based on some [discussion with the TAG](https://github.com/w3ctag/design-reviews/issues/320), it seems
+reasonable to forbid access to these headers from JavaScript, and demarcate them as
+browser-controlled client hints so they can be documented and included in requests without
+triggering CORS preflights. A `Sec-CH-` prefix seems like a viable approach, but this bit might
+shift as the broader Client Hints discussions above coalesce into something more solid that lands
+in specs.
+
+IANA Considerations {#iana}
+===================
+
+This document intends to define the `Sec-CH-UA-Arch`, `Sec-CH-UA-Model`, `Sec-CH-UA-Platform`,
+`Sec-CH-UA-Platform-Version`, `Sec-CH-UA-Mobile` and `Sec-CH-UA` HTTP request header fields, and
+register them in the permanent message header field registry ([[RFC3864]]).
+
+It also intends to deprecate the `User-Agent` header field.
+
+'Sec-CH-UA-Arch' Header Field {#iana-arch}
+--------------------------
+
+Header field name:
+: Sec-CH-UA-Arch
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-arch]])
+
+'Sec-CH-UA-Model' Header Field {#iana-model}
+---------------------------
+
+Header field name:
+: Sec-CH-UA-Model
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-ua]])
+
+'Sec-CH-UA-Platform' Header Field {#iana-platform}
+------------------------------
+
+Header field name:
+: Sec-CH-UA-Platform
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-platform]])
+
+'Sec-CH-UA-Platform-Version' Header Field {#iana-platform-version}
+------------------------------
+
+Header field name:
+: Sec-CH-UA-Platform-Version
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-platform]])
+
+'Sec-CH-UA' Header Field {#iana-ua}
+------------------------
+
+Header field name:
+: Sec-CH-UA
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-ua]])
+
+'Sec-CH-UA-Mobile' Header Field {#iana-mobile}
+----------------------------
+
+Header field name:
+: Sec-CH-UA-Mobile
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-mobile]])
+
+'Sec-CH-UA-Full-Version' Header Field {#iana-full-version}
+----------------------------
+
+Header field name:
+: Sec-CH-UA-Full-Version
+
+Applicable protocol:
+: http
+
+Status:
+: standard
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#sec-ch-full-version]])
+
+'User-Agent' Header Field {#iana-user-agent}
+-------------------------
+
+Header field name:
+: User-Agent
+
+Applicable protocol:
+: http
+
+Status:
+: deprecated
+
+Author/Change controller:
+: IETF
+
+Specification document:
+: this specification ([[#user-agent]]), and Section 5.5.3 of [[RFC7231]]

@@ -1,0 +1,243 @@
+<pre class="metadata">
+Shortname: webxr-ar-module
+Title: WebXR Augmented Reality Module - Level 1
+Group: immersivewebwg
+Status: ED
+TR: https://www.w3.org/TR/webxr-ar-module-1/
+ED: https://immersive-web.github.io/webxr-ar-module/
+Previous Version: https://www.w3.org/TR/2019/WD-webxr-ar-module-1-20191010/
+Repository: immersive-web/webxr-ar-module
+Level: 1
+Mailing List Archives: https://lists.w3.org/Archives/Public/public-immersive-web/
+
+!Participate: <a href="https://github.com/immersive-web/webxr-ar-module/issues/new">File an issue</a> (<a href="https://github.com/immersive-web/webxr-ar-module/issues">open issues</a>)
+!Participate: <a href="https://lists.w3.org/Archives/Public/public-immersive-web/">Mailing list archive</a>
+!Participate: <a href="irc://irc.w3.org:6665/">W3C's #immersive-web IRC</a>
+
+Editor: Brandon Jones 87824, Google http://google.com/, bajones@google.com
+Editor: Nell Waliczek 93109, Amazon [Microsoft until 2018] https://amazon.com/, nhw@amazon.com
+Editor: Manish Goregaokar 109489, Mozilla http://mozilla.org/, manish@mozilla.com
+
+Abstract: The WebXR Augmented Reality module expands the <a href="https://www.w3.org/TR/webxr/">WebXR Device API</a> with the functionality available on AR hardware.
+
+Warning: custom
+Custom Warning Title: Unstable API
+Custom Warning Text:
+  <b>The API represented in this document is under development and may change at any time.</b>
+  <p>For additional context on the use of this API please reference the <a href="https://github.com/immersive-web/webxr-ar-module/blob/master/ar-module-explainer.md">WebXR Augmented Reality Module Explainer</a>.</p>
+Status Text: This WebXR Augmented Reality Module is designed as a module to be implemented in addition to <a href="https://www.w3.org/TR/webxr/">WebXR Device API</a>, and is originally included in WebXR Device API which was divided into core and modules. 
+</pre>
+
+<pre class="link-defaults">
+spec:infra;
+    type:dfn; text:string
+spec: webxr-1;
+    type:enum-value; text:"immersive-vr"
+    type:enum-value; text:"inline"
+    type: enum; text: XRSessionMode
+    type: dfn; text: exclusive access
+    type: dfn; text: immersive xr device; for: XR
+    type: dfn; text: xr device; for: /
+    type: dfn; text: mode; for: XRSession
+    type: dfn; text: inline session
+    type: dfn; text: immersive session
+    type: dfn; text: xr compositor
+    type: dfn; text: native origin
+    type: dfn; text: viewer reference space
+</pre>
+
+<pre class="anchors">
+spec: compositing-1; urlPrefix: https://www.w3.org/TR/compositing-1
+    type: dfn; text: source-over; url: porterduffcompositingoperators_srcover
+    type: dfn; text: lighter; url: porterduffcompositingoperators_plus
+</pre>
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+
+<style>
+  .unstable::before {
+    content: "This section is not stable";
+    display: block;
+    font-weight: bold;
+    text-align: right;
+    color: red;
+  }
+  .unstable {
+    border: thin solid pink;
+    border-radius: .5em;
+    padding: .5em;
+    margin: .5em calc(-0.5em - 1px);
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='290'><text transform='rotate(-45)' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='70' y='210' opacity='.1'>Unstable</text></svg>");
+    background-repeat: repeat;
+    background-color: #FFF4F4;
+  }
+  .unstable h3:first-of-type {
+    margin-top: 0.5rem;
+  }
+
+  .unstable.example:not(.no-marker)::before {
+    content: "Example " counter(example) " (Unstable)";
+    float: none;
+  }
+
+  .non-normative::before {
+    content: "This section is non-normative.";
+    font-style: italic;
+  }
+  .tg {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  .tg th {
+    border-style: solid;
+    border-width: 1px;
+    background: #90b8de;
+    color: #fff;
+    font-family: sans-serif;
+    font-weight: bold;
+    border-color: grey;
+  }
+  .tg td {
+    padding: 4px 5px;
+    background-color: rgb(221, 238, 255);
+    font-family: monospace;
+    border-style: solid;
+    border-width: 1px;
+    border-color: grey;
+    overflow: hidden;
+    word-break: normal;
+  }
+</style>
+
+Introduction {#intro}
+============
+
+<section class="non-normative">
+
+Hardware that enables Virtual Reality (VR) and Augmented Reality (AR) applications are now broadly available to consumers, offering an immersive computing platform with both new opportunities and challenges. The ability to interact directly with immersive hardware is critical to ensuring that the web is well equipped to operate as a first-class citizen in this environment. The WebXR Augmented Reality module expands the functionality available to developers when their code is running on AR hardware.
+
+</section>
+
+Terminology {#terminology}
+-----------
+Augmented Reality describes a class of XR experiences in which virtual content is aligned and composed with the <dfn>real-world environment</dfn> before being displayed to users.
+
+XR hardware can be divided into categories based on <dfn>display technology</dfn>.
+- Devices described as <dfn>additive light</dfn>, also known as see-through, use transparent optical displays to present virtual content. On these devices, the user may always be able to see through to the [=real-world environment=] regardless of developer requests during session creation.
+- Devices described as <dfn>pass-through</dfn> use an opaque display to combine virtual content with a camera stream of the [=real-world environment=]. On these devices, the [=real-world environment=] will only be visible when the developer has made an explicit request for it during session creation.
+- Devices described as <dfn>opaque</dfn> fully obscure the [=real-world environment=] and do not provide a way to view the [=real-world environment=].
+
+WebXR Device API Integration {#webxr-device-api-integration}
+==============
+
+XRSessionMode {#xrsessionmode-enum}
+-------------
+
+As defined in the <a href="https://www.w3.org/TR/webxr/">WebXR Device API</a> categorizes {{XRSession}}s based on their {{XRSessionMode}}.  This module enables use of the {{XRSessionMode/"immersive-ar"}} {{XRSessionMode}} enum.
+
+A session mode of <dfn enum-value for="XRSessionMode">"immersive-ar"</dfn> indicates that the session's output will be given [=exclusive access=] to the [=XR/immersive XR device=] display and that content <b>is</b> intended to be [=blend technique|blended=] with the [=real-world environment=].
+
+On compatible hardware, user agents MAY support {{XRSessionMode/"immersive-vr"}} sessions, {{XRSessionMode/"immersive-ar"}} sessions, or both. Supporting the additional {{XRSessionMode/"immersive-ar"}} session mode, does not change the requirement that user agents MUST support {{XRSessionMode/"inline"}} sessions.
+
+NOTE: This means that {{XRSessionMode/"immersive-ar"}} sessions support all the features and reference spaces that {{XRSessionMode/"immersive-vr"}} sessions do, since both are [=immersive sessions=].
+
+<div class="example">
+The following code checks to see if {{XRSessionMode/"immersive-ar"}} sessions are supported.
+
+<pre highlight="js">
+navigator.xr.supportsSession('immersive-ar').then(() => {
+  // 'immersive-ar' sessions are supported.
+  // Page should advertise AR support to the user.
+}
+</pre>
+</div>
+
+<div class="example">
+The following code attempts to retrieve an {{XRSessionMode/"immersive-ar"}} {{XRSession}}.
+
+<pre highlight="js">
+let xrSession;
+
+navigator.xr.requestSession("immersive-ar").then((session) => {
+  xrSession = session;
+});
+</pre>
+</div>
+
+XREnvironmentBlendMode {#xrenvironmentblendmode-enum}
+----------------------
+When drawing XR content, it is often useful to understand how the rendered pixels will be blended by the [=XR Compositor=] with the [=real-world environment=].
+
+<pre class="idl">
+enum XREnvironmentBlendMode {
+  "opaque",
+  "alpha-blend",
+  "additive"
+};
+
+partial interface XRSession {
+  // Attributes
+  readonly attribute XREnvironmentBlendMode environmentBlendMode;
+};
+</pre>
+
+The <dfn attribute for="XRSession">environmentBlendMode</dfn> attribute MUST report the {{XREnvironmentBlendMode}} value that matches [=blend technique=] currently being performed by the [=XR Compositor=].
+
+- A blend mode of <dfn enum-value for="XREnvironmentBlendMode">opaque</dfn> MUST be reported if the [=XR Compositor=] is using [=opaque environment blending=].
+
+- A blend mode of <dfn enum-value for="XREnvironmentBlendMode">alpha-blend</dfn> MUST be reported if the [=XR Compositor=] is using [=alpha-blend environment blending=].
+
+- A blend mode of <dfn enum-value for="XREnvironmentBlendMode">additive</dfn> MUST be reported if the [=XR Compositor=] is using [=additive environment blending=].
+
+XR Compositor Behaviors {#xr-compositor-behaviors}
+---------------------
+
+When presenting content to the [=/XR device=], the [=XR Compositor=] MUST apply the appropriate <dfn>blend technique</dfn> to combine virtual pixels with the [=real-world environment=]. The appropriate technique is determined based on the [=XR device=]'s [=display technology=] and the [=XRSession/mode=].
+
+- When performing <dfn>opaque environment blending</dfn>, the rendered buffers obtained by the [=XR Compositor=] are composited using [=source-over=] blending on top of buffers containing exclusively 100% opaque black pixels. The composited output is then presented on the [=XR device=]. This technique MUST be applied on [=opaque=] and [=pass-through=] displays when the [=XRSession/mode=] is set to either {{XRSessionMode/"immersive-vr"}} or {{XRSessionMode/"inline"}}. This technique MUST NOT be applied when the [=XRSession/mode=] is set to {{XRSessionMode/"immersive-ar"}}, regardless of the [=XR Device=]'s [=display technology=].
+
+- When performing <dfn>alpha-blend environment blending</dfn>, the rendered buffers obtained by the [=XR Compositor=] are composited using [=source-over=] blending on top of buffers containing pixel representations of the [=real-world environment=]. These pixel representations must be aligned on each {{XRFrame}} to the {{XRView/transform}} of each view in {{XRViewerPose/views}}. The composited output is then presented on the [=XR device=]. This technique MUST be applied on [=pass-through=] displays when the [=XRSession/mode=] is set {{XRSessionMode/"immersive-ar"}}. This technique MUST NOT be applied when the [=XRSession/mode=] is set to {{XRSessionMode/"immersive-vr"}} or {{XRSessionMode/"inline"}} regardless of the [=XR Device=]'s [=display technology=].
+
+- When performing <dfn>additive environment blending</dfn>, the rendered buffers obtained by the [=XR Compositor=] are composited using [=lighter=] blending before being presented on the [=/XR device=]. This technique MUST be applied on [=additive light=] displays, regardless of the [=XRSession/mode=].
+
+NOTE: When using a device that performs [=alpha-blend environment blending=], use of a {{XRRenderState/baseLayer}} with no alpha channel will result in the [=real-world environment=] being completely obscured. It should be assumed that this is intentional on the part of developer, and the user agent may wish to suspend compositing of [=real-world environment=] as an optimization in such cases.
+
+The [=XR Compositor=] MAY make additional color or pixel adjustments to optimize the experience. The timing of composition MUST NOT depend on the [=blend technique=] or source of the [=real-world environment=]. but MUST NOT perform occlusion based on pixel depth relative to real-world geometry; only rendered content MUST be composed on top of the real-world background.
+
+NOTE: Future modules may enable automatic or manual pixel occlusion with the [=real-world environment=].
+
+The [=XR Compositor=] MUST NOT automatically grant the page access to any additional information such as camera intrinsics, media streams, real-world geometry, etc.
+
+NOTE: Developers may request access to an [=/XR Device=]'s camera, should one be exposed through the existing [[mediacapture-streams|Media Capture and Streams]] specification. However, doing so does not provide a mechanism to query the {{XRRigidTransform}} between the camera's location and the [=native origin=] of the [=viewer reference space=]. It also does not provide a guaranteed way to determine the camera intrinsics necessary to match the view of the [=real-world environment=]. As such, performing effective computer vision algorithms wil be significantly hampered. Future modules or specifications may enable such functionality.
+
+Privacy & Security Considerations {#privacy-security}
+=================================
+
+<section class="non-normative">
+
+The AR Module does not provide new information compared to the WebXR Device API
+specification it is extending. It allows websites to start an XR session as
+{{XRSessionMode/"immersive-ar"}} which blends the real world behind the XR
+scene. The website does not have access to the real world information (camera
+images) but knows how the XR scene will be composited on top of the real world
+(blend mode).
+
+Even if this module does not allow websites to access the camera images, it may
+not be obvious to end users and user agents may want to clarify this.
+
+</section>
+
+Acknowledgements {#ack}
+================
+
+The following individuals have contributed to the design of the WebXR Device API specification:
+
+  * <a href="mailto:cvan@mozilla.com">Chris Van Wiemeersch</a> (<a href="https://mozilla.org/">Mozilla</a>)
+  * <a href="mailto:kgilbert@mozilla.com">Kearwood Gilbert</a> (<a href="https://mozilla.org/">Mozilla</a>)
+  * <a href="mailto:rafael.cintron@microsoft.com">Rafael Cintron</a> (<a href="https://microsoft.com/">Microsoft</a>)
+  * <a href="mailto:sebastian.sylvan@gmail.com">Sebastian Sylvan</a> (Formerly <a href="https://microsoft.com/">Microsoft</a>)
+
+And a special thanks to <a href="mailto:vladv@unity3d.com">Vladimir Vukicevic</a> (<a href="https://unity3d.com/">Unity</a>) for kick-starting this whole adventure!
+
+</section>

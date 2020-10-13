@@ -1,0 +1,1289 @@
+<pre class='metadata'>
+Title: Media Capabilities
+Repository: w3c/media-capabilities
+Status: ED
+ED: https://w3c.github.io/media-capabilities/
+Shortname: media-capabilities
+Level: 1
+Group: mediawg
+Editor: Mounir Lamouri, w3cid 45389, Google Inc. https://www.google.com/
+Editor: Chris Cunningham, w3cid 114832, Google Inc. https://www.google.com/
+Editor: Vi Nguyen, w3cid 116349, Microsoft Corporation https://www.microsoft.com/
+
+Abstract: This specification intends to provide APIs to allow websites to make
+Abstract: an optimal decision when picking media content for the user. The APIs
+Abstract: will expose information about the decoding and encoding capabilities
+Abstract: for a given format but also output capabilities to find the best match
+Abstract: based on the device's display.
+
+!Participate: <a href='https://github.com/w3c/media-capabilities'>Git Repository.</a>
+!Participate: <a href='https://github.com/w3c/media-capabilities/issues/new'>File an issue.</a>
+!Version History: <a href='https://github.com/w3c/media-capabilities/commits'>https://github.com/w3c/media-capabilities/commits</a>
+</pre>
+
+<pre class='anchors'>
+spec: media-source; urlPrefix: https://www.w3.org/TR/media-source/
+    type: interface
+        for: MediaSource; text: MediaSource; url: #mediasource
+    type: method
+        for: MediaSource; text: isTypeSupported(); url: #dom-mediasource-istypesupported
+
+spec: html; urlPrefix: https://html.spec.whatwg.org/multipage/;
+    type: method
+        for: HTMLMediaElement; text: canPlayType(); url: #dom-navigator-canplaytype
+    type: dfn
+        text: rules for parsing floating-point number values
+    type: dfn;
+        text: origin; url:#concept-origin
+        text: global object; url:#global-object
+        text: relevant settings object; url:#relevant-settings-object
+
+spec: ECMAScript; urlPrefix: https://tc39.es/ecma262/#
+    type: interface
+        text: TypeError; url: sec-native-error-types-used-in-this-standard-typeerror
+
+spec: cssom-view; urlPrefix: https://drafts.csswg.org/cssom-view/#
+    type: interface
+        text: Screen; url: screen
+
+spec: mediaqueries-4; urlPrefix: https://drafts.csswg.org/mediaqueries-4/#
+    type: interface
+        text: color-gamut
+
+spec: mediastream-recording; urlPrefix: https://www.w3.org/TR/mediastream-recording/#
+    type:interface
+        text: MediaRecorder; url: mediarecorder
+
+spec: webrtc; urlPrefix: https://www.w3.org/TR/webrtc/#
+    type: interface
+        text: RTCPeerConnection; url: interface-definition
+
+spec: mimesniff; urlPrefix: https://mimesniff.spec.whatwg.org/#
+    type: dfn; text: valid mime type; url: valid-mime-type
+
+spec: webidl; urlPrefix: https://heycam.github.io/webidl/#
+    type: dfn; text: present; url:dfn-present
+    type: dfn; text: SecurityError; url:securityerror
+    type: interface; text: DOMException; url:idl-DOMException
+    type: dfn; text: InvalidStateError; url:invalidstateerror
+
+spec: dom; urlPrefix: https://dom.spec.whatwg.org/#
+    type: dfn; text: Document; url:concept-document
+
+spec: encrypted-media; for: EME; urlPrefix: https://www.w3.org/TR/encrypted-media/#
+    type: attribute
+        text: keySystem; url: dom-mediakeysystemaccess-keysystem
+        text: initDataTypes; url: dom-mediakeysystemconfiguration-initdatatypes
+        text: robustness; url: dom-mediakeysystemmediacapability-robustness
+        text: distinctiveIdentifier; url: dom-mediakeysystemconfiguration-distinctiveidentifier
+        text: persistentState; url: dom-mediakeysystemconfiguration-persistentstate
+        text: sessionTypes; url: dom-mediakeysystemconfiguration-sessiontypes
+    type: dfn
+        text: encrypted media
+        text: Key System; url: key-system
+        text: Get Supported Configuration; url: get-supported-configuration
+    type: interface
+        text: MediaKeySystemAccess; url: mediakeysystemaccess-interface
+        text: MediaKeys; url: mediakeys-interface
+        text: MediaKeySystemConfiguration; url: mediakeysystemconfiguration-dictionary
+        text: requestMediaKeySystemAccess(); url: navigator-extension:-requestmediakeysystemaccess()
+        text: MediaKeySystemMediaCapability; url: mediakeysystemmediacapability-dictionary
+        text: MediaKeysRequirement; url: dom-mediakeysrequirement
+        text: audioCapabilities; url: dom-mediakeysystemconfiguration-audiocapabilities
+        text: contentType; url: dom-mediakeysystemmediacapability-contenttype
+
+spec: encrypted-media-draft; for: EME; urlPrefix: https://w3c.github.io/encrypted-media/#
+    type: attribute
+        text: encryptionScheme; url: dom-mediakeysystemmediacapability-encryptionscheme
+
+spec: secure-contexts; urlPrefix: https://www.w3.org/TR/secure-contexts/
+    type: dfn; text: Is the environment settings object settings a secure context?; url: #settings-object
+</pre>
+
+<pre class='biblio'>
+{
+    "SMPTE-ST-2084": {
+        "href": "https://ieeexplore.ieee.org/document/7291452",
+        "title": "High Dynamic Range Electro-Optical Transfer Function of Mastering Reference Displays",
+        "publisher": "SMPTE",
+        "date": "2014",
+        "id": "SMPTE-ST-2084"
+    },
+    "SMPTE-ST-2086": {
+        "href": "https://ieeexplore.ieee.org/document/7291707",
+        "title": "Mastering Display Color Volume Metadata Supporting High Luminance and Wide Color Gamut Images",
+        "publisher": "SMPTE",
+        "date": "2014",
+        "id": "SMPTE-ST-2086"
+    },
+    "SMPTE-ST-2094": {
+        "href": "https://ieeexplore.ieee.org/document/7513361",
+        "title": "Dynamic Metadata for Color Volume Transform Core Components",
+        "publisher": "SMPTE",
+        "date": "2016",
+        "id": "SMPTE-ST-2094"
+    },
+    "ENCRYPTED-MEDIA-DRAFT": {
+        "href": "https://w3c.github.io/encrypted-media",
+        "title": "Encrypted Media Extensions",
+        "publisher": "W3C",
+        "date": "13 December 2019"
+    }
+}
+</pre>
+
+<section class='non-normative'>
+  <h2 id='introduction'>Introduction</h2>
+  <em>This section is non-normative</em>
+
+  <p>
+    This specification relies on exposing the following sets of properties:
+    <ul>
+      <li>
+        <p>
+          An API to query the user agent with regards to the decoding and
+          encoding abilities of the device based on information such as the
+          codecs, profile, resolution, bitrates, etc. The API exposes
+          information such as whether the playback should be smooth and power
+          efficient.
+        </p>
+        <p>
+          The intent of purposes of the decoding capabilities API is to provide
+          a powerful replacement to API such as
+          {{MediaSource/isTypeSupported()}} or
+          {{HTMLMediaElement/canPlayType()}} which are vague and mostly help the
+          callers to know if something can not be decoded but not how well it
+          should perform.
+        </p>
+      </li>
+      <li>
+        <p>
+          Better information about the display properties such as supported
+          color gamut or dynamic range abilities in order to pick the right
+          content for the display and avoid providing HDR content to an SDR
+          display.
+        </p>
+      </li>
+      <li>
+        <p>
+          Real time feedback about the playback so an adaptative streaming can
+          alter the quality of the content based on actual user perceived
+          quality. Such information will allow websites to react to a pick of
+          CPU/GPU usage in real time. It is expected that this will be tackled
+          as part of the [[media-playback-quality]] specification.
+        </p>
+      </li>
+    </ul>
+  </p>
+</section>
+
+<section>
+  <h2 id='decoding-encoding-capabilities'>Decoding and Encoding Capabilities</h2>
+
+  <section>
+    <h3 id='media-configurations'>Media Configurations</h3>
+
+    <section>
+      <h4 id='mediaconfiguration'>MediaConfiguration</h4>
+
+      <pre class='idl'>
+        dictionary MediaConfiguration {
+          VideoConfiguration video;
+          AudioConfiguration audio;
+        };
+      </pre>
+
+      <pre class='idl'>
+        dictionary MediaDecodingConfiguration : MediaConfiguration {
+          required MediaDecodingType type;
+          MediaCapabilitiesKeySystemConfiguration keySystemConfiguration;
+        };
+      </pre>
+
+      <pre class='idl'>
+        dictionary MediaEncodingConfiguration : MediaConfiguration {
+          required MediaEncodingType type;
+        };
+      </pre>
+
+      <p>
+        The input to the decoding capabilities is represented by a
+        {{MediaDecodingConfiguration}} dictionary and the input of the encoding
+        capabilities by a {{MediaEncodingConfiguration}} dictionary.
+      </p>
+      <p>
+        For a {{MediaConfiguration}} to be a <dfn>valid 
+        MediaConfiguration</dfn>, all of the following conditions MUST be true:
+        <ol>
+          <li>
+            <code>audio</code> and/or <code>video</code> MUST be <a>present</a>.
+          </li>
+          <li>
+            <code>audio</code> MUST be a <a>valid audio configuration</a> if 
+            <a>present</a>.
+          </li>
+          <li>
+            <code>video</code> MUST be a <a>valid video configuration</a> if 
+            <a>present</a>.
+          </li>
+        </ol>
+      </p>
+      <p>
+        For a {{MediaDecodingConfiguration}} to be a <dfn>valid 
+        MediaDecodingConfiguration</dfn>, all of the following conditions MUST
+        be true:
+        <ol>
+          <li>
+            It MUST be a <a>valid MediaConfiguration</a>.
+          </li>
+          <li>
+            If <code>keySystemConfiguration</code> is <a>present</a>:
+            <ol>
+              <li>
+                If <code>keySystemConfiguration.audio</code> is 
+                <a>present</a>, <code>audio</code> MUST also be <a>present</a>.
+              </li>
+              <li>
+                If <code>keySystemConfiguration.video</code> is 
+                <a>present</a>, <code>video</code> MUST also be <a>present</a>.
+              </li>
+            </ol>
+          </li>
+        </ol>
+      </p>
+      <p>
+        For a {{MediaDecodingConfiguration}} to describe [[!ENCRYPTED-MEDIA]], a
+        {{keySystemConfiguration}} MUST be <a>present</a>.
+      </p>
+    </section>
+
+    <section>
+      <h4 id='mediadecodingtype'>MediaDecodingType</h4>
+
+      <pre class='idl'>
+        enum MediaDecodingType {
+          "file",
+          "media-source",
+        };
+      </pre>
+
+      <p>
+        A {{MediaDecodingConfiguration}} has two types:
+        <ul>
+          <li><dfn for='MediaDecodingType' enum-value>file</dfn> is used to
+          represent a configuration that is meant to be used for a plain file
+          playback.</li>
+          <li><dfn for='MediaDecodingType' enum-value>media-source</dfn> is used
+          to represent a configuration that is meant to be used for playback of
+          a {{MediaSource/MediaSource}} as defined in the [[media-source]]
+          specification.</li>
+        </ul>
+      </p>
+    </section>
+
+    <section>
+      <h4 id='mediaencodingtype'>MediaEncodingType</h4>
+
+      <pre class='idl'>
+        enum MediaEncodingType {
+          "record",
+          "transmission"
+        };
+      </pre>
+
+      <p>
+        A {{MediaEncodingConfiguration}} can have one of two types:
+        <ul>
+          <li><dfn for='MediaEncodingType' enum-value>record</dfn> is used to
+          represent a configuration for recording of media,
+          <span class="informative">e.g. using {{MediaRecorder}} as defined in
+          [[mediastream-recording]]</span>.</li>
+          <li><dfn for='MediaEncodingType' enum-value>transmission</dfn> is used
+          to represent a configuration meant to be transmitted over electronic
+          means (<span class="informative">e.g. using {{RTCPeerConnection}} as
+          defined in [[webrtc]]</span>).</li>
+        </ul>
+      </p>
+    </section>
+
+    <section>
+      <h4 id='mime-type'>MIME types</h4>
+
+      <p>
+        In the context of this specification, a MIME type is also called content
+        type. A <dfn>valid media MIME type</dfn> is a string that is a <a>valid
+        MIME type</a> per [[mimesniff]]. If the MIME type does not imply a
+        codec, the string MUST also have one and only one parameter that is
+        named <code>codecs</code> with a value describing a single media codec.
+        Otherwise, it MUST contain no parameters.
+      </p>
+
+      <p>
+        A <dfn>valid audio MIME type</dfn> is a string that is <a>valid media
+        MIME type</a> and for which the <code>type</code> per [[RFC7231]] is
+        either <code>audio</code> or <code>application</code>.
+      </p>
+
+      <p>
+        A <dfn>valid video MIME type</dfn> is a string that is a <a>valid media
+        MIME type</a> and for which the <code>type</code> per [[RFC7231]] is
+        either <code>video</code> or <code>application</code>.
+      </p>
+    </section>
+
+    <section>
+      <h4 id='videoconfiguration'>VideoConfiguration</h4>
+
+      <pre class='idl'>
+        dictionary VideoConfiguration {
+          required DOMString contentType;
+          required unsigned long width;
+          required unsigned long height;
+          required unsigned long long bitrate;
+          required double framerate;
+          boolean hasAlphaChannel;
+          HdrMetadataType hdrMetadataType;
+          ColorGamut colorGamut;
+          TransferFunction transferFunction;
+        };
+      </pre>
+
+      <p>
+        The <dfn for='VideoConfiguration' dict-member>contentType</dfn> member
+        represents the MIME type of the video track.
+      </p>
+
+      <p>
+        To check if a {{VideoConfiguration}} <var>configuration</var> is a
+        <dfn>valid video configuration</dfn>, the following steps MUST be run:
+        <ol>
+          <li>
+            If <var>configuration</var>'s {{VideoConfiguration/contentType}} is
+            not a <a>valid video MIME type</a>, return <code>false</code> and
+            abort these steps.
+          </li>
+          <li>
+            If {{VideoConfiguration/framerate}} is not finite or is not greater
+            than 0, return <code>false</code> and abort these steps.
+          </li>
+          <li>
+            Return <code>true</code>.
+          </li>
+        </ol>
+      </p>
+
+      <p>
+        The <dfn for='VideoConfiguration' dict-member>width</dfn> and
+        <dfn for='VideoConfiguration' dict-member>height</dfn> members represent
+        respectively the visible horizontal and vertical encoded pixels in the
+        encoded video frames.
+      </p>
+
+      <p>
+        The <dfn for='VideoConfiguration' dict-member>bitrate</dfn> member
+        represents the average bitrate of the video track given in units of bits
+        per second. In the case of a video stream encoded at a constant bit rate
+        (CBR) this value should be accurate over a short term window. For the
+        case of variable bit rate (VBR) encoding, this value should be usable to
+        allocate any necessary buffering and throughput capability to
+        provide for the un-interrupted decoding of the video stream over the
+        long-term based on the indicated {{VideoConfiguration/contentType}}.
+      </p>
+
+      <p>
+        The <dfn for='VideoConfiguration' dict-member>framerate</dfn> member
+        represents the framerate of the video track. The framerate is the number
+        of frames used in one second (frames per second). It is represented as a
+        double.
+      </p>
+
+      <p>
+        The <dfn for='VideoConfiguration' dict-member>hasAlphaChannel</dfn> member
+        represents whether the video track contains alpha channel information. If
+        true, the encoded video stream can produce per-pixel alpha channel information
+        when decoded. If false, the video stream cannot produce per-pixel alpha channel
+        information when decoded. If undefined, the UA should determine whether the
+        video stream encodes alpha channel information based on the indicated
+        {{VideoConfiguration/contentType}}, if possible. Otherwise, the UA should
+        presume that the video stream cannot produce alpha channel information.
+      </p>
+
+      <p>
+        If present, the <dfn for='VideoConfiguration' dict-member>hdrMetadataType</dfn>
+        member represents that the video track includes the specified HDR
+        metadata type, which the UA needs to be capable of interpreting for tone
+        mapping the HDR content to a color volume and luminance of the output
+        device. Valid inputs are defined by {{HdrMetadataType}}.
+      </p>
+
+      <p>
+        If present, the <dfn for='VideoConfiguration' dict-member>colorGamut</dfn>
+        member represents that the video track is delivered in the specified
+        color gamut, which describes a set of colors in which the content is
+        intended to be displayed. If the attached output device also supports
+        the specified color, the UA needs to be able to cause the output device
+        to render the appropriate color, or something close enough. If the
+        attached output device does not support the specified color, the UA
+        needs to be capable of mapping the specified color to a color supported
+        by the output device. Valid inputs are defined by {{ColorGamut}}.
+      </p>
+
+      <p>
+        If present, the <dfn for='VideoConfiguration' dict-member>transferFunction</dfn>
+        member represents that the video track requires the specified transfer
+        function to be understood by the UA. Transfer function describes the
+        electro-optical algorithm supported by the rendering capabilities of a
+        user agent, independent of the display, to map the source colors in the
+        decoded media into the colors to be displayed. Valid inputs are defined
+        by {{TransferFunction}}.
+      </p>
+    </section>
+
+    <section>
+      <h4 id='hdrmetadatatype'>HdrMetadataType</h4>
+
+      <p>
+        <pre class='idl'>
+          enum HdrMetadataType {
+            "smpteSt2086",
+            "smpteSt2094-10",
+            "smpteSt2094-40"
+          };
+        </pre>
+
+        <p>
+          If present, {{HdrMetadataType}} describes the capability to interpret HDR metadata
+          of the specified type.
+        </p>
+
+        <p>
+          The {{VideoConfiguration}} may contain one of the following types:
+          <ul>
+            <li>
+              <dfn for='HdrMetadataType' enum-value>smpteSt2086</dfn>,
+              representing the static metadata type defined by
+              [[!SMPTE-ST-2086]].
+            </li>
+            <li>
+              <dfn for='HdrMetadataType' enum-value>smpteSt2094-10</dfn>,
+              representing the dynamic metadata type defined by
+              [[!SMPTE-ST-2094]].
+            </li>
+            <li>
+              <dfn for='HdrMetadataType' enum-value>smpteSt2094-40</dfn>,
+              representing the dynamic metadata type defined by 
+              [[!SMPTE-ST-2094]].
+            </li>
+          </ul>
+        </p>
+      </p>
+    </section>
+
+    <section>
+      <h4 id='colorgamut'>ColorGamut</h4>
+
+      <p>
+        <pre class='idl'>
+          enum ColorGamut {
+            "srgb",
+            "p3",
+            "rec2020"
+          };
+        </pre>
+
+        <p>
+          The {{VideoConfiguration}} may contain one of the following types:
+          <ul>
+            <li>
+              <dfn for='ColorGamut' enum-value>srgb</dfn>, representing the
+              [[!sRGB]] color gamut.
+            </li>
+            <li>
+              <dfn for='ColorGamut' enum-value>p3</dfn>, representing the DCI
+              P3 Color Space color gamut. This color gamut includes the
+              {{ColorGamut/srgb}} gamut.
+            </li>
+            <li>
+              <dfn for='ColorGamut' enum-value>rec2020</dfn>, representing
+              the ITU-R Recommendation BT.2020 color gamut. This color gamut
+              includes the {{ColorGamut/p3}} gamut.
+            </li>
+          </ul>
+        </p>
+      </p>
+    </section>
+    
+    <section>
+      <h4 id='transferfunction'>TransferFunction</h4>
+
+      <p>
+        <pre class='idl'>
+          enum TransferFunction {
+            "srgb",
+            "pq",
+            "hlg"
+          };
+        </pre>
+
+        <p>
+          The {{VideoConfiguration}} may contain one of the following types:
+          <ul>
+            <li>
+              <dfn for='TransferFunction' enum-value>srgb</dfn>, representing
+              the transfer function defined by [[!sRGB]].
+            </li>
+            <li>
+              <dfn for='TransferFunction' enum-value>pq</dfn>, representing the
+              "Perceptual Quantizer" transfer function defined by 
+              [[!SMPTE-ST-2084]].
+            </li>
+            <li>
+              <dfn for='TransferFunction' enum-value>hlg</dfn>, representing the
+              "Hybrid Log Gamma" transfer function defined by BT.2100.
+            </li>
+          </ul>
+        </p>
+      </p>
+    </section>
+
+    <section>
+      <h4 id='audioconfiguration'>AudioConfiguration</h4>
+
+      <pre class='idl'>
+        dictionary AudioConfiguration {
+          required DOMString contentType;
+          DOMString channels;
+          unsigned long long bitrate;
+          unsigned long samplerate;
+          boolean spatialRendering;
+        };
+      </pre>
+
+      <p>
+        The <dfn for='AudioConfiguration' dict-member>contentType</dfn> member
+        represents the MIME type of the audio track.
+      </p>
+
+      <p>
+        To check if a {{AudioConfiguration}} <var>configuration</var> is a
+        <dfn>valid audio configuration</dfn>, the following steps MUST be run:
+        <ol>
+          <li>
+            If <var>configuration</var>'s {{AudioConfiguration/contentType}} is
+            not a <a>valid audio MIME type</a>, return <code>false</code> and
+            abort these steps.
+          </li>
+          <li>
+            Return <code>true</code>.
+          </li>
+        </ol>
+      </p>
+
+      <p>
+        The <dfn for='AudioConfiguration' dict-member>channels</dfn> member
+        represents the audio channels used by the audio track.
+      </p>
+
+      <p class='issue'>
+        The {{AudioConfiguration/channels}} needs to be defined as a
+        <code>double</code> (2.1, 4.1, 5.1, ...), an <code>unsigned short</code>
+        (number of channels) or as an <code>enum</code> value. The current
+        definition is a placeholder.
+      </p>
+
+      <p>
+        The <dfn for='AudioConfiguration' dict-member>bitrate</dfn> member
+        represents the number of average bitrate of the audio track. The bitrate
+        is the number of bits used to encode a second of the audio track.
+      </p>
+
+      <p>
+        The <dfn for='AudioConfiguration' dict-member>samplerate</dfn>
+        represents the samplerate of the audio track in. The samplerate is the
+        number of samples of audio carried per second.
+      </p>
+
+      <p class='note'>
+        The {{AudioConfiguration/samplerate}} is expressed in <code>Hz</code>
+        (ie. number of samples of audio per second). Sometimes the samplerates
+        value are expressed in <code>kHz</code> which represents the number of
+        thousands of samples of audio per second.<br>
+        44100 <code>Hz</code> is equivalent to 44.1 <code>kHz</code>.
+      </p>
+
+      <p>
+        The <dfn for='AudioConfiguration' dict-member>spatialRendering</dfn> 
+        member indicates that the audio SHOULD be renderered spatially. The 
+        details of spatial rendering SHOULD be inferred from the 
+        {{AudioConfiguration/contentType}}. If not <a>present</a>, the UA MUST 
+        presume spatialRendering is not required. When <code>true</code>, the
+        user agent SHOULD only report this configuration as 
+        <a for=MediaCapabilitiesInfo>supported</a> if it can support spatial
+        rendering *for the current audio output device* without failing back to a
+        non-spatial mix of the stream.
+      </p>
+    </section>
+  </section>
+
+  <section>
+      <h4 id='mediacapabilitieskeysystemconfiguration'>
+        MediaCapabilitiesKeySystemConfiguration
+      </h4>
+
+      <pre class='idl'>
+        <xmp>
+          dictionary MediaCapabilitiesKeySystemConfiguration {
+            required DOMString keySystem;
+            DOMString initDataType = "";
+            MediaKeysRequirement distinctiveIdentifier = "optional";
+            MediaKeysRequirement persistentState = "optional";
+            sequence<DOMString> sessionTypes;
+            KeySystemTrackConfiguration audio;
+            KeySystemTrackConfiguration video;
+          };
+        </xmp>
+      </pre>
+
+      <p class='note'>
+        This dictionary refers to a number of types defined by
+        [[ENCRYPTED-MEDIA]] (EME). Sequences of EME types are
+        flattened to a single value whenever the intent of the sequence was to
+        have {{EME/requestMediaKeySystemAccess()}} choose a subset it supports.
+        With MediaCapabilities, callers provide the sequence across multiple
+        calls, ultimately letting the caller choose which configuration to use.
+      </p>
+
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>keySystem</dfn>
+        member represents a {{EME/keySystem}} name as described in
+        [[!ENCRYPTED-MEDIA]].
+      </p>
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>initDataType</dfn>
+        member represents a single value from the {{EME/initDataTypes}} sequence
+        described in [[!ENCRYPTED-MEDIA]].
+      </p>
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>distinctiveIdentifier</dfn>
+        member represents a {{EME/distinctiveIdentifier}} requirement as
+        described in [[!ENCRYPTED-MEDIA]].
+      </p>
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>persistentState</dfn>
+        member represents a {{EME/persistentState}} requirement as described in
+        [[!ENCRYPTED-MEDIA]].
+      </p>
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>sessionTypes</dfn>
+        member represents a sequence of required {{EME/sessionTypes}} as
+        described in [[!ENCRYPTED-MEDIA]].
+      </p>
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>audio</dfn> member
+        represents a {{KeySystemTrackConfiguration}} associated with the {{AudioConfiguration}}.
+      </p>
+      <p>
+        The <dfn for='MediaCapabilitiesKeySystemConfiguration' dict-member>video</dfn> member
+        represents a {{KeySystemTrackConfiguration}} associated with the {{VideoConfiguration}}.
+      </p>
+  </section>
+
+  <section>
+    <h4 id='keysystemtrackconfiguration'>
+      KeySystemTrackConfiguration
+    </h4>
+
+    <pre class='idl'>
+      <xmp>
+        dictionary KeySystemTrackConfiguration {
+          DOMString robustness = "";
+          DOMString? encryptionScheme = null;
+        };
+      </xmp>
+    </pre>
+
+    <p>
+      The <dfn for='KeySystemTrackConfiguration' dict-member>robustness</dfn>
+      member represents a {{EME/robustness}} level as described in [[!ENCRYPTED-MEDIA]].
+    </p>
+
+    <p>
+      The <dfn for='KeySystemTrackConfiguration' dict-member>encryptionScheme</dfn>
+      member represents an {{EME/encryptionScheme}} as described in [[!ENCRYPTED-MEDIA-DRAFT]].
+    </p>
+  </section>
+
+  <section>
+    <h3 id='media-capabilities-info'>Media Capabilities Information</h3>
+
+    <pre class='idl'>
+      dictionary MediaCapabilitiesInfo {
+        required boolean supported;
+        required boolean smooth;
+        required boolean powerEfficient;
+      };
+    </pre>
+
+    <pre class='idl'>
+      dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
+        required MediaKeySystemAccess keySystemAccess;
+        MediaDecodingConfiguration configuration;
+      };
+    </pre>
+
+    <pre class='idl'>
+      dictionary MediaCapabilitiesEncodingInfo : MediaCapabilitiesInfo {
+        MediaEncodingConfiguration configuration;
+      };
+    </pre>
+
+    <p>
+      A {{MediaCapabilitiesInfo}} has associated <dfn
+      for='MediaCapabilitiesInfo'>supported</dfn>, <dfn
+      for='MediaCapabilitiesInfo'>smooth</dfn>, <dfn
+      for='MediaCapabilitiesInfo'>powerEfficient</dfn> fields which are
+      booleans.
+    </p>
+
+    <p class='note'>
+      Authors can use {{MediaCapabilitiesInfo/powerEfficient}} in concordance
+      with the Battery Status API [[battery-status]] in order to determine
+      whether the media they would like to play is appropriate for the user
+      configuration. It is worth noting that even when a device is not power
+      constrained, high power usage has side effects such as increasing the
+      temperature or the fans noise.
+    </p>
+
+    <p>
+      A {{MediaCapabilitiesDecodingInfo}} has associated <dfn
+      for='MediaCapabilitiesDecodingInfo'>keySystemAccess</dfn> which is a
+      {{EME/MediaKeySystemAccess}} or <code>null</code> as appropriate.
+    </p>
+
+    <p>
+      A {{MediaCapabilitiesDecodingInfo}} has an associated <dfn
+      for='MediaCapabilitiesDecodingInfo'>configuration</dfn> which
+      is the decoding configuration properties used to generate the 
+      {{MediaCapabilitiesDecodingInfo}}.
+    </p>
+
+    <p>
+      A {{MediaCapabilitiesEncodingInfo}} has an associated <dfn
+      for='MediaCapabilitiesEncodingInfo'>configuration</dfn> which
+      is the encoding configuration properties used to generate the 
+      {{MediaCapabilitiesEncodingInfo}}.
+    </p>
+
+    <p class='note'>
+      If the encrypted decoding configuration is supported, the
+      resulting {{MediaCapabilitiesInfo}} will include a
+      {{EME/MediaKeySystemAccess}}. Authors may use this to create
+      {{EME/MediaKeys}} and setup encrypted playback.
+    </p>
+
+    <section>
+      <h3 id='info-algorithms'>Algorithms</h3>
+
+      <section>
+        <h4 id='create-media-capabilities-encoding-info'>
+          <dfn>Create a MediaCapabilitiesEncodingInfo</dfn>
+        </h4>
+        <p>
+          Given a {{MediaEncodingConfiguration}} <var>configuration</var>, this
+          algorithm returns a {{MediaCapabilitiesEncodingInfo}}. The following steps are
+          run:
+          <ol>
+            <li>
+              Let <var>info</var> be a new {{MediaCapabilitiesEncodingInfo}} instance.
+              Unless stated otherwise, reading and writing apply to
+              <var>info</var> for the next steps.
+            </li>
+            <li>
+              Set <a for=MediaCapabilitiesEncodingInfo>configuration</a> to be a new
+              {{MediaEncodingConfiguration}}. For every property in <var>configuration</var>
+              create a new property with the same name and value in <a
+              for=MediaCapabilitiesEncodingInfo>configuration</a>. </li>
+            <li>
+              If the user agent is able to encode the media represented by
+              <var>configuration</var>, set
+              <a for=MediaCapabilitiesInfo>supported</a> to 
+              <code>true</code>. Otherwise set it to <code>false</code>.
+            </li>
+            <li>
+              If the user agent is able to encode the media represented by
+              <var>configuration</var> at a pace that
+              allows encoding frames at the same pace as they are sent to 
+              the encoder, set <a for=MediaCapabilitiesInfo>smooth</a> to
+              <code>true</code>. Otherwise set it to <code>false</code>.
+            </li>
+            <li>
+              If the user agent is able to encode the media represented by
+              <var>configuration</var> in a power
+              efficient manner, set <a
+              for=MediaCapabilitiesInfo>powerEfficient</a> to 
+              <code>true</code>. Otherwise set it to <code>false</code>. 
+              The user agent SHOULD NOT take into consideration the current 
+              power source in order to determine the encoding power 
+              efficiency unless the device's power source has side effects 
+              such as enabling different encoding modules.
+            </li>
+            <li>
+              Return <var>info</var>.
+            </li>
+          </ol>
+        </p>
+      </section>
+
+      <section>
+        <h4 id='create-media-capabilities-decoding-info'>
+          <dfn>Create a MediaCapabilitiesDecodingInfo</dfn>
+        </h4>
+        <p>
+          Given a {{MediaDecodingConfiguration}} <var>configuration</var>, this
+          algorithm returns a {{MediaCapabilitiesDecodingInfo}}. The following 
+          steps are run:
+          <ol>
+            <li>
+              Let <var>info</var> be a new {{MediaCapabilitiesDecodingInfo}} instance.
+              Unless stated otherwise, reading and writing apply to
+              <var>info</var> for the next steps.
+            </li>
+            <li>
+              Set <a for=MediaCapabilitiesDecodingInfo>configuration</a> to be a new
+              {{MediaDecodingConfiguration}}. For every property in <var>configuration</var>
+              create a new property with the same name and value in <a
+              for=MediaCapabilitiesDecodingInfo>configuration</a>.
+            </li>
+            <li>
+              If <code>configuration.keySystemConfiguration</code> is
+              <a>present</a>:
+              <ol>
+                <li>
+                  Set <a for=MediaCapabilitiesDecodingInfo>keySystemAccess</a>
+                  to the result of running the <a>Check Encrypted Decoding 
+                  Support</a> algorithm with <var>configuration</var>.
+                </li>
+                <li>
+                  If <a for=MediaCapabilitiesDecodingInfo>keySystemAccess</a>
+                  is not <code>null</code> set 
+                  <a for=MediaCapabilitiesInfo>supported</a> to 
+                  <code>true</code>. Otherwise set it to <code>false</code>.
+                </li>
+              </ol>
+            </li>
+            <li>
+              Otherwise, run the following steps:
+              <ol>
+                <li>
+                  Set <a for=MediaCapabilitiesDecodingInfo>keySystemAccess</a>
+                  to <code>null</code>.
+                </li>
+                <li>
+                  If the user agent is able to decode the media represented
+                  by <var>configuration</var>, set
+                  <a for=MediaCapabilitiesInfo>supported</a> to
+                  <code>true</code>.
+                </li>
+                <li>Otherwise, set it to <code>false</code>.</li>
+              </ol>
+            </li>
+            <li>
+              If the user agent is able to decode the media represented by
+              <var>configuration</var> at a pace that allows a smooth
+              playback, set <a for=MediaCapabilitiesInfo>smooth</a> to 
+              <code>true</code>. Otherwise set it to <code>false</code>.
+            </li>
+            <li>
+              If the user agent is able to decode the media represented by
+              <var>configuration</var> in a power efficient
+              manner, set <a for=MediaCapabilitiesInfo>powerEfficient</a> to
+              <code>true</code>. Otherwise set it to <code>false</code>. The
+              user agent SHOULD NOT take into consideration the current 
+              power source in order to determine the decoding power 
+              efficiency unless the device's power source has side effects 
+              such as enabling different decoding modules.
+            </li>
+            <li>
+              Return <var>info</var>.
+            </li>
+          </ol>
+        </p>
+      </section>
+
+      <section>
+        <h4 id='is-encrypted-decode-supported'>
+          <dfn>Check Encrypted Decoding Support</dfn>
+        </h4>
+        <p>
+          Given a {{MediaDecodingConfiguration}} <var>config</var> with a
+          {{keySystemConfiguration}} <a>present</a>, this algorithm returns a
+          {{EME/MediaKeySystemAccess}} or <code>null</code> as appropriate. The
+          following steps are run:
+          <ol>
+            <li>
+              If the {{keySystem}} member of
+              <code>config.keySystemConfiguration</code> is not one of the
+              <a for='EME'>Key Systems</a> supported by the user agent, return
+              <code>null</code>. String comparison is case-sensitive.
+            </li>
+            <li>
+              Let <var>origin</var> be the <a>origin</a> of the calling 
+              context's <a>Document</a>.
+            </li>
+            <li>
+              Let <var>implementation</var> be the implementation of <code>config.keySystemConfiguration.keySystem</code>
+            </li>
+
+            <li>
+              Let <var>emeConfiguration</var> be a new 
+              {{EME/MediaKeySystemConfiguration}}, and initialize it as follows:
+            </li>
+            <ol>
+              <li>
+                Set the {{EME/initDataTypes}} attribute to a sequence containing
+                <code>config.keySystemConfiguration.initDataType</code>.
+              </li>
+              <li>
+                Set the {{EME/distinctiveIdentifier}} attribute to
+                <code>config.keySystemConfiguration.distinctiveIdentifier</code>.
+              </li>
+              <li>
+                Set the {{EME/persistentState}} attribute to
+                <code>config.keySystemConfiguration.peristentState</code>.
+              </li>
+              <li>
+                Set the {{EME/sessionTypes}} attribute to
+                <code>config.keySystemConfiguration.sessionTypes</code>.
+              </li>
+              <li>
+                If {{MediaConfiguration/audio}} is <a>present</a> in <var>config</var>, set the
+                {{EME/audioCapabilities}} attribute to a sequence containing a
+                single {{EME/MediaKeySystemMediaCapability}}, initialized as
+                follows:
+                <ol>
+                  <li>
+                    Set the {{EME/contentType}} attribute to
+                    <code>config.audio.contentType</code>.
+                  </li>
+                  <li>
+                    If <code>config.keySystemConfiguration.audio</code>
+                    is <a>present</a>:
+                    <ol>
+                      <li>
+                        Set the {{EME/robustness}} attribute to <code>
+                        config.keySystemConfiguration.audio.robustness</code>
+                      </li>
+                      <li>
+                        Set the {{EME/encryptionScheme}} attribute to <code>
+                        config.keySystemConfiguration.audio.encryptionScheme</code>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+              <li>
+                If {{MediaConfiguration/video}} is <a>present</a> in <var>config</var>, set the
+                videoCapabilities attribute to a sequence containing a single
+                {{EME/MediaKeySystemMediaCapability}}, initialized as follows:
+                <ol>
+                  <li>
+                    Set the {{EME/contentType}} attribute to
+                    <code>config.video.contentType</code>.
+                  </li>
+                  <li>
+                    If <code>config.keySystemConfiguration.video</code> is <a>present</a>:
+                    <ol>
+                      <li>
+                        Set the {{EME/robustness}} attribute to <code>
+                        config.keySystemConfiguration.video.robustness</code>.
+                      </li>
+                      <li>
+                        Set the {{EME/encryptionScheme}} attribute to <code>
+                        config.keySystemConfiguration.video.encryptionScheme</code>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+            <li>
+              Let <var>supported configuration</var> be the result of
+              executing the <a for='EME'>Get Supported Configuration</a>
+              algorithm on <var>implementation</var>,
+              <var>emeConfiguration</var>, and <var>origin</var>.
+            </li>
+            <li>
+              If <var>supported configuration</var> is
+              <code>NotSupported</code>, return <code>null</code> and abort
+              these steps.
+            </li>
+            <li>
+              Let <var>access</var> be a new {{EME/MediaKeySystemAccess}}
+              object, and initialize it as follows:
+              <ol>
+                <li>
+                  Set the {{EME/keySystem}} attribute to
+                  <code>emeConfiguration.keySystem</code>.
+                </li>
+                <li>
+                  Let the <var>configuration</var> value be
+                  <var>supported configuration</var>.
+                </li>
+                <li>
+                  Let the <var ignore=''>cdm implementation</var> value be
+                  <var>implementation</var>.
+                </li>
+              </ol>
+            </li>
+            <li>Return <var>access</var></li>
+          </ol>
+        </p>
+      </section>
+  </section>
+
+  <section>
+    <h3 id='navigators-extensions'>Navigator and WorkerNavigator extension</h3>
+
+    <pre class='idl'>
+      [Exposed=Window]
+      partial interface Navigator {
+        [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
+      };
+    </pre>
+    <pre class='idl'>
+      [Exposed=Worker]
+      partial interface WorkerNavigator {
+        [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
+      };
+    </pre>
+  </section>
+
+  <section>
+    <h3 id='media-capabilities-interface'>Media Capabilities Interface</h3>
+
+    <pre class='idl'>
+      [Exposed=(Window, Worker)]
+      interface MediaCapabilities {
+        [NewObject] Promise&lt;MediaCapabilitiesDecodingInfo&gt; decodingInfo(MediaDecodingConfiguration configuration);
+        [NewObject] Promise&lt;MediaCapabilitiesInfo&gt; encodingInfo(MediaEncodingConfiguration configuration);
+      };
+    </pre>
+
+    <p>
+      The {{decodingInfo()}} method method MUST run the following steps:
+      <ol>
+        <li>
+          If <var>configuration</var> is not a <a>valid
+          MediaDecodingConfiguration</a>, return a Promise rejected with a 
+          newly created {{TypeError}}.
+        </li>
+        <li>
+          If <code>configuration.keySystemConfiguration</code> is 
+          <a>present</a>, run the following substeps:
+          <ol>
+            <li>
+              If the <a>global object</a> is of type {{WorkerGlobalScope}},
+              return a Promise rejected with a newly created {{DOMException}}
+              whose name is <a>InvalidStateError</a>.
+            </li>
+            <li>
+              If the result of running <a>Is the environment settings object 
+              settings a secure context?</a> [[!secure-contexts]] with the 
+              <a>global object's</a> <a>relevant settings object</a> is not
+              "Secure", return a Promise rejected with a newly created 
+              {{DOMException}} whose name is <a>SecurityError</a>.
+            </li>
+          </ol>
+        </li>
+        <li>
+          Let <var>p</var> be a new promise.
+        </li>
+        <li>
+          <a>In parallel</a>, run the <a>Create a 
+          MediaCapabilitiesDecodingInfo</a> algorithm with 
+          <var>configuration</var> and resolve <var>p</var> with its result.
+        </li>
+        <li>
+          Return <var>p</var>.
+        </li>
+      </ol>
+    </p>
+
+    <p class='note'>
+      Note, calling {{decodingInfo()}} with a {{keySystemConfiguration}} present
+      may have user-visible effects, including requests for user consent. Such
+      calls should only be made when the author intends to create and use a
+      {{EME/MediaKeys}} object with the provided configuration.
+    </p>
+
+    <p>
+      The {{encodingInfo()}} method MUST run the following steps:
+      <ol>
+        <li>
+          If <var>configuration</var> is not a <a>valid MediaConfiguration</a>,
+          return a Promise rejected with a newly created {{TypeError}}.
+        </li>
+        <li>
+          Let <var>p</var> be a new promise.
+        </li>
+        <li>
+          <a>In parallel</a>, run the <a>Create a MediaCapabilitiesEncodingInfo</a>
+          algorithm with <var>configuration</var> and resolve <var>p</var>
+          with its result.
+        </li>
+        <li>
+          Return <var>p</var>.
+        </li>
+      </ol>
+    </p>
+
+  </section>
+</section>
+
+<section class='non-normative'>
+  <h2 id='security-privacy-considerations'>
+    Security and Privacy Considerations
+  </h2>
+
+  <section>
+    <p>
+      This specification does not introduce any security-sensitive information
+      or APIs but is provides an easier access to some information that can be
+      used to fingerprint users.
+    </p>
+
+    <section>
+      <h3 id='decoding-encoding-fingerprinting'>
+        Decoding/Encoding and Fingerprinting
+      </h3>
+
+      <p>
+        The information exposed by the decoding/encoding capabilities can
+        already be discovered via experimentation with the exception that the
+        API will likely provide more accurate and consistent information. This
+        information is expected to have a high correlation with other
+        information already available to the web pages as a given class of
+        device is expected to have very similar decoding/encoding capabilities.
+        In other words, high end devices from a certain year are expected to
+        decode some type of videos while older devices may not. Therefore, it is
+        expected that the entropy added with this API isn't going to be
+        significant.
+      </p>
+
+      <p>
+        HDR detection is more nuanced. Adding colorGamut, transferFunction, and
+        hdrMetadataType has the potential to add significant entropy. However,
+        for UAs whose decoders are implemented in software and therefore whose
+        capabilities are fixed across devices, this feature adds no effective
+        entropy. Additionally, for many cases, devices tend to fall into large
+        categories, within which capabilities are similar thus minimizing
+        effective entropy.
+      </p>
+
+      <p>
+        If an implementation wishes to implement a fingerprint-proof version of
+        this specification, it would be recommended to fake a given set of
+        capabilities (ie. decode up to 1080p VP9, etc.) instead of returning
+        always yes or always no as the latter approach could considerably 
+        degrade the user's experience. Another mitigation could be to limit
+        these Web APIs to top-level browsing contexts. Yet another is to use a
+        privacy budget that throttles and/or blocks calls to the API above a
+        threshold.
+      </p>
+    </section>
+
+    <section>
+      <h3 id='display-fingerprinting'>Display and Fingerprinting</h3>
+
+      <p>
+        The information exposed by the display capabilities can already be
+        accessed via CSS for the most part. The specification also provides
+        default values when the user agent does not which to expose the feature
+        for privacy reasons.
+      </p>
+    </section>
+  </section>
+</section>
+
+<section>
+  <h2 id='examples'>Examples</h2>
+
+  <section>
+    <h3 id='example1'>Query playback capabilities with {{decodingInfo()}}</h3>
+      <p>
+        The following example shows how to use {{decodingInfo()}} to query
+        media playback capabilities when using Media Source Extensions
+        [[media-source]].
+      </p>
+
+      <div class="example" highlight="javascript">
+        <pre>
+          &lt;script>
+            const contentType = 'video/mp4;codecs=avc1.640028';
+
+            const configuration = {
+              type: 'media-source',
+              video: {
+                contentType: contentType,
+                width: 640,
+                height: 360,
+                bitrate: 2000,
+                framerate: 29.97
+              }
+            };
+
+            navigator.mediaCapabilities.decodingInfo(configuration)
+              .then((result) => {
+                console.log('Decoding of ' + contentType + ' is'
+                  + (result.supported ? '' : ' NOT') + ' supported,'
+                  + (result.smooth ? '' : ' NOT') + ' smooth and'
+                  + (result.powerEfficient ? '' : ' NOT') + ' power efficient');
+              })
+              .catch((err) => {
+                console.error(err, ' caused decodingInfo to reject');
+              });
+          &lt;/script>
+        </pre>
+      </div>
+  </section>
+
+  <section>
+    <h3 id='example2'>Query recording capabilities with {{encodingInfo()}}</h3>
+
+      <div class="note">
+        The following example can also be found in e.g.
+        <a href="https://codepen.io/miguelao/pen/bWNwej/left?editors=0010#0">
+        this codepen</a> with minimal modifications.
+      </div>
+
+      <div class="example" highlight="javascript">
+        <pre>
+          &lt;script>
+            const contentType = 'video/webm;codecs=vp8';
+
+            const configuration = {
+              type: 'record',
+              video: {
+                contentType: contentType,
+                width: 640,
+                height: 480,
+                bitrate: 10000,
+                framerate: 29.97
+              }
+            };
+
+            navigator.mediaCapabilities.encodingInfo(configuration)
+              .then((result) => {
+                console.log(contentType + ' is:'
+                  + (result.supported ? '' : ' NOT') + ' supported,'
+                  + (result.smooth ? '' : ' NOT') + ' smooth and'
+                  + (result.powerEfficient ? '' : ' NOT') + ' power efficient');
+              })
+              .catch((err) => {
+                console.error(err, ' caused encodingInfo to reject');
+              });
+          &lt;/script>
+        </pre>
+      </div>
+  </section>
+</section>

@@ -1,0 +1,334 @@
+<pre class='metadata'>
+Title: CSS Scrollbars Module Level 1
+Group: csswg
+Shortname: css-scrollbars
+Level: 1
+Status: ED
+Work Status: Revising
+ED: https://drafts.csswg.org/css-scrollbars/
+Repository: https://github.com/w3c/csswg-drafts/tree/master/css-scrollbars-1 css-scrollbars
+Editor: Tantek Çelik, Mozilla https://www.mozilla.org/, http://tantek.com/contact, w3cid 1464
+Editor: Rossen Atanassov, Microsoft, ratan@microsoft.com, w3cid 49885
+Abstract: CSS Scrollbars standardizes the ability to style scrollbar controls, such as their color,
+          introduced in 2000 by Windows IE 5.5. 
+          This is useful when building web applications which use color schemes very different from 
+          the appearance of default platform scrollbars.
+Link Defaults: css-color-3 (property) color
+</pre>
+
+<h2 id="intro">
+Introduction</h2>
+
+Note: this specification is 
+<a href="https://github.com/w3c/csswg-drafts/tree/master/css-scrollbars-1">
+maintained in the W3C csswg-drafts GitHub repository as css-scrollbars-1
+</a>.
+
+<h3 id="scope">
+Scope</h3>
+<em>This subsection is non-normative.</em>
+
+The CSS Scrollbars Module is specifically for styling scrollbar controls themselves, 
+e.g. their color &amp; width in Level 1, and not their layout nor whether any content is scrollable. 
+All layout impacts and content scrollability are specified in the 
+<a href="https://drafts.csswg.org/css-overflow/">CSS Overflow Module</a>.
+
+Based on
+<a href="https://www.w3.org/wiki/Css-scrollbars#Use-cases">documented use-cases</a>,
+there are three main use-cases around scrollbars this module intends to resolve:
+<ol>
+ <li>Coloring scrollbars to fit better into the UI of a web application.
+ <li>Using a thinner scrollbar when the scrolling area is small.
+ <li>Building customized scrollbars without affecting scrollability.
+</ol>
+
+For addressing these use-cases, this module adds properties to control the colors and
+width of scrollbars (if any) of an element.
+
+<h4 id="out-of-scope">
+Out Of Scope</h4>
+Layout of scrollbars and related or adjacent content, and whether content is scrollable, is out of scope.
+Those features are specified in the 
+<a href="https://drafts.csswg.org/css-overflow/">CSS Overflow Module</a>.
+
+Pseudo-elements for selecting specific parts of a scrollbar are out of scope.
+The WebKit implementation of pseudo-elements for scrollbar is
+considered to be a feature mistakenly exposed to the web.
+Main concerns against the pseudo-elements approach are:
+<ul>
+ <li>Operating systems continuously evolve their scrollbar designs to provide better user experience,
+ beyond the ability of any set of pseudo-elements to accurately model this over time.
+ <li>Different platforms have different scrollbar structure means testing interop is harder,
+ because authors would need to take not only engine but also platforms into account.
+</ul>
+
+<h3 id="values">
+Value Definitions</h3>
+
+  This specification follows the <a href="https://www.w3.org/TR/CSS2/about.html#property-defs">CSS property definition conventions</a> from [[!CSS2]]
+  using the <a href="https://www.w3.org/TR/css-values-3/#value-defs">value definition syntax</a> from [[!CSS-VALUES-3]].
+  Value types not defined in this specification are defined in CSS Values &amp; Units [[!CSS-VALUES-3]].
+  Combination with other CSS modules may expand the definitions of these value types.
+
+  In addition to the property-specific values listed in their definitions,
+  all properties defined in this specification
+  also accept the <a>CSS-wide keywords</a> keywords as their property value.
+  For readability they have not been repeated explicitly.
+
+<h2 id="scrollbar-color">Scrollbar Colors: the 'scrollbar-color' property</h2>
+
+<pre class="propdef">
+Name: scrollbar-color
+Value: auto | dark | light | <<color>>{2}
+Initial: auto
+Inherited: yes
+Computed value: specified keyword or two computed colors
+Animation type: by computed value
+Applies to: boxes to which 'overflow' applies
+Percentages: n/a
+</pre>
+
+This property allows the author to set colors of an element's scrollbars.
+
+UAs must apply the scrollbar-color value set on the root element to the viewport.
+
+Note: Unlike 'overflow' (and overflow-*) properties, 
+scrollbar-color value set on the HTML body element are not propagated to the viewport.
+
+<dl dfn-type="value" dfn-for="scrollbar-color">
+<dt><dfn>auto</dfn></dt>
+<dd>default platform rendering for the scrollbar.</dd>
+<dt><dfn>dark</dfn></dt>
+<dd>
+show a dark scrollbar,
+which can be either a dark variant of scrollbar provided by the platform,
+or a custom scrollbar with dark colors.
+</dd>
+<dt><dfn>light</dfn></dt>
+<dd>
+show a light scrollbar,
+which can be either a light variant of scrollbar provided by the platform,
+or a custom scrollbar with light colors.
+</dd>
+<dt><dfn><<color>></dfn></dt>
+<dd>
+apply the first color to the thumb of the scrollbar,
+and the second color to the track of the scrollbar.
+</dd>
+</dl>
+
+Details:
+
+Track refers to the background of the scrollbar,
+which is generally fixed regardless of the scrolling position.
+
+Thumb refers to the moving part of the scrollbar,
+which usually floats on top of the track.
+
+If this property computes to value other than ''scrollbar-color/auto'',
+implementations may render a simpler scrollbar than the default platform UI rendering,
+and color it accordingly.
+
+(Note: add diagram showing the different named pieces - something like 
+<a href="http://www.howtocreate.co.uk/tutorials/scrlbar.html">http://www.howtocreate.co.uk/tutorials/scrlbar.html</a>)
+
+(Note: add example of an overflow element with colorized scrollbars to match page styling, 
+PNG of the same in a browser that supports it currently)
+
+Implementations may ignore any of the colors
+if the corresponding part do not exist on the underlying platform.
+
+When using 'scrollbar-color' property with specific color values,
+authors should ensure the specified colors have enough contrast between them.
+For keyword values, UAs should ensure the colors they use have enough contrast.
+UAs should ensure that their actual color values for 
+''scrollbar-color/light'' and ''scrollbar-color/dark'' 
+should provide sufficient contrast with the element’s background
+(i.e. ''scrollbar-color/light'' on a light background and ''scrollbar-color/dark'' on a dark background 
+should always have sufficient contrast)
+See 
+<a href="https://www.w3.org/TR/WCAG21/#non-text-contrast">WCAG 2.1 SC 1.4.11 Non-text Contrast</a> 
+[[WCAG21]]. 
+UAs may ignore these contrast requirements based on explicit user preferences 
+(for example, when users choose a configuration option/setting that 
+always ensures a particular scrollbar color / use of system default scrollbars).
+
+Note: when a user interacts with a scrollbar (e.g. hovering or activating), 
+implementations may alter which scrollbar colors apply to which scrollbar parts.
+
+Note: IE uses named System Colors as defaults for each of the scrollbar color properties. 
+See related <a href="https://github.com/w3c/csswg-drafts/issues/1956">Issue 1956</a>.
+
+  <div class="example">
+    <p>The following example 
+    (derived from
+    <a href="https://www.w3.org/Style/Examples/007/scrollbars.en.html">https://www.w3.org/Style/Examples/007/scrollbars.en.html</a>) 
+    resets scrollbar colors in IE.</p>
+
+    <pre><code class="css">
+<!-- -->html { 
+<!-- -->    scrollbar-color: ThreeDFace Scrollbar;
+<!-- -->}</code></pre>
+  </div>
+
+
+<h2 id="scrollbar-width">Scrollbar Thickness: the 'scrollbar-width' property</h2>
+
+<pre class="propdef"> 
+Name: scrollbar-width 
+Value: auto | thin | none
+Initial: auto
+Inherited: no
+Computed value: specified keyword or absolute length
+Animation type: by computed value
+Applies to: boxes to which 'overflow' applies
+Percentages: n/a
+</pre>
+
+This property allows the author to set the maximum thickness of an element’s scrollbars when they are shown.
+
+<dl dfn-type="value" dfn-for=scrollbar-width>
+<dt><dfn>auto</dfn></dt>
+<dd>implementations must use the default platform scrollbar width.
+</dd>
+<dt><dfn>thin</dfn></dt>
+<dd>Implementations should use thinner scrollbars than ''scrollbar-width/auto'' when applicable.
+This may mean a thin variant of scrollbar provided by the platform,
+or a custom scrollbar thinner than the default platform scrollbar.
+
+Note: Some platforms may only have a tiny scrollbar by default
+which cannot be or makes no sense to make thinner.
+In that case, implementations may treat this value as ''scrollbar-width/auto''.
+</dd>
+<dt><dfn>none</dfn></dt>
+<dd>implementations must not display any scrollbar, however the element's scrollability is not affected.
+</dd>
+</dl>
+
+UAs must apply the scrollbar-width value set on the root element to the viewport.
+
+UAs should enforce a minimum actual size of scrollbar width per 
+<a href="https://www.w3.org/TR/WCAG21/#target-size">WCAG 2.1 SC 2.5.5 Target Size</a> 
+[[WCAG21]].
+
+Authors that use ''scrollbar-width/none'' should provide an alternative/equivalent visual hint that 
+scrolling is possible and there is more content. 
+For situations where an element is going to be scrolled by other means instead of direct user manipulation 
+(e.g. programmatically), authors should use ''overflow: hidden'' instead of ''scrollbar-width/none''.
+
+Note: Unlike 'overflow' (and overflow-*) properties, 
+a scrollbar-width value set on the HTML body element is not propagated to the viewport.
+
+Note: This specification does not define the exact position or shape of the scrollbar, 
+or any animation thereof, such as fading or sliding in/out of view.
+
+<h2 class="no-num" id="acknowledgments">Appendix A. Acknowledgments</h2>
+
+This appendix is <em>informative</em>.
+
+<p>
+Thanks to the use-cases, prototyping, implementation, and feedback from
+<a class="h-card" href="https://xanthir.com/">Tab Atkins</a> and
+<a class="h-card" href="https://www.upsuper.org/">Xidorn Quan</a>.
+Thanks to accessibility review and contributions 
+(<a href="https://github.com/w3c/csswg-drafts/issues/3315">#3315</a>) 
+from 
+<a class="h-card" href="https://www.splintered.co.uk">Patrick H. Lauke</a>.
+</p>
+
+<h2 class="no-num" id="changes">Appendix B. Changes</h2>
+
+This appendix is <em>informative</em>.
+
+This appendix describes changes from the
+<a href="https://www.w3.org/TR/2018/WD-css-scrollbars-1-20180925/">First Public Working Draft (FPWD) of 25 Sep 2018</a>.
+<ul>
+<li><a href="https://github.com/w3c/csswg-drafts/issues/3237">#3237</a>: 
+    scrollbar-color computed value changed to: specified keyword or two computed colors
+</li>
+<li><a href="https://github.com/w3c/csswg-drafts/issues/4693">#4693</a>: 
+    Clarified scope: styling scrollbar controls themselves, no layout or scrollability.
+</li>
+<li><a href="https://github.com/w3c/csswg-drafts/issues/3315">#3315</a>: 
+    More and updated accessibility considerations for scrollbar-color and scrollbar-width.
+</li>
+</ul>
+
+<h2 class="no-num" id="security-privacy-considerations">Appendix C. Considerations for Security and Privacy</h2>
+
+This appendix is <em>informative</em>.
+
+Per the <a href="https://www.w3.org/TR/security-privacy-questionnaire/#questions">
+Self-Review Questionnaire: Security and Privacy: Questions to Consider</a>
+
+<ol>
+<li>Does this specification deal with personally-identifiable information?
+<p>No.</p>
+</li>
+
+<li>Does this specification deal with high-value data?
+<p>No.</p>
+</li>
+
+<li>Does this specification introduce new state for an origin that persists across browsing sessions?
+<p>No.</p>
+</li>
+
+<li>Does this specification expose persistent, cross-origin state to the web?
+<p>No.</p>
+</li>
+
+<li>Does this specification expose any other data to an origin that it doesn’t currently have access to?
+<p>No.</p>
+</li>
+
+<li>Does this specification enable new script execution/loading mechanisms?
+<p>No.</p>
+</li>
+
+<li>Does this specification allow an origin access to a user’s location?
+<p>No.</p>
+</li>
+
+<li>Does this specification allow an origin access to sensors on a user’s device?
+<p>No.</p>
+</li>
+
+<li>Does this specification allow an origin access to aspects of a user’s local computing environment?
+<p>No.</p>
+</li>
+
+<li>Does this specification allow an origin access to other devices?
+<p>No.</p>
+</li>
+
+<li>Does this specification allow an origin some measure of control over a user agent’s native UI?
+<p>Yes. The 'scrollbar-*' properties enable the page to change the color and width of the scrollbar 
+of the user agent’s native UI, e.g. scrollbars on the page’s window, on framed content embedded in the page, 
+or on overflowing elements with scrollbars in the page.</p>
+</li>
+
+<li>Does this specification expose temporary identifiers to the web?
+<p>No.</p>
+</li>
+
+<li>Does this specification distinguish between behavior in first-party and third-party contexts?
+<p>No.</p>
+</li>
+
+<li>How should this specification work in the context of a user agent’s "incognito" mode?
+<p>No differently.</p>
+</li>
+
+<li>Does this specification persist data to a user’s local device?
+<p>No.</p>
+</li>
+
+<li>Does this specification have a "Security Considerations" and "Privacy Considerations" section?
+<p>Yes.</p>
+</li>
+
+<li>Does this specification allow downgrading default security characteristics?
+<p>No.</p>
+</li>
+</ol>

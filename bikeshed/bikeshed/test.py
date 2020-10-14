@@ -82,7 +82,7 @@ def processTest(path, md=None, fileRequester=config.DataFileRequester(type="read
 def compare(suspect, golden):
     if suspect == golden:
         return True
-    for line in difflib.unified_diff(golden.split(), suspect.split(), fromfile="golden", tofile="suspect", lineterm=""):
+    for line in difflib.unified_diff(golden.split("\n"), suspect.split("\n"), fromfile="golden", tofile="suspect"):
         if line[0] == "-":
             p(printColor(line, color="red"))
         elif line[0] == "+":
@@ -102,7 +102,7 @@ def rebase(patterns=None, md=None):
         resetSeenMessages()
         p(f"{ratio(i,len(paths))}: Rebasing {name}")
         doc = processTest(path, md)
-        doc.finish()
+        doc.finish(newline="\n")
 
 def ratio(i, total):
     justifiedI = str(i).rjust(len(str(total)))

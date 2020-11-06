@@ -90,6 +90,16 @@ window.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 <style>
+@media (prefers-color-scheme: light) {
+:root {
+	--div-info-fg-color: #178217;
+}
+}
+@media (prefers-color-scheme: dark) {
+:root {
+	--div-info-fg-color: springgreen;
+}
+}
 .todo {
 	border: 1px solid red;
 	background-color: rgba(255, 0, 0, 0.3);
@@ -124,12 +134,20 @@ table.channels td {
 	width:60px;
 	text-align:center;
 }
+@media (prefers-color-scheme: light) {
 table.channels tr:nth-child(even) {
 	background: #EEE;
 }
 table.channels tr:nth-child(odd) {
 	background: #FFF;
 }
+}
+@media (prefers-color-scheme: dark) {
+table.channels tr:nth-child(even) {
+	background: var(--assertion-border)
+}
+}
+
 div.node-info {
 	padding-left: 4em;
 	padding-right: 4em;
@@ -150,8 +168,8 @@ div.node-info > table > tbody > tr > td {
 div.node-info > table > thead > tr > th {
 	line-height: 2em;
 	font-weight: 600;
-	color: #178217;
 	border-bottom: 1px solid #707070;
+	color: var(--div-info-fg-color);
 }
 div.audioparam-info {
 	padding-left: 4em;
@@ -173,8 +191,8 @@ div.audioparam-info > table > tbody > tr > td {
 div.audioparam-info > table > thead > tr > th {
 	line-height: 2em;
 	font-weight: 600;
-	color: #178217;
 	border-bottom: 1px solid #707070;
+	color: var(--div-info-fg-color);
 }
 div.enum-description > table {
 	border-collapse: collapse;
@@ -192,7 +210,7 @@ div.enum-description > table > tbody > tr > td {
 div.enum-description > table > thead > tr > th {
 	line-height: 2em;
 	font-weight: 600;
-	color: #178217;
+	color: var(--div-info-fg-color);
 	border-bottom: 1px solid #707070;
 }
 code.nobreak {
@@ -746,7 +764,7 @@ Attributes</h4>
 	::
 		Allows access to the <code>Worklet</code> object that can import
 		a script containing {{AudioWorkletProcessor}}
-		class definitions via the algorithms defined by [[!worklets-1]]
+		class definitions via the algorithms defined by [[!HTML]]
 		and {{AudioWorklet}}.
 
 	: <dfn>currentTime</dfn>
@@ -864,8 +882,7 @@ Methods</h4>
 
 		<pre class=argumentdef for="BaseAudioContext/createBuffer()">
 		numberOfChannels: Determines how many channels the buffer will have. An implementation MUST support at least 32 channels.
-		length: Determines the size of the buffer in sample-frames.  This MUST be at
-			least 1.
+		length: Determines the size of the buffer in sample-frames.  This MUST be at least 1.
 		sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in the buffer in sample-frames per second. An implementation MUST support sample rates in at least the range 8000 to 96000.
 		</pre>
 		<div>
@@ -1212,7 +1229,7 @@ Methods</h4>
 Callback {{DecodeSuccessCallback()}} Parameters</h4>
 
 <dl dfn-type=argument dfn-for="DecodeSuccessCallback()">
-	: <dfn>decodedData</dfn>, of type {{AudioBuffer}}
+	: {{DecodeSuccessCallback/decodedData!!argument}}</dfn>, of type {{AudioBuffer}}
 	:: The AudioBuffer containing the decoded audio data.
 </dl>
 
@@ -1220,7 +1237,7 @@ Callback {{DecodeSuccessCallback()}} Parameters</h4>
 Callback {{DecodeErrorCallback()}} Parameters</h4>
 
 <dl dfn-type=argument dfn-for="DecodeErrorCallback()">
-	: <dfn>error</dfn>, of type {{DOMException}}
+	: {{DecodeErrorCallback/error!!argument}}, of type {{DOMException}}
 	:: The error that occurred while decoding.
 </dl>
 
@@ -1731,6 +1748,7 @@ Methods</h4>
 				execute these steps:
 
 
+				1. Resolve all promises from {{AudioContext/[[pending resume promises]]}} in order.
 				1. Clear {{AudioContext/[[pending resume promises]]}}. Additionally, remove those
 					promises from {{BaseAudioContext/[[pending promises]]}}.
 
@@ -9775,7 +9793,10 @@ with {{AudioWorkletNode}}s in the main scope.
 Exactly one {{AudioWorkletGlobalScope}} exists for each
 {{AudioContext}} that contains one or more
 {{AudioWorkletNode}}s. The running of imported scripts is
-performed by the UA as defined in [[!worklets-1]].
+performed by the UA as defined in [[!HTML]]. Overriding the default
+specified in [[!HTML]], {{AudioWorkletGlobalScope}}s must not be
+[=terminate a worklet global scope|terminated=] arbitrarily by the user
+agent.
 
 An {{AudioWorkletGlobalScope}} has the following internal slots:
 
@@ -12339,7 +12360,7 @@ to Consider</a>
 6. Does this specification enable new script execution/loading
 	mechanisms?
 
-	No. It does use the [[worklets-1]] script execution method,
+	No. It does use the [[HTML]] script execution method,
 	defined in that specification.
 
 7. Does this specification allow an origin access to a user’s

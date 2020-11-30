@@ -7,6 +7,8 @@ Status: ED
 ED: https://webaudio.github.io/web-audio-api/
 TR: https://www.w3.org/TR/webaudio/
 Favicon: favicon.png
+Previous Version: https://www.w3.org/TR/2018/CR-webaudio-20200611/
+Previous Version: https://www.w3.org/TR/2018/CR-webaudio-20180918/
 Previous Version: https://www.w3.org/TR/2018/WD-webaudio-20180619/
 Previous Version: https://www.w3.org/TR/2015/WD-webaudio-20151208/
 Previous Version: https://www.w3.org/TR/2013/WD-webaudio-20131010/
@@ -43,7 +45,10 @@ Markup Shorthands: markdown on, dfn on, css off
 spec: ECMAScript; url: https://tc39.github.io/ecma262/#sec-data-blocks; type: dfn; text: data block;
 url: https://www.w3.org/TR/mediacapture-streams/#dom-mediadevices-getusermedia; type: method; for: MediaDevices; text: getUserMedia()
 </pre>
-
+<!-- We want {{object}} to go to the WebIDL object -->
+<pre class=link-defaults>
+spec:webidl; type:interface; text:object
+</pre>
 <link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" as="script">
 <link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/jax.js?rev=2.7.5" as="script">
 <link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.7.5" as="script">
@@ -10372,13 +10377,18 @@ and the definition of the class manifests the actual audio processing.
 Note that the an {{AudioWorkletProcessor}} construction can only happen as a
 result of an {{AudioWorkletNode}} contruction.
 
-<pre class="idl">
+<xmp class="idl">
 [Exposed=AudioWorklet]
 interface AudioWorkletProcessor {
 	constructor ();
 	readonly attribute MessagePort port;
 };
-</pre>
+
+callback AudioWorkletProcessCallback =
+  boolean (FrozenArray<FrozenArray<Float32Array>> inputs,
+           FrozenArray<FrozenArray<Float32Array>> outputs,
+           object parameters);
+</xmp>
 
 {{AudioWorkletProcessor}} has two internal slots:
 
@@ -10389,7 +10399,7 @@ interface AudioWorkletProcessor {
 
 	: <dfn>[[callable process]]</dfn>
 	::
-		A boolean flag representing whether {{AudioWorkletProcessor/process()}} is
+		A boolean flag representing whether [=process()=] is
 		a valid function that can be invoked.
 </dl>
 
@@ -10470,86 +10480,57 @@ Constructors</h5>
 		resources to be [[html#ports-and-garbage-collection|collected]].
 </dl>
 
-<h5 id="AudioWorkletProcessor-methods">
-Methods</h5>
+<h5 id="callback-audioworketprocess-callback">
+Callback {{AudioWorkletProcessCallback}}</h5>
 
 Users can define a custom audio processor by extending
-{{AudioWorkletProcessor}}. The subclass MUST define a method
-named {{process()}} that implements the audio processing
+{{AudioWorkletProcessor}}. The subclass MUST define an {{AudioWorkletProcessCallback}}
+named <code><dfn>process()</dfn></code> that implements the audio processing
 algorithm and may have a static property named
 <code><dfn>parameterDescriptors</dfn></code> which is an iterable
 of {{AudioParamDescriptor}}s.
 
-<dl dfn-type=method dfn-for="AudioWorkletProcessor">
-	: <dfn>process(inputs, outputs, parameters)</dfn>
-	::
-		Implements the audio processing algorithm for the
-		{{AudioWorkletProcessor}}.
+The [=process()=] callback function is handled as specified when <a href="#rendering-a-graph">rendering a graph</a>.
 
-		The {{process()}} method is called
-		synchronously by the audio <a>rendering thread</a> at
-		every <a>render quantum</a>, if {{AudioWorkletNode}} is
+<div class="note">
+	The return value of this callback controls the lifetime
+	of the {{AudioWorkletProcessor}}'s associated
+	{{AudioWorkletNode}}.
+
+	This lifetime policy can support a variety of approaches
+	found in built-in nodes, including the following:
+
+	* Nodes that transform their inputs, and are active only
+		while connected inputs and/or script references exist. Such
+		nodes SHOULD return <code>false</code> from
+		[=process()=] which allows the presence or absence of
+		connected inputs to determine whether the {{AudioWorkletNode}} is
 		[=actively processing=].
 
-		<div class="note">
-			The return value of this method controls the lifetime
-			of the {{AudioWorkletProcessor}}'s associated
-			{{AudioWorkletNode}}.
+	* Nodes that transform their inputs, but which remain active
+		for a <a>tail-time</a> after their inputs are disconnected. In
+		this case, [=process()=] SHOULD return
+		`true` for some period of time after
+		<code>inputs</code> is found to contain zero channels. The
+		current time may be obtained from the global scope's
+		{{AudioWorkletGlobalScope/currentTime}} to
+		measure the start and end of this tail-time interval, or the
+		interval could be calculated dynamically depending on the
+		processor's internal state.
 
-			This lifetime policy can support a variety of approaches
-			found in built-in nodes, including the following:
+	* Nodes that act as sources of output, typically with a
+		lifetime. Such nodes SHOULD return `true` from
+		[=process()=] until the point at which they are no
+		longer producing an output.
 
-			* Nodes that transform their inputs, and are active only
-				while connected inputs and/or script references exist. Such
-				nodes SHOULD return <code>false</code> from
-				{{process()}} which allows the presence or absence of
-				connected inputs to determine whether the {{AudioWorkletNode}} is
-				[=actively processing=].
-
-			* Nodes that transform their inputs, but which remain active
-				for a <a>tail-time</a> after their inputs are disconnected. In
-				this case, {{process()}} SHOULD return
-				`true` for some period of time after
-				<code>inputs</code> is found to contain zero channels. The
-				current time may be obtained from the global scope's
-				{{AudioWorkletGlobalScope/currentTime}} to
-				measure the start and end of this tail-time interval, or the
-				interval could be calculated dynamically depending on the
-				processor's internal state.
-
-			* Nodes that act as sources of output, typically with a
-				lifetime. Such nodes SHOULD return `true` from
-				{{process()}} until the point at which they are no
-				longer producing an output.
-
-			Note that the preceding definition implies that when no
-			return value is provided from an implementation of
-			{{process()}}, the effect is identical to returning
-			<code>false</code> (since the effective return value is the falsy
-			value {{undefined}}). This is a reasonable behavior for
-			any {{AudioWorkletProcessor}} that is active only when it has
-			active inputs.
-		</div>
-
-		<pre class=argumentdef for="AudioWorkletProcessor/process(inputs, outputs, parameters))">
-			inputs:
- 				The input audio buffer from the incoming connections provided by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>.<code class="nobreak">inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on [=computedNumberOfChannels=].
-
-				If there are no [=actively processing=] {{AudioNode}}s connected to the \(n\)th input of the {{AudioWorkletNode}} for the current render quantum, then the content of <code>inputs[n]</code> is an empty array, indicating that zero channels of input are available. This is the only circumstance under which the number of elements of <code>inputs[n]</code> can be zero.
-
-			outputs:
-				The output audio buffer that is to be consumed by the user agent. It has type <code>sequence&lt;sequence&lt;Float32Array>></code>.<code class="nobreak">outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. Each of the {{Float32Array}}s are zero-filled. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has a single output.
-
-			parameters:
-				An [=ordered map=] of <var>name</var> → <var>parameterValues</var>. <code>parameters["<var>name</var>"]</code> returns <var>parameterValues</var>, which is a {{Float32Array}} with the automation values of the <var>name</var> {{AudioParam}}.
-
-				For each array, the array contains the [=computedValue=] of the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
-		</pre>
-
-		<div>
-			<em>Return type:</em> {{boolean}}
-		</div>
-</dl>
+	Note that the preceding definition implies that when no
+	return value is provided from an implementation of
+	[=process()=], the effect is identical to returning
+	<code>false</code> (since the effective return value is the falsy
+	value {{undefined}}). This is a reasonable behavior for
+	any {{AudioWorkletProcessor}} that is active only when it has
+	active inputs.
+</div>
 
 The example below shows how {{AudioParam}} can be defined and used in an
 {{AudioWorkletProcessor}}.
@@ -10583,6 +10564,51 @@ class MyProcessor extends AudioWorkletProcessor {
   }
 }
 </xmp>
+
+<h6 id="audioworkletprocess-callback-parameters" callback lt="AudioWorkletProcessCallback()">
+Callback {{AudioWorkletProcessCallback}} Parameters
+</h6>
+The following describes the parameters to the {{AudioWorkletProcessCallback}} function.
+
+In general, the {{AudioWorkletProcessCallback/inputs!!argument}} and
+{{AudioWorkletProcessCallback/outputs!!argument}} arrays will be reused
+between calls so that no memory allocation is done.  However, if the
+topology changes, because, say, the number of channels in the input or the
+output changes, new arrays are reallocated.  New arrays are also
+reallocated if any part of the
+{{AudioWorkletProcessCallback/inputs!!argument}} or
+{{AudioWorkletProcessCallback/outputs!!argument}} arrays are
+transferred.
+
+<dl dfn-type=argument dfn-for="AudioWorkletProcessCallback">
+	: {{AudioWorkletProcessCallback/inputs!!argument}}, of type <code>{{FrozenArray}}&lt;{{FrozenArray}}&lt;{{Float32Array}}&gt;&gt;</code>
+	:: The input audio buffer from the incoming connections provided by the user agent. <code class="nobreak">inputs[n][m]</code> is a {{Float32Array}} of audio samples for the \(m\)th channel of the \(n\)th input. While the number of inputs is fixed at construction, the number of channels can be changed dynamically based on [=computedNumberOfChannels=].
+
+		If there are no [=actively processing=] {{AudioNode}}s connected to the \(n\)th input of the {{AudioWorkletNode}} for the current render quantum, then the content of <code>inputs[n]</code> is an empty array, indicating that zero channels of input are available. This is the only circumstance under which the number of elements of <code>inputs[n]</code> can be zero.
+
+	: {{AudioWorkletProcessCallback/outputs!!argument}}, of type <code>{{FrozenArray}}&lt;{{FrozenArray}}&lt;{{Float32Array}}>></code>
+	:: The output audio buffer that is to be consumed by the user agent. <code class="nobreak">outputs[n][m]</code> is a {{Float32Array}} object containing the audio samples for \(m\)th channel of \(n\)th output. Each of the {{Float32Array}}s are zero-filled. The number of channels in the output will match [=computedNumberOfChannels=] only when the node has a single output.
+
+	: {{AudioWorkletProcessCallback/parameters!!argument}}, of type {{object}}
+	:: An [=ordered map=] of <var>name</var> → <var>parameterValues</var>. <code>parameters["<var>name</var>"]</code> returns <var>parameterValues</var>, which is a {{FrozenArray}}&lt;{{Float32Array}}> with the automation values of the <var>name</var> {{AudioParam}}.
+
+		For each array, the array contains the [=computedValue=] of the parameter for all frames in the [=render quantum=]. However, if no automation is scheduled during this render quantum, the array MAY have length 1 with the array element being the constant value of the {{AudioParam}} for the [=render quantum=].
+
+		This object is frozen according the the following steps
+		<div algorithm="freeze parameter object">
+			1. Let |parameter| be the [=ordered map=] of the name and parameter values.
+			1. <a href="http://www.ecma-international.org/ecma-262/#sec-setintegritylevel">SetIntegrityLevel</a>(|parameter|, frozen)
+		</div>
+
+		This frozen [=ordered map=] computed in the algorithm is passed to the
+		{{AudioWorkletProcessCallback/parameters!!argument}}
+		argument.
+
+		Note: This means the object cannot be modified and
+		hence the same object can be used for successive calls
+		unless length of an array changes.
+
+</dl>
 
 <h5 dictionary lt="AudioParamDescriptor">
 {{AudioParamDescriptor}}</h5>
@@ -11233,8 +11259,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 						argument of [=input buffer=], output buffer and
 						[=input AudioParam buffer=]. A buffer containing copies of the
             					elements of the {{Float32Array}}s passed via the
-            					<a href="#dom-audioworkletprocessor-process-inputs-outputs-parameters-outputs">
-            					outputs</a> parameter to <var>processFunction</var> is
+            					{{AudioWorkletProcessCallback/outputs!!argument}} parameter to <var>processFunction</var> is
 						<a href="#available-for-reading">made available for reading</a>.
 
 					1. At the conclusion of <var>processFunction</var>,
@@ -11242,7 +11267,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 						is applied to the return value and the result is
 						assigned to the associated {{AudioWorkletProcessor}}'s
 						<a>active source</a> flag. This in turn affects whether
-						subsequent invocations of {{process()}} occur, and has
+						subsequent invocations of [=process()=] occur, and has
 						an impact on the lifetime of the node.
 
 					1. Else if {{[[callable process]]}} is `false`,
@@ -11263,7 +11288,7 @@ operation such as resolution of {{Promise}}s in the {{AudioWorkletGlobalScope}}.
 			5. If this {{AudioNode}} is a <a>destination node</a>,
 				[=Recording the input|record the input=] of this {{AudioNode}}.
 
-			6. Else, <a>process</a> the <a>input buffer</a>, and
+			6. Else, [=processing-input-buffer|process=] the <a>input buffer</a>, and
 				[=Making a buffer available for reading|make available for reading=] the
 				resulting buffer.
 
@@ -11301,7 +11326,7 @@ usage.
 running the algorithm for this {{AudioNode}} to produce 128
 sample-frames.
 
-<dfn lt="process">Processing an input buffer</dfn> means
+<dfn lt="processing-input-buffer">Processing an input buffer</dfn> means
 running the algorithm for an {{AudioNode}}, using an <a>input
 buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 {{AudioNode}} as the input for this algorithm.
@@ -12527,6 +12552,30 @@ class Vec3 {
 
 <h2 id="changes">
 Change Log</h2>
+<h3 id="changes-2020-06-11">
+  Since Candidate Recommendation of 11 June 2020
+</h3>
+<!-- Last updated: 2020-11-13 -->
+ * <a href="https://github.com/WebAudio/web-audio-api/pull/2201">PR 2202</a>: Fixed wrong optionality of IIRFilterNode options
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2191">Issue 2191</a>: Restrict sounds beyond normal hearing
+ * <a href="https://github.com/WebAudio/web-audio-api/pull/2210">PR 2210</a>: Return rejected promise when the document is not fully active, for operations returning promises
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2191">Issue 2191</a>: Destination of request created by `addModule`
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2213">Issue 2213</a>: The message queue is for message running on the rendering thread.
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2216">Issue 2216</a>: Use inclusive language in the spec
+ * <a href="https://github.com/WebAudio/web-audio-api/pull/2219">PR 2219</a>: Update more terminology in images and markdown documents
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2206">Issue 2206</a>: PannerNode.rollOffFactor with "linear" distance model is not clamped to [0, 1] in main browser engines
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2169">Issue 2169</a>: AudioParamDescriptor has member constraints that are redundant
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/1457">Issue 1457</a>: [privacy] Exposing data to an origin: fingerprinting
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2061">Issue 2061</a>: Privacy re-review of latest changes
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2225">Issue 2225</a>: Describe "Planar versus interleaved buffers"
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2231">Issue 2231</a>: WaveShaper [[curve set]] not defined
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2240">Issue 2240</a>: Align with Web IDL specification
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2242">Issue 2242</a>: LInk to undefined instead of using `<code>`
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2227">Issue 2227</a>: Clarify buffer.copyToChannel() must be called before source.buffer = buffer else nothing is played
+ * <a href="https://github.com/WebAudio/web-audio-api/pull/2253">PR 2253</a>: Fix duplicated IDs for decode callbacks
+ * <a href="https://github.com/WebAudio/web-audio-api/issues/2252">Issue 2252</a>: When are promises in "[[pending resume promises]]" resolved?
+ * <a href="https://github.com/WebAudio/web-audio-api/pull/2266">PR 2266</a>: Prohibit arbitrary termination of AudioWorkletGlobalScopes
+
 <h3 id="changestart1">
  Since Candidate Recommendation of 18 September 2018
 </h3>

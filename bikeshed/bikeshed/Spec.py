@@ -175,7 +175,6 @@ class Spec(object):
         boilerplate.addSpecVersion(self)
         boilerplate.addStatusSection(self)
         boilerplate.addLogo(self)
-        boilerplate.addSubstatus(self)
         boilerplate.addCopyright(self)
         boilerplate.addSpecMetadataSection(self)
         boilerplate.addAbstract(self)
@@ -442,17 +441,13 @@ constants.specClass = Spec
 
 styleColors = '''
 /* Any --*-text not paired with a --*-bg is assumed to have a transparent bg */
-html {
-    color: black;
-    color: var(--text);
-    background-color: white;
-    background-color: var(--bg);
-}
 :root {
     color-scheme: light dark;
 
     --text: black;
     --bg: white;
+
+    --unofficial-watermark: url(https://www.w3.org/StyleSheets/TR/2016/logos/UD-watermark);
 
     --logo-bg: #1a5e9a;
     --logo-active-bg: #c00;
@@ -527,6 +522,11 @@ html {
     --warning-bg: hsla(40,100%,50%,0.95);
     --warning-text: var(--text);
 
+    --amendment-border: #330099;
+    --amendment-bg: #F5F0FF;
+    --amendment-text: var(--text);
+    --amendmentheading-text: #220066;
+
     --def-border: #8ccbf2;
     --def-bg: #def;
     --def-text: var(--text);
@@ -553,6 +553,8 @@ styleDarkMode = '''
     :root {
         --text: #ddd;
         --bg: black;
+
+        --unofficial-watermark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cg fill='%23100808' transform='translate(200 200) rotate(-45) translate(-200 -200)' stroke='%23100808' stroke-width='3'%3E%3Ctext x='50%25' y='220' style='font: bold 70px sans-serif; text-anchor: middle; letter-spacing: 6px;'%3EUNOFFICIAL%3C/text%3E%3Ctext x='50%25' y='305' style='font: bold 70px sans-serif; text-anchor: middle; letter-spacing: 6px;'%3EDRAFT%3C/text%3E%3C/g%3E%3C/svg%3E");
 
         --logo-bg: #1a5e9a;
         --logo-active-bg: #c00;
@@ -628,6 +630,11 @@ styleDarkMode = '''
         --warning-border: red;
         --warning-bg: hsla(40,100%,20%,0.95);
         --warning-text: var(--text);
+
+        --amendment-border: #330099;
+        --amendment-bg: #080010;
+        --amendment-text: var(--text);
+        --amendmentheading-text: #cc00ff;
 
         --def-border: #8ccbf2;
         --def-bg: #080818;

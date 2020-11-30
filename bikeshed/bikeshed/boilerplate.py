@@ -142,19 +142,6 @@ def addLogo(doc):
     loadBoilerplate(doc, 'logo')
 
 
-def addSubstatus(doc):
-    container = getFillContainer("substatus", doc, default=False)
-    if container is None:
-        return
-    if doc.md.status == "w3c/CR":
-        appendChild(container, E.span("Snapshot"))
-    elif doc.md.status == "w3c/CRD":
-        appendChild(container, E.span("Draft"))
-    else:
-        if container is not None:
-            removeNode(container)
-
-
 def addCopyright(doc):
     loadBoilerplate(doc, 'copyright')
 
@@ -239,25 +226,27 @@ def addAnnotations(doc):
         appendContents(find("head", doc), el)
 
 
+def w3cStylesheetInUse(doc):
+    return doc.md.prepTR or doc.md.status in config.snapshotStatuses
+
+
+def keyFromStyles(kv):
+    k = kv[0]
+    if k == "style-darkmode":
+        prio = 2
+    else:
+        prio = 1
+
+    return (prio, k)
+
 def addBikeshedBoilerplate(doc):
-    for k,v in sorted(doc.extraStyles.items()):
+    w3cStylesheet = w3cStylesheetInUse(doc)
+    for k,v in sorted(doc.extraStyles.items(), key=keyFromStyles):
         if k not in doc.md.boilerplate:
             continue
-        if k == "style-darkmode":
-            # Have to output these *last* so they'll override preceding colors.
+        if w3cStylesheet and k in ["style-colors", "style-darkmode"]:
+            # These are handled by the /TR stylesheet, so don't output them
             continue
-        container = getFillContainer(k, doc)
-        if container is None:
-            container = getFillContainer("bs-styles", doc, default=True)
-        if container is not None:
-            appendChild(container,
-                        E.style(f"/* {k} */\n{v}"))
-    # Output the darkmode styles after all other styles
-    # but don't put them in /TR space yet,
-    # until the W3C is ready for them.
-    if "style-darkmode" in doc.md.boilerplate and not doc.md.prepTR:
-        k = "style-darkmode"
-        v = doc.extraStyles[k]
         container = getFillContainer(k, doc)
         if container is None:
             container = getFillContainer("bs-styles", doc, default=True)

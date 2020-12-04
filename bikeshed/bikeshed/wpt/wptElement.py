@@ -25,7 +25,7 @@ def processWptElements(doc):
 				die("Couldn't find WPT test '{0}' - did you misspell something?", testName, el=el)
 				continue
 			seenTestNames.add(testName)
-		createHTML(doc, el, testNames)
+		createHTML(doc, el, testNames, testData)
 
 	# <wpt-rest> elements
 	wptRestElements = findAll("wpt-rest", doc)
@@ -46,7 +46,7 @@ def processWptElements(doc):
 		if len(prefixedNames) == 0:
 			die("Couldn't find any tests with the path prefix '{0}'.", pathPrefix)
 			return
-		createHTML(doc, wptRestElements[0], prefixedNames)
+		createHTML(doc, wptRestElements[0], prefixedNames, testData)
 		warn("<wpt-rest> is intended for debugging only. Move the tests to <wpt> elements next to what they're testing.")
 	else:
 		if pathPrefix:
@@ -59,7 +59,7 @@ def processWptElements(doc):
 
 
 
-def createHTML(doc, blockEl, testNames):
+def createHTML(doc, blockEl, testNames, testData):
 	if doc.md.wptDisplay == "none":
 		removeNode(blockEl)
 	elif doc.md.wptDisplay == "inline":
@@ -72,12 +72,31 @@ def createHTML(doc, blockEl, testNames):
 			else:
 				liveTestScheme = "http"
 			_,_,lastNameFragment = testName.rpartition("/")
-			singleTestEl = E.li({"class": "wpt-test"},
-				E.a({"href": "https://wpt.fyi/results/"+testName}, lastNameFragment),
-				" ",
-				E.a({"title": testName, "href": "{0}://web-platform-tests.live/{1}".format(liveTestScheme, testName)}, E.small("(live test)")),
-				" ",
-				E.a({"href": "https://github.com/web-platform-tests/wpt/blob/master/"+testName}, E.small("(source)")))
+			testType = testData[testName]
+			if testType in ["crashtest", "print-reftest", "reftest", "testharness"]:
+				singleTestEl = E.li({"class": "wpt-test"},
+					E.a({"href": "https://wpt.fyi/results/"+testName, "class":"wpt-name"}, lastNameFragment),
+					" ",
+					E.a({"title": testName, "href": "{0}://web-platform-tests.live/{1}".format(liveTestScheme, testName), "class":"wpt-live"},
+						E.small("(live test)")),
+					" ",
+					E.a({"href": "https://github.com/web-platform-tests/wpt/blob/master/"+testName, "class":"wpt-source"}, E.small("(source)")))
+			elif testType in ["manual", "visual"]:
+				singleTestEl = E.li({"class": "wpt-test"},
+					E.span({"class":"wpt-name"},
+						lastNameFragment,
+						f" ({testType} test) "),
+					E.a({"href": "https://github.com/web-platform-tests/wpt/blob/master/"+testName, "class":"wpt-source"}, E.small("(source)")))
+			elif testType in ["wdspec"]:
+				singleTestEl = E.li({"class": "wpt-test"},
+					E.a({"href": "https://wpt.fyi/results/"+testName, "class":"wpt-name"}, lastNameFragment),
+					" ",
+					E.a({"href": "https://github.com/web-platform-tests/wpt/blob/master/"+testName, "class":"wpt-source"}, E.small("(source)")))
+			else:
+				warn(f"Programming error, the test {testName} is of type {testType}, which I don't know how to render. Please report this!")
+				continue
+
+
 			appendChild(blockEl, singleTestEl)
 	else:
 		die("Programming error, uncaught WPT Display value in createHTML.")
@@ -129,9 +148,14 @@ def checkForOmittedTests(pathPrefix, testData, seenTestNames):
 			if testPath not in seenTestNames:
 				unseenTests.append(testPath)
 	if unseenTests:
-		warn("There are {0} WPT tests underneath your path prefix that aren't in your document and must be added:\n{1}",
-			len(unseenTests),
-			"\n".join("  " + path for path in sorted(unseenTests)))
+		numTests = len(unseenTests)
+		if numTests < 10:
+			warn("There are {} WPT tests underneath your path prefix '{}' that aren't in your document and must be added:\n{}",
+				numTests,
+				pathPrefix,
+				"\n".join("  " + path for path in sorted(unseenTests)))
+		else:
+			warn(f"There are {numTests} WPT tests (too many to display individually) underneath your path prefix '{pathPrefix}' that aren't in your document.")
 
 
 def loadTestData(doc):
@@ -161,8 +185,9 @@ wptStyle = '''
 }
 .wpt-tests-block {
 	list-style: none;
-	border-left: .5em solid hsl(290, 70%, 30%);
-	background: hsl(290, 70%, 95%);
+	border-left: .5em solid var(--wpt-border);
+	background: var(--wpt-bg);
+	color: var(--wpt-text);
 	margin: 1em auto;
 	padding: .5em;
 	display: grid;
@@ -172,7 +197,7 @@ wptStyle = '''
 .wpt-tests-block::before {
 	content: "Tests";
 	grid-column: 1/-1;
-	color: hsl(290, 70%, 30%);
+	color: var(--wptheading-text);
 	text-transform: uppercase;
 }
 .wpt-test {
@@ -182,4 +207,7 @@ wptStyle = '''
 	text-decoration: underline;
 	border: none;
 }
+.wpt-test > .wpt-name { grid-column: 1; }
+.wpt-test > .wpt-live { grid-column: 2; }
+.wpt-test > .wpt-source { grid-column: 3; }
 '''

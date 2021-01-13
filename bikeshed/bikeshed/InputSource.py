@@ -3,7 +3,6 @@ from __future__ import annotations
 import attr
 import email.utils
 import errno
-import io
 import os
 import requests
 import sys
@@ -67,8 +66,7 @@ class InputSource:
 
     @abstractmethod
     def read(self) -> InputContent:
-        """Fully reads the source.
-        """
+        """Fully reads the source."""
         pass
 
     def hasDirectory(self) -> bool:
@@ -90,8 +88,7 @@ class InputSource:
         return None
 
     def mtime(self) -> Optional[float]:
-        """Returns the last modification time of this source, if that's known.
-        """
+        """Returns the last modification time of this source, if that's known."""
         return None
 
     def cheaplyExists(self, relativePath) -> Optional[bool]:
@@ -128,7 +125,7 @@ class UrlInputSource(InputSource):
     @tenacity.retry(
         reraise=True,
         stop=tenacity.stop_after_attempt(3),
-        wait=tenacity.wait_random(1,2),
+        wait=tenacity.wait_random(1, 2),
     )
     def _fetch(self, *args, **kwargs):
         response = requests.get(self.sourceName, timeout=10)
@@ -163,7 +160,7 @@ class FileInputSource(InputSource):
         return self.sourceName
 
     def read(self) -> InputContent:
-        with io.open(self.sourceName, "r", encoding="utf-8") as f:
+        with open(self.sourceName, encoding="utf-8") as f:
             return InputContent(
                 f.readlines(),
                 datetime.fromtimestamp(os.path.getmtime(self.sourceName)).date(),
@@ -182,8 +179,7 @@ class FileInputSource(InputSource):
         return os.access(self.relative(relativePath).sourceName, os.R_OK)
 
     def mtime(self) -> Optional[float]:
-        """Returns the last modification time of this file, or None if it doesn't exist.
-        """
+        """Returns the last modification time of this file, or None if it doesn't exist."""
         try:
             return os.stat(self.sourceName).st_mtime
         except FileNotFoundError:

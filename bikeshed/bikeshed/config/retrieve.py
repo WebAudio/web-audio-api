@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import io
 import os
 
@@ -10,7 +7,7 @@ from .main import scriptPath
 from .status import splitStatus
 
 
-class DataFileRequester(object):
+class DataFileRequester:
     def __init__(self, type=None, fallback=None):
         self.type = type
         if self.type not in ("readonly", "latest"):
@@ -25,23 +22,22 @@ class DataFileRequester(object):
         location = self._buildPath(segs=segs, fileType=fileType)
         try:
             if str:
-                with io.open(location, "r", encoding="utf-8") as fh:
+                with open(location, encoding="utf-8") as fh:
                     return fh.read()
             else:
-                return io.open(location, "r", encoding="utf-8")
-        except IOError:
+                return open(location, encoding="utf-8")
+        except OSError:
             if self.fallback:
                 try:
                     return self.fallback.fetch(*segs, str=str, okayToFail=okayToFail)
-                except IOError:
+                except OSError:
                     return self._fail(location, str, okayToFail)
             return self._fail(location, str, okayToFail)
 
     def walkFiles(self, *segs, **kwargs):
         fileType = kwargs.get("type", self.type)
         for root, dirs, files in os.walk(self._buildPath(segs, fileType=fileType)):
-            for file in files:
-                yield file
+            yield from files
 
     def _buildPath(self, segs, fileType=None):
         if fileType is None:
@@ -57,9 +53,12 @@ class DataFileRequester(object):
                 return ""
             else:
                 return io.StringIO("")
-        raise IOError("Couldn't find file '{0}'".format(location))
+        raise OSError(f"Couldn't find file '{location}'")
 
-defaultRequester = DataFileRequester(type="latest", fallback=DataFileRequester(type="readonly"))
+
+defaultRequester = DataFileRequester(
+    type="latest", fallback=DataFileRequester(type="readonly")
+)
 
 
 def retrieveBoilerplateFile(doc, name, group=None, status=None, error=True):
@@ -69,16 +68,20 @@ def retrieveBoilerplateFile(doc, name, group=None, status=None, error=True):
     # Filenames must be of the format NAME.include or NAME-STATUS.include
     if group is None and doc.md.group is not None:
         group = doc.md.group.lower()
-    if status is None and doc.md.status is not None:
-        status = doc.md.status
+    if status is None:
+        if doc.md.status is not None:
+            status = doc.md.status
+        elif doc.md.rawStatus is not None:
+            status = doc.md.rawStatus
     megaGroup, status = splitStatus(status)
 
     searchLocally = doc.md.localBoilerplate[name]
 
     def boilerplatePath(*segs):
         return scriptPath("boilerplate", *segs)
-    statusFile = "{0}-{1}.include".format(name, status)
-    genericFile = "{0}.include".format(name)
+
+    statusFile = f"{name}-{status}.include"
+    genericFile = f"{name}.include"
     sources = []
     if searchLocally:
         sources.append(doc.inputSource.relative(statusFile))  # Can be None.
@@ -86,9 +89,13 @@ def retrieveBoilerplateFile(doc, name, group=None, status=None, error=True):
     else:
         for f in (statusFile, genericFile):
             if doc.inputSource.cheaplyExists(f):
-                warn(("Found {0} next to the specification without a matching\n"+
-                    "Local Boilerplate: {1} yes\n"+
-                    "in the metadata. This include won't be found when building via a URL.").format(f, name))
+                warn(
+                    (
+                        "Found {0} next to the specification without a matching\n"
+                        + "Local Boilerplate: {1} yes\n"
+                        + "in the metadata. This include won't be found when building via a URL."
+                    ).format(f, name)
+                )
                 # We should remove this after giving specs time to react to the warning:
                 sources.append(doc.inputSource.relative(f))
     if group:
@@ -108,10 +115,15 @@ def retrieveBoilerplateFile(doc, name, group=None, status=None, error=True):
         if source is not None:
             try:
                 return source.read().content
-            except IOError:
+            except OSError:
                 # That input doesn't exist.
                 pass
     else:
         if error:
-            die("Couldn't find an appropriate include file for the {0} inclusion, given group='{1}' and status='{2}'.", name, group, status)
+            die(
+                "Couldn't find an appropriate include file for the {0} inclusion, given group='{1}' and status='{2}'.",
+                name,
+                group,
+                status,
+            )
         return ""

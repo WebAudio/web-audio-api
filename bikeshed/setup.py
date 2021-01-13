@@ -1,16 +1,16 @@
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as fh:
+with open("README.md") as fh:
     long_description = fh.read()
-with open("semver.txt", "r") as fh:
+with open("semver.txt") as fh:
     semver = fh.read().strip()
-with open("requirements.txt", "r") as fh:
+with open("requirements.txt") as fh:
     install_requires = [x.strip() for x in fh.read().strip().split("\n")]
 
 setup(
-    name='bikeshed',
+    name="bikeshed",
     version=semver,
-    author='Tab Atkins-Bittner',
+    author="Tab Atkins-Bittner",
     description="A document-authoring tool mainly intended for web specifications.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,5 +26,5 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Topic :: Software Development :: Documentation",
     ],
-    entry_points={'console_scripts': ['bikeshed = bikeshed:main']},
+    entry_points={"console_scripts": ["bikeshed = bikeshed:main"]},
 )

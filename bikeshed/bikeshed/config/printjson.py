@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
-
 from ..messages import printColor
 from ..h import outerHTML, isElement
+
 
 def printjson(x, indent=2, level=0):
     if isinstance(indent, int):
@@ -21,7 +19,7 @@ def printjson(x, indent=2, level=0):
     if level == 0 and ret.startswith("\n"):
         ret = ret[1:]
     return ret
-    #return json.dumps(obj, indent=2, default=lambda x:x.__json__())
+    # return json.dumps(obj, indent=2, default=lambda x:x.__json__())
 
 
 def getjson(x):
@@ -37,8 +35,13 @@ def printjsonobject(x, indent, level):
     maxKeyLength = 0
     for k in x.keys():
         maxKeyLength = max(maxKeyLength, len(k))
-    for k,v in x.items():
-        ret += "\n" + (indent * level) + printColor((k + ": ").ljust(maxKeyLength + 2), "cyan") + printjson(v, indent, level + 1)
+    for k, v in x.items():
+        ret += (
+            "\n"
+            + (indent * level)
+            + printColor((k + ": ").ljust(maxKeyLength + 2), "cyan")
+            + printjson(v, indent, level + 1)
+        )
     return ret
 
 
@@ -46,7 +49,7 @@ def printjsonobjectarray(x, indent, level):
     # Prints an array of objects
     x = getjson(x)
     ret = ""
-    for i,v in enumerate(x):
+    for i, v in enumerate(x):
         if i != 0:
             ret += "\n" + (indent * level) + printColor("=" * 10, "blue")
         ret += printjsonobject(v, indent, level)
@@ -56,7 +59,7 @@ def printjsonobjectarray(x, indent, level):
 def printjsonsimplearray(x, indent, level):
     x = getjson(x)
     ret = printColor("[", "blue")
-    for i,v in enumerate(x):
+    for i, v in enumerate(x):
         if i != 0:
             ret += printColor(", ", "blue")
         ret += printjsonprimitive(v)

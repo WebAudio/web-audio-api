@@ -13,6 +13,6 @@ set -e
 
 # Create zip file of the things we need.  First the basic stuff.
 rm -f cr.zip
-zip cr index.html style.css implementation-report.html favicon.png
+zip cr index.html style.css implementation-report.html test-report.html favicon.png
 # Now add all the images, but we don't need the graffle sources.
 zip cr `find images | grep -v graffle`

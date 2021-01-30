@@ -36,7 +36,7 @@ class BiblioEntry:
         elif self.preferredURL == constants.refStatus.current:
             self.url = self.current_url or self.snapshot_url
         else:
-            raise
+            raise ValueError(f"Invalid preferredURL value: {self.preferredURL}")
 
         if isinstance(self.authors, str):
             self.authors = [self.authors]
@@ -143,7 +143,7 @@ class SpecBasedBiblioEntry(BiblioEntry):
         elif preferredURL == constants.refStatus.current:
             self.url = spec["current_url"] or spec["snapshot_url"]
         else:
-            raise
+            raise ValueError(f"Invalid preferredURL value: {preferredURL}")
         if not self.url:
             self._valid = False
         assert self.url
@@ -192,7 +192,7 @@ def processReferBiblioFile(lines, storage, order):
     unusedReferCodes = set("BCIJNPRVX")
 
     biblio = None
-    for i, line in enumerate(lines):
+    for _, line in enumerate(lines):
         line = line.strip()
         if line == "":
             # Empty line
@@ -200,14 +200,14 @@ def processReferBiblioFile(lines, storage, order):
                 storage[biblio["linkText"].lower()].append(biblio)
                 biblio = None
             continue
-        elif line.startswith("#") or line.startswith("%#"):
+        if line.startswith("#") or line.startswith("%#"):
             # Comment
             continue
-        else:
-            if biblio is None:
-                biblio = defaultdict(list)
-                biblio["order"] = order
-                biblio["biblioFormat"] = "dict"
+
+        if biblio is None:
+            biblio = defaultdict(list)
+            biblio["order"] = order
+            biblio["biblioFormat"] = "dict"
 
         match = re.match(r"%(\w)\s+(.*)", line)
         if match:

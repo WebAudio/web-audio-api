@@ -2,15 +2,14 @@ import copy
 import os
 import re
 import subprocess
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
-from . import conditional
-from . import config
-from . import dfnpanels
-from .refs import utils as refUtils
+
+from . import conditional, config, dfnpanels
 from .DefaultOrderedDict import DefaultOrderedDict
 from .h import *
 from .messages import *
+from .refs import utils as refUtils
 
 
 def boilerplateFromHtml(doc, htmlString):
@@ -110,7 +109,7 @@ def addSpecVersion(doc):
                     .decode(encoding="utf-8")
                     .strip()
                 )
-        except:
+        except subprocess.CalledProcessError:
             pass
     if revision:
         appendChild(
@@ -223,7 +222,12 @@ def addAtRisk(doc):
     html = "<p>The following features are at-risk, and may be dropped during the CR period:\n<ul>"
     for feature in doc.md.atRisk:
         html += "<li>" + doc.fixText(feature)
-    html += "</ul><p>“At-risk” is a W3C Process term-of-art, and does not necessarily imply that the feature is in danger of being dropped or delayed. It means that the WG believes the feature may have difficulty being interoperably implemented in a timely manner, and marking it as such allows the WG to drop the feature if necessary when transitioning to the Proposed Rec stage, without having to publish a new Candidate Rec without the feature first."
+    html += (
+        "</ul><p>“At-risk” is a W3C Process term-of-art, and does not necessarily imply that the feature is in danger of being dropped or delayed. "
+        "It means that the WG believes the feature may have difficulty being interoperably implemented in a timely manner, "
+        "and marking it as such allows the WG to drop the feature if necessary when transitioning to the Proposed Rec stage, "
+        "without having to publish a new Candidate Rec without the feature first."
+    )
     fillWith("at-risk", parseHTML(html), doc=doc)
 
 
@@ -305,10 +309,10 @@ def addIndexSection(doc):
         container, E.h2({"class": "no-num no-ref", "id": safeID(doc, "index")}, "Index")
     )
 
-    if len(findAll(config.dfnElementsSelector, doc)):
+    if len(findAll(config.dfnElementsSelector, doc)) > 0:
         addIndexOfLocallyDefinedTerms(doc, container)
 
-    if len(list(doc.externalRefsUsed.keys())):
+    if len(list(doc.externalRefsUsed.keys())) > 0:
         addIndexOfExternallyDefinedTerms(doc, container)
 
 
@@ -355,6 +359,17 @@ def addIndexOfLocallyDefinedTerms(doc, container):
     appendChild(container, indexHTML)
 
 
+def disambiguator(ref, types, specs):
+    disambInfo = []
+    if types is None or len(types) > 1:
+        disambInfo.append(ref.type)
+    if specs is None or len(specs) > 1:
+        disambInfo.append("in " + ref.spec)
+    if ref.for_:
+        disambInfo.append("for {}".format(", ".join(x.strip() for x in ref.for_)))
+    return ", ".join(disambInfo)
+
+
 def addExplicitIndexes(doc):
     # Explicit indexes can be requested for specs with <index spec="example-spec-1"></index>
 
@@ -387,9 +402,7 @@ def addExplicitIndexes(doc):
             specs = {x.strip() for x in el.get("data-link-spec").split(",")}
             for s in list(specs):
                 if s not in doc.refs.specs:
-                    die(
-                        "Unknown spec name '{}' on {}".format(s, outerHTML(el)), el=el
-                    )
+                    die("Unknown spec name '{}' on {}".format(s, outerHTML(el)), el=el)
                     specs.remove(s)
         else:
             specs = None
@@ -416,22 +429,6 @@ def addExplicitIndexes(doc):
         else:
             export = None
 
-        def disambiguator(ref):
-            disambInfo = []
-            if types is None or len(types) > 1:
-                disambInfo.append(ref.type)
-            if specs is None or len(specs) > 1:
-                disambInfo.append("in " + ref.spec)
-            if ref.for_:
-                try:
-                    disambInfo.append(
-                        "for {}".format(", ".join(x.strip() for x in ref.for_))
-                    )
-                except:
-                    # todo: The TR version of Position triggers this
-                    pass
-            return ", ".join(disambInfo)
-
         # Initial filter of the ref database according to the <index> parameters
         possibleRefs = []
         for ref in doc.refs.queryAllRefs(
@@ -452,8 +449,9 @@ def addExplicitIndexes(doc):
         # ensuring no duplicate disambiguators.
         refsFromText = defaultdict(list)
         for ref in possibleRefs:
+            refDisambiguator = disambiguator(ref, types, specs)
             for i, existingRef in enumerate(refsFromText[ref.text]):
-                if disambiguator(existingRef) != disambiguator(ref):
+                if disambiguator(existingRef, types, specs) != refDisambiguator:
                     continue
                 # Whoops, found an identical entry.
                 if existingRef.status != ref.status:
@@ -461,7 +459,7 @@ def addExplicitIndexes(doc):
                         if existingRef.status == status:
                             # Existing entry matches stated status, do nothing and don't add it.
                             break
-                        elif ref.status == status:
+                        if ref.status == status:
                             # New entry matches status, update and don't re-add it.
                             refsFromText[text][i] = ref
                             break
@@ -469,7 +467,7 @@ def addExplicitIndexes(doc):
                         # Default to preferring current specs
                         if existingRef.status == "current":
                             break
-                        elif ref.status == "current":
+                        if ref.status == "current":
                             refsFromText[ref.text][i] = ref
                             break
                 else:
@@ -491,7 +489,7 @@ def addExplicitIndexes(doc):
             refs = refUtils.filterOldVersions(refs)
             if refs:
                 filteredRefs[ttf[0]].extend(
-                    {"url": ref.url, "disambiguator": disambiguator(ref)}
+                    {"url": ref.url, "disambiguator": disambiguator(ref, types, specs)}
                     for ref in refs
                 )
 
@@ -580,16 +578,14 @@ def addIndexOfExternallyDefinedTerms(doc, container):
             E.li(E.a(attrs, "[", printableSpec, "]"), " defines the following terms:"),
         )
         termsUl = appendChild(specLi, E.ul())
-        for text, refs in sorted(refGroups.items(), key=lambda x: x[0]):
+        for _, refs in sorted(refGroups.items(), key=lambda x: x[0]):
             if len(refs) == 1:
                 ref = list(refs.values())[0]
                 link = makeLink(ref.text)
             else:
                 for key, ref in sorted(refs.items(), key=lambda x: x[0]):
                     if key:
-                        link = makeLink(
-                            ref.text, " ", E.small({}, f"(for {key})")
-                        )
+                        link = makeLink(ref.text, " ", E.small({}, f"(for {key})"))
                     else:
                         link = makeLink(ref.text)
             appendChild(termsUl, E.li(link))
@@ -624,7 +620,7 @@ def addPropertyIndex(doc):
         ),
     )
 
-    def extractKeyValFromRow(tr, table):
+    def extractKeyValFromRow(row, table):
         # Extract the key, minus the trailing :
         result = re.match(r"(.*):", textContent(row[0]).strip())
         if result is None:
@@ -685,7 +681,7 @@ def addPropertyIndex(doc):
             *[E.td(prop.get(column, "")) for column in columns[1:]],
         )
 
-    if len(props):
+    if len(props) > 0:
         # Set up the initial table columns for properties
         columns = ["Name", "Value", "Initial", "Applies to", "Inherited", "Percentages"]
         # Add any additional keys used in the document.
@@ -729,7 +725,7 @@ def addPropertyIndex(doc):
     else:
         appendChild(html, E.p("No properties defined."))
 
-    if len(atRules):
+    if len(atRules) > 0:
         atRuleNames = sorted(atRules.keys())
         for atRuleName in atRuleNames:
             descs = atRules[atRuleName]
@@ -981,28 +977,26 @@ def addSpecMetadataSection(doc):
                     nativeName,
                 ),
             )
-        elif name:
+        if name:
             return E.a(
                 {"href": url, "hreflang": lang, "rel": "alternate", "title": lang}, name
             )
-        else:
-            return E.a({"href": url, "hreflang": lang, "rel": "alternate"}, lang)
+        return E.a({"href": url, "hreflang": lang, "rel": "alternate"}, lang)
 
     def printPreviousVersion(v):
         if v["type"] == "url":
             return E.a({"href": v["value"], "rel": "prev"}, v["value"])
-        else:
-            if v["type"] == "from-biblio":
-                key = v["value"]
-            else:  # "from-biblio-implicit"
-                key = doc.md.vshortname
-            dated = doc.refs.getLatestBiblioRef(key)
-            if not dated:
-                die(
-                    f"While trying to generate a Previous Version line, couldn't find a dated biblio reference for {key}."
-                )
-                return
-            return E.a({"href": dated.url, "rel": "prev"}, dated.url)
+        if v["type"] == "from-biblio":
+            key = v["value"]
+        else:  # "from-biblio-implicit"
+            key = doc.md.vshortname
+        dated = doc.refs.getLatestBiblioRef(key)
+        if not dated:
+            die(
+                f"While trying to generate a Previous Version line, couldn't find a dated biblio reference for {key}."
+            )
+            return
+        return E.a({"href": dated.url, "rel": "prev"}, dated.url)
 
     md = DefaultOrderedDict(list)
     mac = doc.macros
@@ -1193,7 +1187,7 @@ def addReferencesSection(doc):
     )
 
     normRefs = sorted(doc.normativeRefs.values(), key=lambda r: r.linkText.lower())
-    if len(normRefs):
+    if len(normRefs) > 0:
         dl = appendChild(
             container,
             E.h3(
@@ -1218,7 +1212,7 @@ def addReferencesSection(doc):
         for x in sorted(doc.informativeRefs.values(), key=lambda r: r.linkText.lower())
         if x.linkText not in doc.normativeRefs
     ]
-    if len(informRefs):
+    if len(informRefs) > 0:
         dl = appendChild(
             container,
             E.h3(

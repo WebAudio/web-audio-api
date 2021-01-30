@@ -24,10 +24,9 @@ def determineGaps(outer, inner):
     diff = outer - inner
     if INTERNAL_ALIGNMENT == "left":
         return 0, diff
-    elif INTERNAL_ALIGNMENT == "right":
+    if INTERNAL_ALIGNMENT == "right":
         return diff, 0
-    else:
-        return diff / 2, diff / 2
+    return diff / 2, diff / 2
 
 
 def doubleenumerate(seq):
@@ -104,9 +103,7 @@ class Path(DiagramItem):
             x *= -1
         if sweep[0] == "s" or sweep[1] == "n":
             y *= -1
-        cw = (
-            1 if sweep == "ne" or sweep == "es" or sweep == "sw" or sweep == "wn" else 0
-        )
+        cw = 1 if sweep in ("ne", "es", "sw", "wn") else 0
         self.attrs["d"] += f"a{ARC_RADIUS:g} {ARC_RADIUS:g} 0 0 {cw:g} {x:g} {y:g}"
         return self
 
@@ -293,8 +290,7 @@ class OptionalSequence(DiagramItem):
     def __new__(cls, *items):
         if len(items) <= 1:
             return Sequence(*items)
-        else:
-            return super().__new__(cls, *items)
+        return super().__new__(cls, *items)
 
     def __init__(self, *items):
         DiagramItem.__init__(self, "g")
@@ -925,6 +921,40 @@ if __name__ == "__main__":
     import sys
 
     sys.stdout.write(
-        "<!doctype html><title>Test</title><style>svg.railroad-diagram{background-color:hsl(30,20%,95%);}svg.railroad-diagram path{stroke-width:3px;stroke:black;fill:rgba(0,0,0,0);}svg.railroad-diagram text{font:bold 14px monospace;text-anchor:middle;white-space:pre}svg.railroad-diagram text.label{text-anchor:start;}svg.railroad-diagram text.comment{font:italic 12px monospace;}svg.railroad-diagram rect{stroke-width:3px;stroke:black;fill:hsl(120,100%,90%);}</style>"
+        """
+        <!doctype html>
+        <title>Test</title>
+        <style>
+            svg.railroad-diagram {
+                background-color: hsl(30, 20%, 95%);
+            }
+
+            svg.railroad-diagram path {
+                stroke-width: 3px;
+                stroke: black;
+                fill: rgba(0, 0, 0, 0);
+            }
+
+            svg.railroad-diagram text {
+                font: bold 14px monospace;
+                text-anchor: middle;
+                white-space: pre
+            }
+
+            svg.railroad-diagram text.label {
+                text-anchor: start;
+            }
+
+            svg.railroad-diagram text.comment {
+                font: italic 12px monospace;
+            }
+
+            svg.railroad-diagram rect {
+                stroke-width: 3px;
+                stroke: black;
+                fill: hsl(120, 100%, 90%);
+            }
+        </style>
+        """
     )
     exec(open("css-example.py-js").read())

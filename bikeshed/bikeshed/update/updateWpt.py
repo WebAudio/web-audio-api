@@ -1,4 +1,5 @@
 import os
+
 import requests
 
 from ..messages import *
@@ -41,12 +42,10 @@ def update(path, dryRun=False):
             collectPaths(paths, typePaths, testType + " ")
     if not dryRun:
         try:
-            with open(
-                os.path.join(path, "wpt-tests.txt"), "w", encoding="utf-8"
-            ) as f:
+            with open(os.path.join(path, "wpt-tests.txt"), "w", encoding="utf-8") as f:
                 f.write(f"sha: {sha}\n")
-                for path in sorted(paths):
-                    f.write(path + "\n")
+                for ordered_path in sorted(paths):
+                    f.write(ordered_path + "\n")
         except Exception as e:
             die("Couldn't save web-platform-tests data to disk.\n{0}", e)
             return

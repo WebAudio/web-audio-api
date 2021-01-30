@@ -1,13 +1,14 @@
 import asyncio
-import aiofiles
-import aiohttp
 import hashlib
 import os
-import requests
-import tenacity
 import time
 from datetime import datetime
-from result import Ok, Err
+
+import aiofiles
+import aiohttp
+import requests
+import tenacity
+from result import Err, Ok
 
 from ..messages import *
 
@@ -41,31 +42,23 @@ ghPrefix = "https://raw.githubusercontent.com/tabatkins/bikeshed-data/master/dat
 def createManifest(path, dryRun=False):
     """Generates a manifest file for all the data files."""
     manifests = []
-    try:
-        for absPath, relPath in getDatafilePaths(path):
-            if relPath in knownFiles:
-                pass
-            elif relPath.partition("/")[0] in knownFolders:
-                pass
-            else:
-                continue
-            with open(absPath, encoding="utf-8") as fh:
-                manifests.append((relPath, hashFile(fh)))
-    except Exception:
-        raise
+    for absPath, relPath in getDatafilePaths(path):
+        if relPath in knownFiles:
+            pass
+        elif relPath.partition("/")[0] in knownFolders:
+            pass
+        else:
+            continue
+        with open(absPath, encoding="utf-8") as fh:
+            manifests.append((relPath, hashFile(fh)))
 
     manifest = str(datetime.utcnow()) + "\n"
-    for path, hash in sorted(manifests, key=keyManifest):
-        manifest += f"{hash} {path}\n"
+    for p, h in sorted(manifests, key=keyManifest):
+        manifest += f"{h} {p}\n"
 
     if not dryRun:
-        try:
-            with open(
-                os.path.join(path, "manifest.txt"), "w", encoding="utf-8"
-            ) as fh:
-                fh.write(manifest)
-        except Exception:
-            raise
+        with open(os.path.join(path, "manifest.txt"), "w", encoding="utf-8") as fh:
+            fh.write(manifest)
 
     return manifest
 
@@ -171,7 +164,7 @@ def updateByManifest(path, dryRun=False):
 
     if not dryRun:
         deletedPaths = []
-        for filePath in localFiles.keys():
+        for filePath in localFiles:
             if filePath not in remoteFiles and os.path.exists(
                 localizePath(path, filePath)
             ):
@@ -193,9 +186,7 @@ def updateByManifest(path, dryRun=False):
             )
         goodPaths, badPaths = asyncio.run(updateFiles(path, newPaths))
         try:
-            with open(
-                os.path.join(path, "manifest.txt"), "w", encoding="utf-8"
-            ) as fh:
+            with open(os.path.join(path, "manifest.txt"), "w", encoding="utf-8") as fh:
                 fh.write(createFinishedManifest(remoteManifest, goodPaths, badPaths))
         except Exception as e:
             warn("Couldn't save new manifest file.\n{0}", e)
@@ -327,7 +318,7 @@ def dtFromManifest(lines):
         return "error"
     try:
         return datetime.strptime(lines[0].strip(), "%Y-%m-%d %H:%M:%S.%f")
-    except:
+    except ValueError:
         # Sigh, something borked
         return
 

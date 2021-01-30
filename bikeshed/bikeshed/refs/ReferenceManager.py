@@ -4,14 +4,11 @@ import re
 from collections import defaultdict
 from operator import itemgetter
 
-from .RefSource import RefSource
-from .utils import *
-from .. import biblio
-from .. import config
-from .. import constants
-from .. import datablocks
+from .. import biblio, config, constants, datablocks
 from ..h import *
 from ..messages import *
+from .RefSource import RefSource
+from .utils import *
 
 
 class ReferenceManager:
@@ -93,6 +90,9 @@ class ReferenceManager:
             replaced=self.replacedSpecs,
             fileRequester=fileRequester,
         )
+        self.shortname = None
+        self.specLevel = None
+        self.spec = None
 
     def initializeRefs(self, doc=None):
         """
@@ -249,7 +249,7 @@ class ReferenceManager:
         # Kill all the non-local anchors with the same shortname as the current spec,
         # so you don't end up accidentally linking to something that's been removed from the local copy.
         # TODO: This is dumb.
-        for term, refs in self.foreignRefs._refs.items():
+        for _, refs in self.foreignRefs.refs.items():
             for ref in refs:
                 if (
                     ref["status"] != "local"
@@ -340,7 +340,7 @@ class ReferenceManager:
                     "for": dfnFor,
                     "el": el,
                 }
-                self.localRefs._refs[linkText].append(ref)
+                self.localRefs.refs[linkText].append(ref)
                 for for_ in dfnFor:
                     self.localRefs.fors[for_].append(linkText)
                 methodishStart = re.match(r"([^(]+\()[^)]", linkText)
@@ -634,7 +634,7 @@ class ReferenceManager:
                 return
             # Otherwise
 
-        if failure == "text" or failure == "type":
+        if failure in ("text", "type"):
             if linkType in ("property", "propdesc", "descriptor") and text.startswith(
                 "--"
             ):
@@ -894,7 +894,7 @@ class ReferenceManager:
         # returns the versioned names that Shepherd knows about.
 
         chosenVNames = []
-        for vSpecName in self.specs.keys():
+        for vSpecName in self.specs:
             if not vSpecName.startswith(specName):
                 continue
             match = re.match(r"-?(\d+)", vSpecName[len(specName) :])

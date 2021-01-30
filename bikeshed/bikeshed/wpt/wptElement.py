@@ -1,11 +1,11 @@
 from ..h import (
-    findAll,
-    textContent,
-    removeNode,
     E,
     addClass,
     appendChild,
     clearContents,
+    findAll,
+    removeNode,
+    textContent,
 )
 from ..messages import *
 
@@ -105,7 +105,7 @@ def createHTML(doc, blockEl, testNames, testData):
                     E.a(
                         {
                             "title": testName,
-                            "href": f"{liveTestScheme}://web-platform-tests.live/{testName}",
+                            "href": f"{liveTestScheme}://wpt.live/{testName}",
                             "class": "wpt-live",
                         },
                         E.small("(live test)"),

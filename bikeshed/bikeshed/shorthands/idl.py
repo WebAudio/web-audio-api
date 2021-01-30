@@ -3,7 +3,6 @@ import re
 from .. import config
 from ..h import E, outerHTML
 from ..messages import die
-
 from . import steps
 
 
@@ -13,6 +12,9 @@ class IdlShorthand:
         self.escapedText = None
         self.linkText = []
         self.bsAutolink = ""
+        self.linkFor = None
+        self.lt = None
+        self.linkType = None
 
     def respond(self, match, dom=None):
         if self.stage == "start":

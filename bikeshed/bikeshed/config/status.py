@@ -1,5 +1,5 @@
-from .main import englishFromList
 from ..messages import *
+from .main import englishFromList
 
 shortToLongStatus = {
     "DREAM": "A Collection of Interesting Ideas",
@@ -202,6 +202,7 @@ megaGroups = {
             "webapps",
             "webappsec",
             "webauthn",
+            "webfontswg",
             "webml",
             "web-payments",
             "webperf",
@@ -234,6 +235,7 @@ megaGroups = {
             "uievents",
             "web-bluetooth-cg",
             "webappsec",
+            "webfontswg",
             "webplatform",
             "webspecs",
             "whatwg",
@@ -272,9 +274,7 @@ def canonicalizeStatus(rawStatus, group):
             status = "w3c/" + status
 
         def formatStatusSet(statuses):
-            return ", ".join(
-                sorted({status.split("/")[-1] for status in statuses})
-            )
+            return ", ".join(sorted({status.split("/")[-1] for status in statuses}))
 
         msg = "You used Status: {0}, but {1} limited to these statuses: {2}."
 
@@ -300,7 +300,7 @@ def canonicalizeStatus(rawStatus, group):
     def megaGroupsForStatus(status):
         # Returns a list of megagroups that recognize the given status
         megaGroups = []
-        for key in shortToLongStatus.keys():
+        for key in shortToLongStatus:
             mg, _, s = key.partition("/")
             if s == status:
                 megaGroups.append(mg)
@@ -348,9 +348,7 @@ def canonicalizeStatus(rawStatus, group):
                 else:
                     msg += " That status can only be used with the org{} {}, or without an org at all.".format(
                         "s" if len(possibleMgs) > 1 else "",
-                        englishFromList(
-                            f"'{x}'" for x in possibleMgs if x != ""
-                        ),
+                        englishFromList(f"'{x}'" for x in possibleMgs if x != ""),
                     )
             else:
                 if len(possibleMgs) == 1:

@@ -1,7 +1,8 @@
 import collections
-import lxml
 import os
 import re
+
+import lxml
 
 
 def englishFromList(items, conjunction="or"):
@@ -99,6 +100,7 @@ def linkTextsFromElement(el, preserveCasing=False):
 
 class DuplicatedLinkText(Exception):
     def __init__(self, offendingText, allTexts, el):
+        super().__init__()
         self.offendingText = offendingText
         self.allTexts = allTexts
         self.el = el
@@ -112,7 +114,7 @@ def firstLinkTextFromElement(el):
         texts = linkTextsFromElement(el)
     except DuplicatedLinkText as e:
         texts = e.allTexts
-    return texts[0] if len(texts) else None
+    return texts[0] if len(texts) > 0 else None
 
 
 def splitForValues(forValues):

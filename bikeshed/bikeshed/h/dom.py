@@ -1,13 +1,26 @@
+import collections
 import hashlib
-import html5lib
 import re
-from lxml import etree
-from lxml.html import tostring
-from lxml.cssselect import CSSSelector
 
-from .. import config
+import html5lib
+from lxml import etree
+from lxml.cssselect import CSSSelector
+from lxml.html import tostring
+
 from ..DefaultOrderedDict import DefaultOrderedDict
 from ..messages import *
+
+
+def flatten(arr):
+    for el in arr:
+        if (
+            isinstance(el, collections.Iterable)
+            and not isinstance(el, str)
+            and not lxml.etree.iselement(el)
+        ):
+            yield from flatten(el)
+        else:
+            yield el
 
 
 def unescape(string):
@@ -162,12 +175,12 @@ def parseHTML(text):
     doc = html5lib.parse(text, treebuilder="lxml", namespaceHTMLElements=False)
     head = doc.getroot()[0]
     body = doc.getroot()[1]
-    if len(body) or body.text is not None:
+    if len(body) > 0 or body.text is not None:
         # Body contains something, so return that.
         contents = [body.text] if body.text is not None else []
         contents.extend(body.iterchildren())
         return contents
-    elif len(head) or head.text is not None:
+    elif len(head) > 0 or head.text is not None:
         # Okay, anything in the head?
         contents = [head.text] if head.text is not None else []
         contents.extend(head.iterchildren())
@@ -202,7 +215,7 @@ def parentElement(el):
 
 def appendChild(parent, *children):
     # Appends either text or an element.
-    children = list(config.flatten(children))
+    children = list(flatten(children))
     for child in children:
         if isinstance(child, str):
             if len(parent) > 0:
@@ -221,7 +234,7 @@ def appendChild(parent, *children):
                 # when the parent already has children; the last child's tail
                 # doesn't get moved into the appended child or anything.
                 parent.append(child)
-    return children[-1] if len(children) else None
+    return children[-1] if len(children) > 0 else None
 
 
 def prependChild(parent, child):
@@ -315,9 +328,9 @@ def wrapContents(parentEl, wrapperEl):
 
 
 def headingLevelOfElement(el):
-    for el in relevantHeadings(el, levels=[2, 3, 4, 5, 6]):
-        if el.get("data-level") is not None:
-            return el.get("data-level")
+    for heading in relevantHeadings(el, levels=[2, 3, 4, 5, 6]):
+        if heading.get("data-level") is not None:
+            return heading.get("data-level")
     return None
 
 
@@ -435,7 +448,7 @@ def nodeIter(el, clear=False, skipOddNodes=True):
     if isinstance(el, str):
         yield el
         return
-    if isinstance(el, etree._ElementTree):
+    if isinstance(el, etree.ElementTree):
         el = el.getroot()
     text = el.text
     tail = el.tail
@@ -767,9 +780,6 @@ def addOldIDs(els):
 
 def dedupIDs(doc):
     import itertools as iter
-
-    def findId(id):
-        return find("#" + id, doc) is not None
 
     ids = DefaultOrderedDict(list)
     for el in findAll("[id]", doc):

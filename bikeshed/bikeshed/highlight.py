@@ -1,6 +1,7 @@
 import collections
 import itertools
 import re
+
 from .h import *
 from .messages import *
 
@@ -68,14 +69,12 @@ def determineHighlightLang(doc, el):
         return None
     if attr == "nohighlight":
         return None
-    elif attr == "highlight":
+    if attr == "highlight":
         return lang
-    else:
-        # Highlight-by-default, if applicable.
-        if el.tag in ["pre", "xmp"] and hasClass(el, "idl"):
-            return "webidl"
-        else:
-            return doc.md.defaultHighlight
+    # Highlight-by-default, if applicable.
+    if el.tag in ["pre", "xmp"] and hasClass(el, "idl"):
+        return "webidl"
+    return doc.md.defaultHighlight
 
 
 def determineLineNumbers(doc, el):
@@ -155,8 +154,6 @@ def highlightEl(el, lang):
 
 
 def highlightWithWebIDL(text, el):
-    from widlparser import parser
-
     """
     Trick the widlparser emitter,
     which wants to output HTML via wrapping with start/end tags,
@@ -166,6 +163,7 @@ def highlightWithWebIDL(text, el):
     A \3 indicates a stack pop.
     All other text is colored with the attr currently on top of the stack.
     """
+    from widlparser import parser
 
     class IDLUI:
         def warn(self, msg):
@@ -211,31 +209,30 @@ def coloredTextFromWidlStack(widlText):
                 currentText = ""
                 mode = "color"
                 continue
-            elif char == "\2":
+            if char == "\2":
                 assert False, r"Encountered a \2 while in text mode"
                 continue
-            elif char == "\3":
+            if char == "\3":
                 assert colors, r"Encountered a \3 without any colors on stack."
                 coloredTexts.append(ColoredText(currentText, colors.pop()))
                 currentText = ""
                 continue
-            else:
-                currentText += char
+
+            currentText += char
         elif mode == "color":
             if char == "\1":
                 assert False, r"Encountered a \1 while in color mode."
                 continue
-            elif char == "\2":
+            if char == "\2":
                 colors.append(currentText)
                 currentText = ""
                 mode = "text"
                 continue
-            elif char == "\3":
+            if char == "\3":
                 assert False, r"Encountered a \3 while in color mode."
                 continue
-            else:
-                currentText += char
-                continue
+            currentText += char
+            continue
     assert (
         len(colors) == 0
     ), r"Colors stack wasn't empty at end, \1 and \3s aren't balanced?"
@@ -246,7 +243,7 @@ def coloredTextFromWidlStack(widlText):
 
 def highlightWithPygments(text, lang, el):
     import pygments
-    from pygments import formatters
+    from pygments.formatters.other import RawTokenFormatter
 
     lexer = lexerFromLang(lang)
     if lexer is None:
@@ -258,7 +255,7 @@ def highlightWithPygments(text, lang, el):
         )
         return
     rawTokens = str(
-        pygments.highlight(text, lexer, formatters.RawTokenFormatter()),
+        pygments.highlight(text, lexer, RawTokenFormatter()),
         encoding="utf-8",
     )
     coloredText = coloredTextFromRawTokens(rawTokens)
@@ -425,9 +422,10 @@ def lexerFromLang(lang):
         return customLexers[lang]()
     try:
         from pygments.lexers import get_lexer_by_name
+        from pygments.util import ClassNotFound
 
         return get_lexer_by_name(lang, encoding="utf-8", stripAll=True)
-    except:
+    except ClassNotFound:
         return None
 
 
@@ -452,7 +450,7 @@ def addLineWrappers(el, numbers=True, start=1, highlights=None):
                 else:
                     appendChild(lineWrapper, node)
                     break
-    if len(lineWrapper):
+    if len(lineWrapper) > 0:
         appendChild(el, E.span({"class": "line-no"}))
         appendChild(el, lineWrapper)
     # Number the lines

@@ -11,7 +11,7 @@ class DataFileRequester:
     def __init__(self, type=None, fallback=None):
         self.type = type
         if self.type not in ("readonly", "latest"):
-            raise Exception("Bad value for DataFileRequester.type, got '{0}'.", type)
+            raise Exception(f"Bad value for DataFileRequester.type, got '{type}'.")
         # fallback is another requester, used if the main one fails.
         self.fallback = fallback
 
@@ -36,12 +36,12 @@ class DataFileRequester:
 
     def walkFiles(self, *segs, **kwargs):
         fileType = kwargs.get("type", self.type)
-        for root, dirs, files in os.walk(self._buildPath(segs, fileType=fileType)):
+        for _, _, files in os.walk(self._buildPath(segs, fileType=fileType)):
             yield from files
 
     def _buildPath(self, segs, fileType=None):
         if fileType is None:
-            fileType = self.fileType
+            fileType = self.type
         if fileType == "readonly":
             return scriptPath("spec-data", "readonly", *segs)
         else:

@@ -1,6 +1,7 @@
 import re
 
 from widlparser import parser
+
 from . import config
 from .h import *
 from .messages import *
@@ -154,14 +155,13 @@ class IDLMarker:
                     ),
                     "</a>",
                 )
-            else:
-                # Otherwise, you *can* point to/dfn stringification behavior if you want.
-                return (
-                    "<idl data-export data-idl-type=dfn data-idl-for='{0}' data-lt='stringification behavior' id='{0}-stringification-behavior'>".format(
-                        construct.parent.full_name
-                    ),
-                    "</idl>",
-                )
+            # Otherwise, you *can* point to/dfn stringification behavior if you want.
+            return (
+                "<idl data-export data-idl-type=dfn data-idl-for='{0}' data-lt='stringification behavior' id='{0}-stringification-behavior'>".format(
+                    construct.parent.full_name
+                ),
+                "</idl>",
+            )
         # The remaining built-in types that aren't covered by a more specific function.
         builtinTypes = {
             "any": "interface",
@@ -370,6 +370,7 @@ def processIDL(doc):
             url = None
             forceDfn = False
             ref = None
+            idlText = None
             for idlText in el.get("data-lt").split("|"):
                 if idlType == "interface" and idlText in forcedInterfaces:
                     forceDfn = True

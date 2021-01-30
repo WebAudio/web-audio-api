@@ -4,31 +4,33 @@ import sys
 from collections import defaultdict
 from functools import partial as curry
 
-from . import biblio
-from . import boilerplate
-from . import caniuse
-from . import dfns
-from . import mdnspeclinks
-from . import conditional
-from . import config
-from . import constants
-from . import datablocks
-from . import extensions
-from . import fingerprinting
-from . import headings
-from . import highlight
-from . import h
-from . import idl
-from . import includes
-from . import inlineTags
-from . import lint
-from . import markdown
-from . import metadata
-from . import shorthands
-from . import wpt
-
+from . import (
+    biblio,
+    boilerplate,
+    caniuse,
+    conditional,
+    config,
+    constants,
+    datablocks,
+    dfns,
+    extensions,
+    fingerprinting,
+    h,
+    headings,
+    highlight,
+    idl,
+    includes,
+    inlineTags,
+    lint,
+    markdown,
+    mdnspeclinks,
+    metadata,
+    shorthands,
+    wpt,
+)
+from .func import Functor
 from .h import *
-from .InputSource import InputSource, FileInputSource
+from .InputSource import FileInputSource, InputSource
 from .messages import *
 from .refs import ReferenceManager
 from .unsortedJunk import *
@@ -66,6 +68,18 @@ class Spec:
         else:
             self.dataFile = fileRequester
 
+        self.md = None
+        self.mdBaseline = None
+        self.mdDocument = None
+        self.mdCommandLine = None
+        self.mdDefaults = None
+        self.mdOverridingDefaults = None
+        self.lines = []
+        self.document = None
+        self.html = None
+        self.head = None
+        self.body = None
+        self.fillContainers = None
         self.valid = self.initializeState()
 
     def initializeState(self):
@@ -101,7 +115,7 @@ class Spec:
             self.lines = inputContent.lines
             if inputContent.date is not None:
                 self.mdBaseline.addParsedData("Date", inputContent.date)
-        except OSError:
+        except FileNotFoundError:
             die(
                 "Couldn't find the input file at the specified location '{0}'.",
                 self.inputSource,
@@ -287,7 +301,8 @@ class Spec:
                     "http://lists.w3.org"
                 ):
                     el.text = "https" + text[4:]
-            extensions.BSPrepTR(self)
+            # Loaded from .include files
+            extensions.BSPrepTR(self)  # pylint: disable=no-member
 
         return self
 
@@ -368,7 +383,7 @@ class Spec:
             import threading
 
             class SilentServer(http.server.SimpleHTTPRequestHandler):
-                def log_message(*args):
+                def log_message(self, format, *args):
                     pass
 
             socketserver.TCPServer.allow_reuse_address = True
@@ -430,7 +445,7 @@ class Spec:
         if "markdown" in self.md.markupShorthands:
             textFunctor = MarkdownCodeSpans(text)
         else:
-            textFunctor = func.Functor(text)
+            textFunctor = Functor(text)
 
         macros = dict(self.macros, **moreMacros)
         textFunctor = textFunctor.map(curry(replaceMacros, macros=macros))

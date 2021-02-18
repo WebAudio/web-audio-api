@@ -11118,17 +11118,20 @@ in the algorithm of <a href="#rendering-a-graph">rendering a graph</a>.
 	finished.
 </div>
 
-The audio callback is also queued as a task in the
-<a href="#control-message-queue">control message queue</a>. The UA MUST perform
+The audio callback is also queued as a task in the <a
+	href="#control-message-queue">control message queue</a>. The UA MUST perform
 the following algorithms to process render quanta to fulfill such task by
-filling up the requested buffer size. Along with the primary message queue, each
-{{AudioContext}} has a regular task queue for tasks that are posted to
-the rendering thread from the control thread. An additional microtask checkpoint
-is performed after processing a render quantum to run any microtasks that might
-have been queued during the execution of the `process` methods of
-{{AudioWorkletProcessor}}.
+filling up the requested buffer size. Along with the <a>control message
+queue</a>, each {{AudioContext}} has a regular <a
+href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue">task
+queue</a>, called its <dfn for="BaseAudioContext">associated task queue</dfn>
+for tasks that are posted to the rendering thread from the control thread. An
+additional microtask checkpoint is performed after processing a render quantum
+to run any microtasks that might have been queued during the execution of the
+`process` methods of {{AudioWorkletProcessor}}.
 
-All tasks posted from an {{AudioWorkletNode}} are posted to this task queue.
+All tasks posted from an {{AudioWorkletNode}} are posted to the [=associated
+task queue=] of its associated {{BaseAudioContext}}.
 
 <div id="rendering-initialization" algorithm="initialize rendering loop">
 	The following step MUST be performed once before the rendering loop starts.
@@ -11139,7 +11142,7 @@ All tasks posted from an {{AudioWorkletNode}} are posted to this task queue.
 </div>
 
 <div id="rendering-a-graph" algorithm="rendering a graph">
-  The following sterp MUST be performed when rendering a single render quantum.
+  The following steps MUST be performed when rendering a render quantum.
 
 	1. Let <var>render result</var> be <code>false</code>.
 
@@ -11158,10 +11161,9 @@ All tasks posted from an {{AudioWorkletNode}} are posted to this task queue.
 			2. Remove the [=oldest message=] of <var>Q<sub>rendering</sub></var>.
 
 
-	3. Process the regular event queue.
+	3. Process the {{BaseAudioContext}}'s [=associated task queue=].
 
-		1. Let <var>task count</var> be the number of tasks in the task queue of
-			the task queue of the {{AudioContext}} being rendered.
+		1. Let <var>task count</var> be the number of tasks in the task queue of the {{AudioContext}} being rendered.
 
 		2. Spin the event loop until <var>task count</var> tasks have been executed.
 

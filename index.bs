@@ -11305,6 +11305,40 @@ task queue=] of its associated {{BaseAudioContext}}.
 					1. Jump to the step labeled
 						<a href="#audio-worklet-render-return">return</a>.
 
+				1. Set {{[[callable process]]}} to `true`.
+
+				1. Perform the following substeps:
+
+					1. Let |args| be a
+						<a href="https://heycam.github.io/webidl/#web-idl-arguments-list">
+						Web IDL arguments list</a> consisting of
+						{{AudioWorkletProcessCallback/inputs}},
+						{{AudioWorkletProcessCallback/outputs}}, and
+						{{AudioWorkletProcessCallback/parameters}}.
+
+					1. Let |esArgs| be the result of
+						<a href="https://heycam.github.io/webidl/#web-idl-arguments-list-converting">
+						converting</a> |args| to an ECMAScript arguments list.
+
+					1. Let |callResult| be the <a href="https://tc39.github.io/ecma262/#sec-call">
+						Call</a>(|processCallback|, |O|, |esArgs|). This operation
+						[=Computing a block of audio|computes a block of audio=] with |esArgs|.
+						Upon a successful function call, a buffer containing copies of
+						the elements of the {{Float32Array}}s passed via the
+						{{AudioWorkletProcessCallback/outputs}} is
+						[=Making a buffer available for reading|made available for reading=].
+						Any {{Promise}} resolved within this call will be queued into the
+						microtask queue in the {{AudioWorkletGlobalScope}}.
+
+					1. If |callResult| is an
+						<a href="https://tc39.github.io/ecma262/#sec-completion-record-specification-type">
+						abrupt completion</a>, set |completion| to |callResult| and jump to the
+						step labeled <a href="#audio-worklet-render-return">return</a>.
+
+					1. Set |processor|’s <a>active source</a> flag to
+						<a href="https://tc39.github.io/ecma262/#sec-toboolean">
+						ToBoolean</a>(|callResult|.\[[Value]]).
+
 				1. <i id="audio-worklet-render-return">Return:</i> at this point |completion|
 					will be set to an ECMAScript
 					<a href="https://tc39.es/ecma262/#sec-completion">completion</a> value.

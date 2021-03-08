@@ -1,7 +1,8 @@
 # Web Audio API 1.0 Spec
 
-
 [![Build Status](https://travis-ci.com/WebAudio/web-audio-api.svg?branch=main)](https://travis-ci.com/WebAudio/web-audio-api)
+
+<img src="images/webaudio-js.png" width="200px" alt="WebAudio">
 
 This repository contains the latest editor's draft of the [W3C AudioWG](https://www.w3.org/2011/audio/)'s Web Audio API v1.0.
 

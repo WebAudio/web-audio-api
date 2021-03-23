@@ -10098,9 +10098,14 @@ the <a>rendering thread</a> will invoke the algorithm below:
 			of this {{AudioWorkletGlobalScope}}'s
 			[=pending processor construction data=] respectively.
 
-		1. <a spec=webidl lt=construct>Construct a callback function</a>
-			from <var>processorCtor</var> with the argument of
-			<var>deserializedOptions</var>.
+		1. <a spec=webidl lt=construct>Construct a callback function</a> from |processorCtor| with the argument
+			of |deserializedOptions|. If any exceptions are thrown in the callback, <a>queue a task</a> to
+			the <a>control thread</a> to <a spec="dom" lt="fire an event">fire an event</a> named
+			`processorerror` using
+			<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">ErrorEvent</a>
+			at |nodeReference|.
+
+		1. Empty the [=pending processor construction data=] slot.
 	</div>
 
 <h4 interface lt="AudioWorkletNode">
@@ -10478,20 +10483,6 @@ Constructors</h5>
 				Throw a {{TypeError}} exception if the slot is
 				empty.
 
-			1. If any of following steps throws any exception,
-				perform these substeps:
-
-				1. Empty the
-					[=pending processor construction data=]
-					slot.
-
-				2. Abort the rest of the constructor algorithm and
-					<a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-					queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
-					</a> named `processorerror` using
-					<a href="https://www.w3.org/TR/html50/webappapis.html#the-errorevent-interface">
-					ErrorEvent</a> at |nodeReference|.
-
 			1. Let <var>processor</var> be the
 				<a spec="webidl" lt="this">this</a> value.
 
@@ -10510,9 +10501,6 @@ Constructors</h5>
 			1. Set <var>processor</var>’s
 				{{AudioWorkletProcessor/port}}
 				to <var>deserializedPort</var>.
-
-			1. Empty the [=pending processor construction data=]
-				slot.
 		</div>
 </dl>
 

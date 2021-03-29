@@ -1378,8 +1378,8 @@ interface AudioContext : BaseAudioContext {
 
 An {{AudioContext}} is said to be <dfn>allowed to start</dfn> if the user agent
 allows the context state to transition from "{{AudioContextState/suspended}}" to
-"{{AudioContextState/running}}". A user agent may delay this initial transition,
-to allow it only when the {{AudioContext}}'s [=relevant global object=] has
+"{{AudioContextState/running}}". A user agent may disallow this initial transition,
+and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
 [=sticky activation=].
 
 {{AudioContext}} has an internal slot:
@@ -8301,6 +8301,8 @@ time integral of <a>computedOscFrequency</a>, assuming a phase angle
 of zero at the node's exact start time. Its <a>nominal range</a> is
 [-<a>Nyquist frequency</a>, <a>Nyquist frequency</a>].
 
+The single output of this node consists of one channel (mono).
+
 <pre class=include>
 path: audionode.include
 macros:
@@ -11295,12 +11297,12 @@ task queue=] of its associated {{BaseAudioContext}}.
 				[=Computing a block of audio|compute a block of audio=], and
 				[=Making a buffer available for reading|make it available for reading=].
 
-			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these
-				substeps:
+			4. If this {{AudioNode}} is an {{AudioWorkletNode}}, execute these substeps:
 
-				1. Let <var>processor</var> be the associated {{AudioWorkletProcessor}}
+				1. Let |processor| be the associated {{AudioWorkletProcessor}}
 					instance of {{AudioWorkletNode}}.
 
+<<<<<<< HEAD
 				1. If {{[[callable process]]}} of <var>processor</var> is `true`,
 					execute the following steps:
 
@@ -11344,6 +11346,98 @@ task queue=] of its associated {{BaseAudioContext}}.
 
 				1. Any {{Promise}} resolved within the execution of process method will
 					be queued into the microtask queue in the {{AudioWorkletGlobalScope}}.
+=======
+				1. Let |O| be the ECMAScript object corresponding to |processor|.
+
+				1. Let |processCallback| be an uninitialized variable.
+
+				1. Let |completion| be an uninitialized variable.
+
+				1. [=Prepare to run script=] with the [=current settings object=].
+
+				1. [=Prepare to run a callback=] with the [=current settings object=].
+
+				1. Let |getResult| be
+					<a href="https://tc39.github.io/ecma262/#sec-get-o-p">
+					Get</a>(|O|, "process").
+
+				1. If |getResult| is an
+					<a href="https://tc39.github.io/ecma262/#sec-completion-record-specification-type">
+					abrupt completion</a>, set |completion| to |getResult| and jump to the step
+					labeled <a href="#audio-worklet-render-return">return</a>.
+
+				1. Set |processCallback| to |getResult|.\[[Value]].
+
+				1. If <a href="https://tc39.es/ecma262/#sec-returnifabrupt-shorthands">!</a>
+					<a href="https://tc39.es/ecma262/#sec-iscallable">
+					IsCallable</a>(|processCallback|) is `false`, then:
+
+					1. Set |completion| to new
+						<a href="https://tc39.es/ecma262/#sec-completion">Completion</a>
+						{\[[Type]]: throw, \[[Value]]: a newly created
+						<a href="https://tc39.es/ecma262/#sec-native-error-types-used-in-this-standard-typeerror">
+						TypeError</a> object, \[[Target]]: empty}.
+
+					1. Jump to the step labeled
+						<a href="#audio-worklet-render-return">return</a>.
+
+				1. Set {{[[callable process]]}} to `true`.
+
+				1. Perform the following substeps:
+
+					1. Let |args| be a
+						<a href="https://heycam.github.io/webidl/#web-idl-arguments-list">
+						Web IDL arguments list</a> consisting of
+						{{AudioWorkletProcessCallback/inputs}},
+						{{AudioWorkletProcessCallback/outputs}}, and
+						{{AudioWorkletProcessCallback/parameters}}.
+
+					1. Let |esArgs| be the result of
+						<a href="https://heycam.github.io/webidl/#web-idl-arguments-list-converting">
+						converting</a> |args| to an ECMAScript arguments list.
+
+					1. Let |callResult| be the <a href="https://tc39.github.io/ecma262/#sec-call">
+						Call</a>(|processCallback|, |O|, |esArgs|). This operation
+						[=Computing a block of audio|computes a block of audio=] with |esArgs|.
+						Upon a successful function call, a buffer containing copies of
+						the elements of the {{Float32Array}}s passed via the
+						{{AudioWorkletProcessCallback/outputs}} is
+						[=Making a buffer available for reading|made available for reading=].
+						Any {{Promise}} resolved within this call will be queued into the
+						microtask queue in the {{AudioWorkletGlobalScope}}.
+
+					1. If |callResult| is an
+						<a href="https://tc39.github.io/ecma262/#sec-completion-record-specification-type">
+						abrupt completion</a>, set |completion| to |callResult| and jump to the
+						step labeled <a href="#audio-worklet-render-return">return</a>.
+
+					1. Set |processor|’s <a>active source</a> flag to
+						<a href="https://tc39.github.io/ecma262/#sec-toboolean">
+						ToBoolean</a>(|callResult|.\[[Value]]).
+
+				1. <b id="audio-worklet-render-return">Return:</b> at this point |completion|
+					will be set to an ECMAScript
+					<a href="https://tc39.es/ecma262/#sec-completion">completion</a> value.
+
+					1. [=Clean up after running a callback=] with the [=current settings object=].
+
+					1. [=Clean up after running script=] with the [=current settings object=].
+
+					1. If |completion| is an
+						<a href="https://tc39.github.io/ecma262/#sec-completion-record-specification-type">
+						abrupt completion</a>:
+
+						1. Set {{[[callable process]]}} to `false`.
+
+						1. Set |processor|'s <a>active source</a> flag to `false`.
+
+						1. [=Making a buffer available for reading|Make a silent output buffer available for reading=].
+
+						1. <a>Queue a task</a> to the <a>control thread</a>
+							<a spec="dom" lt="fire an event">fire</a> an
+							{{ErrorEvent}} named <code>processorerror</code> at the
+							associated {{AudioWorkletNode}}.
+>>>>>>> upstream/main
 
 			5. If this {{AudioNode}} is a <a>destination node</a>,
 				[=Recording the input|record the input=] of this {{AudioNode}}.

@@ -36,11 +36,17 @@ fi
 # Run bikeshed and save the output.  You can use this output as is
 # to update expected-errs.txt.
 bikeshed --print=plain -f spec 2>&1 | tee $BSLOG
-# Remove the line numbers from the log, and make sure it ends with a
-# newline.
-sed 's;^LINE [0-9]*:;LINE:;' $BSLOG | sed -e '$a\' > $ERRLOG
+# Remove the line numbers from the log, and make sure it ends with a newline.
+# Also remove any lines that start "cannot identify image file" because the path
+# is based the machine doing the build so we don't want that in the results.
+sed 's;^LINE [0-9]*:;LINE:;' $BSLOG |
+  sed '/^cannot identify image file/d' |
+  sed -e '$a\' > $ERRLOG
 # Do the same for the expected errors and compare the two.  Any
 # differences need to be fixed.  Exit with a non-zero exit code if
 # there are any differences.
-(sed 's;^LINE [0-9]*:;LINE:;' expected-errs.txt | sed -e '$a\' | diff -u - $ERRLOG) || exit 1
+(sed 's;^LINE [0-9]*:;LINE:;' expected-errs.txt |
+   sed '/^cannot identify image file/d' |
+   sed -e '$a\' |
+   diff -u - $ERRLOG) || exit 1
 

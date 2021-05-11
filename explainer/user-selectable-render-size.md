@@ -22,7 +22,7 @@ The example is an Android phone that has a native processing buffer size
 of 192.  Since WebAudio processes 128 frames we have the following behavior:
 
 |iteration | #	number of frames to render |	number of buffers to render |	leftover frames|
-------------------------------------------------------------------------------------------------
+|---|---|---|---|
 |0|	192|	2|	64|
 |1|	192|	1|	0|
 |2|	192|	2|	64|

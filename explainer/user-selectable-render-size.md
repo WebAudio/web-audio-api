@@ -78,7 +78,8 @@ partial interface BaseAudioContext {
 ```
 
 ### Enumeration description
-|||
+|Value|Description|
+|--|--|
 |"default"  | Default rendering size of 128 frames |
 |"hardware" | Use the appropriate value for the hardware |
 
@@ -140,38 +141,6 @@ supported.  This is particularly important on Android where sizes of 96, 144,
 Windows generally wants 10 ms buffers so sizes of 440 or 480 for 44.1
 kHz and 48 kHz, respectively, should be supported.
 
-### ScriptProcessorNode
-The [construction of a `ScriptProcessorNode`](https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createscriptprocessor)
-requires a
-[`bufferSize`](https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createscriptprocessor-buffersize-numberofinputchannels-numberofoutputchannels-buffersize)
-argument that must be a power of two.  This is fine with appropriate buffering,
-but perhaps it would be better if the buffer sizes are defined to be a power of
-two times the render size.  So, while the current allowed sizes are 0, `128*2`,
-`128*2^2`, `128*2^3`, `128*2^4`, `128*2^5`, `128*2^6`, and `128*2^7`, we may
-want to specify the sizes as 0, `r*2`, `r*2^2`, `r*2^3`, `r*2^4`, `r*2^5`,
-`r*2^6`, and `r*2^7`, where `r` is the `renderSize`.
-
-
-# Implementation Issues
-Conceptually this change is relatively simple, but some nodes may have
-additional complexities.  It is up to the UA to handle these appropriately.
-
-## AnalyserNode Implementation
-The `AnalyserNode` currently specifies powers of two both for the size of the
-returned time-domain data and for the size of the frequency domain data.  This
-is probably ok.
-
-## ConvolverNode Implementation
-For efficiency, the `ConvolverNode` is often implemented using FFTs.  Typically,
-only power-of-two FFTs have been used because the render size was 128.  To
-support user-selectable sizes, either more complex algorithms are needed to
-buffer the data appropriately, or more general FFTs are required to support
-sizes that are not a power of two.  It is up to the discretion of the UA to
-implement this appropriately for all the supported render sizes.
-
-## ScriptProcessorNode Implementation
-We've already proposed a change for the `ScriptProcessorNode`.
-
 ## Interaction with `latencyHint`
 The
 [`latencyHint`](https://www.w3.org/TR/webaudio/#dom-audiocontextoptions-latencyhint)
@@ -209,5 +178,34 @@ If, however, a render size of 1024 is selected, we have:
   resulting latency will be 1024 frames (21.33 sec).
 * "playback", the latency will be 200 ms since 200 ms is 9600 frames which is
   larger than 1024.
+
+
+# Implementation Issues
+Conceptually this change is relatively simple, but some nodes may have
+additional complexities.  It is up to the UA to handle these appropriately.
+
+## AnalyserNode Implementation
+The `AnalyserNode` currently specifies powers of two both for the size of the
+returned time-domain data and for the size of the frequency domain data.  This
+is probably ok.
+
+## ConvolverNode Implementation
+For efficiency, the `ConvolverNode` is often implemented using FFTs.  Typically,
+only power-of-two FFTs have been used because the render size was 128.  To
+support user-selectable sizes, either more complex algorithms are needed to
+buffer the data appropriately, or more general FFTs are required to support
+sizes that are not a power of two.  It is up to the discretion of the UA to
+implement this appropriately for all the supported render sizes.
+
+### ScriptProcessorNode
+The [construction of a
+`ScriptProcessorNode`](https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createscriptprocessor)
+requires a
+[`bufferSize`](https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createscriptprocessor-buffersize-numberofinputchannels-numberofoutputchannels-buffersize)
+argument that must be a power of two.  This is fine with appropriate buffering,
+but perhaps it would be better if the buffer sizes are defined to be a power of
+two times the render size.  So, while the current allowed sizes are 0, and
+`128*2^n`, for `n` = 1, 2, ..., 7., we may want to specify the sizes as 0,
+`r*2^n`, where `r` is the `renderSize`.
 
 

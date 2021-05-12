@@ -94,28 +94,42 @@ For an OfflineAudioContext, there's no concept of "hardware", so using
 
 ### New Dictionary Members
 #### AudioContextOptions
-```
-renderSizeHint, of type (AudioContextRenderSizeCategory or unsigned long),
-defaulting to "default"
-```
-Identifies the render size for the context.  The preferred value of the
-`renderSizeHint` is one of the values from the
-`AudioContextRenderSizeCategory`.  However, an unsigned long value may be given
-to request an exact number of frames to use for rendering.  Powers of two
-between 64 and 2048, inclusive MUST be supported.  It is recommended that UA's support
-values that are not a power of two.
+<dl>
+  <dt> renderSizeHint, of type (AudioContextRenderSizeCategory or unsigned long), defaulting to "default"
+  </dt>
 
-If the requested value is not supported by the UA, the UA MUST round the value
-up to the next smallest value that is supported.  If this exceeds the maximum
-supported value, it is clamped to the max.
+  <dd>
+  Identifies the render size for the context.  The preferred value of the
+  `renderSizeHint` is one of the values from the
+  `AudioContextRenderSizeCategory`.  However, an unsigned long value may be
+  given to request an exact number of frames to use for rendering.  Powers of
+  two between 64 and 2048, inclusive MUST be supported.  It is recommended that
+  UA's support values that are not a power of two.
+
+  If the requested value is not supported by the UA, the UA MUST round the value
+  up to the next smallest value that is supported.  If this exceeds the maximum
+  supported value, it is clamped to the max.
+  </dd>
+</dl>
+
 
 #### OfflineAudioContextOptions
-```
-renderSizeHint, of type (AudioContextRenderSizeCategory or unsigned long),
-defaulting to "default"
-```
-Same meaning and properties as for `AudioContextOptions`, except the "hardware"
-category is the same as the "default" category.
+<dl>
+  <dt> renderSizeHint, of type (AudioContextRenderSizeCategory or unsigned long), defaulting to "default"
+  </dt>
+
+  <dd>
+  Identifies the render size for the context.  The preferred value of the
+  `renderSizeHint` is one of the values from the
+  `AudioContextRenderSizeCategory`.  However, an unsigned long value may be
+  given to request an exact number of frames to use for rendering.  Powers of
+  two between 64 and 2048, inclusive MUST be supported.  It is recommended that
+  UA's support values that are not a power of two.
+
+  For an OfflineContext, the value of "hardware" is the same as "default".
+  </dd>
+</dl>
+
 
 ### BaseAudioContext New Attributes
 

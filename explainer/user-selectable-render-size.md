@@ -100,8 +100,8 @@ For an OfflineAudioContext, there's no concept of "hardware", so using
 
   <dd>
   Identifies the render size for the context.  The preferred value of the
-  `renderSizeHint` is one of the values from the
-  `AudioContextRenderSizeCategory`.  However, an unsigned long value may be
+  <code>renderSizeHint</code> is one of the values from the
+  <code>AudioContextRenderSizeCategory</code>.  However, an unsigned long value may be
   given to request an exact number of frames to use for rendering.  Powers of
   two between 64 and 2048, inclusive MUST be supported.  It is recommended that
   UA's support values that are not a power of two.
@@ -120,8 +120,8 @@ For an OfflineAudioContext, there's no concept of "hardware", so using
 
   <dd>
   Identifies the render size for the context.  The preferred value of the
-  `renderSizeHint` is one of the values from the
-  `AudioContextRenderSizeCategory`.  However, an unsigned long value may be
+  <code>renderSizeHint</code> is one of the values from the
+  <code>AudioContextRenderSizeCategory</code>.  However, an unsigned long value may be
   given to request an exact number of frames to use for rendering.  Powers of
   two between 64 and 2048, inclusive MUST be supported.  It is recommended that
   UA's support values that are not a power of two.
@@ -133,16 +133,18 @@ For an OfflineAudioContext, there's no concept of "hardware", so using
 
 ### BaseAudioContext New Attributes
 
-```
-renderSize, of type `unsigned long`, readonly
-```
-This is the actual number of frames used to render the graph.  This may be
-different from the value requested by `renderSizeHint`.
+<dl>
+  <dt> renderSize, of type <code>unsigned long</code>, readonly
+  </dt>
+  <dd>
+    This is the actual number of frames used to render the graph.  This may be
+    different from the value requested by <code>renderSizeHint</code>.
 
-We explicitly do **NOT** support selecting a render size when using the 
-[3-arg constructor](https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate) for the `OfflineAudioContext`.
+    We explicitly do <bold>NOT</bold> support selecting a render size when using the
+    <a href="https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate">3-arg constructor</a> for the <code>OfflineAudioContext</code>.
 
-
+  </dd>
+</dl>
 
 ## Requirements
 ### Supported Sizes
@@ -223,3 +225,9 @@ two times the render size.  So, while the current allowed sizes are 0, and
 `r*2^n`, where `r` is the `renderSize`.
 
 
+# Security and Privacy Issues
+When the user requests "hardware" for the render size, the user's hardware
+capability can be exposed and can be used to finger print the user.  While no UA
+is required to return exactly the hardware value, it is most beneficial if it
+actually did, as explained #issues.  But for privacy reasons, a UA can return a
+different value.

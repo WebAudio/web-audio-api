@@ -137,12 +137,14 @@ For an OfflineAudioContext, there's no concept of "hardware", so using
   <dt> renderSize, of type <code>unsigned long</code>, readonly
   </dt>
   <dd>
+    <p>
     This is the actual number of frames used to render the graph.  This may be
     different from the value requested by <code>renderSizeHint</code>.
-
+    </p>
+    <p>
     We explicitly do <bold>NOT</bold> support selecting a render size when using the
     <a href="https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate">3-arg constructor</a> for the <code>OfflineAudioContext</code>.
-
+    </p>
   </dd>
 </dl>
 
@@ -229,5 +231,5 @@ two times the render size.  So, while the current allowed sizes are 0, and
 When the user requests "hardware" for the render size, the user's hardware
 capability can be exposed and can be used to finger print the user.  While no UA
 is required to return exactly the hardware value, it is most beneficial if it
-actually did, as explained #issues.  But for privacy reasons, a UA can return a
+actually did, as explained <a href="#issues">issues</a>.  But for privacy reasons, a UA can return a
 different value.

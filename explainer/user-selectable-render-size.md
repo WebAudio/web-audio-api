@@ -77,11 +77,11 @@ partial interface BaseAudioContext {
 };
 ```
 
-### Enumeration description
+### Enumeration Description
 |Value|Description|
 |--|--|
 |"default"  | Default rendering size of 128 frames |
-|"hardware" | Use the appropriate value for the hardware |
+|"hardware" | Use an appropriate value for the hardware for an AudioContext or the default for an OfflineAudioContext|
 
 #### AudioContext
 For an AudioContext, the "hardware" category means a size is chosen that is

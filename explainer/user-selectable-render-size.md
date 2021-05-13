@@ -198,6 +198,13 @@ If, however, a render size of 1024 is selected, we have:
   larger than 1024.
 
 
+# Security and Privacy Issues
+When the user requests "hardware" for the render size, the user's hardware
+capability can be exposed and can be used to finger print the user.  While no UA
+is required to return exactly the hardware value, it is most beneficial if it
+actually did, as explained #issues.  But for privacy reasons, a UA can return a
+different value.
+
 # Implementation Issues
 Conceptually this change is relatively simple, but some nodes may have
 additional complexities.  It is up to the UA to handle these appropriately.
@@ -226,10 +233,3 @@ two times the render size.  So, while the current allowed sizes are 0, and
 `128*2^n`, for `n` = 1, 2, ..., 7., we may want to specify the sizes as 0,
 `r*2^n`, where `r` is the `renderSize`.
 
-
-# Security and Privacy Issues
-When the user requests "hardware" for the render size, the user's hardware
-capability can be exposed and can be used to finger print the user.  While no UA
-is required to return exactly the hardware value, it is most beneficial if it
-actually did, as explained <a href="#issues">issues</a>.  But for privacy reasons, a UA can return a
-different value.

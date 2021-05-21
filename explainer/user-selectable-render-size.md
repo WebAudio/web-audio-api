@@ -119,14 +119,9 @@ For an OfflineAudioContext, there's no concept of "hardware", so using
   </dt>
 
   <dd>
-  Identifies the render size for the context.  The preferred value of the
-  <code>renderSizeHint</code> is one of the values from the
-  <code>AudioContextRenderSizeCategory</code>.  However, an unsigned long value may be
-  given to request an exact number of frames to use for rendering.  Powers of
-  two between 64 and 2048, inclusive MUST be supported.  It is recommended that
-  UA's support values that are not a power of two.
-
-  For an OfflineContext, the value of "hardware" is the same as "default".
+  This has exactly the same meaning, behavior, and constraints as for an
+  `AudioContext`.  However, for an OfflineContext, the value of "hardware" is
+  the same as "default".
   </dd>
 </dl>
 
@@ -162,9 +157,14 @@ kHz and 48 kHz, respectively, should be supported.
 ## Interaction with `latencyHint`
 The
 [`latencyHint`](https://www.w3.org/TR/webaudio/#dom-audiocontextoptions-latencyhint)
-for an AudioContext interacts with the `renderSize` in the following way.
-Roughly, the `renderSize` choose the minimum possible latency, and the
-`latencyHint` can increase this appropriately when possible.
+for an AudioContext can interact with the `renderSize`.  The
+exact interaction between these is up to the UA to implement in a meaningful
+way.  In particular, UAs that don't double buffer WebAudio's output, the
+`latencyHint` value can be 0, independent of the `renderSize`.
+
+However, for UAs that do double buffer, then, roughly, the `renderSize` chooses
+the minimum possible latency, and the `latencyHint` can increase this
+appropriately when possible.
 
 * If `renderSize` is "default", then 128 frames is used to render the graph and
   `latencyHint` behaves as before.
@@ -175,6 +175,7 @@ Roughly, the `renderSize` choose the minimum possible latency, and the
   UA-supported value.  The `latencyHint` cannot produce latencies less than
   this.
 
+#### Non-normative Note:
 For example, suppose the "hardware" render size is 192 frames with a context
 whose sample rate is 48 kHz.  Also assume that a "balanced" latency implies a
 latency of 20 ms, and "playback" implies a latency of 200 ms.

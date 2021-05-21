@@ -164,11 +164,11 @@ way.  In particular, UAs that don't double buffer WebAudio's output, the
 
 However, for UAs that do double buffer, then, roughly, the `renderSize` chooses
 the minimum possible latency, and the `latencyHint` can increase this
-appropriately when possible.
+appropriately if needed.
 
 * If `renderSize` is "default", then 128 frames is used to render the graph and
   `latencyHint` behaves as before.
-* If 'renderSize` is "hardware", then the graph is rendered using the hardware
+* If `renderSize` is "hardware", then the graph is rendered using the hardware
   size.  The latency value is chosen appropriately but the resulting latency
   value cannot be smaller than the hardware size.
 * If `renderSize` is a number, the graph is rendered using the appropriate

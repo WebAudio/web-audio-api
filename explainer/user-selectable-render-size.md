@@ -184,7 +184,7 @@ Then, for
 
 * "interactive", the latency will be `192*n` where `n` is 1, 2, 3,..., and is
   chosen by the UA
-* "playback", the latency will be 20 ms.  This means the graph is rendered 5
+* "balanced", the latency will be 20 ms.  This means the graph is rendered 5
   times (`5*192` = `20 ms * 48 kHz`) per callback.
 * "playback", the latency will be 200 ms.  The graph is rendered 50 times per
   callback.
@@ -193,10 +193,20 @@ If, however, a render size of 1024 is selected, we have:
 
 * "interactive", the latency will be `1024*n` where `n` is 1, 2, 3,..., and is
   chosen by the UA
-* "playback", a latency of 20 ms is 960 frames, which is smaller than 1024.  The
-  resulting latency will be 1024 frames (21.33 sec).
+* "balanced", a latency of 20 ms is 960 frames, which is smaller than 1024.  The
+  resulting latency will be 1024 frames (21.33 msec).
 * "playback", the latency will be 200 ms since 200 ms is 9600 frames which is
   larger than 1024.
+  
+Finally, if the render size is 2048, we have:
+* "interactive", the latency will be `2048*n` where `n` is 1, 2, 3,..., and is
+  chosen by the UA
+* "balanced", a latency of 20 ms is 960 frames, which is greater than 2048.  The
+  resulting latency will be 2048 frames (42.67 msec).
+* "playback", the latency will be 200 ms since 200 ms is 9600 frames which is
+  larger than 2048.
+  
+
 
 
 # Security and Privacy Issues

@@ -5,7 +5,7 @@ Raymond Toy (rtoy@chromium.org)
 Historically, WebAudio has always rendered the graph in chunks of 128 frames,
 called a [render
 quantum](https://webaudio.github.io/web-audio-api/#render-quantum) in the
-specification.  This was probably a trade-off between function-call overhead and
+specification.  This was a trade-off between function-call overhead and
 latency.  A smaller number would reduce latency, but the function call overhead
 would increase.  With a larger value, the overhead is reduced, but the latency
 increases because any change takes more audio frames to reach the output.  In
@@ -37,7 +37,8 @@ Then the max complexity of the graph is unexpectedly limited because of this.
 
 However, if WebAudio rendered 192 frames at a time, the CPU usage would
 remain constant, and more complex graphs could be rendered because the peak CPU
-would be same as the average.  This does increase latency a bit, but since
+would be same as the average.  This does increase latency compared to a native
+size of 128, but since
 Android is already using a size of 192, there is no actual additional latency.
 
 Finally, some applications do not need these low latency requirements, and may
@@ -150,7 +151,7 @@ inclusive.
 
 It is highly recommended that other sizes that are not a power of two be
 supported.  This is particularly important on Android where sizes of 96, 144,
-192, and 240 are quite common.  The the problem isn't limited to Android.
+192, and 240 are quite common.  The problem isn't limited to Android.
 Windows generally wants 10 ms buffers so sizes of 440 or 480 for 44.1
 kHz and 48 kHz, respectively, should be supported.
 

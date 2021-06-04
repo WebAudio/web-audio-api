@@ -234,6 +234,13 @@ buffer the data appropriately, or more general FFTs are required to support
 sizes that are not a power of two.  It is up to the discretion of the UA to
 implement this appropriately for all the supported render sizes.
 
+## DelayNode Implementation
+Since render size may be different from 128 frames, the minimum delay for a
+`DelayNode` in a loop is adjusted to match the selected render size.  Thus, if
+the render size is 256, loops containing a delay node must have a delay greater
+than or equal to this.  See step 4.2.6.1 in the processing algorithm in
+[Sec. 2.4. Rendering an Audio Graph](https://webaudio.github.io/web-audio-api/#rendering-loop). 
+
 ### ScriptProcessorNode
 The [construction of a
 `ScriptProcessorNode`](https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createscriptprocessor)

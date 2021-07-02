@@ -1145,17 +1145,14 @@ Methods</h4>
 
 			2. Let <var>promise</var> be a new Promise.
 
-			3. If the operation <a href="https://tc39.github.io/ecma262/#sec-isdetachedbuffer"><code>IsDetachedBuffer</code></a>
-				(described in [[!ECMASCRIPT]]) on {{BaseAudioContext/decodeAudioData(audioData, successCallback, errorCallback)/audioData!!argument}} is
-				<code>false</code>, execute the following steps:
+			3. If {{BaseAudioContext/decodeAudioData(audioData, successCallback, errorCallback)/audioData!!argument}}
+				is [=BufferSource/detached=], execute the following steps:
 
 				1. Append <var>promise</var> to {{BaseAudioContext/[[pending promises]]}}.
 
-				2. <a href="https://tc39.github.io/ecma262/#sec-detacharraybuffer">
-					Detach</a> the {{BaseAudioContext/decodeAudioData(audioData,
+				2. [=ArrayBuffer/Detach=] the {{BaseAudioContext/decodeAudioData(audioData,
 					successCallback, errorCallback)/audioData!!argument}} {{ArrayBuffer}}.
-					This operation is described in [[!ECMASCRIPT]]. If this operations
-					throws, jump to the step 3.
+					If this operations throws, jump to the step 3.
 
 				3. Queue a decoding operation to be performed on another thread.
 
@@ -2513,7 +2510,7 @@ Methods</h4>
 	: <dfn>getChannelData(channel)</dfn>
 	::
 		According to the rules described in <a href="#acquire-the-content">acquire the content</a>
-		either [=get a reference to the buffer source|get a reference to=]
+		either [=ArrayBufferView/write=] into
 		or [=get a copy of the buffer source|get a copy of=]
 		the bytes stored in {{[[internal data]]}} in a new
 		{{Float32Array}}
@@ -2550,14 +2547,12 @@ invoker.
 	When an <dfn lt="acquire the content|acquire the contents of an AudioBuffer">acquire the content</dfn>
 	operation occurs on an {{AudioBuffer}}, run the following steps:
 
-	1. If the operation <a href="https://tc39.github.io/ecma262/#sec-isdetachedbuffer"><code>IsDetachedBuffer</code></a>
-		on any of the {{AudioBuffer}}'s {{ArrayBuffer}}s return
-		`true`, abort these steps, and return a zero-length
-		channel data buffer to the invoker.
+	1. If any of the {{AudioBuffer}}'s {{ArrayBuffer}}s are
+		[=BufferSource/detached=], return `true`, abort these steps, and
+		return a zero-length channel data buffer to the invoker.
 
-	2. <a href="https://tc39.github.io/ecma262/#sec-detacharraybuffer">Detach</a>
-		all {{ArrayBuffer}}s for arrays previously returned by
-		{{AudioBuffer/getChannelData()}} on this {{AudioBuffer}}.
+	2. [=ArrayBuffer/Detach=] all {{ArrayBuffer}}s for arrays previously returned
+		by {{AudioBuffer/getChannelData()}} on this {{AudioBuffer}}.
 
 		Note: Because {{AudioBuffer}} can only be created via
 		{{BaseAudioContext/createBuffer()}} or via the {{AudioBuffer}} constructor, this
@@ -3692,7 +3687,7 @@ Methods</h4>
 		are also removed if the hold time occurs after
 		{{AudioParam/cancelScheduledValues()/cancelTime!!argument}}.
 
-		For a {{AudioParam/setValueCurveAtTime()}}, let \(T_0\) and \(T_D\) be the corresponding 
+		For a {{AudioParam/setValueCurveAtTime()}}, let \(T_0\) and \(T_D\) be the corresponding
 		{{AudioParam/setValueCurveAtTime()/startTime!!argument}} and {{AudioParam/setValueCurveAtTime()/duration!!argument}}, respectively of this event.
 		Then if {{AudioParam/cancelScheduledValues()/cancelTime!!argument}}
 		is in the range \([T_0, T_0 + T_D]\), the event is
@@ -4364,15 +4359,12 @@ Methods</h4>
 <dl dfn-type=method dfn-for="AnalyserNode">
 	: <dfn>getByteFrequencyData(array)</dfn>
 	::
-		Get a
-		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
-		reference to the bytes</a> held by the {{Uint8Array}}
-		passed as an argument.  Copies the <a>current frequency data</a> to those
-		bytes. If the array has fewer elements than the {{frequencyBinCount}}, the
-		excess elements will be dropped. If the array has more elements than the
-		{{frequencyBinCount}}, the excess elements will be ignored. The most
-		recent {{AnalyserNode/fftSize}} frames are used in computing the frequency
-		data.
+		[=ArrayBufferView/Write=] the [=current frequency data=] into |array|. If
+		|array|'s [=BufferSource/byte length=] is less than {{frequencyBinCount}},
+		the excess elements will be dropped. If |array|'s
+		[=BufferSource/byte length=] is greater than the {{frequencyBinCount}}, the
+		excess elements will be ignored. The most recent {{AnalyserNode/fftSize}}
+		frames are used in computing the frequency data.
 
 		If another call to {{AnalyserNode/getByteFrequencyData()}} or
 		{{AnalyserNode/getFloatFrequencyData()}} occurs within the same
@@ -4409,15 +4401,12 @@ Methods</h4>
 
 	: <dfn>getByteTimeDomainData(array)</dfn>
 	::
-		Get a
-		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
-		reference to the bytes</a> held by the {{Uint8Array}}
-		passed as an argument.  Copies the <a>current time-domain data</a>
-		(waveform data) into those bytes. If the array has fewer elements than the
-		value of {{AnalyserNode/fftSize}}, the excess elements will be dropped. If
-		the array has more elements than {{AnalyserNode/fftSize}}, the excess
-		elements will be ignored. The most recent {{AnalyserNode/fftSize}} frames
-		are used in computing the byte data.
+		[=ArrayBufferView/Write=] the [=current time-domain data=] (waveform data)
+		into |array|. If |array|'s [=BufferSource/byte length=] is less than
+		{{AnalyserNode/fftSize}}, the excess elements will be dropped. If |array|'s
+		[=BufferSource/byte length=] is greater than the {{AnalyserNode/fftSize}},
+		the excess elements will be ignored. The most recent
+		{{AnalyserNode/fftSize}} frames are used in computing the byte data.
 
 		The values stored in the unsigned byte array are computed in
 		the following way. Let \(x[k]\) be the time-domain data. Then
@@ -4442,14 +4431,10 @@ Methods</h4>
 
 	: <dfn>getFloatFrequencyData(array)</dfn>
 	::
-		Get a
-		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
-		reference to the bytes</a> held by the
-		{{Float32Array}} passed as an argument.  Copies
-		the <a>current frequency data</a> into those bytes.  If the array has
-		fewer elements than the {{frequencyBinCount}}, the excess elements will be
-		dropped. If the array has more elements than the {{frequencyBinCount}},
-		the excess elements will be ignored. The most recent
+		[=ArrayBufferView/Write=] the [=current frequency data=] into |array|. If
+		|array| has fewer elements than the {{frequencyBinCount}}, the excess
+		elements will be dropped. If |array| has more elements than the
+		{{frequencyBinCount}}, the excess elements will be ignored. The most recent
 		{{AnalyserNode/fftSize}} frames are used in computing the frequency data.
 
 		If another call to {{AnalyserNode/getFloatFrequencyData()}} or
@@ -4470,15 +4455,12 @@ Methods</h4>
 
 	: <dfn>getFloatTimeDomainData(array)</dfn>
 	::
-		Get a
-		<a href="https://heycam.github.io/webidl/#dfn-get-buffer-source-reference">
-		reference to the bytes</a> held by the
-		{{Float32Array}} passed as an argument.  Copies the
-		<a>current time-domain data</a> (waveform data) into those bytes. If the
-		array has fewer elements than the value of {{AnalyserNode/fftSize}}, the
-		excess elements will be dropped. If the array has more elements than
-		{{AnalyserNode/fftSize}}, the excess elements will be ignored. The most
-		recent {{AnalyserNode/fftSize}} frames are returned (after downmixing).
+		[=ArrayBufferView/Write=] the [=current time-domain data=] (waveform data)
+		into |array|. If |array| has fewer elements than the value of
+		{{AnalyserNode/fftSize}}, the excess elements will be dropped. If |array|
+		has more elements than the value of {{AnalyserNode/fftSize}}, the excess
+		elements will be ignored. The most recent {{AnalyserNode/fftSize}} frames
+		are written (after downmixing).
 
 		<pre class=argumentdef for="AnalyserNode/getFloatTimeDomainData()">
 			array: This parameter is where the time-domain sample data will be copied.

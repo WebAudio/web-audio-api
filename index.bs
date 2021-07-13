@@ -97,6 +97,81 @@ window.addEventListener("DOMContentLoaded", function () {
 	});
 });
 </script>
+<script>
+// This replaces the contents of "divID" with an unordered list of all the
+// amendment boxes with a prefix of "prefix".  Each item of the list will be of
+// the form "label n", where "label" is the specified label to use via "label".
+// "n" is just a sequential number starting at 1.
+//
+// Example usage where we want a list of all the changes whose id begins with
+// "c2361".
+//
+// (div id="change-list-2361")
+// (/div)
+//
+// And add
+//
+//  ListAmendments("c2361", "Correction", "change-list-2361")
+//
+// to the onload event listener at the bottom of this file.
+//
+// (Replace the "(", ")" with "<", ">", respectively above.  Bikeshed mangles
+// this if we use "<" above.
+
+function ListAmendments(prefix, label, divID) {
+  // Find all the nodes whose id starts with prefix.
+  let nodes = document.querySelectorAll('*[id^="' + prefix + '"]');
+  // Find the div element which will be replaced by the unordered list.
+  let div = document.getElementById(divID);
+
+  // Create the unordered list
+  let text = '<ul>';
+  let index = 1;
+  nodes.forEach(x => {
+    text += '<li><a href="#' + x.id + '">' + label + ' ' + index + '</a></li>';
+    ++index;
+    // Insert buttons for prev and next change
+    InsertButtons(x);
+  });
+  text += '</ul>';
+
+  div.innerHTML = text;
+}
+
+// Search for the class "amendment-buttons", and replace the contents of the div
+// with a set of buttons which link to the previous and next related amendment.
+
+function InsertButtons(node) {
+  let list = node.getElementsByClassName("amendment-buttons");
+
+  // We only add buttons to the first class inside the node.
+  if (list && list.length > 0) {
+    let matches = node.id.match(/([ac]\d+)-(\d+)/);
+    let changeID = matches[1];
+    let changeNum = parseInt(matches[2]);
+    // Create buttons.
+    let text = "";
+    if (changeNum > 1) {
+      // Add "previous" button, only if there is a previous change.
+      text += "<button onclick='location.href=";
+      text += '"#' + changeID + '-' + (changeNum-1) + '"';
+      text += "'>Previous</button>";
+    }
+
+    if (document.getElementById(changeID + "-" + (changeNum + 1))) {
+      // Add "next" button only if there is a next change
+      text += "<button onclick='location.href=";
+      text += '"#' + changeID + '-' + (changeNum + 1) + '"';
+      text += "'>Next</button>";
+    }
+
+    list[0].innerHTML = text;
+  }
+}
+window.addEventListener('load', (event) => {
+  ListAmendments("a13", "Addition", "change-list-a13");
+});
+</script>
 <style>
 @media (prefers-color-scheme: light) {
 :root {
@@ -693,6 +768,22 @@ enum AudioContextState {
 	"closed"
 };
 </pre>
+
+<div class="addition" id="a13-1">
+  <span class="marker">Candidate Addition
+    <a href="https://github.com/WebAudio/web-audio-api-v2/issues/13">V2 Issue 13-1.</a>
+  </span>
+  Categories for user-selectable render size.
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+<pre class="idl">
+enum AudioContextRenderSizeCategory {
+  "default",
+  "hardware"
+};
+</pre>
+</div>
 
 <div class="enum-description">
 <table class="simple" dfn-for="AudioContextState" dfn-type="enum-value">
@@ -1892,12 +1983,24 @@ Methods</h4>
 The {{AudioContextOptions}} dictionary is used to
 specify user-specified options for an {{AudioContext}}.
 
+<div class="correction" id="a13-2">
+  <span class="marker">Candidate Addition
+    <a href="https://github.com/WebAudio/web-audio-api-v2/issues/13">V2 Issue 13-1.</a>
+  </span>
+  Categories for user-selectable render size.
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
 <pre class="idl">
 dictionary AudioContextOptions {
 	(AudioContextLatencyCategory or double) latencyHint = "interactive";
 	float sampleRate;
+        <ins cite="#a13-2">
+	(AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
+	</ins>
 };
 </pre>
+</div>
 
 <h5 id="dictionary-audiocontextoptions-members">
 Dictionary {{AudioContextOptions}} Members</h5>
@@ -12680,6 +12783,13 @@ class Vec3 {
 
 <h2 id="changes">
 Change Log</h2>
+<h3 id="recommendation-changes-1">
+  Changes Since Recommendation of 17 Jun 2021
+</h3> 
+  * <a href="https://github.com/WebAudio/web-audio-api-v2/issue/13">V2 Issue 13</a>: User-selectable render size
+    <div id="change-list-a13">
+    </div>
+
 <h3 id="changes-2021-05-06">
   Since Proposed Recommendation of 6 May 2021
 </h3>

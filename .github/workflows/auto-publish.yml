@@ -1,0 +1,27 @@
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+jobs:
+  main:
+    name: Deploy to GitHub pages
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checking out the main branch
+        uses: actions/checkout@v2
+      - name: Setting up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Installing and updating Bikeshed
+        run: pip3 install bikeshed && bikeshed update
+        shell: bash
+      - name: Building index.html from index.bs
+        run: bash ./build.sh
+        shell: bash
+      - name: Deploying to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./

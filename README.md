@@ -6,7 +6,7 @@
 
 This repository contains the latest editor's draft of the [W3C AudioWG](https://www.w3.org/2011/audio/)'s Web Audio API v1.0.
 
-You can preview the current version of the `main` branch [here](https://webaudio.github.com/web-audio-api/).
+You can preview the current version of the `main` branch [here](https://webaudio.github.io/web-audio-api/).
 
 # Tests
 

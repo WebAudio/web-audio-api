@@ -1515,6 +1515,7 @@ interface AudioContext : BaseAudioContext {
 	constructor (optional AudioContextOptions contextOptions = {});
 	readonly attribute double baseLatency;
 	readonly attribute double outputLatency;
+	[SecureContext] readonly attribute AudioRenderPerformance renderPerformance;
 	AudioTimestamp getOutputTimestamp ();
 	Promise<undefined> resume ();
 	Promise<undefined> suspend ();
@@ -1663,6 +1664,11 @@ Attributes</h4>
 		audio output device remains the same. If the audio output
 		device is changed the {{outputLatency}}
 		attribute value will be updated accordingly.
+		
+	: <dfn>renderPerformance</dfn>
+	::
+		Returns an {{AudioRenderPerformance}} instance associated with
+		an {{AudioContext}}.
 </dl>
 
 <h4 id="AudioContext-methods">
@@ -2098,6 +2104,113 @@ Dictionary {{AudioTimestamp}} Members</h5>
 		Represents a point in the time coordinate system of a
 		<code>Performance</code> interface implementation (described in
 		[[!hr-time-3]]).
+</dl>
+
+<h4 interface lt="audiorenderperformance" id="AudioRenderPerformance">
+{{AudioRenderPerformance}}</h4>
+
+<pre class="idl">
+[Exposed=Window]
+interface AudioRenderPerformance {
+	undefined start(AudioRenderPerformanceOptions options);
+  	undefined stop();
+  	attribute EventHandler onupdate;
+};
+</pre>
+
+<h5 id="AudioRenderPerformance-attributes">
+Attributes</h5>
+
+<dl dfn-type=attribute dfn-for="AudioRenderPerformance">
+	: <dfn>onupdate</dfn>
+	::
+		An EventHandler for AudioRenderPerformanceEvent.
+</dl>
+
+<h5 id="AudioRenderPerformance-methods">
+Methods</h5>
+
+<dl dfn-type=method dfn-for="AudioRenderPerformance">
+	: <dfn>start(options)</dfn>
+	::
+		Starts performance-related data collection and analysis. This
+		will repeatedly dispatch an {{AudioRenderPerformanceEvent}} to
+		{{AudioRenderPerformance/onupdate}} EventHandler with the given
+		interval in {{AudioRenderPerformanceOptions}}.
+	
+	: <dfn>stop()</dfn>
+	::
+		Stops performance-related data collection and analysis. It also
+		stops the dispatching of {{AudioRenderPerformanceEvent}}.
+</dl>
+
+<h4 dictionary lt="audiorenderperformanceoptions" id="AudioRenderPerformanceOptions">
+{{AudioRenderPerformanceOptions}}</h4>
+
+The {{AudioRenderPerformanceOptions}} dictionary can be used to provide user
+options for an {{AudioRenderPerformance}}.
+
+<pre class="idl">
+dictionary AudioRenderPerformanceOptions {
+  	double updateInterval = 1;
+};
+</pre>
+
+<h5 id="dictionary-AudioRenderPerformanceOptions-members">
+Dictionary {{AudioRenderPerformanceOptions}} Members</h5>
+
+<dl dfn-type=dict-member dfn-for="AudioRenderPerformanceOptions">
+	: <dfn>updateInterval</dfn>
+	::
+		An interval (in second) that capacity/underrun values are
+		updated. A render capacity value is calculated per render
+		quantum, and each value will be collected over the specified
+		interval period. For example, if the renderer runs at a 48Khz
+		sample rate with 128 frames of render quantum over 1 second
+		interval, 375 capacity values will be collected.
+</dl>
+
+<h4 interface lt="audiorenderperformanceevent" id="AudioRenderPerformanceEvent">
+{{AudioRenderPerformanceEvent}}</h4>
+
+<pre class="idl">
+[Exposed=Window]
+interface AudioRenderPerformanceEvent {
+	constructor (DOMString type, double timestamp, double averageCapacity,
+	             double maxCapacity, double underrunRatio);
+  	readonly attribute double timestamp;
+  	readonly attribute double averageCapacity;
+  	readonly attribute double maxCapacity;
+  	readonly attribute double underrunRatio;
+};
+</pre>
+
+<h5 id="AudioRenderPerformanceEvent-attributes">
+Attributes</h5>
+
+<dl dfn-type=attribute dfn-for="AudioRenderPerformanceEvent">
+	: <dfn>timestamp</dfn>
+	::
+		{{BaseAudioContext/currentTime}} of {{AudioContext}} when the
+		event was fired.
+	: <dfn>averageCapacity</dfn>
+	::
+		An average of the collected raw render capacity values over the
+		specified interval. The precision is limited to 1/100th.
+	: <dfn>maxCapacity</dfn>
+	::
+		A maximum value from the collected raw render capacity values
+		over the specified interval. The precision is limited to
+		1/100th.
+	: <dfn>underrunRatio</dfn>
+	::
+		A ratio between the number of buffer underruns and the number
+		of render quanta. Where \(u\) is the number of underruns per
+		updateInterval and \(N\) is the number of render quanta,
+		{{underrunRatio}} is:
+		- 0.0 if \(u\) = 0.
+		- Otherwise, compute \(u/N\) and take a ceiling value of the
+			nearest 100th.
 </dl>
 
 <!--

@@ -1515,7 +1515,7 @@ interface AudioContext : BaseAudioContext {
 	constructor (optional AudioContextOptions contextOptions = {});
 	readonly attribute double baseLatency;
 	readonly attribute double outputLatency;
-	[SecureContext] readonly attribute AudioRenderPerformance renderPerformance;
+	[SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
 	AudioTimestamp getOutputTimestamp ();
 	Promise<undefined> resume ();
 	Promise<undefined> suspend ();
@@ -1665,9 +1665,9 @@ Attributes</h4>
 		device is changed the {{outputLatency}}
 		attribute value will be updated accordingly.
 		
-	: <dfn>renderPerformance</dfn>
+	: <dfn>renderCapacity</dfn>
 	::
-		Returns an {{AudioRenderPerformance}} instance associated with
+		Returns the {{AudioRenderCapacity}} instance associated with
 		an {{AudioContext}}.
 </dl>
 
@@ -2106,100 +2106,102 @@ Dictionary {{AudioTimestamp}} Members</h5>
 		[[!hr-time-3]]).
 </dl>
 
-<h4 interface lt="audiorenderperformance" id="AudioRenderPerformance">
-{{AudioRenderPerformance}}</h4>
+<h4 interface lt="audiorenderCapacity" id="AudioRenderCapacity">
+{{AudioRenderCapacity}}</h4>
 
 <pre class="idl">
 [Exposed=Window]
-interface AudioRenderPerformance {
-	undefined start(AudioRenderPerformanceOptions options);
+interface AudioRenderCapacity {
+	undefined start(AudioRenderCapacityOptions options);
   	undefined stop();
   	attribute EventHandler onupdate;
 };
 </pre>
 
-<h5 id="AudioRenderPerformance-attributes">
+<h5 id="AudioRenderCapacity-attributes">
 Attributes</h5>
 
-<dl dfn-type=attribute dfn-for="AudioRenderPerformance">
+<dl dfn-type=attribute dfn-for="AudioRenderCapacity">
 	: <dfn>onupdate</dfn>
 	::
-		An EventHandler for AudioRenderPerformanceEvent.
+		An EventHandler for AudioRenderCapacityEvent.
 </dl>
 
-<h5 id="AudioRenderPerformance-methods">
+<h5 id="AudioRenderCapacity-methods">
 Methods</h5>
 
-<dl dfn-type=method dfn-for="AudioRenderPerformance">
+<dl dfn-type=method dfn-for="AudioRenderCapacity">
 	: <dfn>start(options)</dfn>
 	::
 		Starts performance-related data collection and analysis. This
-		will repeatedly dispatch an {{AudioRenderPerformanceEvent}} to
-		{{AudioRenderPerformance/onupdate}} EventHandler with the given
-		interval in {{AudioRenderPerformanceOptions}}.
+		will repeatedly dispatch an {{AudioRenderCapacityEvent}} to
+		{{AudioRenderCapacity/onupdate}} EventHandler with the given
+		interval in {{AudioRenderCapacityOptions}}.
 	
 	: <dfn>stop()</dfn>
 	::
 		Stops performance-related data collection and analysis. It also
-		stops the dispatching of {{AudioRenderPerformanceEvent}}.
+		stops the dispatching of {{AudioRenderCapacityEvent}}.
 </dl>
 
-<h4 dictionary lt="audiorenderperformanceoptions" id="AudioRenderPerformanceOptions">
-{{AudioRenderPerformanceOptions}}</h4>
+<h4 dictionary lt="audiorenderCapacityoptions" id="AudioRenderCapacityOptions">
+{{AudioRenderCapacityOptions}}</h4>
 
-The {{AudioRenderPerformanceOptions}} dictionary can be used to provide user
-options for an {{AudioRenderPerformance}}.
+The {{AudioRenderCapacityOptions}} dictionary can be used to provide user
+options for an {{AudioRenderCapacity}}.
 
 <pre class="idl">
-dictionary AudioRenderPerformanceOptions {
+dictionary AudioRenderCapacityOptions {
   	double updateInterval = 1;
 };
 </pre>
 
-<h5 id="dictionary-AudioRenderPerformanceOptions-members">
-Dictionary {{AudioRenderPerformanceOptions}} Members</h5>
+<h5 id="dictionary-AudioRenderCapacityOptions-members">
+Dictionary {{AudioRenderCapacityOptions}} Members</h5>
 
-<dl dfn-type=dict-member dfn-for="AudioRenderPerformanceOptions">
+<dl dfn-type=dict-member dfn-for="AudioRenderCapacityOptions">
 	: <dfn>updateInterval</dfn>
 	::
-		An interval (in second) that capacity/underrun values are
-		updated. A render capacity value is calculated per render
+		An interval (in second) that load and underrun values are
+		updated. A render load value is calculated per render
 		quantum, and each value will be collected over the specified
 		interval period. For example, if the renderer runs at a 48Khz
 		sample rate with 128 frames of render quantum over 1 second
-		interval, 375 capacity values will be collected.
+		interval, 375 load values will be collected.
+		If the given value is smaller than the duration of
+		[=render quantum=] {{NotSupportedError}} is thrown.
 </dl>
 
-<h4 interface lt="audiorenderperformanceevent" id="AudioRenderPerformanceEvent">
-{{AudioRenderPerformanceEvent}}</h4>
+<h4 interface lt="audiorenderCapacityevent" id="AudioRenderCapacityEvent">
+{{AudioRenderCapacityEvent}}</h4>
 
 <pre class="idl">
 [Exposed=Window]
-interface AudioRenderPerformanceEvent {
-	constructor (DOMString type, double timestamp, double averageCapacity,
-	             double maxCapacity, double underrunRatio);
+interface AudioRenderCapacityEvent {
+	constructor (DOMString type, double timestamp, double averageLoad,
+	             double maxLoad, double underrunRatio);
   	readonly attribute double timestamp;
-  	readonly attribute double averageCapacity;
-  	readonly attribute double maxCapacity;
+  	readonly attribute double averageLoad;
+  	readonly attribute double maxLoad;
   	readonly attribute double underrunRatio;
 };
 </pre>
 
-<h5 id="AudioRenderPerformanceEvent-attributes">
+<h5 id="AudioRenderCapacityEvent-attributes">
 Attributes</h5>
 
-<dl dfn-type=attribute dfn-for="AudioRenderPerformanceEvent">
+<dl dfn-type=attribute dfn-for="AudioRenderCapacityEvent">
 	: <dfn>timestamp</dfn>
 	::
 		{{BaseAudioContext/currentTime}} of {{AudioContext}} when the
 		event was fired.
-	: <dfn>averageCapacity</dfn>
+	: <dfn>averageLoad</dfn>
 	::
-		An average of the collected raw render capacity values over the
+		An average of the collected raw render load values over the
 		specified interval. The precision is limited to 1/100th.
-	: <dfn>maxCapacity</dfn>
+	: <dfn>maxLoad</dfn>
 	::
-		A maximum value from the collected raw render capacity values
+		A maximum value from the collected raw render load values
 		over the specified interval. The precision is limited to
 		1/100th.
 	: <dfn>underrunRatio</dfn>

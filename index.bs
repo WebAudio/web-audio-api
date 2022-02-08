@@ -761,7 +761,7 @@ initially empty ordered list of promises.
 Each {{BaseAudioContext}} has a unique
 <a href="https://html.spec.whatwg.org/multipage/media.html#media-element-event-task-source">
 media element event task source</a>.
-Additionally, a {{BaseAudioContext}} has two private slots <dfn attribute
+Additionally, a {{BaseAudioContext}} has several private slots <dfn attribute
 for="BaseAudioContext">[[rendering thread state]]</dfn> and <dfn attribute
 for="BaseAudioContext">[[control thread state]]</dfn> that take values from
 {{AudioContextState}}, and that are both 
@@ -776,7 +776,8 @@ for="BaseAudioContext">[[control thread state]]</dfn> that take values from
   <del>initialy</del>
   <ins>initially</ins>
 </div>
-set to <code>"suspended"</code>.
+set to <code>"suspended"</code>, and a private slot <dfn attribute for="BaseAudioContext">[[render quantum size]]</dfn> that is an
+unsigned integer.
 
 <pre class="idl">
 enum AudioContextState {
@@ -813,6 +814,41 @@ enum AudioContextState {
 </table>
 </div>
 
+<pre class="idl">
+ enum AudioContextRenderSizeCategory {
+	"default",
+	"hardware"
+};
+</pre>
+
+<div class="enum-description">
+<table class="simple" dfn-for="AudioContextRenderSizeCategory" dfn-type="enum-value">
+	<thead>
+		<tr>
+			<th scope="col" colspan="2">
+				Enumeration description
+			</th>
+		</tr>
+	<tbody>
+		<tr>
+			<td>
+				"<dfn>default</dfn>"
+			<td>
+				The AudioContext's <a>render quantum size</a> is the default value of 128
+				frames.
+		<tr>
+			<td>
+				"<dfn>hardware</dfn>"
+			</td>
+			<td>
+				The User-Agent picks a <a>render quantum size</a> that is best for the
+				current configuration.
+			</td>
+		</tr>
+</table>
+</div>
+
+
 <xmp class="idl">
 callback DecodeErrorCallback = undefined (DOMException error);
 
@@ -825,6 +861,7 @@ interface BaseAudioContext : EventTarget {
 	readonly attribute double currentTime;
 	readonly attribute AudioListener listener;
 	readonly attribute AudioContextState state;
+	readonly attribute unsigned long renderQuantumSize;
 	[SameObject, SecureContext]
 	readonly attribute AudioWorklet audioWorklet;
 	attribute EventHandler onstatechange;
@@ -952,6 +989,11 @@ Attributes</h4>
 	::
 		Describes the current state of the {{BaseAudioContext}}.  Getting this
 		attribute returns the contents of the {{[[control thread state]]}} slot.
+
+	: <dfn>renderQuantumSize</dfn>
+	::
+		Getting this attribute returns the value of {{BaseAudioContext/[[render
+		quantum size]]}} slot.
 </dl>
 
 <h4 id="BaseAudioContent-methods">
@@ -1563,21 +1605,34 @@ Constructors</h4>
 			<span class="synchronous">When creating an {{AudioContext}},
 			execute these steps:</span>
 
-			1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+			1. Set a private slot called {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
-			2. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+			2. Set a private slot called {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
-			3. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
+			4. Set a private slot called {{[[render quantum size]]}} to
+				 <code>128</code> on the {{AudioContext}}.
+
+			5. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
 				slot on this {{AudioContext}}, that is an initially empty ordered list of
 				promises.
 
-			4. If <code>contextOptions</code> is given, apply the options:
+			6. If <code>contextOptions</code> is given, apply the options:
 
 				1. Set the internal latency of this {{AudioContext}}
 					according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
 					in {{AudioContextOptions/latencyHint}}.
 
-				2. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
+				2. If <code>contextOptions.{{AudioContextOptions/renderSizeHint}}</code>
+					 is specified, execute the following steps:
+
+					 1. If equal to <code>"hardware"</code>, the User-Agent can set
+							{{[[render quantum size]]}} to a value that's best for the current
+							setup.
+
+					 2. If an integer has been passed, the User-Agent can set {{[[render
+							quantum size]]}} to this integer.
+
+				3. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
 					set the {{BaseAudioContext/sampleRate}}
 					of this {{AudioContext}} to this value. Otherwise, use
 					the sample rate of the default output device. If the
@@ -1589,10 +1644,10 @@ Constructors</h4>
 					AudioContext may be affected, possibly by a large
 					amount.
 
-			5. If the context is <a>allowed to start</a>, send a
+			7. If the context is <a>allowed to start</a>, send a
 				<a>control message</a> to start processing.
 
-			6. Return this {{AudioContext}} object.
+			8. Return this {{AudioContext}} object.
 		</div>
 
 		<div algorithm="sending a control message to start processing">
@@ -1640,11 +1695,11 @@ Attributes</h4>
 		specifically does not include any latency incurred the audio
 		graph itself.
 
-		For example, if the audio context is running at 44.1 kHz and
-		the {{AudioDestinationNode}} implements double buffering
-		internally and can process and output audio each <a>render
-		quantum</a>, then the processing latency is \((2\cdot128)/44100
-		= 5.805 \mathrm{ ms}\), approximately.
+		For example, if the audio context is running at 44.1 kHz with default render
+		quantum size, and the {{AudioDestinationNode}} implements double buffering
+		internally and can process and output audio each <a>render quantum</a>, then
+		the processing latency is \((2\cdot128)/44100 = 5.805 \mathrm{ ms}\),
+		approximately.
 
 	: <dfn>outputLatency</dfn>
 	::
@@ -2040,6 +2095,7 @@ specify user-specified options for an {{AudioContext}}.
 dictionary AudioContextOptions {
 	(AudioContextLatencyCategory or double) latencyHint = "interactive";
 	float sampleRate;
+	(AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
 };
 </pre>
 
@@ -2072,6 +2128,15 @@ Dictionary {{AudioContextOptions}} Members</h5>
 		If {{AudioContextOptions/sampleRate}} is not
 		specified, the preferred sample rate of the output device for
 		this {{AudioContext}} is used.
+
+	: <dfn>renderSizeHint</dfn>
+	::
+		This allows users to ask for a particular <a>render quantum size</a> when an
+		integer is passed, to use the default of 128 frames if nothing or
+		<code>"default"</code> is passed, or to ask the User-Agent to pick a good
+		<a>render quantum size</a> if <code>"hardware"</code> is specified.
+
+		It is a hint that might not be honored.
 </dl>
 
 <h4 dictionary lt="audiotimestamp" id="AudioTimestamp">
@@ -2160,7 +2225,19 @@ Constructors</h4>
 			2. Set the {{[[rendering thread state]]}} for
 				<var>c</var> to <code>"suspended"</code>.
 
-			3. Construct an {{AudioDestinationNode}} with its
+			3. Determine the {{[[render quantum size]]}} for this
+				 {{OfflineAudioContext}}, based on the value of
+				 the {{OfflineAudioContextOptions/renderSizeHint}}:
+
+				 1. If it has the default value of <code>"default"</code> or
+					<code>"hardware</code>", set the {{[[render quantum size]]}} private
+					slot to 128.
+
+				 2. Else, if an integer has been passed, the User-Agent can decide to
+						honour this value by setting it to the {{[[render quantum size]]}}
+						private slot.
+
+			4. Construct an {{AudioDestinationNode}} with its
 				{{AudioNode/channelCount}} set to
 				<code>contextOptions.numberOfChannels</code>.
 		</div>
@@ -2412,6 +2489,7 @@ dictionary OfflineAudioContextOptions {
 	unsigned long numberOfChannels = 1;
 	required unsigned long length;
 	required float sampleRate;
+	(AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
 };
 </pre>
 
@@ -2430,6 +2508,11 @@ Dictionary {{OfflineAudioContextOptions}} Members</h5>
 	: <dfn>sampleRate</dfn>
 	::
 		The sample rate for this {{OfflineAudioContext}}.
+
+	: <dfn>renderSizeHint</dfn>
+	::
+		A hint for the <dfn>render quantum size</dfn> of this
+		{{OfflineAudioContext}}.
 </dl>
 
 <h4 interface lt="offlineaudiocompletionevent" id="OfflineAudioCompletionEvent">
@@ -9949,13 +10032,15 @@ Attributes</h4>
 
 			1. Up-sample the input samples to 2x or 4x the sample-rate of
 				the {{AudioContext}}. Thus for each <a>render
-				quantum</a>, generate 256 (for 2x) or 512 (for 4x) samples.
+				quantum</a>, generate twice (for 2x) or four times (for 4x) the number
+				of samples.
 
 			2. Apply the shaping curve.
 
 			3. Down-sample the result back to the sample-rate of the
-				{{AudioContext}}. Thus taking the 256 (or 512)
-				processed samples, generating 128 as the final result.
+				{{AudioContext}}. Thus taking the previously
+				processed samples, generating a single render quantum worth of samples
+				as the final result.
 		</div>
 
 		The exact up-sampling and down-sampling filters are not
@@ -10147,6 +10232,7 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
 	readonly attribute unsigned long long currentFrame;
 	readonly attribute double currentTime;
 	readonly attribute float sampleRate;
+	readonly attribute unsigned long renderQuantumSize;
 };
 </pre>
 
@@ -10171,6 +10257,11 @@ Attributes</h5>
 	: <dfn>sampleRate</dfn>
 	::
 		The sample rate of the associated {{BaseAudioContext}}.
+
+	: <dfn>renderQuantumSize</dfn>
+	::
+		The value of the private slot [[render quantum size]] of the associated
+		{{BaseAudioContext}}.
 </dl>
 
 <h5 id="AudioWorkletGlobalScope-methods">
@@ -11379,9 +11470,11 @@ asynchronous sections can't be reordered.
 <h3 id="rendering-loop">
 Rendering an Audio Graph</h3>
 
-Rendering an audio graph is done in blocks of 128 samples-frames. A
-block of 128 samples-frames is called a <dfn>render quantum</dfn>, and
-the <dfn>render quantum size</dfn> is 128.
+Rendering an audio graph is done in blocks of samples-frames, the size of this
+block being constant for the lifetime of a {{BaseAudioContext}}. The number of
+sample-frames of a block of sample-frames is called the <dfn>render quantum
+size</dfn>, and the block itself is called a <dfn>render quantum</dfn>. It
+defaults to 128, but can be controlled by {{AudioContextOptions/renderSizeHint}}
 
 Operations that happen <dfn>atomically</dfn> on a
 given thread can only be executed when no other [=Atomically|atomic=]
@@ -11692,8 +11785,8 @@ means copying the input data of this {{AudioNode}} for future
 usage.
 
 <dfn>Computing a block of audio</dfn> means
-running the algorithm for this {{AudioNode}} to produce 128
-sample-frames.
+running the algorithm for this {{AudioNode}} to produce
+{{BaseAudioContext/[[render quantum size]]}} sample-frames.
 
 <dfn lt="processing-input-buffer">Processing an input buffer</dfn> means
 running the algorithm for an {{AudioNode}}, using an <a>input

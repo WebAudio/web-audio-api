@@ -1663,6 +1663,11 @@ Attributes</h4>
 		is running or the associated audio output device changes. It is
 		useful to query this value frequently when accurate
 		synchronization is required.
+		
+	: <dfn>renderCapacity</dfn>
+	::
+		Returns an {{AudioRenderCapacity}} instance associated with
+		an {{AudioContext}}.
 </dl>
 
 <h4 id="AudioContext-methods">
@@ -2112,6 +2117,15 @@ interface AudioRenderCapacity {
 };
 </pre>
 
+This interface provides rendering performance metrics of an {{AudioContext}}. In
+order to calculate them, the renderer collects a <a>load value</a> per
+system-level audio callback.
+
+A <dfn lt="load value">load value</dfn> is computed by dividing the actual time 
+spent to render frames requested from a system-level audio callback by the time
+interval of system-level audio callbacks. When a <a>load value</a> is greater
+than 1.0, it indicates the renderer experienced buffer underrun.
+
 <h5 id="AudioRenderCapacity-attributes">
 Attributes</h5>
 
@@ -2127,15 +2141,15 @@ Methods</h5>
 <dl dfn-type=method dfn-for="AudioRenderCapacity">
 	: <dfn>start(options)</dfn>
 	::
-		Starts performance-related data collection and analysis. This
-		will repeatedly dispatch an {{AudioRenderCapacityEvent}} to
+		Starts metric collection and analysis. This will repeatedly
+		dispatch an {{AudioRenderCapacityEvent}} to
 		{{AudioRenderCapacity/onupdate}} EventHandler with the given
-		interval in {{AudioRenderCapacityOptions}}.
+		update interval in {{AudioRenderCapacityOptions}}.
 	
 	: <dfn>stop()</dfn>
 	::
-		Stops performance-related data collection and analysis. It also
-		stops the dispatching of {{AudioRenderCapacityEvent}}.
+		Stops metric collection and analysis. It also stops dispatching
+		{{AudioRenderCapacityEvent}}.
 </dl>
 
 <h4 dictionary lt="audiorenderCapacityoptions" id="AudioRenderCapacityOptions">
@@ -2156,14 +2170,17 @@ Dictionary {{AudioRenderCapacityOptions}} Members</h5>
 <dl dfn-type=dict-member dfn-for="AudioRenderCapacityOptions">
 	: <dfn>updateInterval</dfn>
 	::
-		An interval (in second) that load and underrun values are
-		updated. A render load value is calculated per render
-		quantum, and each value will be collected over the specified
-		interval period. For example, if the renderer runs at a 48Khz
-		sample rate with 128 frames of render quantum over 1 second
-		interval, 375 load values will be collected.
+		An update interval (in second) for dispaching
+		{{AudioRenderCapacityEvent}}s. A <a>load value</a> is calculated
+		per system-level audio callback, and multiple load values will
+		be collected over the specified interval period. For example, if
+		the renderer runs at a 48Khz sample rate and the system-level
+		audio callback's buffer size is 192 frames, 250 load values
+		will be collected over 1 second interval.
+		
 		If the given value is smaller than the duration of
-		[=render quantum=] {{NotSupportedError}} is thrown.
+		the system-level audio callback, {{NotSupportedError}} is
+		thrown.
 </dl>
 
 <h4 interface lt="audiorenderCapacityevent" id="AudioRenderCapacityEvent">
@@ -2173,10 +2190,10 @@ Dictionary {{AudioRenderCapacityOptions}} Members</h5>
 [Exposed=Window]
 interface AudioRenderCapacityEvent {
 	constructor (DOMString type, double timestamp, double averageLoad,
-	             double maxLoad, double underrunRatio);
+	             double peakLoad, double underrunRatio);
   	readonly attribute double timestamp;
   	readonly attribute double averageLoad;
-  	readonly attribute double maxLoad;
+  	readonly attribute double peakLoad;
   	readonly attribute double underrunRatio;
 };
 </pre>
@@ -2187,23 +2204,25 @@ Attributes</h5>
 <dl dfn-type=attribute dfn-for="AudioRenderCapacityEvent">
 	: <dfn>timestamp</dfn>
 	::
-		{{BaseAudioContext/currentTime}} of {{AudioContext}} when the
-		event was fired.
+		The start time of the data collection period in terms of the
+		associated {{AudioContext}}'s {{BaseAudioContext/currentTime}}.
 	: <dfn>averageLoad</dfn>
 	::
-		An average of the collected raw render load values over the
-		specified interval. The precision is limited to 1/100th.
-	: <dfn>maxLoad</dfn>
+		An average of collected load values over the given update
+		interval. The precision is limited to 1/100th.
+	: <dfn>peakLoad</dfn>
 	::
-		A maximum value from the collected raw render load values
-		over the specified interval. The precision is limited to
-		1/100th.
+		A maximum value from collected load values over the given update
+		interval. The precision is also limited to 1/100th.
 	: <dfn>underrunRatio</dfn>
 	::
-		A ratio between the number of buffer underruns and the number
-		of render quanta. Where \(u\) is the number of underruns per
-		updateInterval and \(N\) is the number of render quanta,
-		{{underrunRatio}} is:
+		A ratio between the number of buffer underruns (when a
+		<a>load value</a> is greater than 1.0) and the total number of
+		system-level audio callbacks over the given update interval.
+		
+		Where \(u\) is the number of buffer underruns and \(N\) is the
+		number of system-level audio callbacks over the given update
+		interval, {{underrunRatio}} is:
 		- 0.0 if \(u\) = 0.
 		- Otherwise, compute \(u/N\) and take a ceiling value of the
 			nearest 100th.

@@ -176,6 +176,7 @@ window.addEventListener('load', (event) => {
   ListAmendments("c2373", "Proposed Correction", "change-list-2373");
   ListAmendments("c2321", "Proposed Correction", "change-list-2321");
   ListAmendments("c2375", "Proposed Correction", "change-list-2375");
+  ListAmendments("c2475", "Proposed Addition", "change-list-2475");
 });
 </script>
 <style>
@@ -11391,15 +11392,56 @@ The algorithm for rendering a block of audio from a {{BaseAudioContext}}
 <em>Q</em> is comprised of multiple steps and explained in further detail
 in the algorithm of <a href="#rendering-a-graph">rendering a graph</a>.
 
-<div class="note">
-	In practice, the {{AudioContext}} <a>rendering thread</a> is
-	often running off a system-level audio callback, that executes in
-	an isochronous fashion.
+<div class="correction proposed" id="c2475-1">
+	<span class="marker">Proposed Addition
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2475">Issue
+			2375</a>.
+	</span>
+	Add definition for various concepts related to system-level audio callbacks
+	<div class="amendment-buttons">
+		Buttons here
+	</div>
+	<ins cite=#c2375>
+		The {{AudioContext}} <a>rendering thread</a> is running off a
+		<dfn>system-level audio callback</dfn>, that executes in an isochronous
+		fashion. This <a>system-level audio callback</a> is called repeatidly, and
+		each call has a <dfn>system-level audio callback buffer size</dfn>
+		(potentially variable), which is the amount of audio that needs to be
+		computed on time before the <a>system-level audio callback</a> returns.
 
-	An {{OfflineAudioContext}} is not required to have a
-	system-level audio callback, but behaves as if it did with the
-	callback happening as soon as the previous callback is
-	finished.
+		A <dfn>load value</dfn> is computed for each <a>system-level audio
+		callback</a>, by dividing the duration taken by the implementation to
+		return from a <a>system-level audio callback</a> by the <a>system-level
+		audio callback buffer size</a> divided by {{BaseAudioContext/sampleRate}}.
+
+		The <a>load value</a> usually is below 1.0, meaning that it took less time
+		to render the audio that it took to play it out.  An <dfn>audio buffer
+		underrun</dfn> happens when this <a>load value</a> is greater than 1.0: the
+	system could not render audio fast enough for real-time.
+
+		<div class=note>
+			The <a>render quantum size</a> for an audio graph is not necessarily a
+			divisor of the <a>system-level audio callback buffer size</a>. This causes
+			increased audio latencies and reduced possible maximum load without
+			<a>audio buffer underrun</a>.
+		</div>
+
+		An {{OfflineAudioContext}} is not required to have a system-level audio
+		callback, but behaves as if it did with the callback happening as soon as
+		the previous callback is finished.
+	</ins>
+	<del cite=#c2375>
+		<div class="note">
+			In practice, the {{AudioContext}} <a>rendering thread</a> is
+			often running off a system-level audio callback, that executes in
+			an isochronous fashion.
+
+			An {{OfflineAudioContext}} is not required to have a
+			system-level audio callback, but behaves as if it did with the
+			callback happening as soon as the previous callback is
+			finished.
+		</div>
+	</del>
 </div>
 
 The audio callback is also queued as a task in the <a
@@ -12934,6 +12976,10 @@ Change Log</h2>
     </div>
   * <a href="https://github.com/WebAudio/web-audio-api/issues/2375">Issue 2375</a>: decodeAudioData only decodes the first track of a multi-track audio file.
     <div id="change-list-2375">
+    </div>
+  * <a href="https://github.com/WebAudio/web-audio-api/issues/2475">Issue
+		2475</a>: Add definition for various concepts related to system-level audio callbacks
+    <div id="change-list-2475">
     </div>
 
 <h3 id="changes-2021-05-06">

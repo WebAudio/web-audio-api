@@ -1511,6 +1511,28 @@ enum AudioContextLatencyCategory {
 </table>
 </div>
 
+<pre class="idl">
+enum AudioContextSinkCategory {
+		"none"
+};
+</pre>
+
+<div class="enum-description">
+<table class="simple" dfn-type=enum-value dfn-for="AudioContextSinkCategory">
+	<thead>
+		<tr>
+			<th scope="col" colspan="2">
+				Enumeration description
+	<tbody>
+		<tr>
+			<td>
+				"<dfn>none</dfn>"
+			<td>
+				The audio graph will be rendered by a worker thread without using an
+				audio output device.
+</table>
+</div>
+
 <div class="correction proposed" id="c2444-1">
 	<span class="marker">Proposed Addition
 		<a href="https://github.com/WebAudio/web-audio-api/issues/2444">Issue
@@ -1592,36 +1614,70 @@ Constructors</h4>
 			<span class="synchronous">When creating an {{AudioContext}},
 			execute these steps:</span>
 
-			1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+			1. Let |context| be a new {{AudioContext}} object.
 
-			2. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+			1. Set a {{[[control thread state]]}} to <code>suspended</code> on
+				|context|.
 
-			3. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
-				slot on this {{AudioContext}}, that is an initially empty ordered list of
+			1. Set a {{[[rendering thread state]]}} to <code>suspended</code> on
+				|context|.
+
+			1. Let 
+				<dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be
+				a slot on |context|, that is an initially empty ordered list of
 				promises.
+			
+			1. Let |context| have a [[SinkId]] internal slot, initialize to "".
 
-			4. If <code>contextOptions</code> is given, apply the options:
+			1. If <code>contextOptions</code> is given, perform the following
+				substeps:
 
-				1. Set the internal latency of this {{AudioContext}}
-					according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
-					in {{AudioContextOptions/latencyHint}}.
+				1. If <code>contextOptions.{{AudioContextOptions/sinkId}}</code> is
+					specified, set |sinkId| to
+					<code>contextOptions.{{AudioContextOptions/sinkId}}</code> and run
+					the following substeps:
 
-				2. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
-					set the {{BaseAudioContext/sampleRate}}
-					of this {{AudioContext}} to this value. Otherwise, use
-					the sample rate of the default output device. If the
-					selected sample rate differs from the sample rate of the
-					output device, this {{AudioContext}} MUST resample the
-					audio output to match the sample rate of the output device.
+					1. If |document| is not allowed to use the feature identified by
+						<code>“speaker-selection”</code>, |sinkId| is the empty string,
+						or |sinkId| does not match any audio output device identified by
+						the result that would be provided by
+						{{MediaDevices/enumerateDevices()}}, abort these substeps.
 
-					Note: If resampling is required, the latency of the
-					AudioContext may be affected, possibly by a large
-					amount.
+					1. Set [[SinkId]] to |sinkId|.
 
-			5. If the context is <a>allowed to start</a>, send a
-				<a>control message</a> to start processing.
+				1. Set the internal latency of |context| according to
+					<code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as
+					described in {{AudioContextOptions/latencyHint}}.
 
-			6. Return this {{AudioContext}} object.
+				1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is
+					specified, set the {{BaseAudioContext/sampleRate}} of |context| to
+					this value. Otherwise, use the sample rate of the default output
+					device. If the selected sample rate differs from the sample rate of
+					the output device, the user agent MUST resample the audio output to
+					match the sample rate of the output device.
+
+					Note: If resampling is required, the latency of |context|	may be
+					affected, possibly by a large amount.
+
+			1. Run the following substeps to prepare an audio output device for
+				rendering:
+
+				1. If [[SinkId]] is <code>"none"</code>, acquire system resources to
+					render the audio graph without an actual audio output device. Abort
+					these substeps.
+
+				1. If [[SinkId]] is the empty string, acquire system resources to
+					render the audio graph with a default audio output device. Abort
+					these substeps.
+
+				1. If [[SinkId]] is not the empty string, acquire system resources to
+					render the audio graph with the underlying audio output device
+					identified by [[SinkId]].
+			
+			1. If the context is <a>allowed to start</a>, send a <a>control message
+				</a> to start processing.
+
+			1. Return |context| object.
 		</div>
 
 		<div algorithm="sending a control message to start processing">

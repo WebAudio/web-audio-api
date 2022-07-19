@@ -1574,7 +1574,7 @@ enum AudioContextSinkCategory {
 			Promise<undefined> resume ();
 			Promise<undefined> suspend ();
 			Promise<undefined> close ();
-			[SecureContext] Promise<undefined> setSinkId((DOMString or AudioContextSinkCategory)) sinkId);
+			[SecureContext] Promise<undefined> setSinkId((DOMString or AudioContextSinkCategory) sinkId);
 			MediaElementAudioSourceNode createMediaElementSource (HTMLMediaElement mediaElement);
 			MediaStreamAudioSourceNode createMediaStreamSource (MediaStream mediaStream);
 			MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (
@@ -1598,6 +1598,10 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
 	::
 		A boolean flag representing whether the context is suspended by user code.
 		The initial value is <code>false</code>.
+
+	: <dfn>[[sink ID]]</dfn>
+	::
+		sinkid. Initialize it to <code>""</code>.
 </dl>
 
 <h4 id="AudioContext-constructors">
@@ -1618,6 +1622,9 @@ Constructors</h4>
 
 			1. Let |context| be a new {{AudioContext}} object.
 
+			1. Let |document| be the current settings object's
+				[=associated Document=].
+
 			1. Set a {{[[control thread state]]}} to <code>suspended</code> on
 				|context|.
 
@@ -1629,13 +1636,10 @@ Constructors</h4>
 				a slot on |context|, that is an initially empty ordered list of
 				promises.
 			
-			1. Let |context| have a [[SinkId]] internal slot, initialize to "".
-
 			1. If <code>contextOptions</code> is given, perform the following
 				substeps:
 
-				1. If <code>contextOptions.{{AudioContextOptions/sinkId}}</code> is
-					specified, set |sinkId| to
+				1. If {{AudioContextOptions/sinkId}} is specified, set |sinkId| to
 					<code>contextOptions.{{AudioContextOptions/sinkId}}</code> and run
 					the following substeps:
 
@@ -1645,7 +1649,7 @@ Constructors</h4>
 						the result that would be provided by
 						{{MediaDevices/enumerateDevices()}}, abort these substeps.
 
-					1. Set [[SinkId]] to |sinkId|.
+					1. Set {{AudioContext/[[sink ID]]}} to |sinkId|.
 
 				1. Set the internal latency of |context| according to
 					<code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as
@@ -1664,20 +1668,20 @@ Constructors</h4>
 			1. Run the following substeps to prepare an audio output device for
 				rendering:
 
-				1. If [[SinkId]] is <code>"none"</code>, acquire system resources to
+				1. If {{[[SinkId]]}} is <code>"none"</code>, acquire system resources to
 					render the audio graph without an actual audio output device. Abort
 					these substeps.
 
-				1. If [[SinkId]] is the empty string, acquire system resources to
+				1. If {{[[SinkId]]}} is the empty string, acquire system resources to
 					render the audio graph with a default audio output device. Abort
 					these substeps.
 
-				1. If [[SinkId]] is not the empty string, acquire system resources to
-					render the audio graph with the underlying audio output device
-					identified by [[SinkId]].
+				1. If {{[[SinkId]]}} is not the empty string, acquire system resources
+					to render the audio graph with the underlying audio output device
+					identified by {{[[SinkId]]}}.
 			
-			1. If the context is <a>allowed to start</a>, send a <a>control message
-				</a> to start processing.
+			1. If the context is <a>allowed to start</a>, send a
+				<a>control message</a> to start processing.
 
 			1. Return |context| object.
 		</div>
@@ -1769,7 +1773,7 @@ Attributes</h4>
 	::
 		This attribute contains the ID of the current audio output device, or the
 		empty string for the user-agent default device. The attribute MUST return
-		the value of [[sinkId]] internal slot upon getting.
+		the value of {{AudioContext/[[SinkId]]}} internal slot upon getting.
 </dl>
 
 <h4 id="AudioContext-methods">
@@ -2142,61 +2146,61 @@ Methods</h4>
 			this method is invoked, the user agent MUST run the following steps:
 
 			<div algorithm="AudioContext.setSinkId()">
-			1. Let |document| be the current settings object's
-				[=associated Document=].
+				1. Let |document| be the current settings object's
+					[=associated Document=].
 
-			1. If |document| is not allowed to use the feature identified by
-				<code>"speaker-selection"</code>, return [=a promise rejected with=] a
-				new {{DOMException}} whose name is "{{NotAllowedError}}".
+				1. If |document| is not allowed to use the feature identified by
+					<code>"speaker-selection"</code>, return [=a promise rejected with=] a
+					new {{DOMException}} whose name is "{{NotAllowedError}}".
 
-			1. Let |context| be the {{AudioContext}} object on which this method was
-				invoked.
+				1. Let |context| be the {{AudioContext}} object on which this method was
+					invoked.
 
-			1. Let |sinkId| be the method's first argument.
+				1. Let |sinkId| be the method's first argument.
 
-			1. If |sinkId| is equal to context's [[SinkId]] internal slot, return a
-				promise resolved with {{undefined}}.
+				1. If |sinkId| is equal to |context|'s {{[[SinkId]]}} internal slot,
+					return a promise resolved with {{undefined}}.
 
-			1. Let |p| be a new promise.
+				1. Let |p| be a new promise.
 
-			1. Run the following substeps:
+				1. Run the following substeps:
 
-				1. If |sinkId| is the empty string, reject |p| with a new
-					{{DOMException}} whose name is "{{NotFoundError}}" and abort these
-					substeps.
+					1. If |sinkId| is the empty string, reject |p| with a new
+						{{DOMException}} whose name is "{{NotFoundError}}" and abort these
+						substeps.
 
-				1. If |sinkId| does not match any audio output device identified by
-					the result that would be provided by
-					{{MediaDevices/enumerateDevices()}}, reject |p| with a new
-					{{DOMException}} whose name is "{{NotFoundError}}" and abort these
-					substeps.
+					1. If |sinkId| does not match any audio output device identified by
+						the result that would be provided by
+						{{MediaDevices/enumerateDevices()}}, reject |p| with a new
+						{{DOMException}} whose name is "{{NotFoundError}}" and abort these
+						substeps.
 
-				1. If the device specified by |sinkId| is not the user agent’s
-					default device or is not permitted to play audio through, reject |p|
-					with a new {{DOMException}} whose name is {{NotAllowedError}} and
-					abort these substeps.
+					1. If the device specified by |sinkId| is not the user agent’s
+						default device or is not permitted to play audio through, reject |p|
+						with a new {{DOMException}} whose name is {{NotAllowedError}} and
+						abort these substeps.
 
-				1. Stop playing audio out of the current output device.
+					1. Stop playing audio out of the current output device.
 
-				1. Run the following substeps to prepare an audio output device for
-					rendering:
+					1. Run the following substeps to prepare an audio output device for
+						rendering:
 
-					1. Set context’s [[SinkId]] internal slot to |sinkId|.
+						1. Set context’s {{[[SinkId]]}} internal slot to |sinkId|.
 
-					1. If [[SinkId]] is <code>"none"</code>, acquire system resources to
-						render the audio graph without an actual audio output device. Abort
-						these substeps.
+						1. If {{[[SinkId]]}} is <code>"none"</code>, acquire system
+							resources to render the audio graph without an actual audio
+							output device. Abort these substeps.
 
-					1. If [[SinkId]] is not the empty string, acquire system resources to
-						render the audio graph with the underlying audio output device
-						identified by [[SinkId]].
+						1. If {{[[SinkId]]}} is not the empty string, acquire system
+							resources to render the audio graph with the underlying audio
+							output device identified by {{[[SinkId]]}}.
 
-				1. Queue a task to perform the following steps:
+					1. Queue a task to perform the following steps:
 
-					1. Resolve |p|.
-			
-			1. Return |p|.
-		</div>
+						1. Resolve |p|.
+				
+				1. Return |p|.
+			</div>
 </dl>
 
 <h4 dictionary id="AudioContextOptions">

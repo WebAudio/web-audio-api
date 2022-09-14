@@ -1594,19 +1594,39 @@ Constructors</h4>
 
 			1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
-			2. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+			1. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
-			3. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
+			1. Let |messageChannel| be a new {{MessageChannel}}.
+
+			1. Let |controlSidePort| be the value of
+				|messageChannel|'s {{MessageChannel/port1}} attribute.
+
+			1. Let |renderingSidePort| be the value of
+				|messageChannel|'s {{MessageChannel/port2}} attribute.
+
+			1. Let |serializedRenderingSidePort| be the result of
+				[$StructuredSerializeWithTransfer$](|renderingSidePort|,
+				« |renderingSidePort| »).
+
+			1. Set this {{BaseAudioContext/audioWorklet}}'s {{AudioWorklet/port}} to
+				|controlSidePort|.
+
+			1. <a>Queue a control message</a> to <a
+				href="#setting-the-messageport-on-the-scope">set the
+				MessagePort on the AudioContextGlobalScope</a>, with
+			    |serializedRenderingSidePort|.
+
+			1. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
 				slot on this {{AudioContext}}, that is an initially empty ordered list of
 				promises.
 
-			4. If <code>contextOptions</code> is given, apply the options:
+			11. If <code>contextOptions</code> is given, apply the options:
 
 				1. Set the internal latency of this {{AudioContext}}
 					according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
 					in {{AudioContextOptions/latencyHint}}.
 
-				2. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
+				1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
 					set the {{BaseAudioContext/sampleRate}}
 					of this {{AudioContext}} to this value. Otherwise, use
 					the sample rate of the default output device. If the
@@ -1618,10 +1638,10 @@ Constructors</h4>
 					AudioContext may be affected, possibly by a large
 					amount.
 
-			5. If the context is <a>allowed to start</a>, send a
+			1. If the context is <a>allowed to start</a>, send a
 				<a>control message</a> to start processing.
 
-			6. Return this {{AudioContext}} object.
+			1. Return this {{AudioContext}} object.
 		</div>
 
 		<div algorithm="sending a control message to start processing">
@@ -1641,13 +1661,31 @@ Constructors</h4>
 				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
 					queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
 					</a> named `statechange` at the {{AudioContext}}.
+
+			Note: It is unfortunately not possible to programatically notify
+			authors that the creation of the {{AudioContext}} failed.
+			User-Agents are encouraged to log an informative message if
+			they have access to a logging mechanism, such as a developer
+			tools console.
+
 		</div>
 
-		Note: It is unfortunately not possible to programatically notify
-		authors that the creation of the {{AudioContext}} failed.
-		User-Agents are encouraged to log an informative message if
-		they have access to a logging mechanism, such as a developer
-		tools console.
+		<div algorithm="setting the messageport on the scope" id="setting-the-messageport-on-the-scope">
+
+			Sending a <a>control message</a> to set the {{MessagePort}} on the
+			{{AudioWorkletGlobalScope}} means executing the following steps, on
+			the <a>rendering thread</a>, with
+			|serializedRenderingSidePort|, that has been transfered to
+			the {{AudioWorkletGlobalScope}}:
+
+			1. Let |deserializedPort| be the result of
+				[$StructuredDeserialize$](|serializedRenderingSidePort|,
+				the current Realm).
+
+			1. Set {{AudioWorkletGlobalScope/port}} to
+				|deserializedPort|.
+
+		</div>
 
 		<pre class="argumentdef" for="AudioContext/constructor(contextOptions)">
 		contextOptions: User-specified options controlling how the {{AudioContext}} should be constructed.
@@ -2327,18 +2365,38 @@ Constructors</h4>
 			[=associated Document=] is NOT [=fully active=],
 			throw an {{InvalidStateError}} and abort these steps.
 		</p>
-			Let <var>c</var> be a new {{OfflineAudioContext}} object.
-			Initialize <var>c</var> as follows:
+			Let |c| be a new {{OfflineAudioContext}} object.
+			Initialize |c| as follows:
 
-			1. Set the {{[[control thread state]]}} for <var>c</var>
+			1. Set the {{[[control thread state]]}} for |c|
 				to <code>"suspended"</code>.
 
-			2. Set the {{[[rendering thread state]]}} for
-				<var>c</var> to <code>"suspended"</code>.
+			1. Set the {{[[rendering thread state]]}} for
+				|c| to <code>"suspended"</code>.
 
-			3. Construct an {{AudioDestinationNode}} with its
+			1. Construct an {{AudioDestinationNode}} with its
 				{{AudioNode/channelCount}} set to
 				<code>contextOptions.numberOfChannels</code>.
+
+			1. Let |messageChannel| be a new {{MessageChannel}}.
+
+			1. Let |controlSidePort| be the value of
+				|messageChannel|'s {{MessageChannel/port1}} attribute.
+
+			1. Let |renderingSidePort| be the value of
+				|messageChannel|'s {{MessageChannel/port2}} attribute.
+
+			1. Let |serializedRenderingSidePort| be the result of
+				[$StructuredSerializeWithTransfer$](|renderingSidePort|,
+				« |renderingSidePort| »).
+
+			1. Set this {{BaseAudioContext/audioWorklet}}'s {{AudioWorklet/port}} to
+				|controlSidePort|.
+
+			1. <a>Queue a control message</a> to <a
+				href="#setting-the-messageport-on-the-scope">set the
+				MessagePort on the AudioContextGlobalScope</a>, with
+				|serializedRenderingSidePort|.
 		</div>
 
 		<pre class=argumentdef for="OfflineAudioContext/constructor(contextOptions)">
@@ -10178,8 +10236,24 @@ The {{AudioWorklet}} Interface</h3>
 <pre class="idl">
 [Exposed=Window, SecureContext]
 interface AudioWorklet : Worklet {
+  readonly attribute MessagePort port;
 };
 </pre>
+
+<h4 id="AudioWorklet-attributes">Attributes</h4>
+
+<dl dfn-type=attribute dfn-for="AudioWorklet">
+	: <dfn>port</dfn>
+	::
+		A {{MessagePort}} connected to the port on the
+	    {{AudioWorkletGlobalScope}}.
+
+		Note: Authors that register a event listener on the <code>"message"</code>
+		event of this {{AudioWorklet/port}} should call {{MessagePort/close}} on
+		either end of the {{MessageChannel}} (either in the
+		{{AudioWorklet}} or the {{AudioWorkletGlobalScope}} side) to allow for
+		resources to be [[html#ports-and-garbage-collection|collected]].
+</dl>
 
 <h4 id="AudioWorklet-concepts">
 Concepts</h4>
@@ -10323,6 +10397,7 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
 	readonly attribute unsigned long long currentFrame;
 	readonly attribute double currentTime;
 	readonly attribute float sampleRate;
+	readonly attribute MessagePort port;
 };
 </pre>
 
@@ -10347,6 +10422,18 @@ Attributes</h5>
 	: <dfn>sampleRate</dfn>
 	::
 		The sample rate of the associated {{BaseAudioContext}}.
+
+	: <dfn>port</dfn>
+	::
+		A {{MessagePort}} connected to the port on the
+	    {{AudioWorklet}}.
+
+		Note: Authors that register a event listener on the <code>"message"</code>
+		event of this {{AudioWorkletGlobalScope/port}} should call
+		{{MessagePort/close}} on either end of the {{MessageChannel}} (either
+		in the {{AudioWorklet}} or the {{AudioWorkletGlobalScope}} side) to
+		allow for resources to be
+		[[html#ports-and-garbage-collection|collected]].
 </dl>
 
 <h5 id="AudioWorkletGlobalScope-methods">

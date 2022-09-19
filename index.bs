@@ -178,6 +178,7 @@ window.addEventListener('load', (event) => {
   ListAmendments("c2375", "Proposed Correction", "change-list-2375");
   ListAmendments("c2475", "Proposed Addition", "change-list-2475");
   ListAmendments("c2444", "Proposed Addition", "change-list-2444");
+  ListAmendments("c2456", "Proposed Addition", "change-list-2456");
 });
 </script>
 <style>
@@ -1592,36 +1593,99 @@ Constructors</h4>
 			<span class="synchronous">When creating an {{AudioContext}},
 			execute these steps:</span>
 
-			1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+			<div class="addition proposed" id="c2456-1">
+				<span class="marker">Proposed Addition
+					<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+						2456</a>.
+				</span>
+				Add a MessagePort to the AudioWorkletGlobalScope
+				<div class="amendment-buttons">
+				</div>
+				<del cite=#2456>
+					1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
-			2. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+					1. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
-			3. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
-				slot on this {{AudioContext}}, that is an initially empty ordered list of
-				promises.
+					1. Let <code>[[pending resume promises]]</code> be a
+						slot on this {{AudioContext}}, that is an initially empty ordered list of
+						promises.
 
-			4. If <code>contextOptions</code> is given, apply the options:
+					1. If <code>contextOptions</code> is given, apply the options:
 
-				1. Set the internal latency of this {{AudioContext}}
-					according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
-					in {{AudioContextOptions/latencyHint}}.
+					1. Set the internal latency of this {{AudioContext}}
+						according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
+						in {{AudioContextOptions/latencyHint}}.
 
-				2. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
-					set the {{BaseAudioContext/sampleRate}}
-					of this {{AudioContext}} to this value. Otherwise, use
-					the sample rate of the default output device. If the
-					selected sample rate differs from the sample rate of the
-					output device, this {{AudioContext}} MUST resample the
-					audio output to match the sample rate of the output device.
+					1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
+						set the {{BaseAudioContext/sampleRate}}
+						of this {{AudioContext}} to this value. Otherwise, use
+						the sample rate of the default output device. If the
+						selected sample rate differs from the sample rate of the
+						output device, this {{AudioContext}} MUST resample the
+						audio output to match the sample rate of the output device.
 
-					Note: If resampling is required, the latency of the
-					AudioContext may be affected, possibly by a large
-					amount.
+						Note: If resampling is required, the latency of the
+						AudioContext may be affected, possibly by a large
+						amount.
 
-			5. If the context is <a>allowed to start</a>, send a
-				<a>control message</a> to start processing.
+					1. If the context is <a>allowed to start</a>, send a
+						<a>control message</a> to start processing.
 
-			6. Return this {{AudioContext}} object.
+					1. Return this {{AudioContext}} object.
+				</del>
+				<ins cite=#c2456>
+					1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+
+					1. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+
+					1. Let |messageChannel| be a new {{MessageChannel}}.
+
+					1. Let |controlSidePort| be the value of
+						|messageChannel|'s {{MessageChannel/port1}} attribute.
+
+					1. Let |renderingSidePort| be the value of
+						|messageChannel|'s {{MessageChannel/port2}} attribute.
+
+					1. Let |serializedRenderingSidePort| be the result of
+						[$StructuredSerializeWithTransfer$](|renderingSidePort|,
+						« |renderingSidePort| »).
+
+					1. Set this {{BaseAudioContext/audioWorklet}}'s {{AudioWorklet/port}} to
+						|controlSidePort|.
+
+					1. <a>Queue a control message</a> to <a
+						href="#setting-the-messageport-on-the-scope">set the
+						MessagePort on the AudioContextGlobalScope</a>, with
+						|serializedRenderingSidePort|.
+
+					1. Let <dfn attribute for="AudioContext">[[pending resume promises]]</dfn> be a
+						slot on this {{AudioContext}}, that is an initially empty ordered list of
+						promises.
+
+					1. If <code>contextOptions</code> is given, apply the options:
+
+						1. Set the internal latency of this {{AudioContext}}
+							according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
+							in {{AudioContextOptions/latencyHint}}.
+
+						1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
+							set the {{BaseAudioContext/sampleRate}}
+							of this {{AudioContext}} to this value. Otherwise, use
+							the sample rate of the default output device. If the
+							selected sample rate differs from the sample rate of the
+							output device, this {{AudioContext}} MUST resample the
+							audio output to match the sample rate of the output device.
+
+							Note: If resampling is required, the latency of the
+							AudioContext may be affected, possibly by a large
+							amount.
+
+					1. If the context is <a>allowed to start</a>, send a
+						<a>control message</a> to start processing.
+
+					1. Return this {{AudioContext}} object.
+				</ins>
+			</div>
 		</div>
 
 		<div algorithm="sending a control message to start processing">
@@ -1641,13 +1705,42 @@ Constructors</h4>
 				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
 					queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
 					</a> named `statechange` at the {{AudioContext}}.
+
+			Note: It is unfortunately not possible to programatically notify
+			authors that the creation of the {{AudioContext}} failed.
+			User-Agents are encouraged to log an informative message if
+			they have access to a logging mechanism, such as a developer
+			tools console.
+
 		</div>
 
-		Note: It is unfortunately not possible to programatically notify
-		authors that the creation of the {{AudioContext}} failed.
-		User-Agents are encouraged to log an informative message if
-		they have access to a logging mechanism, such as a developer
-		tools console.
+		<div class="addition proposed" id="c2456-2">
+			<span class="marker">Proposed Addition
+				<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+					2456</a>.
+			</span>
+			Add a MessagePort to the AudioWorkletGlobalScope
+			<div class="amendment-buttons">
+			</div>
+			<ins cite=#2456>
+				<div algorithm="setting the messageport on the scope" id="setting-the-messageport-on-the-scope">
+
+					Sending a <a>control message</a> to set the {{MessagePort}} on the
+					{{AudioWorkletGlobalScope}} means executing the following steps, on
+					the <a>rendering thread</a>, with
+					|serializedRenderingSidePort|, that has been transfered to
+					the {{AudioWorkletGlobalScope}}:
+
+					1. Let |deserializedPort| be the result of
+						[$StructuredDeserialize$](|serializedRenderingSidePort|,
+						the current Realm).
+
+					1. Set {{AudioWorkletGlobalScope/port}} to
+						|deserializedPort|.
+
+				</div>
+			</ins>
+		</div>
 
 		<pre class="argumentdef" for="AudioContext/constructor(contextOptions)">
 		contextOptions: User-specified options controlling how the {{AudioContext}} should be constructed.
@@ -2322,23 +2415,73 @@ Constructors</h4>
 	::
 		<div algorithm="OfflineAudioContext.OfflineAudioContext(contextOptions)">
 
-		<p>
-			If the [=current settings object=]'s [=relevant global object=]'s
-			[=associated Document=] is NOT [=fully active=],
-			throw an {{InvalidStateError}} and abort these steps.
-		</p>
-			Let <var>c</var> be a new {{OfflineAudioContext}} object.
-			Initialize <var>c</var> as follows:
+			<div class="addition proposed" id="c2456-3">
+				<span class="marker">Proposed Addition
+					<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+						2456</a>.
+				</span>
+				Add a MessagePort to the AudioWorkletGlobalScope
+				<div class="amendment-buttons">
+				</div>
+				<del cite=#2456>
+					<p>
+						If the [=current settings object=]'s [=relevant global object=]'s
+						[=associated Document=] is NOT [=fully active=],
+						throw an {{InvalidStateError}} and abort these steps.
+					</p>
+					Let |c| be a new {{OfflineAudioContext}} object.
+					Initialize |c| as follows:
 
-			1. Set the {{[[control thread state]]}} for <var>c</var>
-				to <code>"suspended"</code>.
+					1. Set the {{[[control thread state]]}} for |c|
+						to <code>"suspended"</code>.
 
-			2. Set the {{[[rendering thread state]]}} for
-				<var>c</var> to <code>"suspended"</code>.
+					1. Set the {{[[rendering thread state]]}} for
+						|c| to <code>"suspended"</code>.
 
-			3. Construct an {{AudioDestinationNode}} with its
-				{{AudioNode/channelCount}} set to
-				<code>contextOptions.numberOfChannels</code>.
+					1. Construct an {{AudioDestinationNode}} with its
+						{{AudioNode/channelCount}} set to
+						<code>contextOptions.numberOfChannels</code>.
+				</del>
+				<ins cite=#2456>
+					<p>
+						If the [=current settings object=]'s [=relevant global object=]'s
+						[=associated Document=] is NOT [=fully active=],
+						throw an {{InvalidStateError}} and abort these steps.
+					</p>
+					Let |c| be a new {{OfflineAudioContext}} object.
+					Initialize |c| as follows:
+
+					1. Set the {{[[control thread state]]}} for |c|
+						to <code>"suspended"</code>.
+
+					1. Set the {{[[rendering thread state]]}} for
+						|c| to <code>"suspended"</code>.
+
+					1. Construct an {{AudioDestinationNode}} with its
+						{{AudioNode/channelCount}} set to
+						<code>contextOptions.numberOfChannels</code>.
+
+					1. Let |messageChannel| be a new {{MessageChannel}}.
+
+					1. Let |controlSidePort| be the value of
+						|messageChannel|'s {{MessageChannel/port1}} attribute.
+
+					1. Let |renderingSidePort| be the value of
+						|messageChannel|'s {{MessageChannel/port2}} attribute.
+
+					1. Let |serializedRenderingSidePort| be the result of
+						[$StructuredSerializeWithTransfer$](|renderingSidePort|,
+						« |renderingSidePort| »).
+
+					1. Set this {{BaseAudioContext/audioWorklet}}'s {{AudioWorklet/port}} to
+						|controlSidePort|.
+
+					1. <a>Queue a control message</a> to <a
+						href="#setting-the-messageport-on-the-scope">set the
+						MessagePort on the AudioContextGlobalScope</a>, with
+						|serializedRenderingSidePort|.
+				</ins>
+			</div>
 		</div>
 
 		<pre class=argumentdef for="OfflineAudioContext/constructor(contextOptions)">
@@ -10179,11 +10322,46 @@ Dictionary {{WaveShaperOptions}} Members</h5>
 <h3 interface lt="AudioWorklet" id="AudioWorklet">
 The {{AudioWorklet}} Interface</h3>
 
-<pre class="idl">
+<div class="addition proposed" id="c2456-4">
+<span class="marker">Proposed Addition
+	<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+		2456</a>.
+</span>
+Add a MessagePort to the AudioWorkletGlobalScope
+<div class="amendment-buttons">
+</div>
+<del cite=#2456>
+	<pre class="idl">
 [Exposed=Window, SecureContext]
 interface AudioWorklet : Worklet {
 };
-</pre>
+	</pre>
+</del>
+<ins cite=#2456>
+	<pre class="idl">
+[Exposed=Window, SecureContext]
+interface AudioWorklet : Worklet {
+  readonly attribute MessagePort port;
+};
+	</pre>
+
+	<h4 id="AudioWorklet-attributes">Attributes</h4>
+
+	<dl dfn-type=attribute dfn-for="AudioWorklet">
+		: <dfn>port</dfn>
+		::
+			A {{MessagePort}} connected to the port on the
+			{{AudioWorkletGlobalScope}}.
+
+			Note: Authors that register an event listener on the
+			<code>"message"</code> event of this {{AudioWorklet/port}} should
+			call {{MessagePort/close}} on either end of the {{MessageChannel}}
+			(either in the {{AudioWorklet}} or the {{AudioWorkletGlobalScope}}
+			side) to allow for resources to be
+			[[html#ports-and-garbage-collection|collected]].
+	</dl>
+</ins>
+</div>
 
 <h4 id="AudioWorklet-concepts">
 Concepts</h4>
@@ -10317,7 +10495,16 @@ Note: An {{AudioWorkletGlobalScope}} is associated with a single
 for that context. This prevents data races from occurring in global
 scope code running within concurrent threads.
 
-<pre class="idl">
+<div class="addition proposed" id="c2456-5">
+<span class="marker">Proposed Addition
+	<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+		2456</a>.
+</span>
+Add a MessagePort to the AudioWorkletGlobalScope
+<div class="amendment-buttons">
+</div>
+<del cite=#2456>
+<xmp class="idl extract" data-no-idl>
 callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object options);
 
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
@@ -10328,7 +10515,24 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
 	readonly attribute double currentTime;
 	readonly attribute float sampleRate;
 };
+</xmp>
+</del>
+<ins cite=#2456>
+<pre class="idl">
+callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object options);
+
+[Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
+interface AudioWorkletGlobalScope : WorkletGlobalScope {
+	undefined registerProcessor (DOMString name,
+								               AudioWorkletProcessorConstructor processorCtor);
+	readonly attribute unsigned long long currentFrame;
+	readonly attribute double currentTime;
+	readonly attribute float sampleRate;
+	readonly attribute MessagePort port;
+};
 </pre>
+</ins>
+</div>
 
 <h5 id="AudioWorkletGlobalScope-attributes">
 Attributes</h5>
@@ -10351,6 +10555,28 @@ Attributes</h5>
 	: <dfn>sampleRate</dfn>
 	::
 		The sample rate of the associated {{BaseAudioContext}}.
+
+	<div class="addition proposed" id="c2456-6">
+	<span class="marker">Proposed Addition
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+			2456</a>.
+	</span>
+	Add a MessagePort to the AudioWorkletGlobalScope
+	<div class="amendment-buttons">
+	</div>
+	<ins cite=#2456>
+		: <dfn>port</dfn>
+		::
+			A {{MessagePort}} connected to the port on the {{AudioWorklet}}.
+
+			Note: Authors that register an event listener on the <code>"message"</code>
+			event of this {{AudioWorkletGlobalScope/port}} should call
+			{{MessagePort/close}} on either end of the {{MessageChannel}} (either
+			in the {{AudioWorklet}} or the {{AudioWorkletGlobalScope}} side) to
+			allow for resources to be
+			[[html#ports-and-garbage-collection|collected]].
+	</ins>
+	</div>
 </dl>
 
 <h5 id="AudioWorkletGlobalScope-methods">
@@ -10749,7 +10975,7 @@ Attributes</h5>
 		bidirectional communication between the
 		{{AudioWorkletNode}} and its {{AudioWorkletProcessor}}.
 
-		Note: Authors that register a event listener on the <code>"message"</code>
+		Note: Authors that register an event listener on the <code>"message"</code>
 		event of this {{AudioWorkletNode/port}} should call {{MessagePort/close}} on
 		either end of the {{MessageChannel}} (either in the
 		{{AudioWorkletProcessor}} or the {{AudioWorkletNode}} side) to allow for
@@ -10950,7 +11176,7 @@ Constructors</h5>
 		allowing bidirectional communication between an
 		{{AudioWorkletNode}} and its {{AudioWorkletProcessor}}.
 
-		Note: Authors that register a event listener on the <code>"message"</code>
+		Note: Authors that register an event listener on the <code>"message"</code>
 		event of this {{AudioWorkletProcessor/port}} should call
 		{{MessagePort/close}} on either end of the {{MessageChannel}} (either in the
 		{{AudioWorkletProcessor}} or the {{AudioWorkletNode}} side) to allow for
@@ -13136,6 +13362,9 @@ Change Log</h2>
 <h3 id="recommendation-changes-1">
   Changes since Recommendation of 17 Jun 2021
 </h3>
+  * <a href="https://github.com/WebAudio/web-audio-api/issues/2361">Issue 2456</a>: Add a MessagePort to the AudioWorkletGlobalScope
+    <div id="change-list-2456">
+    </div>
   * <a href="https://github.com/WebAudio/web-audio-api/issues/2361">Issue 2444</a>: Add AudioRenderCapacity interface and related classes
     <div id="change-list-2444">
     </div>

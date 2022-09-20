@@ -1512,25 +1512,25 @@ enum AudioContextLatencyCategory {
 </div>
 
 <pre class="idl">
-enum AudioContextSinkCategory {
-		"none"
+enum AudioSinkType {
+	"none"
 };
 </pre>
-	
+
 <div class="enum-description">
-<table class="simple" dfn-type=enum-value dfn-for="AudioContextSinkCategory">
-	<thead>
-		<tr>
-			<th scope="col" colspan="2">
-				Enumeration description
-	<tbody>
-		<tr>
-			<td>
-				"<dfn>none</dfn>"
-			<td>
-				The audio graph will be processed without being played through an
-				audio output device.
-</table>
+	<table class="simple" dfn-type=enum-value dfn-for="AudioSinkType">
+		<caption>{{AudioSinkType}} Enumeration description</caption>
+		<thead>
+			<tr>
+				<th>Enum Value</th><th>Description</th>
+		<tbody>
+			<tr>
+				<td>
+					"<dfn>none</dfn>"
+				<td>
+					The audio graph will be processed without being played
+					through an audio output device.
+	</table>
 </div>
 
 <div class="correction proposed" id="c2444-1">
@@ -1568,7 +1568,7 @@ enum AudioContextSinkCategory {
 			constructor (optional AudioContextOptions contextOptions = {});
 			readonly attribute double baseLatency;
 			readonly attribute double outputLatency;
-			readonly attribute DOMString sinkId;
+			readonly attribute (DOMString or AudioSinkOptions) sinkId;
 			[SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
 			attribute EventHandler onsinkchange;
 			AudioTimestamp getOutputTimestamp ();
@@ -1601,8 +1601,10 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
 
 	: <dfn>[[sink ID]]</dfn>
 	::
-		A {{DOMString}} representing the ID of the current audio output device. The
-		initial value is <code>""</code>.
+		A {{DOMString}} or an {{AudioSinkOptions}} representing the identifier
+		or the information of the current audio output device respectively. The
+		initial value is <code>""</code>, which means the default audio output
+		device.
 </dl>
 
 <h4 id="AudioContext-constructors">
@@ -1623,9 +1625,6 @@ Constructors</h4>
 
 			1. Let |context| be a new {{AudioContext}} object.
 
-			1. Let |document| be the current settings object's
-				[=associated Document=].
-
 			1. Set a {{[[control thread state]]}} to <code>suspended</code> on
 				|context|.
 
@@ -1641,16 +1640,17 @@ Constructors</h4>
 				substeps:
 
 				1. If {{AudioContextOptions/sinkId}} is specified, let |sinkId| be the
-					value of <code>contextOptions.{{AudioContextOptions/sinkId}}</code>
-					and runthe following substeps:
+					value of <code>contextOptions.{{AudioContextOptions/sinkId}}</code>.
 
-					1. If |document| is not allowed to use the feature identified by
-						<code>"speaker-selection"</code>, |sinkId| is the empty string,
-						or |sinkId| does not match any audio output device identified by
-						the result that would be provided by
-						{{MediaDevices/enumerateDevices()}}, abort these substeps.
-					
-					1. Set {{AudioContext/[[sink ID]]}} to |sinkId|.
+				1. Let |validationResult| be the return value of
+					<a href="#validating-sink-identifier">sink identifier validation</a>
+					of |sinkId|.
+
+				1. If |validationResult| is a type of {{DOMException}}, throw the
+					exception and abort these steps.
+
+				1. If |validationResult| is true, set {{AudioContext/[[sink ID]]}} to
+					|sinkId|.
 
 				1. Set the internal latency of |context| according to
 					<code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as
@@ -1658,8 +1658,17 @@ Constructors</h4>
 
 				1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is
 					specified, set the {{BaseAudioContext/sampleRate}} of |context| to
-					this value. Otherwise, use the sample rate of the default output
-					device or the output device selected by |sinkId| if present.
+					this value.
+					
+					If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is
+					not specified, follow these substeps:
+
+					1. If |sinkId| is the empty string or a type of {{AudioSinkOptions}},
+						use the sample rate of the default output device. Abort these
+						substeps.
+					
+					1. If |sinkId| is a {{DOMString}}, use the sample rate of the output
+						device identified by |sinkId|. Abort these substeps.
 					
 					If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code>
 					differs from the sample rate of the output device, the user agent
@@ -1683,29 +1692,18 @@ Constructors</h4>
 				audio output device for rendering.	In case of failure, abort the
 				following steps.
 
-				1. If {{AudioContext/[[sink ID]]}} is
-					<code>"{{AudioContextSinkCategory/none}}"</code>, prepare to render
-					the audio graph without an actual audio output device. Abort these
-					substeps.
-
-				1. If {{AudioContext/[[sink ID]]}} is the empty string, prepare to
-					render the audio graph with a default audio output device. Abort
-					these substeps.
-
-				1. If {{AudioContext/[[sink ID]]}} is not the empty string, prepare to
-					render the audio graph with the underlying audio output device
-					identified by {{AudioContext/[[sink ID]]}}.
-
-			3. Set the {{[[rendering thread state]]}} to <code>running</code> on the {{AudioContext}}.
+			1. Set the {{[[rendering thread state]]}} to <code>running</code> on the
+				{{AudioContext}}.
 
 			1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-				queue a media element task</a> to execute the following steps:
+				Queue a media element task</a> to execute the following steps:
 
-				1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/running}}".
+				1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}}
+					to "{{AudioContextState/running}}".
 
-				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-					queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
-					</a> named `statechange` at the {{AudioContext}}.
+				1. <a spec="dom" lt="fire an event">Fire an event</a> to 
+					{{BaseAudioContext/onstatechange}} {{EventHandler}} at the
+					{{AudioContext}}.
 		</div>
 
 		Note: It is unfortunately not possible to programatically notify
@@ -1776,17 +1774,16 @@ Attributes</h4>
 
 	: <dfn>sinkId</dfn>
 	::
-		This attribute contains the ID of the current audio output device, or the
-		empty string for the user-agent default device. The attribute MUST return
-		the value of {{AudioContext/[[sink ID]]}} internal slot upon getting.
+		Returns the value of {{AudioContext/[[sink ID]]}} internal slot.
 
 	: <dfn>onsinkchange</dfn>
 	::
-		An EventHandler for {{AudioContext/setSinkId()}}. This event will be
-		dispatched when changing the output device is completed. NOTE: This is not
-		dispatched for the initial device selection upon the construction of
-		{{AudioContext}}. The {{BaseAudioContext/onstatechange}} is available
-		to check the readiness of the initial output device.
+		An {{EventHandler}} for {{AudioContext/setSinkId()}}. This event will
+		be dispatched when changing the output device is completed.
+		
+		NOTE: This is not dispatched for the initial device selection in the
+		construction of {{AudioContext}}. The {{BaseAudioContext/onstatechange}}
+		is available to check the readiness of the initial output device.
 </dl>
 
 <h4 id="AudioContext-methods">
@@ -2153,74 +2150,77 @@ Methods</h4>
 			<em>Return type:</em> {{Promise}}&lt;{{undefined}}&gt;
 		</div>
 
-		: <dfn>setSinkId((DOMString or AudioContextSinkCategory) sinkId)</dfn>
+		: <dfn>setSinkId((DOMString or AudioSinkOptions) sinkId)</dfn>
 		::
-			Sets the ID of the output device if it is permitted to play audio. When
-			this method is invoked, the user agent MUST run the following steps:
+			Sets the identifier of an output device. When this method is invoked, the
+			user agent MUST run the following steps:
 
 			<div algorithm="AudioContext.setSinkId()">
-				1. Let |document| be the current settings object's
-					[=associated Document=].
-
-				1. If |document| is not allowed to use the feature identified by
-					<code>"speaker-selection"</code>, return [=a promise rejected with=] a
-					new {{DOMException}} whose name is "{{NotAllowedError}}".
-
-				1. Let |context| be the {{AudioContext}} object on which this method was
-					invoked.
-
 				1. Let |sinkId| be the method's first argument.
 
-				1. If |sinkId| is equal to |context|'s {{AudioContext/[[sink ID]]}}
-					internal slot, return a promise resolved with {{undefined}}.
+				1. Let |validationResult| be the return value of
+					<a href="#validating-sink-identifier">sink identifier validation</a>
+					of |sinkId|.
+				
+				1. If |validationResult| is a type of {{DOMException}}, return
+					a promise rejected with |validationResult|.
+
+				1. If |validationResult| is true, set {{AudioContext/[[sink ID]]}} to
+					|sinkId|.
 
 				1. Let |p| be a new promise.
 
-				1. Run the following substeps:
+				1. Send a <a>control message</a> with |p| to start processing.
 
-					1. If the {{BaseAudioContext/state}} attibutes of |context| is
-						"{{AudioContextState/closed}}", reject |p| with a new
-						{{DOMException}} whose name is "{{InvalidStateError}}" and abort
-						these substeps.
-
-				  1. If |sinkId| is the empty string, reject |p| with a new
-						{{DOMException}} whose name is "{{NotFoundError}}" and abort these
-						substeps.
-
-					1. If |sinkId| does not match any audio output device identified by
-						the result that would be provided by
-						{{MediaDevices/enumerateDevices()}}, reject |p| with a new
-						{{DOMException}} whose name is "{{NotFoundError}}" and abort these
-						substeps.
-
-					1. If the device specified by |sinkId| is not the user agent's
-						default device or is not permitted to play audio through, reject |p|
-						with a new {{DOMException}} whose name is {{NotAllowedError}} and
-						abort these substeps.
-
-					1. Stop playing audio out of the current output device.
-
-					1. Run the following substeps to prepare an audio output device for
-						rendering:
-
-						1. Set context's {{AudioContext/[[sink ID]]}} internal slot to
-							|sinkId|.
-
-						1. If {{AudioContext/[[sink ID]]}} is <code>"{{AudioContextSinkCategory/none}}"</code>, acquire system
-							resources to render the audio graph without an actual audio
-							output device. Abort these substeps.
-
-						1. If {{AudioContext/[[sink ID]]}} is not the empty string, acquire system
-							resources to render the audio graph with the underlying audio
-							output device identified by {{AudioContext/[[sink ID]]}}.
-
-					1. Queue a task to perform the following steps:
-
-						1. Resolve |p|.
-				
 				1. Return |p|.
 			</div>
+
+			<div algorithm="run a control message for setSinkId">
+				Sending a <a>control message</a> to start processing during
+				{{AudioContext/setSinkId()}} means executing the following steps:
+
+				1. Let |p| be the promise passed into this algorith.
+
+				1. Stop playing audio out of the output device that is currently in
+					use.
+
+				1. Attempt to <a href="#acquiring">acquire system resources</a> to use
+					an audio output device identified {{AudioContext/[[sink ID]]}} for
+					rendering. In case of failure, reject |p| with
+					"{{InvalidAccessError}}" abort the following steps.
+				
+				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+					Queue a media element task</a> to <a spec="dom" lt="fire an event">
+					fire an event</a> to {{AudioContext/onsinkchange}} {{EventHandler}}
+					at the associated {{AudioContext}}.
+
+				1. Resolve |p|.
+			</div>
 </dl>
+
+<h4 id="validating-sink-identifier">
+Validating {{AudioContext/sinkId}}</h4>
+
+This algorithm is used to validate the information provided to modify
+{{AudioContext/sinkId}}:
+
+<div algorithm="validating sink ID">
+	1. Let |document| be the current settings object's [=associated Document=].
+	1. Let |sinkIdArg| be the value passed in to this algorithm.
+	1. If |document| is not allowed to use the feature identified by
+		<code>"speaker-selection"</code>, return a new {{DOMException}} whose name
+		is "{{NotAllowedError}}".
+	1. If |sinkIdArg| is a type of {{AudioSinkOptions}} and its
+		{{AudioSinkOptions/type}} property is not equal to
+		<code>"{{AudioSinkType/none}}"</code>, return a new {{DOMException}} whose
+		name is "{{NotSupportedError}}".
+	1. If |sinkIdArg| is a type of {{DOMString}} but it does not match any audio
+		output device identified by the result that would be provided by
+		{{MediaDevices/enumerateDevices()}}, return a new {{DOMException}} whose
+		name is "{{InvalidStateError}}".
+	1. If |sinkIdArg| is equal to {{AudioContext/[[sink ID]]}}, return false.
+	1. Return true.
+</div>
 
 <h4 dictionary id="AudioContextOptions">
 {{AudioContextOptions}}</h4>
@@ -2232,7 +2232,7 @@ specify user-specified options for an {{AudioContext}}.
 dictionary AudioContextOptions {
 	(AudioContextLatencyCategory or double) latencyHint = "interactive";
 	float sampleRate;
-	(DOMString or AudioContextSinkCategory) sinkId;
+	(DOMString or AudioSinkOptions) sinkId;
 };
 </pre>
 
@@ -2268,8 +2268,29 @@ Dictionary {{AudioContextOptions}} Members</h5>
 	
 		: <dfn>sinkId</dfn>
 		::
-			Set the ID of the audio output device. See {{AudioContext/sinkId}} for
-			more details.
+			The identifier or associated information of the audio output device.
+			See {{AudioContext/sinkId}} for more details.
+</dl>
+
+<h4 dictionary id="AudioSinkOptions">
+{{AudioSinkOptions}}</h4>
+
+The {{AudioSinkOptions}} dictionary is used to specify options for 
+{{AudioContext/sinkId}}.
+
+<pre class="idl">
+dictionary AudioSinkOptions {
+	AudioSinkType type;
+};
+</pre>
+
+<h5 id="dictionary-audiosinkoptions-members">
+Dictionary {{AudioSinkOptions}} Members</h5>
+
+<dl dfn-type=dict-member dfn-for="AudioSinkOptions">
+	: <dfn>type</dfn>
+	::
+		A value of {{AudioSinkType}} to specify the type of the device.
 </dl>
 
 <h4 dictionary id="AudioTimestamp">

@@ -2250,15 +2250,13 @@ Methods</h4>
 					<a href="#validating-sink-identifier">sink identifier validation</a>
 					of |sinkId|.
 				
-				1. If |validationResult| is a type of {{DOMException}}, return
-					a promise rejected with |validationResult|.
-
-				1. If |validationResult| is true, set {{AudioContext/[[sink ID]]}} to
-					|sinkId|.
+				1. If |validationResult| is not true, return a promise rejected with
+					|validationResult|. Abort these steps.
 
 				1. Let |p| be a new promise.
 
-				1. Send a <a>control message</a> with |p| to start processing.
+				1. Send a <a>control message</a> with |p| and |sinkId| to start
+					processing.
 
 				1. Return |p|.
 			</div>
@@ -2267,10 +2265,36 @@ Methods</h4>
 				Sending a <a>control message</a> to start processing during
 				{{AudioContext/setSinkId()}} means executing the following steps:
 
-				1. Let |p| be the promise passed into this algorith.
+				1. Let |p| be the promise passed into this algorithm.
 
-				1. Stop playing audio out of the output device that is currently in
-					use.
+				1. Let |sinkId| be the sink identifier passed into this algorithm.
+
+				1. Let |wasRunning| be true.
+
+				1. Set |wasRunning| to false if the {{[[rendering thread state]]}} on
+					the {{AudioContext/}} is <code>"suspended"</code>.
+
+				1. Pause the renderer after processing the current render quantum.
+
+				1. Attempt to <a>release system resources</a>.
+
+				1. If |wasRunning| is true:
+
+					1. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to
+						<code>"suspended"</code>.
+				
+					1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+						Queue a media element task</a> to execute the following steps:
+
+						1. If the {{BaseAudioContext/state}} attribute of the
+							{{AudioContext}} is not already "{{AudioContextState/suspended}}":
+
+							1. Set the {{BaseAudioContext/state}} attribute of the
+								{{AudioContext}} to "{{AudioContextState/suspended}}".
+							
+							1. <a spec="dom" lt="fire an event">Fire an event</a> to
+								{{BaseAudioContext/statechange}} {{EventHandler}} at the
+								associated {{AudioContext}}.
 
 				1. Attempt to <a href="#acquiring">acquire system resources</a> to use
 					an audio output device identified {{AudioContext/[[sink ID]]}} for
@@ -2278,11 +2302,33 @@ Methods</h4>
 					"{{InvalidAccessError}}" abort the following steps.
 				
 				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-					Queue a media element task</a> to <a spec="dom" lt="fire an event">
-					fire an event</a> to {{AudioContext/onsinkchange}} {{EventHandler}}
-					at the associated {{AudioContext}}.
+					Queue a media element task</a> to execute the follwoing steps:
 
-				1. Resolve |p|.
+					1. Set {{AudioContext/[[sink ID]]}} to |sinkId|.
+
+					1. Resolve |p|.
+					
+					1. <a spec="dom" lt="fire an event">Fire an event</a> to
+						{{AudioContext/onsinkchange}} {{EventHandler}} at the associated
+						{{AudioContext}}.
+
+				1. If |wasRunning| is true:
+
+					1. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to
+						<code>"running"</code>.
+
+					1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+						Queue a media element task</a> to execute the follwoing steps:
+
+						1. If the {{BaseAudioContext/state}} attribute of the
+							{{AudioContext}} is not already "{{AudioContextState/running}}":
+
+							1. Set the {{BaseAudioContext/state}} attribute of the
+								{{AudioContext}} to "{{AudioContextState/running}}".
+							
+							1. <a spec="dom" lt="fire an event">Fire an event</a> to
+								{{BaseAudioContext/statechange}} {{EventHandler}} at the
+								associated {{AudioContext}}.
 			</div>
 </dl>
 

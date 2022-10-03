@@ -179,6 +179,7 @@ window.addEventListener('load', (event) => {
   ListAmendments("c2475", "Proposed Addition", "change-list-2475");
   ListAmendments("c2444", "Proposed Addition", "change-list-2444");
   ListAmendments("c2456", "Proposed Addition", "change-list-2456");
+	ListAmendments("c2400", "Proposed Addition", "change-list-2400");
 });
 </script>
 <style>
@@ -1512,6 +1513,12 @@ enum AudioContextLatencyCategory {
 </table>
 </div>
 
+<div class="addition proposed" id="c2400-1">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<ins cite=#2400>
 <pre class="idl">
 enum AudioSinkType {
 	"none"
@@ -1533,17 +1540,17 @@ enum AudioSinkType {
 					through an audio output device.
 	</table>
 </div>
+</ins>
+</div>
 
-<div class="correction proposed" id="c2444-1">
-	<span class="marker">Proposed Addition
-		<a href="https://github.com/WebAudio/web-audio-api/issues/2444">Issue
-			2444</a>.
-	</span>
-	Add AudioRenderCapacity Interface
-	<div class="amendment-buttons">
-		Buttons here
-	</div>
-	<del cite=#c2444>
+<div class="addition proposed" id="c2444-1">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2444">Issue 2444
+		</a> Add AudioRenderCapacity Interface <br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400" id="c2400-2">
+			Issue 2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<del cite="#c2444 #c2400">
 		<xmp class="idl extract" data-no-idl>
 		[Exposed=Window]
 		interface AudioContext : BaseAudioContext {
@@ -1562,7 +1569,7 @@ enum AudioSinkType {
 		};
 		</xmp>
 	</del>
-	<ins cite=#c2444>
+	<ins cite="#c2444 #2400">
 		<xmp class="idl">
 		[Exposed=Window]
 		interface AudioContext : BaseAudioContext {
@@ -1599,18 +1606,26 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
 	::
 		A boolean flag representing whether the context is suspended by user code.
 		The initial value is <code>false</code>.
-
+<div class="addition proposed" id="c2400-2">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<ins cite=#2400>
 	: <dfn>[[sink ID]]</dfn>
 	::
 		A {{DOMString}} or an {{AudioSinkOptions}} representing the identifier
 		or the information of the current audio output device respectively. The
 		initial value is <code>""</code>, which means the default audio output
 		device.
-	
+
 	: <dfn>[[pending resume promises]]</dfn>
 	:: 
 		An ordered list to store pending {{Promise}}s created by
 		{{AudioContext/resume()}}. It is initially empty.
+
+	</ins>
+</div>
 </dl>
 
 <h4 id="AudioContext-constructors">
@@ -1628,15 +1643,14 @@ Constructors</h4>
 		</p>
 			<span class="synchronous">When creating an {{AudioContext}},
 			execute these steps:</span>
-
+			
 			<div class="addition proposed" id="c2456-1">
-				<span class="marker">Proposed Addition
-					<a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
-						2456</a>.
-				</span>
-				Add a MessagePort to the AudioWorkletGlobalScope
-				<div class="amendment-buttons">
-				</div>
+				<span class="marker">Proposed Addition</span><br>
+				<a href="https://github.com/WebAudio/web-audio-api/issues/2456">
+					Issue 2456</a> Add a MessagePort to the AudioWorkletGlobalScope <br>
+				<a href="https://github.com/WebAudio/web-audio-api/issues/2400" id="c2400-3">
+					Issue 2400</a> Access to a different output device
+				<div class="amendment-buttons"></div>
 				<del cite=#2456>
 					1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
@@ -1669,7 +1683,7 @@ Constructors</h4>
 
 					1. Return this {{AudioContext}} object.
 				</del>
-				<ins cite=#c2456>
+				<ins cite=#2456>
 					1. Let |context| be a new {{AudioContext}} object.
 
 					1. Set a {{[[control thread state]]}} to <code>suspended</code> on
@@ -1721,13 +1735,10 @@ Constructors</h4>
 						1. Set the internal latency of |context| according to
 							<code>contextOptions.{{AudioContextOptions/latencyHint}}</code>,
 							as described in {{AudioContextOptions/latencyHint}}.
-		
+
 						1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}
 							</code> is specified, set the {{BaseAudioContext/sampleRate}} of
-							|context| to this value.
-							
-							If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code>
-							is not specified, follow these substeps:
+							|context| to this value. Otherwise, follow these substeps:
 		
 							1. If |sinkId| is the empty string or a type of
 								{{AudioSinkOptions}}, use the sample rate of the default output
@@ -1744,7 +1755,7 @@ Constructors</h4>
 							Note: If resampling is required, the latency of |context| may be
 							affected, possibly by a large amount.
 
-					1. If the context is <a>allowed to start</a>, send a
+					1. If |context| is <a>allowed to start</a>, send a
 						<a>control message</a> to start processing.
 
 					1. Return |context|.
@@ -1752,10 +1763,33 @@ Constructors</h4>
 			</div>
 		</div>
 
-		<div algorithm="sending a control message to start processing">
-			Sending a <a>control message</a> to start processing means
-			executing the following steps:
 
+
+	<div algorithm="sending a control message to start processing">
+		Sending a <a>control message</a> to start processing means
+		executing the following steps:
+	
+		<div class="addition proposed" id="c2400-4">
+		<span class="marker">Proposed Addition</span><br>
+			<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+				2400</a> Access to a different output device
+		<div class="amendment-buttons"></div>
+		<del cite=#2400>
+			1. Attempt to <a href="#acquiring">acquire system resources</a>.
+				In case of failure, abort the following steps.
+
+			3. Set the {{[[rendering thread state]]}} to <code>running</code> on the {{AudioContext}}.
+
+			1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+				queue a media element task</a> to execute the following steps:
+
+				1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/running}}".
+
+				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+					queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
+					</a> named `statechange` at the {{AudioContext}}.
+		</del>
+		<ins cite=#2400>
 			1. Attempt to <a href="#acquiring">acquire system resources</a> to use a
 				following audio output device based on {{AudioContext/[[sink ID]]}} for
 				rendering:
@@ -1777,7 +1811,8 @@ Constructors</h4>
 				1. <a spec="dom" lt="fire an event">Fire an event</a> to 
 					{{BaseAudioContext/onstatechange}} {{EventHandler}} at the
 					{{AudioContext}}.
-			
+		</ins>
+	</div>
 			Note: It is unfortunately not possible to programatically notify authors
 			that the creation of the {{AudioContext}} failed. User-Agents are
 			encouraged to log an informative message if they have access to a logging
@@ -1872,6 +1907,12 @@ Attributes</h4>
 	</ins>
 </div>
 
+<div class="addition proposed" id="c2400-5">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<ins cite=#2400>
 	: <dfn>sinkId</dfn>
 	::
 		Returns the value of {{AudioContext/[[sink ID]]}} internal slot.
@@ -1884,7 +1925,9 @@ Attributes</h4>
 		NOTE: This is not dispatched for the initial device selection in the
 		construction of {{AudioContext}}. The {{BaseAudioContext/onstatechange}}
 		is available to check the readiness of the initial output device.
-</dl>
+
+	</ins>
+	</dl>
 
 <h4 id="AudioContext-methods">
 Methods</h4>
@@ -2250,6 +2293,12 @@ Methods</h4>
 			<em>Return type:</em> {{Promise}}&lt;{{undefined}}&gt;
 		</div>
 
+<div class="addition proposed" id="c2400-6">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<ins cite=#2400>
 		: <dfn>setSinkId((DOMString or AudioSinkOptions) sinkId)</dfn>
 		::
 			Sets the identifier of an output device. When this method is invoked, the
@@ -2354,8 +2403,16 @@ Methods</h4>
 								{{BaseAudioContext/onstatechange}} {{EventHandler}} at the
 								associated {{AudioContext}}.
 			</div>
+
+		</ins>
 </dl>
 
+<div class="addition proposed" id="c2400-7">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<ins cite=#2400>
 <h4 id="validating-sink-identifier">
 Validating {{AudioContext/sinkId}}</h4>
 
@@ -2383,6 +2440,8 @@ This algorithm is used to validate the information provided to modify
 
 	1. Return <code>null</code>.
 </div>
+	</ins>
+</div>
 
 <h4 dictionary id="AudioContextOptions">
 {{AudioContextOptions}}</h4>
@@ -2390,13 +2449,29 @@ This algorithm is used to validate the information provided to modify
 The {{AudioContextOptions}} dictionary is used to
 specify user-specified options for an {{AudioContext}}.
 
-<pre class="idl">
-dictionary AudioContextOptions {
-	(AudioContextLatencyCategory or double) latencyHint = "interactive";
-	float sampleRate;
-	(DOMString or AudioSinkOptions) sinkId;
-};
+<div class="addition proposed" id="c2400-8">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<del cite=#2400>
+<pre class="idl" data-no-idl>
+	dictionary AudioContextOptions {
+		(AudioContextLatencyCategory or double) latencyHint = "interactive";
+		float sampleRate;
+	};
 </pre>
+	</del>
+	<ins cite=#2400>
+<pre class="idl">
+	dictionary AudioContextOptions {
+		(AudioContextLatencyCategory or double) latencyHint = "interactive";
+		float sampleRate;
+		(DOMString or AudioSinkOptions) sinkId;
+	};
+</pre>
+	</ins>
+</div>
 
 <h5 id="dictionary-audiocontextoptions-members">
 Dictionary {{AudioContextOptions}} Members</h5>
@@ -2428,12 +2503,27 @@ Dictionary {{AudioContextOptions}} Members</h5>
 		specified, the preferred sample rate of the output device for
 		this {{AudioContext}} is used.
 	
+	<div class="addition proposed" id="c2400-9">
+		<span class="marker">Proposed Addition</span><br>
+			<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+				2400</a> Access to a different output device
+		<div class="amendment-buttons"></div>
+		<ins cite=#2400>
 		: <dfn>sinkId</dfn>
 		::
 			The identifier or associated information of the audio output device.
 			See {{AudioContext/sinkId}} for more details.
+
+		</ins>
+	</div>
 </dl>
 
+<div class="addition proposed" id="c2400-10">
+	<span class="marker">Proposed Addition</span><br>
+		<a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+			2400</a> Access to a different output device
+	<div class="amendment-buttons"></div>
+	<ins cite=#2400>
 <h4 dictionary id="AudioSinkOptions">
 {{AudioSinkOptions}}</h4>
 
@@ -2454,6 +2544,8 @@ Dictionary {{AudioSinkOptions}} Members</h5>
 	::
 		A value of {{AudioSinkType}} to specify the type of the device.
 </dl>
+</ins>
+</div>
 
 <h4 dictionary id="AudioTimestamp">
 {{AudioTimestamp}}</h4>
@@ -13633,6 +13725,9 @@ Change Log</h2>
 		2475</a>: Add definition for various concepts related to system-level audio callbacks
     <div id="change-list-2475">
     </div>
+	* <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue 2400
+		</a>: Access to a different output device: AudioContext.setSinkId()
+		<div id="change-list-2400"></div>
 
 <h3 id="changes-2021-05-06">
   Since Proposed Recommendation of 6 May 2021

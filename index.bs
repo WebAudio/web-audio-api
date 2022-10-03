@@ -1651,17 +1651,20 @@ Constructors</h4>
 		
 						1. If {{AudioContextOptions/sinkId}} is specified, let |sinkId| be
 							the value of
-							<code>contextOptions.{{AudioContextOptions/sinkId}}</code>.
+							<code>contextOptions.{{AudioContextOptions/sinkId}}</code> and
+							run the following substeps:
+
+							1. If |sinkId| is equal to {{AudioContext/[[sink ID]]}}, abort
+								these substeps.
+
+							1. Let |validationResult| be the return value of
+								<a href="#validating-sink-identifier">sink identifier validation
+								</a> of |sinkId|.
+			
+							1. If |validationResult| is a type of {{DOMException}}, throw an
+								exception with |validationResult| and abort these steps.
 		
-						1. Let |validationResult| be the return value of
-							<a href="#validating-sink-identifier">sink identifier validation
-							</a> of |sinkId|.
-		
-						1. If |validationResult| is a type of {{DOMException}}, throw the
-							exception and abort these steps.
-		
-						1. If |validationResult| is true, set {{AudioContext/[[sink ID]]}}
-							to |sinkId|.
+							1. Set {{AudioContext/[[sink ID]]}} to |sinkId|.
 		
 						1. Set the internal latency of |context| according to
 							<code>contextOptions.{{AudioContextOptions/latencyHint}}</code>,
@@ -1749,9 +1752,14 @@ Constructors</h4>
 			Sending a <a>control message</a> to start processing means
 			executing the following steps:
 
-			1. Attempt to <a href="#acquiring">acquire system resources</a> to use an
-				audio output device for rendering. In case of failure, abort the
-				following steps.
+			1. Attempt to <a href="#acquiring">acquire system resources</a> to use a
+				following audio output device based on {{AudioContext/[[sink ID]]}} for
+				rendering:
+
+				* The default audio output device for the empty string.
+				* A audio output device identified by {{AudioContext/[[sink ID]]}}.
+			
+				In case of failure, abort the following steps.
 
 			1. Set the {{[[rendering thread state]]}} to <code>running</code> on the
 				{{AudioContext}}.
@@ -2246,12 +2254,15 @@ Methods</h4>
 			<div algorithm="AudioContext.setSinkId()">
 				1. Let |sinkId| be the method's first argument.
 
+				1. If |sinkId| is equal to {{AudioContext/[[sink ID]]}}, return a
+					promise, resolve it immediately and abort these steps.
+
 				1. Let |validationResult| be the return value of
 					<a href="#validating-sink-identifier">sink identifier validation</a>
 					of |sinkId|.
 				
-				1. If |validationResult| is not true, return a promise rejected with
-					|validationResult|. Abort these steps.
+				1. If |validationResult| is not <code>null</code>, return a promise
+					rejected with |validationResult|. Abort these steps.
 
 				1. Let |p| be a new promise.
 
@@ -2268,6 +2279,10 @@ Methods</h4>
 				1. Let |p| be the promise passed into this algorithm.
 
 				1. Let |sinkId| be the sink identifier passed into this algorithm.
+
+				1. If |sinkId| is equal to {{AudioContext/[[sink ID]]}},
+					<a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+					queue a media element task</a> to resolve |p|. Then abort these steps.
 
 				1. Let |wasRunning| be true.
 
@@ -2297,9 +2312,14 @@ Methods</h4>
 								associated {{AudioContext}}.
 
 				1. Attempt to <a href="#acquiring">acquire system resources</a> to use
-					an audio output device identified by {{AudioContext/[[sink ID]]}} for
-					rendering. In case of failure, reject |p| with
-					"{{InvalidAccessError}}" abort the following steps.
+					a following audio output device based on {{AudioContext/[[sink ID]]}}
+					for rendering:
+
+					* The default audio output device for the empty string.
+					* A audio output device identified by {{AudioContext/[[sink ID]]}}.
+				
+					In case of failure, reject |p| with "{{InvalidAccessError}}" abort
+					the following steps.
 				
 				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
 					Queue a media element task</a> to execute the following steps:
@@ -2348,12 +2368,11 @@ This algorithm is used to validate the information provided to modify
 		{{AudioSinkOptions/type}} property is not equal to
 		<code>"{{AudioSinkType/none}}"</code>, return a new {{DOMException}} whose
 		name is "{{NotSupportedError}}".
-	1. If |sinkIdArg| is a type of {{DOMString}} but it does not match any audio
-		output device identified by the result that would be provided by
-		{{MediaDevices/enumerateDevices()}}, return a new {{DOMException}} whose
-		name is "{{NotFoundError}}".
-	1. If |sinkIdArg| is equal to {{AudioContext/[[sink ID]]}}, return false.
-	1. Return true.
+	1. If |sinkIdArg| is a type of {{DOMString}} but it is not equal to the empty
+		string or it does not match any audio output device identified by the
+		result that would be provided by {{MediaDevices/enumerateDevices()}},
+		return a new {{DOMException}} whose name is "{{NotFoundError}}".
+	1. Return <code>null</code>.
 </div>
 
 <h4 dictionary id="AudioContextOptions">

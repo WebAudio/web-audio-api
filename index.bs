@@ -1730,10 +1730,11 @@ Constructors</h4>
 								</a> of |sinkId|.
 			
 							1. If |validationResult| is a type of {{DOMException}}, throw an
-								exception with |validationResult| and abort these steps.
+								exception with |validationResult| and abort these substeps.
 		
 							1. If |sinkId| is a type of {{DOMString}}, set
-								{{AudioContext/[[sink ID]]}} to |sinkId|. Abort these steps.
+								{{AudioContext/[[sink ID]]}} to |sinkId| and abort these
+								substeps.
 
 							1. If |sinkId| is a type of {{AudioSinkOptions}}, set
 								{{AudioContext/[[sink ID]]}} to a new instance of
@@ -2343,9 +2344,17 @@ Methods</h4>
 
 				1. Let |sinkId| be the sink identifier passed into this algorithm.
 
-				1. If |sinkId| is equal to {{AudioContext/[[sink ID]]}},
+				1. If both |sinkId| and {{AudioContext/[[sink ID]]}} are a type of
+					{{DOMString}}, and they are equal to each other,
 					<a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-					queue a media element task</a> to resolve |p|. Then abort these steps.
+					queue a media element task</a> to resolve |p| and abort these steps.
+
+				1. If |sinkId| is a type of {{AudioSinkOptions}} and
+					{{AudioContext/[[sink ID]]}} is a type of {{AudioSinkInfo}}, and
+					{{AudioSinkOption/type}} in |sinkId| and {{AudioSinkInfo/type}} in
+					{{AudioContext/[[sink ID]]}} are equal,
+					<a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+					queue a media element task</a> to resolve |p| and abort these steps.
 
 				1. Let |wasRunning| be true.
 
@@ -2386,7 +2395,19 @@ Methods</h4>
 				1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
 					Queue a media element task</a> to execute the following steps:
 
-					1. Set {{AudioContext/[[sink ID]]}} to |sinkId|.
+					1. If |sinkId| is a type of {{DOMString}}, set
+						{{AudioContext/[[sink ID]]}} to |sinkId|. Abort these steps.
+
+					1. If |sinkId| is a type of {{AudioSinkOptions}} and
+						{{AudioContext/[[sink ID]]}} is a type of {{DOMString}},
+						set {{AudioContext/[[sink ID]]}} to a new instance of
+						{{AudioSinkInfo}} created with the value of
+						{{AudioSinkOptions/type}} of |sinkId|.
+
+					1. If |sinkId| is a type of {{AudioSinkOptions}} and
+						{{AudioContext/[[sink ID]]}} is a type of {{AudioSinkInfo}},
+						set {{AudioSinkInfo/type}} of {{AudioContext/[[sink ID]]}} to
+						the {{AudioSinkOptions/type}} value of |sinkId|.
 
 					1. Resolve |p|.
 					

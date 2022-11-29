@@ -1577,13 +1577,13 @@ enum AudioSinkType {
             constructor (optional AudioContextOptions contextOptions = {});
             readonly attribute double baseLatency;
             readonly attribute double outputLatency;
-            [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
             [SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
             attribute EventHandler onsinkchange;
             AudioTimestamp getOutputTimestamp ();
             Promise<undefined> resume ();
             Promise<undefined> suspend ();
             Promise<undefined> close ();
+            [SecureContext] (DOMString or AudioSinkOptions) getSinkId ();
             [SecureContext] Promise<undefined> setSinkId ((DOMString or AudioSinkOptions) sinkId);
             MediaElementAudioSourceNode createMediaElementSource (HTMLMediaElement mediaElement);
             MediaStreamAudioSourceNode createMediaStreamSource (MediaStream mediaStream);
@@ -1616,7 +1616,7 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
     <ins cite=#2400>
     : <dfn>[[sink ID]]</dfn>
     ::
-        A {{DOMString}} or an {{AudioSinkInfo}} representing the identifier
+        A {{DOMString}} or an {{AudioSinkOptions}} representing the identifier
         or the information of the current audio output device respectively. The
         initial value is <code>""</code>, which means the default audio output
         device.
@@ -1727,8 +1727,8 @@ Constructors</h4>
                                 substeps.
 
                             1. If |sinkId| is a type of {{AudioSinkOptions}} and
-                                {{AudioContext/[[sink ID]]}} is a type of {{AudioSinkInfo}}, and
-                                {{AudioSinkOptions/type}} in |sinkId| and {{AudioSinkInfo/type}}
+                                {{AudioContext/[[sink ID]]}} is a type of {{AudioSinkOptions}}, and
+                                {{AudioSinkOptions/type}} in |sinkId| and {{AudioSinkOptions/type}}
                                 in {{AudioContext/[[sink ID]]}} are equal, abort these substeps.
 
                             1. Let |validationResult| be the return value of
@@ -1744,7 +1744,7 @@ Constructors</h4>
 
                             1. If |sinkId| is a type of {{AudioSinkOptions}}, set
                                 {{AudioContext/[[sink ID]]}} to a new instance of
-                                {{AudioSinkInfo}} created with the value of
+                                {{AudioSinkOptions}} created with the value of
                                 {{AudioSinkOptions/type}} of |sinkId|.
         
                         1. Set the internal latency of |context| according to
@@ -1927,12 +1927,6 @@ Attributes</h4>
             2400</a> Access to a different output device
     <div class="amendment-buttons"></div>
     <ins cite=#2400>
-    : <dfn>sinkId</dfn>
-    ::
-        Returns the value of {{AudioContext/[[sink ID]]}} internal slot. This
-        attribute is cached upon update, and it returns the same object after
-        caching.
-
     : <dfn>onsinkchange</dfn>
     ::
         An [=event handler=] for {{AudioContext/setSinkId()}}. The event type of
@@ -2316,6 +2310,12 @@ Methods</h4>
             2400</a> Access to a different output device
     <div class="amendment-buttons"></div>
     <ins cite=#2400>
+        : <dfn>getSinkId()</dfn>
+        ::
+            Returns the value of {{AudioContext/[[sink ID]]}} internal slot. This
+            attribute is cached upon update, and it returns the same object after
+            caching.
+
         : <dfn>setSinkId((DOMString or AudioSinkOptions) sinkId)</dfn>
         ::
             Sets the identifier of an output device. When this method is invoked, the
@@ -2356,8 +2356,8 @@ Methods</h4>
                     queue a media element task</a> to resolve |p| and abort these steps.
 
                 1. If |sinkId| is a type of {{AudioSinkOptions}} and
-                    {{AudioContext/[[sink ID]]}} is a type of {{AudioSinkInfo}}, and
-                    {{AudioSinkOptions/type}} in |sinkId| and {{AudioSinkInfo/type}} in
+                    {{AudioContext/[[sink ID]]}} is a type of {{AudioSinkOptions}}, and
+                    {{AudioSinkOptions/type}} in |sinkId| and {{AudioSinkOptions/type}} in
                     {{AudioContext/[[sink ID]]}} are equal,
                     <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
                     queue a media element task</a> to resolve |p| and abort these steps.
@@ -2407,12 +2407,12 @@ Methods</h4>
                     1. If |sinkId| is a type of {{AudioSinkOptions}} and
                         {{AudioContext/[[sink ID]]}} is a type of {{DOMString}},
                         set {{AudioContext/[[sink ID]]}} to a new instance of
-                        {{AudioSinkInfo}} created with the value of
+                        {{AudioSinkOptions}} created with the value of
                         {{AudioSinkOptions/type}} of |sinkId|.
 
                     1. If |sinkId| is a type of {{AudioSinkOptions}} and
-                        {{AudioContext/[[sink ID]]}} is a type of {{AudioSinkInfo}},
-                        set {{AudioSinkInfo/type}} of {{AudioContext/[[sink ID]]}} to
+                        {{AudioContext/[[sink ID]]}} is a type of {{AudioSinkOptions}},
+                        set {{AudioSinkOptions/type}} of {{AudioContext/[[sink ID]]}} to
                         the {{AudioSinkOptions/type}} value of |sinkId|.
 
                     1. Resolve |p|.
@@ -2448,10 +2448,10 @@ Methods</h4>
     <div class="amendment-buttons"></div>
     <ins cite=#2400>
 <h4 id="validating-sink-identifier">
-Validating {{AudioContext/sinkId}}</h4>
+Sink identifier validation</h4>
 
 This algorithm is used to validate the information provided to modify
-{{AudioContext/sinkId}}:
+{{AudioContext/getSinkId()}}:
 
 <div algorithm="validating sink ID">
     1. Let |document| be the current settings object's [=associated Document=].
@@ -2541,7 +2541,7 @@ Dictionary {{AudioContextOptions}} Members</h5>
         : <dfn>sinkId</dfn>
         ::
             The identifier or associated information of the audio output device.
-            See {{AudioContext/sinkId}} for more details.
+            See {{AudioContext/getSinkId()}} for more details.
 
         </ins>
     </div>
@@ -2557,7 +2557,8 @@ Dictionary {{AudioContextOptions}} Members</h5>
 {{AudioSinkOptions}}</h4>
 
 The {{AudioSinkOptions}} dictionary is used to specify options for 
-{{AudioContext/sinkId}}.
+{{AudioContext/getSinkId()}} and to get information on the current
+audio output device via {{AudioContext/getSinkId()}}.
 
 <pre class="idl">
 dictionary AudioSinkOptions {
@@ -2572,28 +2573,6 @@ Dictionary {{AudioSinkOptions}} Members</h5>
     : <dfn>type</dfn>
     ::
         A value of {{AudioSinkType}} to specify the type of the device.
-</dl>
-
-<h4 interface id="AudioSinkInfo">
-{{AudioSinkInfo}}</h4>
-
-The {{AudioSinkInfo}} interface is used to get information on the current
-audio output device via {{AudioContext/sinkId}}.
-
-<pre class="idl">
-[Exposed=Window]
-interface AudioSinkInfo {
-    readonly attribute AudioSinkType type;
-};
-</pre>
-
-<h5 id="audiosinkinfo-attributes">
-Attributes</h5>
-
-<dl dfn-type=attribute dfn-for="AudioSinkInfo">
-    : <dfn>type</dfn>
-    ::
-        A value of {{AudioSinkType}} that represents the type of the device.
 </dl>
 
 </ins>

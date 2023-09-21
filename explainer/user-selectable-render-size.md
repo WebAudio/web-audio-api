@@ -1,5 +1,6 @@
 # User-Selectable Render Size
-Raymond Toy (rtoy@chromium.org)
+- Hongchan Choi (hongchan@chromiun.org) - current contact
+- Raymond Toy (rtoy@chromium.org) - original explainer author
 
 ## Background
 Historically, WebAudio has always rendered the graph in chunks of 128 frames,

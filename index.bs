@@ -181,6 +181,7 @@ window.addEventListener('load', (event) => {
   ListAmendments("c2456", "Proposed Addition", "change-list-2456");
   ListAmendments("c2400", "Proposed Addition", "change-list-2400");
   ListAmendments("c2512", "Proposed Addition", "change-list-2512");
+  ListAmendments("c2450", "Proposed Addition", "change-list-2450");
 });
 </script>
 <style>
@@ -766,10 +767,10 @@ initially empty ordered list of promises.
 Each {{BaseAudioContext}} has a unique
 <a href="https://html.spec.whatwg.org/multipage/media.html#media-element-event-task-source">
 media element event task source</a>.
-Additionally, a {{BaseAudioContext}} has two private slots <dfn attribute
+Additionally, a {{BaseAudioContext}} has several private slots <dfn attribute
 for="BaseAudioContext">[[rendering thread state]]</dfn> and <dfn attribute
 for="BaseAudioContext">[[control thread state]]</dfn> that take values from
-{{AudioContextState}}, and that are both 
+{{AudioContextState}}, and that are both
 <div class="correction proposed" id="c2373-1">
   <span class="marker">Proposed Correction
     <a href="https://github.com/WebAudio/web-audio-api/issues/2373">Issue 2373</a>-1.
@@ -781,7 +782,22 @@ for="BaseAudioContext">[[control thread state]]</dfn> that take values from
   <del>initialy</del>
   <ins>initially</ins>
 </div>
-set to <code>"suspended"</code>.
+<div class="correction proposed" id="c2450-1">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-1.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <del>
+  set to <code>"suspended"</code>.
+  </del>
+  <ins>
+set to <code>"suspended"</code>, and a private slot <dfn attribute for="BaseAudioContext">
+[[render quantum size]]</dfn> that is an unsigned integer.
+  </ins>
+</div>
 
 <pre class="idl">
 enum AudioContextState {
@@ -818,56 +834,167 @@ enum AudioContextState {
 </table>
 </div>
 
-<xmp class="idl">
-callback DecodeErrorCallback = undefined (DOMException error);
-
-callback DecodeSuccessCallback = undefined (AudioBuffer decodedData);
-
-[Exposed=Window]
-interface BaseAudioContext : EventTarget {
-    readonly attribute AudioDestinationNode destination;
-    readonly attribute float sampleRate;
-    readonly attribute double currentTime;
-    readonly attribute AudioListener listener;
-    readonly attribute AudioContextState state;
-    [SameObject, SecureContext]
-    readonly attribute AudioWorklet audioWorklet;
-    attribute EventHandler onstatechange;
-
-    AnalyserNode createAnalyser ();
-    BiquadFilterNode createBiquadFilter ();
-    AudioBuffer createBuffer (unsigned long numberOfChannels,
-                              unsigned long length,
-                              float sampleRate);
-    AudioBufferSourceNode createBufferSource ();
-    ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
-    ChannelSplitterNode createChannelSplitter (
-        optional unsigned long numberOfOutputs = 6);
-    ConstantSourceNode createConstantSource ();
-    ConvolverNode createConvolver ();
-    DelayNode createDelay (optional double maxDelayTime = 1.0);
-    DynamicsCompressorNode createDynamicsCompressor ();
-    GainNode createGain ();
-    IIRFilterNode createIIRFilter (sequence<double> feedforward,
-                                   sequence<double> feedback);
-    OscillatorNode createOscillator ();
-    PannerNode createPanner ();
-    PeriodicWave createPeriodicWave (sequence<float> real,
-                                     sequence<float> imag,
-                                     optional PeriodicWaveConstraints constraints = {});
-    ScriptProcessorNode createScriptProcessor(
-        optional unsigned long bufferSize = 0,
-        optional unsigned long numberOfInputChannels = 2,
-        optional unsigned long numberOfOutputChannels = 2);
-    StereoPannerNode createStereoPanner ();
-    WaveShaperNode createWaveShaper ();
-
-    Promise<AudioBuffer> decodeAudioData (
-        ArrayBuffer audioData,
-        optional DecodeSuccessCallback? successCallback,
-        optional DecodeErrorCallback? errorCallback);
+<div class="correction proposed" id="c2450-2">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-2.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <ins>
+<pre class="idl">
+ enum AudioContextRenderSizeCategory {
+    "default",
+    "hardware"
 };
-</xmp>
+</pre>
+
+<div class="enum-description">
+<table class="simple" dfn-for="AudioContextRenderSizeCategory" dfn-type="enum-value">
+    <thead>
+        <tr>
+            <th scope="col" colspan="2">
+                Enumeration description
+            </th>
+        </tr>
+    <tbody>
+        <tr>
+            <td>
+                "<dfn>default</dfn>"
+            <td>
+                The AudioContext's <a>render quantum size</a> is the default value of 128
+                frames.
+        <tr>
+            <td>
+                "<dfn>hardware</dfn>"
+            </td>
+            <td>
+                The User-Agent picks a <a>render quantum size</a> that is best for the
+                current configuration.
+
+                Note: This exposes information about the host and can be used for fingerprinting.
+            </td>
+        </tr>
+</table>
+</div>
+</ins>
+</div>
+
+<div class="correction proposed" id="c2450-3">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-3.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <del cite="#c2450-3">
+    <xmp class="idl extract" data-no-idl>
+    callback DecodeErrorCallback = undefined (DOMException error);
+
+    callback DecodeSuccessCallback = undefined (AudioBuffer decodedData);
+
+    [Exposed=Window]
+    interface BaseAudioContext : EventTarget {
+        readonly attribute AudioDestinationNode destination;
+        readonly attribute float sampleRate;
+        readonly attribute double currentTime;
+        readonly attribute AudioListener listener;
+        readonly attribute AudioContextState state;
+        [SameObject, SecureContext]
+        readonly attribute AudioWorklet audioWorklet;
+        attribute EventHandler onstatechange;
+
+        AnalyserNode createAnalyser ();
+        BiquadFilterNode createBiquadFilter ();
+        AudioBuffer createBuffer (unsigned long numberOfChannels,
+                                  unsigned long length,
+                                  float sampleRate);
+        AudioBufferSourceNode createBufferSource ();
+        ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
+        ChannelSplitterNode createChannelSplitter (
+            optional unsigned long numberOfOutputs = 6);
+        ConstantSourceNode createConstantSource ();
+        ConvolverNode createConvolver ();
+        DelayNode createDelay (optional double maxDelayTime = 1.0);
+        DynamicsCompressorNode createDynamicsCompressor ();
+        GainNode createGain ();
+        IIRFilterNode createIIRFilter (sequence<double> feedforward,
+                                       sequence<double> feedback);
+        OscillatorNode createOscillator ();
+        PannerNode createPanner ();
+        PeriodicWave createPeriodicWave (sequence<float> real,
+                                         sequence<float> imag,
+                                         optional PeriodicWaveConstraints constraints = {});
+        ScriptProcessorNode createScriptProcessor(
+            optional unsigned long bufferSize = 0,
+            optional unsigned long numberOfInputChannels = 2,
+            optional unsigned long numberOfOutputChannels = 2);
+        StereoPannerNode createStereoPanner ();
+        WaveShaperNode createWaveShaper ();
+
+        Promise<AudioBuffer> decodeAudioData (
+            ArrayBuffer audioData,
+            optional DecodeSuccessCallback? successCallback,
+            optional DecodeErrorCallback? errorCallback);
+    };
+    </xmp>
+  </del>
+  <ins cite="#c2450-3">
+    <xmp class="idl">
+    callback DecodeErrorCallback = undefined (DOMException error);
+
+    callback DecodeSuccessCallback = undefined (AudioBuffer decodedData);
+
+    [Exposed=Window]
+    interface BaseAudioContext : EventTarget {
+        readonly attribute AudioDestinationNode destination;
+        readonly attribute float sampleRate;
+        readonly attribute double currentTime;
+        readonly attribute AudioListener listener;
+        readonly attribute AudioContextState state;
+        readonly attribute unsigned long renderQuantumSize;
+        [SameObject, SecureContext]
+        readonly attribute AudioWorklet audioWorklet;
+        attribute EventHandler onstatechange;
+
+        AnalyserNode createAnalyser ();
+        BiquadFilterNode createBiquadFilter ();
+        AudioBuffer createBuffer (unsigned long numberOfChannels,
+                                  unsigned long length,
+                                  float sampleRate);
+        AudioBufferSourceNode createBufferSource ();
+        ChannelMergerNode createChannelMerger (optional unsigned long numberOfInputs = 6);
+        ChannelSplitterNode createChannelSplitter (
+            optional unsigned long numberOfOutputs = 6);
+        ConstantSourceNode createConstantSource ();
+        ConvolverNode createConvolver ();
+        DelayNode createDelay (optional double maxDelayTime = 1.0);
+        DynamicsCompressorNode createDynamicsCompressor ();
+        GainNode createGain ();
+        IIRFilterNode createIIRFilter (sequence<double> feedforward,
+                                       sequence<double> feedback);
+        OscillatorNode createOscillator ();
+        PannerNode createPanner ();
+        PeriodicWave createPeriodicWave (sequence<float> real,
+                                         sequence<float> imag,
+                                         optional PeriodicWaveConstraints constraints = {});
+        ScriptProcessorNode createScriptProcessor(
+            optional unsigned long bufferSize = 0,
+            optional unsigned long numberOfInputChannels = 2,
+            optional unsigned long numberOfOutputChannels = 2);
+        StereoPannerNode createStereoPanner ();
+        WaveShaperNode createWaveShaper ();
+
+        Promise<AudioBuffer> decodeAudioData (
+            ArrayBuffer audioData,
+            optional DecodeSuccessCallback? successCallback,
+            optional DecodeErrorCallback? errorCallback);
+    };
+    </xmp>
+  </ins>
+</div>
 
 <h4 id='BaseAudioContext-attributes'>
 Attributes</h4>
@@ -958,6 +1085,22 @@ Attributes</h4>
     ::
         Describes the current state of the {{BaseAudioContext}}.  Getting this
         attribute returns the contents of the {{[[control thread state]]}} slot.
+
+
+<div class="correction proposed" id="c2450-4">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-6.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <ins cite="c2450-4">
+    : <dfn>renderQuantumSize</dfn>
+    ::
+        Getting this attribute returns the value of {{BaseAudioContext/[[render
+        quantum size]]}} slot.
+  </ins>
 </dl>
 
 <h4 id="BaseAudioContent-methods">
@@ -1652,12 +1795,17 @@ Constructors</h4>
                 <a href="https://github.com/WebAudio/web-audio-api/issues/2456">
                     Issue 2456</a> Add a MessagePort to the AudioWorkletGlobalScope <br>
                 <a href="https://github.com/WebAudio/web-audio-api/issues/2400" id="c2400-4">
-                    Issue 2400</a> Access to a different output device
+                    Issue 2400</a> Access to a different output device <br>
+                <a href="https://github.com/WebAudio/web-audio-api/issues/2450" id="c2450-5">
+                    Issue 2450</a> Allow specifying a different render-quantum-size for an AudioContext or OfflineAudioContext
                 <div class="amendment-buttons"></div>
                 <del cite=#2456>
                     1. Set a {{[[control thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
 
                     1. Set a {{[[rendering thread state]]}} to <code>suspended</code> on the {{AudioContext}}.
+
+                    1. Set a private slot called {{[[render quantum size]]}} to
+                        <code>128</code> on the {{AudioContext}}.
 
                     1. Let <code>[[pending resume promises]]</code> be a
                         slot on this {{AudioContext}}, that is an initially empty ordered list of
@@ -1668,6 +1816,16 @@ Constructors</h4>
                     1. Set the internal latency of this {{AudioContext}}
                         according to <code>contextOptions.{{AudioContextOptions/latencyHint}}</code>, as described
                         in {{AudioContextOptions/latencyHint}}.
+
+                    1. If <code>contextOptions.{{AudioContextOptions/renderSizeHint}}</code>
+                         is specified, execute the following steps:
+
+                         1. If equal to <code>"hardware"</code>, the User-Agent can set
+                                {{[[render quantum size]]}} to a value that's best for the current
+                                setup.
+
+                         1. If an integer has been passed, the User-Agent can set {{[[render
+                                quantum size]]}} to this integer.
 
                     1. If <code>contextOptions.{{AudioContextOptions/sampleRate}}</code> is specified,
                         set the {{BaseAudioContext/sampleRate}}
@@ -1882,11 +2040,29 @@ Attributes</h4>
         specifically does not include any latency incurred the audio
         graph itself.
 
-        For example, if the audio context is running at 44.1 kHz and
-        the {{AudioDestinationNode}} implements double buffering
-        internally and can process and output audio each <a>render
-        quantum</a>, then the processing latency is \((2\cdot128)/44100
-        = 5.805 \mathrm{ ms}\), approximately.
+<div class="correction proposed" id="c2450-6">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-1.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <del>
+    For example, if the audio context is running at 44.1 kHz and
+    the {{AudioDestinationNode}} implements double buffering
+    internally and can process and output audio each <a>render
+    quantum</a>, then the processing latency is \((2\cdot128)/44100
+    = 5.805 \mathrm{ ms}\), approximately.
+  </del>
+  <ins>
+    For example, if the audio context is running at 44.1 kHz with default render
+    quantum size, and the {{AudioDestinationNode}} implements double buffering
+    internally and can process and output audio each <a>render quantum</a>, then
+    the processing latency is \((2\cdot128)/44100 = 5.805 \mathrm{ ms}\),
+    approximately.
+  </ins>
+</div>
 
     : <dfn>outputLatency</dfn>
     ::
@@ -2482,9 +2658,11 @@ specify user-specified options for an {{AudioContext}}.
 <div class="addition proposed" id="c2400-9">
     <span class="marker">Proposed Addition</span><br>
         <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
-            2400</a> Access to a different output device
+            2400</a> Access to a different output device<br>
+        <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
+            2450</a> Allow specifying a different render quantum size
     <div class="amendment-buttons"></div>
-    <del cite=#2400>
+    <del cite="#c2400 #c2450">
 <pre class="idl extract" data-no-idl>
     dictionary AudioContextOptions {
         (AudioContextLatencyCategory or double) latencyHint = "interactive";
@@ -2498,9 +2676,10 @@ specify user-specified options for an {{AudioContext}}.
         (AudioContextLatencyCategory or double) latencyHint = "interactive";
         float sampleRate;
         (DOMString or AudioSinkOptions) sinkId;
+        (AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
     };
 </pre>
-    </ins>
+</ins>
 </div>
 
 <h5 id="dictionary-audiocontextoptions-members">
@@ -2532,7 +2711,7 @@ Dictionary {{AudioContextOptions}} Members</h5>
         If {{AudioContextOptions/sampleRate}} is not
         specified, the preferred sample rate of the output device for
         this {{AudioContext}} is used.
-    
+
     <div class="addition proposed" id="c2400-10">
         <span class="marker">Proposed Addition</span><br>
             <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
@@ -2546,6 +2725,27 @@ Dictionary {{AudioContextOptions}} Members</h5>
 
         </ins>
     </div>
+
+
+<div class="correction proposed" id="c2450-7">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-1.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <ins>
+    : <dfn>renderSizeHint</dfn>
+    ::
+        This allows users to ask for a particular <a>render quantum size</a> when an
+        integer is passed, to use the default of 128 frames if nothing or
+        <code>"default"</code> is passed, or to ask the User-Agent to pick a good
+        <a>render quantum size</a> if <code>"hardware"</code> is specified.
+
+        It is a hint that might not be honored.
+  </ins>
+</div>
 </dl>
 
 <div class="addition proposed" id="c2400-11">
@@ -2557,7 +2757,7 @@ Dictionary {{AudioContextOptions}} Members</h5>
 <h4 dictionary id="AudioSinkOptions">
 {{AudioSinkOptions}}</h4>
 
-The {{AudioSinkOptions}} dictionary is used to specify options for 
+The {{AudioSinkOptions}} dictionary is used to specify options for
 {{AudioContext/sinkId}}.
 
 <pre class="idl">
@@ -2807,14 +3007,15 @@ Constructors</h4>
         <div algorithm="OfflineAudioContext.OfflineAudioContext(contextOptions)">
 
             <div class="addition proposed" id="c2456-3">
-                <span class="marker">Proposed Addition
-                    <a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
-                        2456</a>.
+                <span class="marker">Proposed Addition</span>
+                <a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+                    2456</a>. Add a MessagePort to the AudioWorkletGlobalScope<br>
+                <a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
+                    2450</a>. Allow specifying a different render quantum size
                 </span>
-                Add a MessagePort to the AudioWorkletGlobalScope
                 <div class="amendment-buttons">
                 </div>
-                <del cite=#2456>
+                <del cite="#2456 #2450">
                     <p>
                         If the [=current settings object=]'s [=relevant global object=]'s
                         [=associated Document=] is NOT [=fully active=],
@@ -2833,7 +3034,7 @@ Constructors</h4>
                         {{AudioNode/channelCount}} set to
                         <code>contextOptions.numberOfChannels</code>.
                 </del>
-                <ins cite=#2456>
+                <ins cite="#c2456 c#2450">
                     <p>
                         If the [=current settings object=]'s [=relevant global object=]'s
                         [=associated Document=] is NOT [=fully active=],
@@ -2847,6 +3048,17 @@ Constructors</h4>
 
                     1. Set the {{[[rendering thread state]]}} for
                         |c| to <code>"suspended"</code>.
+
+                    1. Determine the {{[[render quantum size]]}} for this {{OfflineAudioContext}},
+                            based on the value of the {{OfflineAudioContextOptions/renderSizeHint}}:
+
+                        1. If it has the default value of <code>"default"</code> or
+                               <code>"hardware</code>", set the {{[[render quantum size]]}} private
+                               slot to 128.
+
+                        1. Else, if an integer has been passed, the User-Agent can decide to
+                               honour this value by setting it to the {{[[render quantum size]]}}
+                               private slot.
 
                     1. Construct an {{AudioDestinationNode}} with its
                         {{AudioNode/channelCount}} set to
@@ -3118,12 +3330,34 @@ Methods</h4>
 This specifies the options to use in constructing an
 {{OfflineAudioContext}}.
 
-<pre class="idl">
+<div class="correction proposed" id="c2450-8">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-8.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons">
+    Buttons here
+  </div>
+  <del>
+<pre class="idl extract" data-no-idl>
 dictionary OfflineAudioContextOptions {
     unsigned long numberOfChannels = 1;
     required unsigned long length;
     required float sampleRate;
 };
+</pre>
+  </del>
+  <ins>
+<pre class="idl">
+dictionary OfflineAudioContextOptions {
+    unsigned long numberOfChannels = 1;
+    required unsigned long length;
+    required float sampleRate;
+    (AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
+};
+</pre>
+  </ins>
+</div>
 </pre>
 
 <h5 id="dictionary-offlineaudiocontextoptions-members">
@@ -3141,6 +3375,11 @@ Dictionary {{OfflineAudioContextOptions}} Members</h5>
     : <dfn>sampleRate</dfn>
     ::
         The sample rate for this {{OfflineAudioContext}}.
+
+    : <dfn>renderSizeHint</dfn>
+    ::
+        A hint for the <a>render quantum size</a> of this
+        {{OfflineAudioContext}}.
 </dl>
 
 <h4 interface lt="OfflineAudioCompletionEvent" id="OfflineAudioCompletionEvent">
@@ -10663,10 +10902,18 @@ Attributes</h4>
         better to use no oversampling in order to get a very precise
         shaping curve.
 
+
         <div algorithm="oversample">
             A value of "{{2x}}" or "{{4x}}" means that the following steps MUST be
             performed:
 
+<div class="correction proposed" id="c2450-9">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-9.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons"></div>
+  <del>
             1. Up-sample the input samples to 2x or 4x the sample-rate of
                 the {{AudioContext}}. Thus for each <a>render
                 quantum</a>, generate 256 (for 2x) or 512 (for 4x) samples.
@@ -10676,6 +10923,20 @@ Attributes</h4>
             3. Down-sample the result back to the sample-rate of the
                 {{AudioContext}}. Thus taking the 256 (or 512)
                 processed samples, generating 128 as the final result.
+  </del>
+  <ins>
+            1. Up-sample the input samples to 2x or 4x the sample-rate of
+                the {{AudioContext}}. Thus for each <a>render
+                quantum</a>, generate twice (for 2x) or four times (for 4x) samples.
+
+            2. Apply the shaping curve.
+
+            3. Down-sample the result back to the sample-rate of the
+                {{AudioContext}}. Thus taking the previously processed samples
+                processed samples, generating a single render quantum worth of
+                samples as the final result.
+  </ins>
+</div>
         </div>
 
         The exact up-sampling and down-sampling filters are not
@@ -10897,10 +11158,13 @@ scope code running within concurrent threads.
     <a href="https://github.com/WebAudio/web-audio-api/issues/2456">Issue
         2456</a>.
 </span>
+<span class="marker">Proposed addition
+<a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-10.
+</span>
 Add a MessagePort to the AudioWorkletGlobalScope
 <div class="amendment-buttons">
 </div>
-<del cite=#2456>
+<del cite="#2456 #2450">
 <xmp class="idl extract" data-no-idl>
 callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object options);
 
@@ -10914,7 +11178,7 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
 };
 </xmp>
 </del>
-<ins cite=#2456>
+<ins cite="#2456 #2450">
 <pre class="idl">
 callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object options);
 
@@ -10925,6 +11189,7 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
     readonly attribute unsigned long long currentFrame;
     readonly attribute double currentTime;
     readonly attribute float sampleRate;
+    readonly attribute unsigned long renderQuantumSize;
     readonly attribute MessagePort port;
 };
 </pre>
@@ -10952,6 +11217,11 @@ Attributes</h5>
     : <dfn>sampleRate</dfn>
     ::
         The sample rate of the associated {{BaseAudioContext}}.
+
+    : <dfn>renderQuantumSize</dfn>
+    ::
+        The value of the private slot [[render quantum size]] of the associated
+        {{BaseAudioContext}}.
 
     <div class="addition proposed" id="c2456-6">
     <span class="marker">Proposed Addition
@@ -11866,7 +12136,6 @@ class Bitcrusher extends AudioWorkletProcessor {
         const frequencyReduction = parameters.frequencyReduction;
 
         if (bitDepth.length > 1) {
-            // The bitDepth parameter array has 128 sample values.
             for (let channel = 0; channel < output.length; ++channel) {
                 for (let i = 0; i < output[channel].length; ++i) {
                     let step = Math.pow(0.5, bitDepth[i]);
@@ -12182,9 +12451,25 @@ asynchronous sections can't be reordered.
 <h3 id="rendering-loop">
 Rendering an Audio Graph</h3>
 
+<div class="correction proposed" id="c2450-10">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-10.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons"></div>
+  <del>
 Rendering an audio graph is done in blocks of 128 samples-frames. A
-block of 128 samples-frames is called a <dfn>render quantum</dfn>, and
-the <dfn>render quantum size</dfn> is 128.
+block of 128 samples-frames is called a <a>render quantum</a>, and
+the <a>render quantum size</a> is 128.
+  </del>
+  <ins>
+Audio graph rendering is done in blocks of sample-frames, with the size of each
+block remaining constant for the lifetime of a {{BaseAudioContext}}. The number of
+sample-frames in a block is called <dfn>render quantum size</dfn>, and the block
+itself is called a <dfn>render quantum</dfn>. Its default value is 128, and it can
+be configured by setting {{AudioContextOptions/renderSizeHint}}.
+  </ins>
+</div>
 
 Operations that happen <dfn>atomically</dfn> on a
 given thread can only be executed when no other [=Atomically|atomic=]
@@ -12533,8 +12818,21 @@ means copying the input data of this {{AudioNode}} for future
 usage.
 
 <dfn>Computing a block of audio</dfn> means
+<div class="addition proposed" id="c2450-11">
+  <span class="marker">Proposed addition
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-11.
+  </span>
+  Allow specifying a different render quantum size
+  <div class="amendment-buttons"></div>
+  <del>
 running the algorithm for this {{AudioNode}} to produce 128
 sample-frames.
+  </del>
+  <ins>
+running the algorithm for this {{AudioNode}} to produce
+{{BaseAudioContext/[[render quantum size]]}} sample-frames.
+  </ins>
+</div>
 
 <dfn>Processing an input buffer</dfn> means
 running the algorithm for an {{AudioNode}}, using an <a>input
@@ -13759,6 +14057,9 @@ Change Log</h2>
 <h3 id="recommendation-changes-1">
   Changes since Recommendation of 17 Jun 2021
 </h3>
+  * <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>: Allow specifying a different render-quantum-size for an AudioContext or OfflineAudioContext
+    <div id="change-list-2450">
+    </div>
   * <a href="https://github.com/WebAudio/web-audio-api/issues/2512">Issue 2512</a>: Specify AnalyserNode treatment of non-fininte values.
     <div id="change-list-2512">
     </div>

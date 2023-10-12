@@ -2852,6 +2852,20 @@ Dictionary {{AudioTimestamp}} Members</h5>
         {{AudioContext}}. In order to calculate them, the renderer collects a
         <a>load value</a> per <a>system-level audio callback</a>.
 
+        This interface has two internal slots:
+
+        <dl dfn-type=attribute dft-for="AudioRenderCapacity">
+            : <dfn>[[is running]]</dfn>
+            :: 
+                A boolean flag indicating whether the metric reporting loop is 
+                running. The initial value is <code>false</code>.
+
+            : <dfn>[[update interval]]</dfn>
+            ::
+                A double number that represents the interval of the metric
+                reporting loop in seconds. The initial value is 1.
+        </dl>
+
         <h5 id="AudioRenderCapacity-attributes">
         Attributes</h5>
 
@@ -2874,12 +2888,43 @@ Dictionary {{AudioTimestamp}} Members</h5>
                 {{AudioRenderCapacity/update}} at {{AudioRenderCapacity}}, using
                 {{AudioRenderCapacityEvent}}, with the given update interval in
                 {{AudioRenderCapacityOptions}}.
+
+                <div algorithm="audiorendercapacity-start">
+                    When invoked, perform the following steps:
+
+                    1. Set {{[[update interval]]}} to the value of
+                        <code>options.{{AudioRenderCapacityOptions/updateInterval}}
+                        </code>.
+                    1. Set {{[[is running]]}} to <code>true</code>.
+                    1. Queue a task to run the metric reporting loop.
+                </div>
             
             : <dfn>stop()</dfn>
             ::
                 Stops metric collection and analysis. It also stops dispatching
                 {{AudioRenderCapacity/update}} events.
+
+                <div algorithm="audiorendercapacity-stop">
+                    When invoked, perform the following steps:
+
+                    1. Set {{[[is running]]}} to <code>false<code>.
+                </div>
         </dl>
+
+        <h6 id="AudioRenderCapacity-metric-reporting-loop">
+        Metric Reporting Loop</h6>
+
+        This algorithm can be invoked by {{AudioRenderCapacity/start}} method
+        to report the performance metric repreatedly.
+
+        1. If {{[[is running]]}} is <code>false</code>, abort this algorithm.
+        2. Create |E|, which is a new instance of {{AudioRenderCapacityEvent}},
+            with computed performance metrics.
+        3. Dispatch |E| to the associated {{AudioRenderCapacity/onupdate}} event
+            handler.
+        4. Queue a task to run the metric reporting loop with the delay of
+            {{[[update interval]]}}.
+
 
         <h4 dictionary lt="audiorenderCapacityoptions" id="AudioRenderCapacityOptions">
         {{AudioRenderCapacityOptions}}</h4>

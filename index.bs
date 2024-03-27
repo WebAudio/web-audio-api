@@ -1694,8 +1694,10 @@ enum AudioSinkType {
         </a> Add AudioRenderCapacity Interface <br>
         <a href="https://github.com/WebAudio/web-audio-api/issues/2400" id="c2400-2">
             Issue 2400</a> Access to a different output device
+        <a href="https://github.com/WebAudio/web-audio-api/issues/2567" id="c2567-2">
+            Issue 2567</a> Device-related error reporting via AudioContext
     <div class="amendment-buttons"></div>
-    <del cite="#c2444 #c2400">
+    <del cite="#c2444 #c2400 #c2567">
         <xmp class="idl extract" data-no-idl>
         [Exposed=Window]
         interface AudioContext : BaseAudioContext {
@@ -1714,7 +1716,7 @@ enum AudioSinkType {
         };
         </xmp>
     </del>
-    <ins cite="#c2444 #2400">
+    <ins cite="#c2444 #2400 #2567">
         <xmp class="idl">
         [Exposed=Window]
         interface AudioContext : BaseAudioContext {
@@ -1724,6 +1726,7 @@ enum AudioSinkType {
             [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
             [SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
             attribute EventHandler onsinkchange;
+            attribute EventHandler onerror;
             AudioTimestamp getOutputTimestamp ();
             Promise<undefined> resume ();
             Promise<undefined> suspend ();
@@ -1947,8 +1950,10 @@ Constructors</h4>
         <span class="marker">Proposed Addition</span><br>
             <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
                 2400</a> Access to a different output device
+            <a href="https://github.com/WebAudio/web-audio-api/issues/2567" id="c2567-1">
+                Issue 2567</a> Device-related error reporting via AudioContext
         <div class="amendment-buttons"></div>
-        <del cite=#2400>
+        <del cite=#2400 #c2567>
             1. Attempt to <a href="#acquiring">acquire system resources</a>.
                 In case of failure, abort the following steps.
 
@@ -1963,7 +1968,7 @@ Constructors</h4>
                     queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
                     </a> named {{BaseAudioContext/statechange}} at the {{AudioContext}}.
         </del>
-        <ins cite=#2400>
+        <ins cite=#2400 #2567>
             1. Attempt to <a href="#acquiring">acquire system resources</a> to use a
                 following audio output device based on {{AudioContext/[[sink ID]]}} for
                 rendering:
@@ -1971,7 +1976,12 @@ Constructors</h4>
                 * The default audio output device for the empty string.
                 * A audio output device identified by {{AudioContext/[[sink ID]]}}.
             
-                In case of failure, abort the following steps.
+                Upon failure of resource acquisition,
+                    <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+                    queue a media element task</a> to
+                    <a spec="dom" lt="fire an event">fire an event</a> named
+                    {{AudioContext/error}} at the {{AudioContext}}, and abort
+                    the following steps.
 
             1. Set the {{[[rendering thread state]]}} to <code>running</code> on the
                 {{AudioContext}}.
@@ -1986,10 +1996,6 @@ Constructors</h4>
                     {{BaseAudioContext/statechange}} at the {{AudioContext}}.
         </ins>
     </div>
-            Note: It is unfortunately not possible to programatically notify authors
-            that the creation of the {{AudioContext}} failed. User-Agents are
-            encouraged to log an informative message if they have access to a logging
-            mechanism, such as a developer tools console.
         </div>
 
         <div class="addition proposed" id="c2456-2">
@@ -2042,7 +2048,7 @@ Attributes</h4>
 
 <div class="correction proposed" id="c2450-6">
   <span class="marker">Proposed addition
-    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>-1.
+    <a href="https://github.com/WebAudio/web-audio-api/issues/2450">Issue 2450</a>.
   </span>
   Allow specifying a different render quantum size
   <div class="amendment-buttons">
@@ -2080,16 +2086,15 @@ Attributes</h4>
         is running or the associated audio output device changes. It is
         useful to query this value frequently when accurate
         synchronization is required.
+
 <div class="correction proposed" id="c2444-2">
     <span class="marker">Proposed Addition
         <a href="https://github.com/WebAudio/web-audio-api/issues/2444">Issue
             2444</a>.
     </span>
     Add AudioRenderCapacity Interface
-    <div class="amendment-buttons">
-        Buttons here
-    </div>
-    <ins cite=#c2444>       
+    <div class="amendment-buttons"></div>
+    <ins cite=#c2444>
     : <dfn>renderCapacity</dfn>
     ::
         Returns an {{AudioRenderCapacity}} instance associated with
@@ -2099,9 +2104,11 @@ Attributes</h4>
 </div>
 
 <div class="addition proposed" id="c2400-6">
-    <span class="marker">Proposed Addition</span><br>
+    <span class="marker">Proposed Addition
         <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
-            2400</a> Access to a different output device
+            2400</a>.
+    </span>
+    Access to a different output device
     <div class="amendment-buttons"></div>
     <ins cite=#2400>
     : <dfn>sinkId</dfn>
@@ -2121,7 +2128,32 @@ Attributes</h4>
         is available to check the readiness of the initial output device.
 
     </ins>
-    </dl>
+</div>
+
+<div class="addition proposed" id="c2567-3">
+    <span class="marker">Proposed Addition
+        <a href="https://github.com/WebAudio/web-audio-api/issues/2567">
+            Issue 2567</a>.
+    </span>
+     Device-related error reporting via AudioContext
+    <div class="amendment-buttons"></div>
+    <ins cite=#2567>
+    : <dfn>onerror</dfn>
+    ::
+        An [=event handler=] for any <dfn event>error</dfn> {{Event}} dispatched from an
+        {{AudioContext}}. The user agent can dispatch this event in the
+        following cases:
+
+            * The process of initializing and activiating the selected audio
+                devie encounters an issue.
+            * The audio output from a {{AudioContextState/running}}
+                {{AudioContext}} unexpectedly interrupted or the device is
+                disconnected.
+
+    </ins>
+</div>
+
+</dl>
 
 <h4 id="AudioContext-methods">
 Methods</h4>

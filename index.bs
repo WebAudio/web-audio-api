@@ -2145,7 +2145,7 @@ Attributes</h4>
         following cases:
 
             * The process of initializing and activiating the selected audio
-                devie encounters an issue.
+                device encounters an issue.
             * The audio output from a {{AudioContextState/running}}
                 {{AudioContext}} unexpectedly interrupted or the device is
                 disconnected.
@@ -12870,6 +12870,34 @@ running the algorithm for this {{AudioNode}} to produce
 running the algorithm for an {{AudioNode}}, using an <a>input
 buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 {{AudioNode}} as the input for this algorithm.
+
+
+<h3 id="error-handling-on-a-running-audio-context">
+    Error Handling for System Audio Resources on a running AudioContext</h3>
+
+In the event of an audio system resource error, the <a>rendering thread</a>
+performs the following steps upon receiving the error:
+
+1. Set {{[[rendering thread state]]}} of the {{AudioContext}} to
+    "{{AudioContextState/suspended}}".
+
+1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+    Queue a media element task</a> to execute the following steps:
+
+    1. <a spec="dom" lt="fire an event">fire an event</a> named
+        {{AudioContext/error}} at the associated {{AudioContext}}.
+    
+    1. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is
+        not already "{{AudioContextState/suspended}}":
+
+        1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}}
+            to "{{AudioContextState/suspended}}".
+
+        1. <a spec="dom" lt="fire an event">Fire an event</a> named
+            {{BaseAudioContext/statechange}} at the associated {{AudioContext}}.
+
+Note: An example of such a case would be when an external or wireless audio
+    device becomes disconnected during the active rendering of the AudioContext.
 
 <h3 id="unloading-a-document">Unloading a document</h3>
     Additional <a href=

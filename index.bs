@@ -52,24 +52,16 @@ url: https://www.w3.org/TR/mediacapture-streams/#dom-mediadevices-getusermedia; 
 spec:webidl; type:interface; text:object
 spec:webidl; type:interface; text:Promise
 </pre>
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/jax.js?rev=2.7.5" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/fonts/STIX/fontdata.js?rev=2.7.5" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js?rev=2.7.5" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/element/mml/optable/BasicLatin.js?rev=2.7.5" as="script">
-<link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/autoload/mtable.js?rev=2.7.5" as="script">
 <script>
-'use strict';
 // Handles the loading task for MathJax library.
 window.addEventListener('DOMContentLoaded', () => {
+    'use strict';
     new Promise((resolve, reject) => {
         let mathjaxScriptEl = document.createElement('script');
         const url = 'https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
-        mathjaxScriptEl.id = 'mathjax';
-        mathjaxScriptEl.src = url;
-        // Safari doesn't (yet) support load event on the script element so we 
-        // have to poll.
-        var id = setInterval(function () {
+        // TODO: Remove this when Safari supports the onload event; it doesn't
+        // support onload event on the script element so we have to poll.
+        let id = setInterval(() => {
             if (window.MathJax) {
                 clearInterval(id);
                 resolve();
@@ -78,18 +70,22 @@ window.addEventListener('DOMContentLoaded', () => {
         mathjaxScriptEl.onload = () => {
             clearInterval(id);
             resolve();
+            console.log('MathJax loader script: loaded successfully.');
         };
         mathjaxScriptEl.onerror = (error) => {
-            const error = (error instanceof Event) ? new Error(error.message)
-                                                   : error;
-            reject(error);
+            const errorEvent = (error instanceof Event)
+                ? new Error(error.message) : error;
+            reject(errorEvent);
         };
         // Time out after 20 seconds and reject.
         setTimeout(() => {
             mathjaxScriptEl.onerror(
                 new Error('MathJax loader script: loading timed out.'));
         }, 20000);
+        mathjaxScriptEl.id = 'mathjax';
+        mathjaxScriptEl.src = url;
         document.body.appendChild(mathjaxScriptEl);
+        console.log('MathJax loader script: started loading... (' + url + ')');
     }).then(() => {
         MathJax.Hub.Config({
             tex2jax: {
@@ -314,6 +310,26 @@ div.enum-description > table > thead > tr > th {
 }
 code.nobreak {
   white-space: nowrap;
+}
+.amendment.proposed, 
+.correction.proposed,
+.addition.proposed {
+    border-width: 0.2em;
+    border-radius: 0.4em;
+}
+.amendment.proposed ins,
+.correction.proposed ins,
+.addition.proposed ins,
+ins[cite].proposed {
+    text-decoration: none;
+}
+.amendment.proposed del,
+.correction.proposed del,
+.addition.proposed del,
+del[cite].proposed {
+    color: #cc0000;
+    text-decoration-style: solid !important;
+    text-decoration-color: #330099;
 }
 </style>
 

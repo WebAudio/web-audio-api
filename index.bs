@@ -59,40 +59,44 @@ spec:webidl; type:interface; text:Promise
 <link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/element/mml/optable/BasicLatin.js?rev=2.7.5" as="script">
 <link rel="preload" href="https://www.w3.org/scripts/MathJax/2.7.5/jax/output/HTML-CSS/autoload/mtable.js?rev=2.7.5" as="script">
 <script>
-window.addEventListener("DOMContentLoaded", function () {
-    "use strict";
-    new Promise(function (resolve, reject) {
-        var mathjax = document.createElement('script');
-        var url = "https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
-        // Safari doesn't (yet) support load event on scripts so we have to poll. So 😢.
+'use strict';
+// Handles the loading task for MathJax library.
+window.addEventListener('DOMContentLoaded', () => {
+    new Promise((resolve, reject) => {
+        let mathjaxScriptEl = document.createElement('script');
+        const url = 'https://www.w3.org/scripts/MathJax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+        mathjaxScriptEl.id = 'mathjax';
+        mathjaxScriptEl.src = url;
+        // Safari doesn't (yet) support load event on the script element so we 
+        // have to poll.
         var id = setInterval(function () {
             if (window.MathJax) {
                 clearInterval(id);
                 resolve();
             }
         }, 100);
-        mathjax.onload = function () {
+        mathjaxScriptEl.onload = () => {
             clearInterval(id);
             resolve();
         };
-        mathjax.onerror = function (err) {
-            var error = (err instanceof Event) ? new Error(err.message) : err;
+        mathjaxScriptEl.onerror = (error) => {
+            const error = (error instanceof Event) ? new Error(error.message)
+                                                   : error;
             reject(error);
         };
-        // Time out waiting after 20 seconds and reject.
-        setTimeout(function(){
-            mathjax.onerror(new Error("Loading timed out."));
+        // Time out after 20 seconds and reject.
+        setTimeout(() => {
+            mathjaxScriptEl.onerror(
+                new Error('MathJax loader script: loading timed out.'));
         }, 20000);
-        mathjax.id = "mathjax";
-        mathjax.src = url;
-        document.body.appendChild(mathjax);
-    }).then(function () {
+        document.body.appendChild(mathjaxScriptEl);
+    }).then(() => {
         MathJax.Hub.Config({
             tex2jax: {
                 skipTags: ["script", "noscript", "style", "textarea", "code"]
             }
         });
-    }).catch(function (error) {
+    }).catch((error) => {
         console.error(error);
     });
 });

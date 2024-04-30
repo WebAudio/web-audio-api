@@ -12905,30 +12905,47 @@ buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 
 
 <h3 id="error-handling-on-a-running-audio-context">
-    Error Handling for System Audio Resources on a running AudioContext</h3>
+    Handling an error from System Audio Resources on the {{AudioContext}}</h3>
 
-In the event of an audio system resource error, the <a>rendering thread</a>
-performs the following steps upon receiving the error:
+The <a>rendering thread</a> performs the following steps in the event of an
+audio system resource error.
 
-1. Set {{[[rendering thread state]]}} of the {{AudioContext}} to
-    "{{AudioContextState/suspended}}".
+1. If the {{[[rendering thread state]]}} of the {{AudioContext}} is
+    <code>running</code>.
 
-1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-    Queue a media element task</a> to execute the following steps:
+    1. Attempt to <a>release system resources</a>.
 
-    1. <a spec="dom" lt="fire an event">fire an event</a> named
-        {{AudioContext/error}} at the associated {{AudioContext}}.
-    
-    1. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is
-        not already "{{AudioContextState/suspended}}":
+    1. Set {{[[rendering thread state]]}} of the {{AudioContext}} to
+        <code>suspended</code>.
 
-        1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}}
-            to "{{AudioContextState/suspended}}".
+    1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+        Queue a media element task</a> to execute the following steps:
+
+        1. Set {{[[suspended by user]]}} of the {{AudioContext}} to <code>false</code>.
+
+        1. Set {{[[control thread state]]}} of the {{AudioContext}} to <code>suspended</code>.
+
+        1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to 
+            "{{AudioContextState/suspended}}".
 
         1. <a spec="dom" lt="fire an event">Fire an event</a> named
-            {{BaseAudioContext/statechange}} at the associated {{AudioContext}}.
+            {{AudioContext/error}} at the {{AudioContext}}.
 
-Note: An example of such a case would be when an external or wireless audio
+    1. Abort these substeps.
+
+1. If the {{[[rendering thread state]]}} of the {{AudioContext}} is
+    <code>suspended</code>.
+
+    1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+        Queue a media element task</a> to execute the following steps:
+
+        1. <a spec="dom" lt="fire an event">Fire an event</a> named
+            {{AudioContext/error}} at the {{AudioContext}}.
+    
+    1. Abort these substeps.
+
+
+Note: An example of system audio resource errors would be when an external or wireless audio
     device becomes disconnected during the active rendering of the AudioContext.
 
 <h3 id="unloading-a-document">Unloading a document</h3>

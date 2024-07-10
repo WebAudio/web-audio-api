@@ -182,6 +182,7 @@ window.addEventListener('load', (event) => {
   ListAmendments("c2400", "Proposed Addition", "change-list-2400");
   ListAmendments("c2512", "Proposed Addition", "change-list-2512");
   ListAmendments("c2450", "Proposed Addition", "change-list-2450");
+  ListAmendments("c2567", "Proposed Addition", "change-list-2567");
 });
 </script>
 <style>
@@ -1718,9 +1719,11 @@ enum AudioSinkType {
         <a href="https://github.com/WebAudio/web-audio-api/issues/2444">Issue 2444
         </a> Add AudioRenderCapacity Interface <br>
         <a href="https://github.com/WebAudio/web-audio-api/issues/2400" id="c2400-2">
-            Issue 2400</a> Access to a different output device
+            Issue 2400</a> Access to a different output device <br>
+        <a href="https://github.com/WebAudio/web-audio-api/issues/2567" id="c2567-1">
+            Issue 2567</a>. Device-related error reporting via AudioContext
     <div class="amendment-buttons"></div>
-    <del cite="#c2444 #c2400">
+    <del cite="#c2444 #c2400 #c2567">
         <xmp class="idl extract" data-no-idl>
         [Exposed=Window]
         interface AudioContext : BaseAudioContext {
@@ -1739,7 +1742,7 @@ enum AudioSinkType {
         };
         </xmp>
     </del>
-    <ins cite="#c2444 #2400">
+    <ins cite="#c2444 #2400 #2567">
         <xmp class="idl">
         [Exposed=Window]
         interface AudioContext : BaseAudioContext {
@@ -1749,6 +1752,7 @@ enum AudioSinkType {
             [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
             [SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
             attribute EventHandler onsinkchange;
+            attribute EventHandler onerror;
             AudioTimestamp getOutputTimestamp ();
             Promise<undefined> resume ();
             Promise<undefined> suspend ();
@@ -1968,53 +1972,90 @@ Constructors</h4>
         Sending a <a>control message</a> to start processing means
         executing the following steps:
     
-        <div class="addition proposed" id="c2400-5">
-        <span class="marker">Proposed Addition</span><br>
-            <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue
-                2400</a> Access to a different output device
-        <div class="amendment-buttons"></div>
-        <del cite=#2400>
-            1. Attempt to <a href="#acquiring">acquire system resources</a>.
-                In case of failure, abort the following steps.
+        <div class="addition proposed">
+            <div class="addition proposed" id="c2400-5" style="border:0; margin:0; padding:0">
+                <span class="marker">Proposed Addition
+                    <a href="https://github.com/WebAudio/web-audio-api/issues/2400">Issue 2400</a>.
+                </span>
+                Access to a different output device
+                <div class="amendment-buttons"></div>
+            </div>
+            <div class="addition proposed" id="c2567-2" style="border:0; margin:0; padding:0">
+                <span class="marker">Proposed Addition
+                    <a href="https://github.com/WebAudio/web-audio-api/issues/2567">Issue 2567</a>.
+                </span>
+                Device-related error reporting via AudioContext
+                <div class="amendment-buttons"></div>
+            </div>
 
-            3. Set the {{[[rendering thread state]]}} to <code>running</code> on the {{AudioContext}}.
+            <del cite="#2400 #2567">
+                1. Attempt to <a href="#acquiring">acquire system resources</a>.
+                    In case of failure, abort the following steps.
 
-            1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-                queue a media element task</a> to execute the following steps:
-
-                1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/running}}".
+                1. Set the {{[[rendering thread state]]}} to <code>running</code> on the {{AudioContext}}.
 
                 1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-                    queue a media element task</a> to <a spec="dom" lt="fire an event">fire an event
-                    </a> named {{BaseAudioContext/statechange}} at the {{AudioContext}}.
-        </del>
-        <ins cite=#2400>
-            1. Attempt to <a href="#acquiring">acquire system resources</a> to use a
-                following audio output device based on {{AudioContext/[[sink ID]]}} for
-                rendering:
+                    queue a media element task</a> to execute the following steps:
 
-                * The default audio output device for the empty string.
-                * A audio output device identified by {{AudioContext/[[sink ID]]}}.
-            
-                In case of failure, abort the following steps.
+                    1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/running}}".
 
-            1. Set the {{[[rendering thread state]]}} to <code>running</code> on the
-                {{AudioContext}}.
+                    1. [=Queue a media element task=] to [=fire an event=] named
+                        {{BaseAudioContext/statechange}} at the {{AudioContext}}.
 
-            1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-                Queue a media element task</a> to execute the following steps:
+            </del>
+            <ins cite="#2400 #2567">
+                1. Let |document| be the [=current settings object=]'s [=relevant global object=]'s
+                        [=associated Document=].
 
-                1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}}
-                    to "{{AudioContextState/running}}".
+                1. Attempt to [=acquire system resources=] to use a following audio output device
+                    based on {{AudioContext/[[sink ID]]}} for rendering:
 
-                1. <a spec="dom" lt="fire an event">Fire an event</a> named
-                    {{BaseAudioContext/statechange}} at the {{AudioContext}}.
-        </ins>
+                    * The default audio output device for the empty string.
+                    * A audio output device identified by {{AudioContext/[[sink ID]]}}.
+                
+                    1. If resource acquisition fails, execute the following steps:
+                        
+                        1. If |document| is not allowed to use the feature identified by
+                            <code>"speaker-selection"</code>, abort these substeps.
+
+                        1. [=queue a media element task=] to [=fire an event=] using {{ErrorEvent}}
+                            at the {{AudioContext/error}} of the {{AudioContext}}, and abort the
+                            following steps.
+
+                1. Set [=this=] {{[[rendering thread state]]}} to <code>running</code> on the
+                    {{AudioContext}}.
+
+                1. [=Queue a media element task=] to execute the following steps:
+
+                    1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}}
+                        to "{{AudioContextState/running}}".
+
+                    1. [=fire an event=] named {{BaseAudioContext/statechange}} at the
+                        {{AudioContext}}.
+            </ins>
+
+        </div>
     </div>
+
+        <div class="proposed addition" id="c2567-3">
+            <span class="marker">Proposed Addition
+                <a href="https://github.com/WebAudio/web-audio-api/issues/2567">Issue 2567</a>.
+            </span>
+            Device-related error reporting via AudioContext
+            <div class="amendment-buttons"></div>
+            <del>
             Note: It is unfortunately not possible to programatically notify authors
             that the creation of the {{AudioContext}} failed. User-Agents are
             encouraged to log an informative message if they have access to a logging
             mechanism, such as a developer tools console.
+            </del>
+            <ins>
+            NOTE: In cases where an {{AudioContext}} is constructed with no arguments and resource
+            acquisition fails, the User-Agent will attempt to silently render the audio graph using
+            a mechanism that emulates an audio output device.
+            </ins>
+        </div>
+
         </div>
 
         <div class="addition proposed" id="c2456-2">
@@ -2111,10 +2152,8 @@ Attributes</h4>
             2444</a>.
     </span>
     Add AudioRenderCapacity Interface
-    <div class="amendment-buttons">
-        Buttons here
-    </div>
-    <ins cite=#c2444>       
+    <div class="amendment-buttons"></div>
+    <ins cite=#c2444>
     : <dfn>renderCapacity</dfn>
     ::
         Returns an {{AudioRenderCapacity}} instance associated with
@@ -2146,7 +2185,30 @@ Attributes</h4>
         is available to check the readiness of the initial output device.
 
     </ins>
-    </dl>
+</div>
+
+<div class="proposed addition" id="c2567-4">
+    <span class="marker">Proposed Addition
+        <a href="https://github.com/WebAudio/web-audio-api/issues/2567">Issue 2567</a>.
+    </span>
+    Device-related error reporting via AudioContext
+    <div class="amendment-buttons"></div>
+    <ins cite=#2567>
+    : <dfn>onerror</dfn>
+    ::
+        An [=event handler=] for the {{ErrorEvent}} dispatched from an {{AudioContext}}. The event
+            type of this handler is <dfn event for=AudioContext>error</dfn> and the user agent can
+            dispatch this event in the following cases:
+
+            * When initializing and activating a selected audio device encounters failures.
+            * When the audio output device associated with an {{AudioContext}} is disconnected while
+                the context is {{AudioContextState/running}}.
+            * When the operating system reports an audio device malfunction.
+
+    </ins>
+</div>
+
+</dl>
 
 <h4 id="AudioContext-methods">
 Methods</h4>
@@ -12863,6 +12925,54 @@ running the algorithm for this {{AudioNode}} to produce
 running the algorithm for an {{AudioNode}}, using an <a>input
 buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 {{AudioNode}} as the input for this algorithm.
+
+
+<div class="addition proposed" id="c2567-5">
+    <span class="marker">Proposed addition
+        <a href="https://github.com/WebAudio/web-audio-api/issues/2567">Issue 2567</a>.
+    </span>
+    Device-related error reporting via AudioContext
+    <div class="amendment-buttons"></div>
+    <ins>
+
+<h3 id="error-handling-on-a-running-audio-context">
+    Handling an error from System Audio Resources on the {{AudioContext}}</h3>
+
+The {{AudioContext}} |audioContext| performs the following steps on <a>rendering thread</a> in the
+    event of an udio system resource error.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} is <code>running</code>:
+
+    1. Attempt to <a>release system resources</a>.
+
+    1. Set the |audioContext|'s {{[[rendering thread state]]}} to <code>suspended</code>.
+
+    1. [=Queue a media element task=] to execute the following steps:
+
+        1. [=Fire an event=] using {{ErrorEvent}} at the |audioContext|'s {{AudioContext/error}}.
+
+        1. Set the |audioContext|'s {{[[suspended by user]]}} to <code>false</code>.
+
+        1. Set the |audioContext|'s {{[[control thread state]]}} to <code>suspended</code>.
+
+        1. Set the |audioContext|'s {{BaseAudioContext/state}} attribute to 
+            "{{AudioContextState/suspended}}".
+
+        1. [=Fire an event=] at the |audioContext|'s {{BaseAudioContext/statechange}}.
+
+    1. Abort these steps.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} is <code>suspended</code>:
+
+    1. [=Queue a media element task=]to execute the following steps:
+
+        1. [=Fire an event=] using {{ErrorEvent}} at the |audioContext|'s {{AudioContext/error}}.
+
+Note: An example of system audio resource errors would be when an external or wireless audio device
+    becoming disconnected during the active rendering of the {{AudioContext}}.
+
+    </ins>
+</div>
 
 <h3 id="unloading-a-document">Unloading a document</h3>
     Additional <a href=

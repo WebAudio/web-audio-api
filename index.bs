@@ -1969,26 +1969,40 @@ Methods</h4>
 
             1. If [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=fully active=] then return [=a promise rejected with=] "{{InvalidStateError}}" {{DOMException}}.
 
-            1. Let <var>promise</var> be a new Promise.
+            2. Let <var>promise</var> be a new Promise.
 
-            2. If the {{[[control thread state]]}} on the
-                {{AudioContext}} is <code>closed</code> reject the
+            3. If the {{[[control thread state]]}} on the
+                {{AudioContext}} is <code>closed</code> or <code>interrupted</code> reject the
                 promise with {{InvalidStateError}}, abort these steps,
                 returning <var>promise</var>.
 
-            3. Set {{[[suspended by user]]}} to <code>false</code>.
+            4. Set {{[[suspended by user]]}} to <code>false</code>.
 
-            4. If the context is not <a>allowed to start</a>, append
+            4. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is "{{AudioContextState/suspended}}" and the {{[[control thread state]]}} on the
+                {{AudioContext}} is <code>interrupted</code>:
+
+                1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+                queue a media element task</a> to execute the following steps:
+                
+                    1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/interrupted}}".
+
+                    2. [=Queue a media element task=] to [=fire an event=] named
+                            {{BaseAudioContext/statechange}} at the {{AudioContext}}.
+
+                2. Reject the promise with {{InvalidStateError}}, abort these steps,
+                returning <var>promise</var>.
+
+            5. If the context is not <a>allowed to start</a>, append
                 <var>promise</var> to {{BaseAudioContext/[[pending promises]]}} and
                 {{AudioContext/[[pending resume promises]]}} and abort these steps, returning
                 <var>promise</var>.
 
-            5. Set the {{[[control thread state]]}} on the
+            6. Set the {{[[control thread state]]}} on the
                 {{AudioContext}} to <code>running</code>.
 
-            6. <a>Queue a control message</a> to resume the {{AudioContext}} with <var>promise</var>.
+            7. <a>Queue a control message</a> to resume the {{AudioContext}} with <var>promise</var>.
 
-            7. Return <var>promise</var>.
+            8. Return <var>promise</var>.
         </div>
 
         <div id="context-resume" algorithm="run a control message in AudioContext">
@@ -4078,7 +4092,7 @@ Methods</h4>
         scheduled parameter changes with times greater than or equal to
         {{AudioParam/cancelAndHoldAtTime()/cancelTime!!argument}}. However, in addition, the automation
         value that would have happened at {{AudioParam/cancelAndHoldAtTime()/cancelTime!!argument}} is
-        then proprogated for all future time until other automation
+        then propagated for all future time until other automation
         events are introduced.
 
         The behavior of the timeline in the face of
@@ -11967,6 +11981,64 @@ running the algorithm for this {{AudioNode}} to produce
 running the algorithm for an {{AudioNode}}, using an <a>input
 buffer</a> and the value(s) of the {{AudioParam}}(s) of this
 {{AudioNode}} as the input for this algorithm.
+
+<h3 id="interruption-handling">Handling an interruption on the {{AudioContext}}</h3>
+
+The {{AudioContext}} |audioContext| performs the following steps on the <a>rendering thread</a> when an interruption happens.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} is <code>closed</code> or <code>interrupted</code>:
+
+    1. Abort these steps.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} is <code>running</code>:
+
+    1. Attempt to <a>release system resources</a>.
+
+    1. [=Queue a media element task=] to execute the following steps:
+
+        1. Set the |audioContext|'s {{[[control thread state]]}} to <code>interrupted</code>.
+
+        1. [=Fire an event=] named {{BaseAudioContext/statechange}} at the |audioContext|.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} is <code>suspended</code>:
+
+    1. [=Queue a media element task=] to execute the following steps:
+
+        1. Set the |audioContext|'s {{[[control thread state]]}} to <code>interrupted</code>.
+
+1. Set the |audioContext|'s {{[[rendering thread state]]}} to <code>interrupted</code>. 
+
+Note: If the {{AudioContext}} is <code>suspended</code> a {{BaseAudioContext/statechange}} event is not fired for privacy reasons to avoid over-sharing user activity - e.g. when a phone call comes in or when the screen gets locked.
+
+The {{AudioContext}} |audioContext| performs the following steps on the <a>rendering thread</a> when the interruption ends.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} is not <code>interrupted</code>:
+
+    1. Abort these steps.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} was <code>running</code> before the interruption or if the the |audioContext|'s {{[[rendering thread state]]}} was <code>suspended</code> and {{AudioContext/resume}} was called during the interruption:
+
+    1. Attempt to <a href="#acquiring">acquire system resources</a>.
+
+    2. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to <code>running</code>.
+
+    3. Start <a href="#rendering-loop">rendering the audio graph</a>.
+
+    4. [=Queue a media element task=] to execute the following steps:
+
+        1. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is not already "{{AudioContextState/running}}":
+
+            1. Set the |audioContext|'s {{[[control thread state]]}} to <code>running</code>.
+
+            1. [=Fire an event=] named {{BaseAudioContext/statechange}} at the |audioContext|.
+
+1. If the |audioContext|'s {{[[rendering thread state]]}} was <code>suspended</code> before the interruption:
+
+    1. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to <code>suspended</code>.
+
+    2. [=Queue a media element task=] to execute the following steps:
+
+        1. Set the |audioContext|'s {{[[control thread state]]}} to <code>suspended</code>.
 
 <h3 id="error-handling-on-a-running-audio-context">
     Handling an error from System Audio Resources on the {{AudioContext}}</h3>

@@ -1477,7 +1477,6 @@ interface AudioContext : BaseAudioContext {
     readonly attribute double baseLatency;
     readonly attribute double outputLatency;
     [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
-    [SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
     attribute EventHandler onsinkchange;
     attribute EventHandler onerror;
     AudioTimestamp getOutputTimestamp ();
@@ -1724,11 +1723,6 @@ Attributes</h4>
         is running or the associated audio output device changes. It is
         useful to query this value frequently when accurate
         synchronization is required.
-
-    : <dfn>renderCapacity</dfn>
-    ::
-        Returns an {{AudioRenderCapacity}} instance associated with
-        an {{AudioContext}}.
 
     : <dfn>sinkId</dfn>
     ::
@@ -2394,132 +2388,6 @@ Dictionary {{AudioTimestamp}} Members</h5>
         Represents a point in the time coordinate system of a
         <code>Performance</code> interface implementation (described in
         [[!hr-time-3]]).
-</dl>
-
-<h4 interface lt="audiorenderCapacity" id="AudioRenderCapacity">
-{{AudioRenderCapacity}}</h4>
-
-<pre class="idl">
-[Exposed=Window]
-interface AudioRenderCapacity : EventTarget {
-    undefined start(optional AudioRenderCapacityOptions options = {});
-        undefined stop();
-        attribute EventHandler onupdate;
-};
-</pre>
-
-This interface provides rendering performance metrics of an
-{{AudioContext}}. In order to calculate them, the renderer collects a
-<a>load value</a> per <a>system-level audio callback</a>.
-
-<h5 id="AudioRenderCapacity-attributes">
-Attributes</h5>
-
-<dl dfn-type=attribute dfn-for="AudioRenderCapacity">
-    : <dfn>onupdate</dfn>
-    ::
-        The event type of this event handler is <dfn event>update</dfn>. Events
-        dispatched to the event handler will use the
-        {{AudioRenderCapacityEvent}} interface.
-</dl>
-
-<h5 id="AudioRenderCapacity-methods">
-Methods</h5>
-
-<dl dfn-type=method dfn-for="AudioRenderCapacity">
-    : <dfn>start(options)</dfn>
-    ::
-        Starts metric collection and analysis. This will repeatedly [=fire an event=] named
-        {{AudioRenderCapacity/update}} at the {{AudioRenderCapacity}}, using
-        {{AudioRenderCapacityEvent}}, with the given update interval in
-        {{AudioRenderCapacityOptions}}.
-    
-    : <dfn>stop()</dfn>
-    ::
-        Stops metric collection and analysis. It also stops dispatching
-        {{AudioRenderCapacity/update}} events.
-</dl>
-
-<h4 dictionary lt="audiorenderCapacityoptions" id="AudioRenderCapacityOptions">
-{{AudioRenderCapacityOptions}}</h4>
-
-The {{AudioRenderCapacityOptions}} dictionary can be used to provide user
-options for an {{AudioRenderCapacity}}.
-
-<pre class="idl">
-dictionary AudioRenderCapacityOptions {
-        double updateInterval = 1;
-};
-</pre>
-
-<h5 id="dictionary-AudioRenderCapacityOptions-members">
-Dictionary {{AudioRenderCapacityOptions}} Members</h5>
-
-<dl dfn-type=dict-member dfn-for="AudioRenderCapacityOptions">
-    : <dfn>updateInterval</dfn>
-    ::
-        An update interval (in second) for dispaching
-        {{AudioRenderCapacityEvent}}s. A <a>load value</a> is calculated
-        per <a>system-level audio callback</a>, and multiple load values will
-        be collected over the specified interval period. For example, if
-        the renderer runs at a 48Khz sample rate and the <a>system-level
-        audio callback</a>'s buffer size is 192 frames, 250 load values
-        will be collected over 1 second interval.
-        
-        If the given value is smaller than the duration of
-        the <a>system-level audio callback</a>, {{NotSupportedError}} is
-        thrown.
-</dl>
-
-<h4 interface lt="audiorenderCapacityevent" id="AudioRenderCapacityEvent">
-{{AudioRenderCapacityEvent}}</h4>
-
-<pre class="idl">
-[Exposed=Window]
-interface AudioRenderCapacityEvent : Event {
-    constructor (DOMString type, optional AudioRenderCapacityEventInit eventInitDict = {});
-        readonly attribute double timestamp;
-        readonly attribute double averageLoad;
-        readonly attribute double peakLoad;
-        readonly attribute double underrunRatio;
-};
-
-dictionary AudioRenderCapacityEventInit : EventInit {
-    double timestamp = 0;
-    double averageLoad = 0;
-    double peakLoad = 0;
-    double underrunRatio = 0;
-};
-</pre>
-
-<h5 id="AudioRenderCapacityEvent-attributes">
-Attributes</h5>
-
-<dl dfn-type=attribute dfn-for="AudioRenderCapacityEvent">
-    : <dfn>timestamp</dfn>
-    ::
-        The start time of the data collection period in terms of the
-        associated {{AudioContext}}'s {{BaseAudioContext/currentTime}}.
-    : <dfn>averageLoad</dfn>
-    ::
-        An average of collected load values over the given update
-        interval. The precision is limited to 1/100th.
-    : <dfn>peakLoad</dfn>
-    ::
-        A maximum value from collected load values over the given update
-        interval. The precision is also limited to 1/100th.
-    : <dfn>underrunRatio</dfn>
-    ::
-        A ratio between the number of buffer underruns (when a
-        <a>load value</a> is greater than 1.0) and the total number of
-        <a>system-level audio callback</a>s over the given update interval.
-        
-        Where \(u\) is the number of buffer underruns and \(N\) is the
-        number of <a>system-level audio callback</a>s over the given update
-        interval, the buffer underrun ratio is:
-        - 0.0 if \(u\) = 0.
-        - Otherwise, compute \(u/N\) and take a ceiling value of the
-            nearest 100th.
 </dl>
 
 <!--

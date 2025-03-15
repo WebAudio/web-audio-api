@@ -709,10 +709,12 @@ Each {{BaseAudioContext}} has a unique
 media element event task source</a>.
 Additionally, a {{BaseAudioContext}} has several private slots <dfn attribute
 for="BaseAudioContext">[[rendering thread state]]</dfn> and <dfn attribute
-for="BaseAudioContext">[[control thread state]]</dfn> that take values from
-{{AudioContextState}}, and that are both initially set to <code>"suspended"
-</code>, and a private slot <dfn attribute for="BaseAudioContext">
-[[render quantum size]]</dfn> that is an unsigned integer.
+for="BaseAudioContext">[[control thread state]]</dfn> that take values
+from {{AudioContextState}}, and that are both initially set to <code>"suspended"
+</code>, <dfn attribute for="BaseAudioContext">[[interrupt end return state]]
+</dfn> that also take values from {{AudioContextState}} and is initially set to
+`null` and a private slot <dfn attribute for="BaseAudioContext">[[render quantum
+size]]</dfn> that is an unsigned integer.
 
 <pre class="idl">
 enum AudioContextState {
@@ -1549,6 +1551,8 @@ Constructors</h4>
 
             1. Set a {{[[rendering thread state]]}} to <code>suspended</code> on
                 |context|.
+            
+            1. Set {{[[interrupt end return state]]}} to `null` on |context|.
 
             1. Let |messageChannel| be a new {{MessageChannel}}.
 
@@ -1980,15 +1984,19 @@ Methods</h4>
                 returning <var>promise</var>.
 
             1. Set {{[[suspended by user]]}} to <code>false</code>.
+            
+            1. If the context's {{BaseAudioContext/state}} attribute is 
+                "{{AudioContextState/suspended}}" and the context's
+                {{[[control thread state]]}} is 
+                "{{AudioContextState/interrupted}}", then:
 
-            1. If the {{[[control thread state]]}} on the {{AudioContext}} is
-                <code>suspended</code> and there is an ongoing
-                [=interruption=]:
-
-                1. Queue a media element task</a> to execute the following steps:
+                1. <a>Queue a media element task</a> to execute the following steps:
 
                     1. Set the {{BaseAudioContext/state}} attribute of the
                         {{AudioContext}} to "{{AudioContextState/interrupted}}".
+                    
+                    1. Set the {{[[interrupt end return state]]}} slot to 
+                        "{{AudioContextState/running}}".
 
                     1. [=Queue a media element task=] to [=fire an event=] named
                         {{BaseAudioContext/statechange}} at the {{AudioContext}}.
@@ -2105,14 +2113,19 @@ Methods</h4>
 
             1. Attempt to <a>release system resources</a>.
 
-            2. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to <code>suspended</code>.
+            1. If the {{[[rendering thread state]]}} on the {{AudioContext}} is
+                "{{AudioContextState/interrupted}}", <a>queue a media element
+                task</a> to set the {{[[interrupt end return state]]}} slot to
+                "{{AudioContextState/suspended}}".
 
-            3. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
-                queue a media element task</a> to execute the following steps:
+            1. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to
+                "{{AudioContextState/suspended}}".
+
+            1. <a>Queue a media element task</a> to execute the following steps:
 
                 1. Resolve <var>promise</var>.
 
-                2. If the {{BaseAudioContext/state}}
+                1. If the {{BaseAudioContext/state}}
                     attribute of the {{AudioContext}} is not already "{{AudioContextState/suspended}}":
 
                     1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/suspended}}".
@@ -11993,70 +12006,69 @@ to halt audio playback for an {{AudioContext}}. For example, The user agent may
 create an interruption when another application requests exclusive access to the
 audio output hardware.
 
-When an [=interruption=] happens, the user agent must <a>queue a control message</a>
+When an [=interruption=] happens, the user agent MUST <a>queue a control message</a>
 to interrupt the {{AudioContext}}.
 
 Running a <a>control message</a> to <dfn attribute for="AudioContext"
 lt="interruption-start">interrupt an {{AudioContext}}</dfn> |context|
 means running these steps on the <a>rendering thread</a>:
 
-1. If the |context|'s {{[[rendering thread state]]}} is <code>closed</code>
-    or <code>interrupted</code>:
-
-    1. Abort these steps.
+1. If the |context|'s {{[[rendering thread state]]}} is 
+    {{AudioContextState/closed}} or {{AudioContextState/interrupted}}, abort
+    these steps.
 
 1. If the |context|'s {{[[rendering thread state]]}} is
-    <code>running</code>:
+    {{AudioContextState/running}}:
 
     1. Attempt to <a>release system resources</a>.
 
     1. [=Queue a media element task=] to execute the following steps:
 
         1. Set the |context|'s {{[[control thread state]]}} to
-            <code>interrupted</code>.
+            {{AudioContextState/interrupted}}.
+
+        1. Set the |context|'s {{[[interrupt end return state]]}} slot to 
+            "{{AudioContextState/running}}".
 
         1. [=Fire an event=] named {{BaseAudioContext/statechange}} at the
             |context|.
 
 1. If the |context|'s {{[[rendering thread state]]}} is
-    <code>suspended</code>:
+    {{AudioContextState/suspended}}:
 
     1. [=Queue a media element task=] to execute the following steps:
 
         1. Set the |context|'s {{[[control thread state]]}} to
-            <code>interrupted</code>.
+            {{AudioContextState/interrupted}}.
+        
+        1. Set the |context|'s {{[[interrupt end return state]]}} slot to 
+            "{{AudioContextState/suspended}}".
 
 1. Set the |context|'s {{[[rendering thread state]]}} to
-    <code>interrupted</code>.
+    {{AudioContextState/interrupted}}.
 
-Note: If the {{AudioContext}} is <code>suspended</code> a
+Note: If the {{AudioContext}} is {{AudioContextState/suspended}} a
 {{BaseAudioContext/statechange}} event is not fired for privacy reasons to avoid
 over-sharing user activity - e.g. when a phone call comes in or when the screen
 gets locked.
 
-When an [=interruption=] ends, the user agent must <a>queue a control message</a>
+When an [=interruption=] ends, the user agent MUST <a>queue a control message</a>
 to <dfn attribute for="AudioContext" lt="interruption-end">end the
 {{AudioContext}} interruption</dfn>.
-
-<dfn lt="linear PCM">Linear pulse code modulation</dfn>
 
 Running a <a>control message</a> to end an {{AudioContext}} |context|
 [=interruption=] means running these steps on the <a>rendering thread</a>:
 
 1. If the |context|'s {{[[rendering thread state]]}} is not
-    <code>interrupted</code>:
+    {{AudioContextState/interrupted}}, abort these steps.
 
-    1. Abort these steps.
-
-1. If the |context|'s {{[[rendering thread state]]}} was
-    <code>running</code> before the [=interruption=] or if the the
-    |context|'s {{[[rendering thread state]]}} was <code>suspended</code>
-    and {{AudioContext/resume}} was called during the [=interruption=]:
+1. If the |context|'s {{[[interrupt end return state]]}} is 
+    "{{AudioContextState/running}}":
 
     1. Attempt to <a href="#acquiring">acquire system resources</a>.
 
     1. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to
-        <code>running</code>.
+        "{{AudioContextState/running}}".
 
     1. Start <a href="#rendering-loop">rendering the audio graph</a>.
 
@@ -12066,13 +12078,13 @@ Running a <a>control message</a> to end an {{AudioContext}} |context|
             is not already "{{AudioContextState/running}}":
 
             1. Set the |context|'s {{[[control thread state]]}} to
-                <code>running</code>.
+                "{{AudioContextState/running}}".
 
             1. [=Fire an event=] named {{BaseAudioContext/statechange}} at the
                 |context|.
 
-1. If the |context|'s {{[[rendering thread state]]}} was
-    <code>suspended</code> before the [=interruption=]:
+1. If the |context|'s {{[[interrupt end return state]]}} is 
+    "{{AudioContextState/suspended}}"
 
     1. Set the {{[[rendering thread state]]}} on the {{AudioContext}} to
         <code>suspended</code>.
@@ -12081,6 +12093,8 @@ Running a <a>control message</a> to end an {{AudioContext}} |context|
 
         1. Set the |context|'s {{[[control thread state]]}} to
             <code>suspended</code>.
+
+1. Set the |context|'s {{[[interrupt end return state]]}} to `null`.
 
 <h3 id="error-handling-on-a-running-audio-context">
     Handling an error from System Audio Resources on the {{AudioContext}}</h3>

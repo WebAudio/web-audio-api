@@ -1591,13 +1591,6 @@ Constructors</h4>
                         {{AudioSinkOptions/type}} in |sinkId| and {{AudioSinkInfo/type}}
                         in {{AudioContext/[[sink ID]]}} are equal, abort these substeps.
 
-                    1. Let |validationResult| be the return value of
-                        <a href="#validating-sink-identifier">sink identifier validation
-                        </a> of |sinkId|.
-    
-                    1. If |validationResult| is a type of {{DOMException}}, throw an
-                        exception with |validationResult| and abort these substeps.
-
                     1. If |sinkId| is a type of {{DOMString}}, set
                         {{AudioContext/[[sink ID]]}} to |sinkId| and abort these
                         substeps.
@@ -1643,14 +1636,22 @@ Constructors</h4>
         1. Let |document| be the [=current settings object=]'s [=relevant global object=]'s
                 [=associated Document=].
 
+        1. Let |validationResult| be the return value of
+                <a href="#validating-sink-identifier">sink identifier validation
+                </a> of {{AudioContext/[[sink ID]]}}.
+
+        1. If |validationResult| is not <code>true</code>, [=Queue a
+                media element task=] to [=fire an event=] named {{AudioContext/error}}
+                at the {{AudioContext}}, and abort the following steps.
+
         1. Attempt to [=acquire system resources=] to use a following audio output device
             based on {{AudioContext/[[sink ID]]}} for rendering:
 
             * The default audio output device for the empty string.
-            * A audio output device identified by {{AudioContext/[[sink ID]]}}.
-        
+            * An audio output device identified by {{AudioContext/[[sink ID]]}}.
+
             1. If resource acquisition fails, execute the following steps:
-                
+
                 1. If |document| is not allowed to use the feature identified by
                     <code>"speaker-selection"</code>, abort these substeps.
 
@@ -2171,9 +2172,10 @@ Methods</h4>
             1. Let |validationResult| be the return value of
                 <a href="#validating-sink-identifier">sink identifier validation</a>
                 of |sinkId|.
-            
-            1. If |validationResult| is not <code>null</code>, return a promise
-                rejected with |validationResult|. Abort these steps.
+
+            1. If |validationResult| is not <code>true</code>, return a promise
+                rejected with a new {{DOMException}} whose name is
+                "{{NotAllowedError}}". Abort these steps.
 
             1. Let |p| be a new promise.
 
@@ -2292,15 +2294,14 @@ This algorithm is used to validate the information provided to modify
     1. Let |sinkIdArg| be the value passed in to this algorithm.
 
     1. If |document| is not allowed to use the feature identified by
-        <code>"speaker-selection"</code>, return a new {{DOMException}} whose name
-        is "{{NotAllowedError}}".
+        <code>"speaker-selection"</code>, return <code>false</code>.
 
     1. If |sinkIdArg| is a type of {{DOMString}} but it is not equal to the empty
         string or it does not match any audio output device identified by the
         result that would be provided by {{MediaDevices/enumerateDevices()}},
-        return a new {{DOMException}} whose name is "{{NotFoundError}}".
+        return <code>false</code>.
 
-    1. Return <code>null</code>.
+    1. Return <code>true</code>.
 </div>
 
 <h4 dictionary id="AudioContextOptions">

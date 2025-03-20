@@ -1522,6 +1522,13 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
         initial value is <code>""</code>, which means the default audio output
         device.
 
+    : <dfn>[[sink ID at construction]]</dfn>
+    ::
+        A {{DOMString}} or an {{AudioSinkInfo}} representing the identifier
+        or the information of the audio output device requested at construction,
+        respectively. The initial value is <code>""</code>, which means the
+        default audio output device.
+
     : <dfn>[[pending resume promises]]</dfn>
     :: 
         An ordered list to store pending {{Promise}}s created by
@@ -1591,19 +1598,12 @@ Constructors</h4>
                         {{AudioSinkOptions/type}} in |sinkId| and {{AudioSinkInfo/type}}
                         in {{AudioContext/[[sink ID]]}} are equal, abort these substeps.
 
-                    1. Let |validationResult| be the return value of
-                        <a href="#validating-sink-identifier">sink identifier validation
-                        </a> of |sinkId|.
-    
-                    1. If |validationResult| is a type of {{DOMException}}, throw an
-                        exception with |validationResult| and abort these substeps.
-
                     1. If |sinkId| is a type of {{DOMString}}, set
-                        {{AudioContext/[[sink ID]]}} to |sinkId| and abort these
+                        {{AudioContext/[[sink ID at construction]]}} to |sinkId| and abort these
                         substeps.
 
                     1. If |sinkId| is a type of {{AudioSinkOptions}}, set
-                        {{AudioContext/[[sink ID]]}} to a new instance of
+                        {{AudioContext/[[sink ID at construction]]}} to a new instance of
                         {{AudioSinkInfo}} created with the value of
                         {{AudioSinkOptions/type}} of |sinkId|.
 
@@ -1640,23 +1640,30 @@ Constructors</h4>
         Sending a <a>control message</a> to start processing means
         executing the following steps:
 
-        1. Let |document| be the [=current settings object=]'s [=relevant global object=]'s
-                [=associated Document=].
+        1. Let |validationResult| be the return value of
+                <a href="#validating-sink-identifier">sink identifier validation
+                </a> of {{AudioContext/[[sink ID at construction]]}}.
+
+        1. If |validationResult| is <code>false</code>, execute the following steps:
+
+                1. Set {{AudioContext/[[sink ID]]}} to the empty string.
+
+                1. [=Queue a media element task=] to [=fire an event=]
+                    named {{AudioContext/error}} at the {{AudioContext}},
+                    and abort the following steps.
 
         1. Attempt to [=acquire system resources=] to use a following audio output device
-            based on {{AudioContext/[[sink ID]]}} for rendering:
+            based on {{AudioContext/[[sink ID at construction]]}} for rendering:
 
             * The default audio output device for the empty string.
-            * A audio output device identified by {{AudioContext/[[sink ID]]}}.
-        
-            1. If resource acquisition fails, execute the following steps:
-                
-                1. If |document| is not allowed to use the feature identified by
-                    <code>"speaker-selection"</code>, abort these substeps.
+            * An audio output device identified by {{AudioContext/[[sink ID at construction]]}}.
 
-                1. [=Queue a media element task=] to [=fire an event=] named
-                    {{AudioContext/error}} at the {{AudioContext}}, and abort the following
-                    steps.
+                1. If resource acquisition fails, [=queue a media element
+                    task=] to [=fire an event=] named
+                    {{AudioContext/error}} at the {{AudioContext}}, and
+                    abort the following steps.
+
+        1. Set {{AudioContext/[[sink ID]]}} to the value of {{AudioContext/[[sink ID at construction]]}}.
 
         1. Set [=this=] {{[[rendering thread state]]}} to <code>running</code> on the
             {{AudioContext}}.
@@ -2171,9 +2178,10 @@ Methods</h4>
             1. Let |validationResult| be the return value of
                 <a href="#validating-sink-identifier">sink identifier validation</a>
                 of |sinkId|.
-            
-            1. If |validationResult| is not <code>null</code>, return a promise
-                rejected with |validationResult|. Abort these steps.
+
+            1. If |validationResult| is <code>false</code>, return a promise
+                rejected with a new {{DOMException}} whose name is
+                "{{NotAllowedError}}". Abort these steps.
 
             1. Let |p| be a new promise.
 
@@ -2292,15 +2300,14 @@ This algorithm is used to validate the information provided to modify
     1. Let |sinkIdArg| be the value passed in to this algorithm.
 
     1. If |document| is not allowed to use the feature identified by
-        <code>"speaker-selection"</code>, return a new {{DOMException}} whose name
-        is "{{NotAllowedError}}".
+        <code>"speaker-selection"</code>, return <code>false</code>.
 
     1. If |sinkIdArg| is a type of {{DOMString}} but it is not equal to the empty
         string or it does not match any audio output device identified by the
         result that would be provided by {{MediaDevices/enumerateDevices()}},
-        return a new {{DOMException}} whose name is "{{NotFoundError}}".
+        return <code>false</code>.
 
-    1. Return <code>null</code>.
+    1. Return <code>true</code>.
 </div>
 
 <h4 dictionary id="AudioContextOptions">

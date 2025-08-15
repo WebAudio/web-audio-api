@@ -7689,6 +7689,27 @@ macros:
 </pre>
 
 <pre class="idl">
+enum MakeupGainOptions {
+    "automatic"
+};
+</pre>
+
+<div class="enum-description">
+    <table class="simple" dfn-type=enum-value dfn-for="MakeupGainOptions">
+        <caption>{{MakeupGainOptions}} Enumeration description</caption>
+        <thead>
+            <tr>
+                <th>Enum Value</th><th>Description</th>
+        <tbody>
+            <tr>
+                <td>
+                    "<dfn>automatic</dfn>"
+                <td>
+                    Set the makeup gain as described in [=Computing the makeup gain=].
+    </table>
+</div>
+
+<pre class="idl">
 [Exposed=Window]
 interface DynamicsCompressorNode : AudioNode {
     constructor (BaseAudioContext context,
@@ -7699,6 +7720,7 @@ interface DynamicsCompressorNode : AudioNode {
     readonly attribute float reduction;
     readonly attribute AudioParam attack;
     readonly attribute AudioParam release;
+    readonly attribute AudioParam makeupGain;
 };
 </pre>
 
@@ -7716,6 +7738,12 @@ Constructors</h4>
         Let <dfn attribute for="DynamicsCompressorNode">[[internal reduction]]</dfn>
         be a private slot on <var>this</var>, that holds a floating point number, in
         decibels. Set {{[[internal reduction]]}} to 0.0.
+
+        Let <dfn attribute for="DynamicsCompressorNode">[[automatic
+        makeup gain]]</dfn> be a private slot on <var>this</var>, that
+        holds a boolean. Set {{[[automatic makeup gain]]}} to `true`
+        if the makeupGain option is {{MakeupGainOptions/automatic}} or
+        unspeficied, otherwise set it to `false`.
 
         <pre class=argumentdef for="DynamicsCompressorNode/constructor()">
             context: The {{BaseAudioContext}} this new {{DynamicsCompressorNode}} will be <a href="#associated">associated</a> with.
@@ -7805,6 +7833,25 @@ Attributes</h4>
             rate: "{{AutomationRate/k-rate}}"
             rate-notes: Has [=automation rate constraints=]
         </pre>
+
+    : <dfn>makeupGain</dfn>
+    ::
+        The decibel value of the makeup gain applied to the signal. If
+        this attribute is written to or any automation events are
+        scheduled on it, set {{[[automatic makeup gain]]}} to `false`.
+
+        <pre class=include>
+        path: audioparam.include
+        macros:
+            default: 0
+            default-notes: Will be reset during object creation
+            min: <a>most-negative-single-float</a>
+            min-notes: Approximately -3.4028235e38
+            max: \(\approx 1541\)
+            max-notes: This value is approximately \(40\ \log_{10} \mathrm{FLT\_MAX}\) where FLT_MAX is the largest {{float}} value.
+            rate: "{{AutomationRate/k-rate}}"
+            rate-notes: Has [=automation rate constraints=]
+        </pre>
 </dl>
 
 <h4 dictionary id="DynamicsCompressorOptions">
@@ -7822,6 +7869,7 @@ dictionary DynamicsCompressorOptions : AudioNodeOptions {
     float ratio = 12;
     float release = 0.25;
     float threshold = -24;
+    (float or MakeupGainOptions) makeupGain = "automatic";
 };
 </pre>
 
@@ -7843,6 +7891,12 @@ Dictionary {{DynamicsCompressorOptions}} Members</h5>
 
     : <dfn>threshold</dfn>
     :: The initial value for the {{DynamicsCompressorNode/threshold}} AudioParam.
+
+    : <dfn>makeupGain</dfn>
+    :: The initial value for the {{DynamicsCompressorNode/makeupGain}}
+       AudioParam. If set to {{MakeupGainOptions/automatic}}, the
+       makeup gain will be calculated as described in [=Computing the
+       makeup gain=].
 </dl>
 
 <h4 id="DynamicsCompressorOptions-processing">
@@ -7984,9 +8038,12 @@ values. Those values persist accros invocation of this algorithm.
             increment</var> by <var>envelope rate</var>, and add the result
             to <var>compressor gain</var>.
 
-        9. Compute <var>reduction gain</var> to be <var>compressor
-            gain</var> multiplied by the return value of <a>computing the
-            makeup gain</a>.
+        9. If {{[[automatic makeup gain]]}} is true, set
+            {{DynamicsCompressorNode/makeupGain}} to the return value
+            of <a>computing the makeup gain</a>
+
+        10. Compute <var>reduction gain</var> to be <var>compressor
+             gain</var> multiplied by {{DynamicsCompressorNode/makeupGain}}.
 
         10. Compute <var>metering gain</var> to be <var>reduction gain</var>, <a href="#linear-to-decibel">converted to
             decibel</a>.

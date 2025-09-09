@@ -663,6 +663,8 @@ The interfaces defined are:
     {{AudioNode}} which applies a non-linear waveshaping
     effect for distortion and other more subtle warming effects.
 
+* An {{AudioPlayoutStats}} interface, which provides statistics about the audio played from the {{AudioContext}}.
+
 There are also several features that have been deprecated from the
 Web Audio API but not yet removed, pending implementation experience
 of their replacements:
@@ -1488,6 +1490,7 @@ interface AudioContext : BaseAudioContext {
     [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
     attribute EventHandler onsinkchange;
     attribute EventHandler onerror;
+    [SameObject] readonly attribute AudioPlayoutStats playoutStats;
     AudioTimestamp getOutputTimestamp ();
     Promise<undefined> resume ();
     Promise<undefined> suspend ();
@@ -1533,6 +1536,10 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
     :: 
         An ordered list to store pending {{Promise}}s created by
         {{AudioContext/resume()}}. It is initially empty.
+
+    : <dfn>[[playout stats]]</dfn>
+    ::
+        A slot where an instance of {{AudioPlayoutStats}} can be stored. It is initially null.
 </dl>
 
 <h4 id="AudioContext-constructors">
@@ -1768,6 +1775,19 @@ Attributes</h4>
             * When the audio output device associated with an {{AudioContext}} is disconnected while
                 the context is {{AudioContextState/running}}.
             * When the operating system reports an audio device malfunction.
+
+    : <dfn>playoutStats</dfn>
+    ::
+        An instance of {{AudioPlayoutStats}} for this {{AudioContext}}.
+
+        <div algorithm="access playoutStats">
+            <span class="synchronous">When accessing this attribute, run the following steps:</span>
+
+            1. If the {{[[playout stats]]}} slot is null, construct a new {{AudioPlayoutStats}} object with [=this=] as the argument, and store it in {{[[playout stats]]}}.
+
+            1. Return the value of the {{[[playout stats]]}} internal slot.
+        </div>
+
 
 </dl>
 
@@ -11535,6 +11555,246 @@ context.audioWorklet.addModule('vumeter-processor.js').then(() => {
     drawMeter();
 });
 </xmp>
+
+<h3 interface lt="AudioPlayoutStats" id="AudioPlayoutStats">
+The {{AudioPlayoutStats}} Interface</h3>
+
+Provides audio underrun and latency statistics for audio played through the {{AudioContext}}.
+
+Audio underruns (also commonly called glitches) are gaps in the audio
+playout which occur when the audio pipeline cannot deliver audio on time.
+Underruns (often manifesting as audible "clicks" in the playout) are bad
+for the user experience, so if any of these occur it
+can be useful for the application to be able to detect this and possibly
+take some action to improve the playout.
+
+{{AudioPlayoutStats}} is a dedicated object for audio stats reporting;
+it reports audio underrun and playout latency statistics for the {{AudioContext's}} playout path via
+{{AudioDestinationNode}} and the associated output device. This allows
+applications to measure underruns occurring due to underperforming
+AudioWorklets as well as underruns and latency originating in the playout
+path between the {{AudioDestinationNode}} and the output device.
+
+Underruns are defined in terms of [=underrun frames=] and [=underrun events=]:
+- An <dfn>underrun frame</dfn> is an audio frame played by the output device that was not provided by the playout path.
+    This happens when the playout path fails to provide audio frames
+    to the output device on time, in which case underrun frames will be played (underrun frames are typically silence).
+    This typically only happens if the pipeline is underperforming.
+    This includes underrun situations that happen for reasons unrelated to WebAudio/{{AudioWorklet}}s.</li>
+- When an [=underrun frame=] is played after a non-underrun frame, we consider this an <dfn>underrun event</dfn>.
+    That is, multiple consecutive [=underrun frames=] will count as a single [=underrun event=].</li>
+
+<pre class="idl">
+[Exposed=Window, SecureContext]
+interface AudioPlayoutStats {
+    constructor (AudioContext context);
+    readonly attribute double underrunDuration;
+    readonly attribute unsigned long underrunEvents;
+    readonly attribute double totalDuration;
+    readonly attribute double averageLatency;
+    readonly attribute double minimumLatency;
+    readonly attribute double maximumLatency;
+    undefined resetLatency();
+    [Default] object toJSON();
+};
+</pre>
+
+{{AudioPlayoutStats}} has the following internal slots:
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>[[audio context]]</dfn>
+    ::
+        The {{AudioContext}} that this instance of {{AudioPlayoutStats}} is associated with.
+
+    : <dfn>[[underrun duration]]</dfn>
+    ::
+        The total duration in seconds of [=underrun frames=] that {{[[audio context]]}} has played as of the last stat update, a double. Initialized to 0.
+
+    : <dfn>[[underrun events]]</dfn>
+    ::
+        The total number of [=underrun events=] that has occurred in playout by {{[[audio context]]}} as of the last stat update, an int. Initialized to 0.
+
+    : <dfn>[[total duration]]</dfn>
+    ::
+        The total duration in seconds of all frames (including [=underrun frames=]) that {{[[audio context]]}} has played as of the last stat update, a double. Initialized to 0.
+
+    : <dfn>[[average latency]]</dfn>
+    ::
+        The average playout latency in seconds of frames played by {{[[audio context]]}} over the currently tracked interval, a double. Initialized to 0.
+
+    : <dfn>[[minimum latency]]</dfn>
+    ::
+        The minimum playout latency in seconds of frames played by {{[[audio context]]}} over the currently tracked interval, a double. Initialized to 0.
+
+    : <dfn>[[maximum latency]]</dfn>
+    ::
+        The maximum playout latency in seconds of frames played by {{[[audio context]]}} over the currently tracked interval, a double. Initialized to 0.
+
+    : <dfn>[[latency reset time]]</dfn>
+    ::
+        The time when the latency statistics were last reset, a {{DOMHighResTimeStamp}}.
+</dl>
+
+<h4 id="AudioPlayoutStats-constructors">
+Constructors</h4>
+
+<dl dfn-type="constructor" dfn-for="AudioPlayoutStats" id="dom-audioplayoutstats-constructor-audioplayoutstats">
+    : <dfn>AudioPlayoutStats(context)</dfn>
+    ::
+        Run the following steps:
+        1. Set {{[[audio context]]}} to <code>context</code>.
+        1. Set {{[[latency reset time]]}} to 0.
+
+        <pre class=argumentdef for="AudioPlayoutStats/constructor()">
+            context: The {{AudioContext}} this new {{AudioPlayoutStats}} will be associated with.
+        </pre>
+</dl>
+
+<h4 id="AudioPlayoutStats-attributes">
+Attributes</h4>
+
+Note: These attributes update only once per second and under specific conditions. See the <a href="#update-audio-stats">update audio stats</a> algorithm and <a href="#AudioPlayoutStats-mitigations">privacy mitigations</a> for details.
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>underrunDuration</dfn>
+    ::
+        Measures the duration of [=underrun frames=] played by the {{AudioContext}}, in seconds.
+        This metric can be used together with {{totalDuration}} to
+        calculate the percentage of played out media that was not provided by the {{AudioContext}}.
+
+        Returns the value of the {{[[underrun duration]]}} internal slot.
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>underrunEvents</dfn>
+    ::
+        Measures the number of [=underrun events=] that have occurred during playout by the {{AudioContext}}.
+
+        Returns the value of the {{[[underrun events]]}} internal slot.
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>totalDuration</dfn>
+    ::
+        Measures the total duration of all audio played by the {{AudioContext}}, in seconds.
+
+        Returns the value of the {{[[total duration]]}} internal slot.
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>averageLatency</dfn>
+    ::
+        The average playout latency, in seconds, for audio played since the
+        last call to {{resetLatency()}}, or since the creation of the {{AudioContext}} if
+        {{resetLatency()}} has not been called.
+
+        Returns the value of the {{[[average latency]]}} internal slot.
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>minimumLatency</dfn>
+    ::
+        The minimum playout latency, in seconds, for audio played since the
+        last call to {{resetLatency()}}, or since the creation of the {{AudioContext}} if
+        {{resetLatency()}} has not been called.
+
+        Returns the value of the {{[[minimum latency]]}} internal slot.
+
+<dl dfn-type=attribute dfn-for="AudioPlayoutStats">
+    : <dfn>maximumLatency</dfn>
+    ::
+        The maximum playout latency, in seconds, for audio played since the
+        last call to {{resetLatency()}}, or since the creation of the {{AudioContext}} if
+        {{resetLatency()}} has not been called.
+
+        Returns the value of the {{[[maximum latency]]}} internal slot.
+
+<h4 id="AudioPlayoutStats-methods">
+Methods</h4>
+
+<dl dfn-type=method dfn-for="AudioPlayoutStats">
+    : <dfn>resetLatency()</dfn>
+    ::
+        Sets the start of the interval that latency stats are tracked over to the current time.
+        When {{resetLatency}} is called, run the following steps:
+
+        1. Set {{[[latency reset time]]}} to {{BaseAudioContext/currentTime}}.
+        1. Let <var>currentLatency</var> be the playout latency of the last frame played by
+            {{[[audio context]]}}, or 0 if no frames have been played out yet.
+        1. Set {{[[average latency]]}} to <var>currentLatency</var>.
+        1. Set {{[[minimum latency]]}} to <var>currentLatency</var>.
+        1. Set {{[[maximum latency]]}} to <var>currentLatency</var>.
+
+<h4> Updating the stats</h4>
+<div id="update-audio-stats" algorithm="update audio stats">
+Once per second, execute the <a href="#update-audio-stats">update audio stats</a> algorithm:
+1. If {{[[audio context]]}} is not running, abort these steps.
+1. Let <var>canUpdate</var> be false.
+1. Let <var>document</var> be the current [=this=]'s [=relevant global object=]'s [=associated Document=].
+    If <var>document</var> is [=Document/fully active=] and <var>document</var>'s [=Document/visibility state=] is `"visible"`, set <var>canUpdate</var> to true.
+1. Let <var>permission</var> be the [=permission state=] for the permission associated with [="microphone"=] access.
+    If <var>permission</var> is "granted", set <var>canUpdate</var> to true.
+1. If <var>canUpdate</var> is false, abort these steps.
+1. Set {{[[underrun duration]]}} to the total duration of all [=underrun frames=] (in seconds) that
+    {{[[audio context]]}} has played since its construction.
+1. Set {{[[underrun events]]}} to the number of times that {{[[audio context]]}}
+    has played an [=underrun frame=] after a non-underrun frame since its construction.
+1. Set {{[[total duration]]}} to the total duration of all frames (in seconds) that
+    {{[[audio context]]}} has played since its construction.
+1. Set {{[[average latency]]}} to the average playout latency (in seconds) of frames that
+    {{[[audio context]]}} has played since {{[[latency reset time]]}}.
+1. Set {{[[minimum latency]]}} to the minimum playout latency (in seconds) of frames that
+    {{[[audio context]]}} has played since {{[[latency reset time]]}}.
+1. Set {{[[maximum latency]]}} to the maximum playout latency (in seconds) of frames that
+    {{[[audio context]]}} has played since {{[[latency reset time]]}}.
+</div>
+
+<h4>Privacy considerations of glitch stats</h4>
+
+<h5>Risk</h5>
+Audio underrun information could be used to form a cross-site
+covert channel between two cooperating sites.
+One site could transmit information by intentionally causing audio glitches
+(by causing very high CPU usage, for example) while the other site
+could detect these glitches.
+<h5 id="AudioPlayoutStats-mitigations">Mitigations</h5>
+To inihibit the usage of such a covert channel, the API implements these mitigations.
+- The values returned by the API should not be updated more than once per second.
+- The api should be restricted to sites fulfill at least one of the following criteria:
+    1. The site has obtained <a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">getUserMedia</a> permission.
+        
+        Note: The reasoning is that if a site has obtained <a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">getUserMedia</a> permission, it can receive glitch information or communicate efficiently through use of the microphone, making access to the information provided by {{AudioPlayoutStats}} redundant. These options include detecting glitches through gaps in the microphone signal, or communicating using human-inaudible sine waves. If microphone access is ever made safer in this regard, this condition should be reconsidered.
+    1. The document is [=Document/fully active=] and its [=Document/visibility state=] is `"visible"`.
+
+        Note: Assuming that neither cooperating site has microphone permission, this criteria ensures that the site that receives the covert signal must be visible, restricting the conditions under which the covert channel can be used. It makes it impossible for sites to communicate with each other using the covert channel while not visible.
+
+<h4>Usage example</h4>
+This example shows how the {{AudioPlayoutStats}} can be used to calculate audio underrun and latency statistics,
+and what the statistics might be used for.
+<pre line-numbers class="example" highlight="js">
+var oldTotalDuration = audioContext.playoutStats.totalDuration;
+var oldUnderrunDuration = audioContext.playoutStats.underrunDuration;
+var oldUnderrunEvents = audioContext.playoutStats.underrunEvents;
+audioContext.playoutStats.resetLatency();
+
+// Wait while playing audio
+...
+
+// the number of seconds that were covered by the frames played by the output device between the two executions.
+let deltaTotalDuration = audioContext.playoutStats.totalDuration - oldTotalDuration;
+let deltaUnderrunDuration = audioContext.playoutStats.underrunDuration - oldUnderrunDuration;
+let deltaUnderrunEvents = audioContext.playoutStats.underrunEvents - oldUnderrunEvents;
+
+// underrun fraction stat over the last deltaTotalDuration seconds
+let underrunFraction = deltaUnderrunDuration / deltaTotalDuration;
+// underrun frequency stat over the last deltaTotalDuration seconds
+let underrunFrequency = deltaUnderrunEvents / deltaTotalDuration;
+// Average playout delay stat during the last deltaTotalDuration seconds
+let playoutDelay = audioContext.playoutStats.averageLatency;
+
+if (underrunFrequency > 0) {
+    // Do something to prevent audio glitches, like lowering WebAudio graph complexity
+}
+if (playoutDelay > 0.2) {
+    // Do something to reduce latency, like suggesting alternative playout methods
+}
+</pre>
 
 <h2 id="processing-model">
 Processing model</h2>

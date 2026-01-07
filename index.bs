@@ -663,6 +663,9 @@ The interfaces defined are:
     {{AudioNode}} which applies a non-linear waveshaping
     effect for distortion and other more subtle warming effects.
 
+* An {{AudioPlaybackStats}} interface, which provides statistics about the audio
+    played from the {{AudioContext}}.
+
 There are also several features that have been deprecated from the
 Web Audio API but not yet removed, pending implementation experience
 of their replacements:
@@ -979,7 +982,7 @@ Methods</h4>
         <pre class=argumentdef for="BaseAudioContext/createBuffer()">
         numberOfChannels: Determines how many channels the buffer will have. An implementation MUST support at least 32 channels.
         length: Determines the size of the buffer in sample-frames.  This MUST be at least 1.
-        sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in the buffer in sample-frames per second. An implementation MUST support sample rates in at least the range 8000 to 96000.
+        sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in the buffer in sample-frames per second. See [[#sample-rates]] for the required supported range.
         </pre>
         <div>
             <em>Return type:</em> {{AudioBuffer}}
@@ -1488,6 +1491,7 @@ interface AudioContext : BaseAudioContext {
     [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
     attribute EventHandler onsinkchange;
     attribute EventHandler onerror;
+    [SameObject] readonly attribute AudioPlaybackStats playbackStats;
     AudioTimestamp getOutputTimestamp ();
     Promise<undefined> resume ();
     Promise<undefined> suspend ();
@@ -1533,6 +1537,10 @@ and to allow it only when the {{AudioContext}}'s [=relevant global object=] has
     :: 
         An ordered list to store pending {{Promise}}s created by
         {{AudioContext/resume()}}. It is initially empty.
+
+    : <dfn>[[playback stats]]</dfn>
+    ::
+        A slot where the instance of {{AudioPlaybackStats}} is stored.
 </dl>
 
 <h4 id="AudioContext-constructors">
@@ -1632,6 +1640,9 @@ Constructors</h4>
 
             1. If |context| is <a>allowed to start</a>, send a
                 <a>control message</a> to start processing.
+
+            1. Set {{[[playback stats]]}} to a new instance of
+                {{AudioPlaybackStats}}.
 
             1. Return |context|.
         </div>
@@ -1768,6 +1779,12 @@ Attributes</h4>
             * When the audio output device associated with an {{AudioContext}} is disconnected while
                 the context is {{AudioContextState/running}}.
             * When the operating system reports an audio device malfunction.
+
+    : <dfn>playbackStats</dfn>
+    ::
+        An instance of {{AudioPlaybackStats}} for this {{AudioContext}}.
+        Returns the value of the {{[[playback stats]]}} internal slot.
+
 
 </dl>
 
@@ -2345,11 +2362,8 @@ Dictionary {{AudioContextOptions}} Members</h5>
     : <dfn>sampleRate</dfn>
     ::
         Set the {{BaseAudioContext/sampleRate}} to this value
-        for the {{AudioContext}} that will be created. The
-        supported values are the same as the sample rates for an
-        {{AudioBuffer}}. <span class="synchronous">A
-        {{NotSupportedError}} exception MUST be thrown if
-        the specified sample rate is not supported.</span>
+        for the {{AudioContext}} that will be created. See
+        [[#sample-rates]] for the required supported range.
 
         If {{AudioContextOptions/sampleRate}} is not
         specified, the preferred sample rate of the output device for
@@ -2557,7 +2571,7 @@ Constructors</h4>
         <pre class=argumentdef for="OfflineAudioContext/constructor(numberOfChannels, length, sampleRate)">
         numberOfChannels: Determines how many channels the buffer will have. See {{BaseAudioContext/createBuffer()}} for the supported number of channels.
         length: Determines the size of the buffer in sample-frames.
-        sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in the buffer in sample-frames per second. See {{BaseAudioContext/createBuffer()}} for valid sample rates.
+        sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in the buffer in sample-frames per second. See [[#sample-rates]] for the required supported range.
         </pre>
 </dl>
 
@@ -2794,7 +2808,8 @@ Dictionary {{OfflineAudioContextOptions}} Members</h5>
 
     : <dfn>sampleRate</dfn>
     ::
-        The sample rate for this {{OfflineAudioContext}}.
+        The sample rate for this {{OfflineAudioContext}}. See
+        [[#sample-rates]] for the required supported range.
 
     : <dfn>renderSizeHint</dfn>
     ::
@@ -3143,7 +3158,7 @@ The allowed values for the members of this dictionary are constrained.  See {{Ba
 
     : <dfn>sampleRate</dfn>
     ::
-        The sample rate in Hz for the buffer.  See {{BaseAudioContext/createBuffer()/sampleRate}} for constraints.
+        The sample rate in Hz for the buffer. See [[#sample-rates]] for the required supported range.
 </dl>
 
 
@@ -4185,7 +4200,7 @@ Methods</h4>
         </div>
 
         <pre class=argumentdef for="AudioParam/cancelAndHoldAtTime()">
-            cancelTime: The time after which any previously scheduled parameter changes will be cancelled. It is a time in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute.  <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>cancelTime</code> is negative. If {{AudioParam/cancelAndHoldAtTime()/cancelTime}} is less than {{BaseAudioContext/currentTime}}, it is clamped to {{BaseAudioContext/currentTime}}.
+            cancelTime: The time after which any previously scheduled parameter changes will be cancelled. It is a time in the same time coordinate system as the {{AudioContext}}'s {{BaseAudioContext/currentTime}} attribute.  <span class="synchronous">A {{RangeError}} exception MUST be thrown if <code>cancelTime</code> is negative.</span> If {{AudioParam/cancelAndHoldAtTime()/cancelTime}} is less than {{BaseAudioContext/currentTime}}, it is clamped to {{BaseAudioContext/currentTime}}.
         </pre>
 
         <div>
@@ -8844,7 +8859,7 @@ enum OscillatorType {
 <table class="simple" dfn-type=enum-value dfn-for="OscillatorType">
     <caption>{{OscillatorType}} enumeration description</caption>
     <thead>
-        <th>Enum value</th><th>Description</th>
+        <tr><th>Enum value</th><th>Description</th></tr>
     <tbody>
         <tr><td>"<dfn>sine</dfn>" <td>A sine wave
         <tr><td>"<dfn>square</dfn>" <td>A square wave of duty period 0.5
@@ -9117,7 +9132,7 @@ enum PanningModelType {
 <table class="simple" dfn-type=enum-value dfn-for="PanningModelType">
     <caption>{{PanningModelType}} enumeration description</caption>
     <thead>
-        <th>Enum value</th><th>Description</th>
+        <tr><th>Enum value</th><th>Description</th></tr>
     <tbody>
         <tr><td>"<dfn>equalpower</dfn>"
         <td>
@@ -9169,7 +9184,10 @@ enum DistanceModelType {
 <table class="simple" dfn-type=enum-value dfn-for="DistanceModelType">
     <caption>{{DistanceModelType}} enumeration description</caption>
     <thead>
-        <th>Enum value</th><th>Description</th>
+        <tr>
+            <th>Enum value</th>
+            <th>Description</th>
+        </tr>
     <tbody>
         <tr>
             <td>"<dfn>linear</dfn>"
@@ -10060,7 +10078,10 @@ enum OverSampleType {
 <table class="simple" dfn-type=enum-value dfn-for="OverSampleType">
     <caption>{{OverSampleType}} enumeration description</caption>
     <thead>
-        <th>Enum value</th><th>Description</th>
+        <tr>
+            <th>Enum value</th>
+            <th>Description</th>
+        </tr>
     <tbody>
         <tr><td>"<dfn>none</dfn>"
             <td>Don't oversample
@@ -11536,6 +11557,254 @@ context.audioWorklet.addModule('vumeter-processor.js').then(() => {
 });
 </xmp>
 
+<h3 interface lt="AudioPlaybackStats" id="AudioPlaybackStats">
+The {{AudioPlaybackStats}} Interface</h3>
+
+Provides audio underrun and latency statistics for audio played through the
+{{AudioContext}}.
+
+When audio is not delivered to the playback device on time, this causes an
+audio underrun. This causes a discontinuity in the played signal, which produces an
+audible "click", commonly called a "glitch". These glitches are bad
+for the user experience, so if any of these occur it
+can be useful for the application to be able to detect them and possibly
+take some action to improve the playback.
+
+{{AudioPlaybackStats}} is a dedicated object for audio statistics reporting;
+it reports audio underrun and playback latency statistics for the
+{{AudioContext}}'s playback path via the
+{{AudioDestinationNode}} and its associated audio output device. This allows
+applications to measure underruns, which can occur due to the
+following reasons:
+- The audio graph is too complex for the system to generate audio on time,
+    causing underruns.
+- There is some external problem causing underruns. Examples of such problems are:
+    - Another program playing audio to the same playback device is malfunctioning.
+    - There is a global system CPU overload.
+    - The system is overloaded due to thermal throttling.
+
+Underruns are defined in terms of [=underrun frames=] and [=underrun events=]:
+- An <dfn>underrun frame</dfn> is an audio frame played by the output device
+    that was not provided by the {{AudioContext}}.
+    This happens when the playback path fails to provide audio frames
+    to the output device on time, in which case it will still have to play something.
+    
+    NOTE: Underrun frames are typically silence.
+- An <dfn>underrun event</dfn> is the playback of a continuous sequence of
+    [=underrun frames=].
+    The duration of the [=underrun event=] is the total duration of
+    the sequence of [=underrun frames=]s.
+
+<pre class="idl">
+[Exposed=Window, SecureContext]
+interface AudioPlaybackStats {
+    readonly attribute double underrunDuration;
+    readonly attribute unsigned long underrunEvents;
+    readonly attribute double totalDuration;
+    readonly attribute double averageLatency;
+    readonly attribute double minimumLatency;
+    readonly attribute double maximumLatency;
+    undefined resetLatency();
+    [Default] object toJSON();
+};
+</pre>
+
+Each {{AudioContext}} possesses exactly one {{AudioPlaybackStats}}.
+
+{{AudioPlaybackStats}} has the following internal slots:
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>[[audio context]]</dfn>
+    ::
+        The {{AudioContext}} that this instance of {{AudioPlaybackStats}} is
+        associated with. Initialized to the owning {{AudioContext}} upon
+        creation.
+
+    : <dfn>[[underrun duration]]</dfn>
+    ::
+        The total duration of all [=underrun events=] that have occurred in
+        {{[[audio context]]}} playback as of the last stat update, a double.
+        Initialized to 0.
+
+    : <dfn>[[underrun events]]</dfn>
+    ::
+        The total number of [=underrun events=] that have occurred in
+        {{[[audio context]]}} playback as of the last stat update, an int.
+        Initialized to 0.
+
+    : <dfn>[[total duration]]</dfn>
+    ::
+        The total duration in seconds of all frames in {{[[audio context]]}}
+        playback as of the last stat update, a double, defined as
+        <code>{{[[underrun duration]]}} + {{BaseAudioContext/currentTime}}</code>.
+        Initialized to 0.
+
+    : <dfn>[[average latency]]</dfn>
+    ::
+        The average audio output latency of {{[[audio context]]}}
+        over the {{currently tracked interval}}, a double.
+
+    : <dfn>[[minimum latency]]</dfn>
+    ::
+        The minimum audio output latency of
+        {{[[audio context]]}} over the {{currently tracked interval}}, a double.
+        Initialized to 0.
+
+    : <dfn>[[maximum latency]]</dfn>
+    ::
+        The maximum audio output latency of
+        {{[[audio context]]}} over the {{currently tracked interval}}, a double.
+        Initialized to 0.
+
+    : <dfn>[[latency reset time]]</dfn>
+    ::
+        The time when the latency statistics were last reset, a
+        double. This is in the clock domain of {{BaseAudioContext/currentTime}}.
+        Initialized to 0.
+
+        The <dfn>currently tracked interval</dfn> is the interval from
+        {{[[latency reset time]]}} to the current {{BaseAudioContext/currentTime}}.
+</dl>
+
+<h4 id="AudioPlaybackStats-attributes">
+Attributes</h4>
+
+Note: These attributes update only once per second and under specific
+conditions. See [[#update-audio-stats]] and
+[[#AudioPlaybackStats-privacy-mitigations]] for details.
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>underrunDuration</dfn>
+    ::
+        Returns the value of the {{[[underrun duration]]}} internal slot.
+
+        NOTE: This metric can be used together with {{totalDuration}} to
+        calculate the percentage of played out media that was not provided by
+        the {{AudioContext}}.
+</dl>
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>underrunEvents</dfn>
+    ::
+        Returns the value of the {{[[underrun events]]}} internal slot.
+</dl>
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>totalDuration</dfn>
+    ::
+        Returns the value of the {{[[total duration]]}} internal slot.
+</dl>
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>averageLatency</dfn>
+    ::
+        Returns the value of the {{[[average latency]]}} internal slot.
+</dl>
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>minimumLatency</dfn>
+    ::
+        Returns the value of the {{[[minimum latency]]}} internal slot.
+</dl>
+
+<dl dfn-type=attribute dfn-for="AudioPlaybackStats">
+    : <dfn>maximumLatency</dfn>
+    ::
+        Returns the value of the {{[[maximum latency]]}} internal slot.
+</dl>
+
+<h4 id="AudioPlaybackStats-methods">
+Methods</h4>
+
+<dl dfn-type=method dfn-for="AudioPlaybackStats">
+    : <dfn>resetLatency()</dfn>
+    ::
+        Sets the start of the interval that latency stats are tracked over to
+        the current time.
+        When {{resetLatency}} is called, run the following steps:
+
+        1. Set {{[[latency reset time]]}} to {{BaseAudioContext/currentTime}}.
+        1. Let <var>currentLatency</var> be the playback latency of the last
+            frame played by {{[[audio context]]}}, or 0 if no frames have been
+            played out yet.
+        1. Set {{[[average latency]]}} to <var>currentLatency</var>.
+        1. Set {{[[minimum latency]]}} to <var>currentLatency</var>.
+        1. Set {{[[maximum latency]]}} to <var>currentLatency</var>.
+</dl>
+
+<h4 id="update-audio-stats"> Updating the stats</h4>
+<div algorithm="update audio stats">
+Once per second, execute the update audio stats algorithm:
+    1. If {{[[audio context]]}} is not running, abort these steps.
+    1. Let <var>canUpdate</var> be false.
+    1. Let <var>document</var> be the current [=this=]'s
+        [=relevant global object=]'s [=associated Document=].
+        If <var>document</var> is [=Document/fully active=] and <var>document</var>'s
+        [=Document/visibility state=] is `"visible"`, set <var>canUpdate</var> to
+        true.
+    1. Let <var>permission</var> be the [=permission state=] for the permission
+        associated with "microphone" access.
+        If <var>permission</var> is "granted", set <var>canUpdate</var> to true.
+    1. If <var>canUpdate</var> is false, abort these steps.
+    1. Set {{[[underrun duration]]}} to the total duration of all [=underrun events=]
+        (in seconds)
+        that have occurred in {{[[audio context]]}} playback since its construction.
+    1. Set {{[[underrun events]]}} to the total number of [=underrun events=]
+        that have occurred in {{[[audio context]]}} playback since its
+        construction.
+    1. Set {{[[total duration]]}} to {{[[underrun duration]]}} +
+        {{[[audio context]]}}.{{BaseAudioContext/currentTime}}.
+    1. Set {{[[average latency]]}} to the average playback latency (in seconds) of
+        {{[[audio context]]}} playback over the {{currently tracked interval}}.
+    1. Set {{[[minimum latency]]}} to the minimum playback latency (in seconds) of
+        {{[[audio context]]}} playback over the {{currently tracked interval}}.
+    1. Set {{[[maximum latency]]}} to the maximum playback latency (in seconds) of
+        {{[[audio context]]}} playback over the {{currently tracked interval}}.
+</div>
+
+<h4 id="AudioPlaybackStats-privacy-considerations">
+Privacy considerations for {{AudioPlaybackStats}}</h4>
+
+<h5 id="AudioPlaybackStats-privacy-risks">Risk</h5>
+Audio underrun information could be used to form a cross-site
+covert channel between two cooperating sites.
+One site could transmit information by intentionally causing audio glitches
+(by causing very high CPU usage, for example) while the other site
+could detect these glitches.
+
+Note: This covert channel depends on specific system characteristics.
+It typically requires a shared linearization point (such as an OS or browser
+audio mixer) and callbacks that are effectively synchronous from that point,
+without intermediate buffering that would flatten load spikes.
+
+<h5 id="AudioPlaybackStats-privacy-mitigations">Mitigations</h5>
+To inhibit the usage of such a covert channel, the API implements these
+mitigations.
+- The values returned by the API MUST not be updated more than once per
+    second.
+- The API MUST be restricted to sites that fulfill at least one of the following
+    criteria:
+    1. The site has obtained
+        <a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">getUserMedia</a>
+        permission.
+        
+        Note: The reasoning is that if a site has obtained
+        <a href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">getUserMedia</a>
+        permission, it can receive glitch information or communicate
+        efficiently through use of the microphone, making access to the
+        information provided by {{AudioPlaybackStats}} redundant. These options
+        include detecting glitches through gaps in the microphone signal, or
+        communicating using human-inaudible sine waves. If microphone access is
+        ever made safer in this regard, this condition should be reconsidered.
+    1. The document is [=Document/fully active=] and its
+        [=Document/visibility state=] is `"visible"`.
+
+        Note: Assuming that neither cooperating site has microphone permission,
+        this criterion ensures that the site that receives the covert signal
+        must be visible, restricting the conditions under which the covert
+        channel can be used. It makes it impossible for sites to communicate
+        with each other using the covert channel while not visible.
+
 <h2 id="processing-model">
 Processing model</h2>
 
@@ -11598,10 +11867,9 @@ thread</a> is done using <a>control message</a> passing.
 Communication in the other direction is done using regular event loop
 tasks.
 
-Each {{AudioContext}} has a single <dfn>control message
-queue</dfn> that is a list of <dfn lt="control message">control
-messages</dfn> that are operations running on the <a>rendering
-thread</a>.
+Each {{AudioContext}} has a single <dfn>control message queue</dfn> 
+that is a list of <dfn lt="control message">control messages</dfn> that are
+operations running on the <a>rendering thread</a>.
 
 <dfn id="queuing" lt="queue a control message">Queuing a control message</dfn>
 means adding the message to the end of the <a>control message queue</a> of an
@@ -11666,6 +11934,14 @@ events MUST be the same: given two operation <var>A</var> and
 <var>B<sub>Sync</sub></var>, and <var>A<sub>Async</sub></var> happens
 before <var>B<sub>Async</sub></var>. In other words, synchronous and
 asynchronous sections can't be reordered.
+
+<h3 id="sample-rates">Supported Sample Rates</h3>
+
+<p>
+Implementations MUST support sample rates between 3000 Hz and 768000 Hz,
+inclusive. A {{NotSupportedError}} MUST be thrown if a sample rate outside this
+range is specified.
+</p>
 
 <h3 id="rendering-loop">
 Rendering an Audio Graph</h3>

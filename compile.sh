@@ -41,6 +41,7 @@ bikeshed --print=plain -f spec 2>&1 | tee $BSLOG
 # Also remove any lines that start "cannot identify image file" because the path
 # is based the machine doing the build so we don't want that in the results.
 sed 's;^LINE [0-9]*:[0-9]*:;LINE:;' $BSLOG |
+  sed 's;^LINE [0-9]*:[0-9]* of file .*(included by a block on [0-9]*:[0-9]*):;LINE:;' |
   sed '/^cannot identify image file/d' |
   sed -e '$a\' > $ERRLOG
 

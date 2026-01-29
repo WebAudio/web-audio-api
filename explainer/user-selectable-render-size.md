@@ -1,4 +1,9 @@
 # User-Selectable Render Size
+
+> **Note:** the feature described in this explainer has since been specified in the
+> [Web Audio API](https://webaudio.github.io/web-audio-api/). If there is
+> any difference between the two the Web Audio API takes precedence.
+
 - Hongchan Choi (hongchan@chromiun.org) - current contact
 - Raymond Toy (rtoy@chromium.org) - original explainer author
 

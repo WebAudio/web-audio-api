@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the problem is in the spec.
 
 If you need help on how to use WebAudio, ask on your favorite forum or consider visiting
-the [WebAudio Slack Channel](https://web-audio.slack.com/) (register [here](https://web-audio-slackin.herokuapp.com/)) or
+the [WebAudio Slack Channel](https://web-audio.slack.com/) or
 [StackOverflow](https://stackoverflow.com/).
 
 If it's really an implementation bug, considering filing an issue for your browser at

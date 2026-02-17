@@ -2381,6 +2381,8 @@ Dictionary {{AudioContextOptions}} Members</h5>
         <code>"default"</code> is passed, or to ask the User-Agent to pick a good
         <a>render quantum size</a> if <code>"hardware"</code> is specified.
 
+        See [[#render-quantum-sizes]] for the required supported range.
+
         It is a hint that might not be honored.
 </dl>
 
@@ -2508,16 +2510,20 @@ Constructors</h4>
             1. Set the {{[[rendering thread state]]}} for
                 |c| to <code>"suspended"</code>.
 
-            1. Determine the {{[[render quantum size]]}} for this {{OfflineAudioContext}},
-                    based on the value of the {{OfflineAudioContextOptions/renderSizeHint}}:
+            1. Set the {{BaseAudioContext/sampleRate}} for |c|,
+                 based on the value of <code>contextOptions.{{OfflineAudioContextOptions/sampleRate}}</code>.
+
+            1. Determine the {{[[render quantum size]]}} for |c|,
+                    based on the value of the <code>contextOptions.{{OfflineAudioContextOptions/renderSizeHint}}</code>:
 
                 1. If it has the default value of <code>"default"</code> or
                         <code>"hardware</code>", set the {{[[render quantum size]]}} private
                         slot to 128.
 
-                1. Else, if an integer has been passed, the User-Agent can decide to
-                        honour this value by setting it to the {{[[render quantum size]]}}
-                        private slot.
+                1. Else, if an integer has been passed, a {{NotSupportedError}} MUST be
+                        thrown if the value is outside the range specified in
+                        [[#render-quantum-sizes]], otherwise set the {{[[render quantum size]]}}
+                        private slot to the passed value.
 
             1. Construct an {{AudioDestinationNode}} with its
                 {{AudioNode/channelCount}} set to
@@ -2814,7 +2820,8 @@ Dictionary {{OfflineAudioContextOptions}} Members</h5>
     : <dfn>renderSizeHint</dfn>
     ::
         A hint for the <a>render quantum size</a> of this
-        {{OfflineAudioContext}}.
+        {{OfflineAudioContext}}.  See [[#render-quantum-sizes]]
+        for the required supported range.
 </dl>
 
 <h4 interface lt="OfflineAudioCompletionEvent" id="OfflineAudioCompletionEvent">
@@ -11942,6 +11949,25 @@ Implementations MUST support sample rates between 3000 Hz and 768000 Hz,
 inclusive. A {{NotSupportedError}} MUST be thrown if a sample rate outside this
 range is specified.
 </p>
+
+<h3 id="render-quantum-sizes">Supported Render Quantum Sizes</h3>
+
+<p>
+Implementations MUST support {{BaseAudioContext/[[render quantum
+size]]}} between 1 sample frame and 6 times the context sample rate,
+inclusive, rounding down to the nearest integer if 6 times the context
+sample rate is not an integer. A {{NotSupportedError}} MUST be thrown
+if a {{BaseAudioContext/[[render quantum size]]}} outside this range
+is specified.
+</p>
+
+<div class=note>
+Note: the upper limit of 6 seconds was chosen to support applications
+using the deprecated {{ScriptProcessorNode}} interface at its highest
+buffer size of 16384 and the lowest supported sample rate of 3000 Hz.
+For a context sample rate of 3000 Hz the supported range is [1,
+18000].  Higher sample rates will have a higher upper bound.
+</div>
 
 <h3 id="rendering-loop">
 Rendering an Audio Graph</h3>

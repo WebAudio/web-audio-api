@@ -1638,6 +1638,20 @@ Constructors</h4>
                     Note: If resampling is required, the latency of |context| may be
                     affected, possibly by a large amount.
 
+                1. Set the {{BaseAudioContext/[[render quantum size]]}} of |context|
+                    based on the value of the <code>contextOptions.{{AudioContextOptions/renderSizeHint}}</code>:
+
+                    1. If it has the default value of <code>"default"</code>, set the
+                        {{BaseAudioContext/[[render quantum size]]}} private slot to 128.
+
+                    1. Else, if it has the value of <code>"hardware"</code>, set the
+                        {{BaseAudioContext/[[render quantum size]]}} private slot to 0.
+
+                    1. Else, if an integer has been passed, a {{NotSupportedError}} MUST be
+                        thrown if the value is outside the range specified in
+                        [[#render-quantum-sizes]], otherwise set the {{BaseAudioContext/[[render quantum size]]}}
+                        private slot to the passed value.
+
             1. If |context| is <a>allowed to start</a>, send a
                 <a>control message</a> to start processing.
 
@@ -1680,6 +1694,9 @@ Constructors</h4>
             {{AudioContext}}.
 
         1. [=Queue a media element task=] to execute the following steps:
+
+            1. If the {{BaseAudioContext/[[render quantum size]]}} of the {{AudioContext}} is 0,
+                set it to the actual hardware render quantum size chosen during resource acquisition.
 
             1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}}
                 to "{{AudioContextState/running}}".
@@ -2067,13 +2084,16 @@ Methods</h4>
             5. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
                 queue a media element task</a> to execute the following steps:
 
+                1. If the {{BaseAudioContext/[[render quantum size]]}} of the {{AudioContext}} is 0,
+                    set it to the actual hardware render quantum size chosen during resource acquisition.
+
                 1. Resolve all promises from {{AudioContext/[[pending resume promises]]}} in order.
                 1. Clear {{AudioContext/[[pending resume promises]]}}. Additionally, remove those
                     promises from {{BaseAudioContext/[[pending promises]]}}.
 
-                2. Resolve <var>promise</var>.
+                1. Resolve <var>promise</var>.
 
-                3. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is not already "{{AudioContextState/running}}":
+                1. If the {{BaseAudioContext/state}} attribute of the {{AudioContext}} is not already "{{AudioContextState/running}}":
 
                     1. Set the {{BaseAudioContext/state}} attribute of the {{AudioContext}} to "{{AudioContextState/running}}".
 
@@ -13475,6 +13495,18 @@ Per the [[security-privacy-questionnaire#questions]]:
         audio output is not downsampled on output)&mdash;for example, if
         {{MediaDevices}} capabilities were read (with user intervention) and indicated
         a higher rate was supported.
+
+    Fingerprinting via the render quantum size of the {{AudioContext}}
+    is possible when the `"hardware"` hint is used, as it exposes
+    information about the user's default audio hardware buffer
+    size. To minimize this risk,
+    {{BaseAudioContext/renderQuantumSize}} returns 0 until the
+    {{AudioContext}} transitions to the `"running"` state.  Once the
+    {{AudioContext}} has transitioned to the `"running"` state the
+    actual render quantum size is returned. A running AudioContext can
+    be used to infer the user's audio hardware buffer size via
+    {{AudioWorklet}} timing, so this does not expose any new
+    information.
 
     Fingerprinting via the number of output channels for the
     {{AudioContext}} is possible as well.  We recommend that

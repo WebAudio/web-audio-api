@@ -2501,13 +2501,37 @@ returned promise with the rendered result as an
 interface OfflineAudioContext : BaseAudioContext {
     constructor(OfflineAudioContextOptions contextOptions);
     constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate);
-    Promise<AudioBuffer> startRendering();
+    Promise<AudioBuffer> startRendering(optional unsigned long? chunkSize = null);
     Promise<undefined> resume();
     Promise<undefined> suspend(double suspendTime);
-    readonly attribute unsigned long length;
+    Promise<undefined> close();
+    readonly attribute unsigned long? length;
     attribute EventHandler oncomplete;
 };
 </xmp>
+
+{{OfflineAudioContext}} has the following internal slots:
+<dl dfn-type=attribute dfn-for="OfflineAudioContext">
+    : <dfn>[[rendering started]]</dfn>
+    ::
+        A boolean flag representing whether the rendering has started. The
+        initial value is <code>false</code>.
+
+    : <dfn>[[rendered buffers]]</dfn>
+    ::
+        An ordered list of {{AudioBuffer}}s that are being rendered. The initial
+        value is an empty list.
+
+    : <dfn>[[committed frames]]</dfn>
+    ::
+        Tracks the number of frames that the {{OfflineAudioContext}} has
+        committed to render. The initial value is <code>0</code>.
+
+    : <dfn>[[rendered frames]]</dfn>
+    ::
+        Tracks the number of frames that have been rendered. The initial value
+        is <code>0</code>.
+</dl>
 
 <h4 id="OfflineAudioContext-constructors">
 Constructors</h4>
@@ -2597,7 +2621,7 @@ Constructors</h4>
 
         <pre class=argumentdef for="OfflineAudioContext/constructor(numberOfChannels, length, sampleRate)">
         numberOfChannels: Determines how many channels the buffer will have. See {{BaseAudioContext/createBuffer()}} for the supported number of channels.
-        length: Determines the size of the buffer in sample-frames.
+        length: Determines the total size of the audio render in sample-frames.
         sampleRate: Describes the sample-rate of the [=linear PCM=] audio data in the buffer in sample-frames per second. See [[#sample-rates]] for the required supported range.
         </pre>
 </dl>
@@ -2608,8 +2632,11 @@ Attributes</h4>
 <dl dfn-type=attribute dfn-for="OfflineAudioContext">
     : <dfn>length</dfn>
     ::
-        The size of the buffer in sample-frames. This is the same as the
-        value of the <code>length</code> parameter for the constructor.
+        The total size of the audio render in sample-frames. This is the same
+        as the value of the <code>length</code> parameter for the constructor.
+
+        For undefined-length rendering, this attribute SHOULD be set to
+        <code>null</code>.
 
     : <dfn>oncomplete</dfn>
     ::
@@ -2622,7 +2649,7 @@ Attributes</h4>
 Methods</h4>
 
 <dl dfn-type=method dfn-for="OfflineAudioContext">
-    : <dfn>startRendering()</dfn>
+    : <dfn>startRendering(chunkSize)</dfn>
     ::
         Given the current connections and scheduled changes, starts
         rendering audio.
@@ -2631,9 +2658,7 @@ Methods</h4>
         is via its promise return value, the instance will also fire an
         event named <code>complete</code> for legacy reasons.
 
-        <div algorithm="OfflineAudioContext.startRendering()">
-            Let <dfn attribute for="OfflineAudioContext">[[rendering started]]</dfn> be an internal slot of this {{OfflineAudioContext}}.  Initialize this slot to <em>false</em>.
-
+        <div algorithm="OfflineAudioContext.startRendering(chunkSize)">
             <span class="synchronous">When <code>startRendering</code> is
             called, the following steps MUST be performed on the <a>control
             thread</a>:</span>
@@ -2641,30 +2666,77 @@ Methods</h4>
             <ol>
                 <li>If [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=fully active=] then return [=a promise rejected with=] "{{InvalidStateError}}" {{DOMException}}.
 
-                <li>If the {{[[rendering started]]}} slot on the
-                {{OfflineAudioContext}} is <em>true</em>, return a rejected
-                promise with {{InvalidStateError}}, and abort these
-                steps.
-
-                <li>Set the {{[[rendering started]]}} slot of the
-                {{OfflineAudioContext}} to <em>true</em>.
-
                 <li>Let <var>promise</var> be a new promise.
 
-                <li>Create a new {{AudioBuffer}}, with a number of
-                channels, length and sample rate equal respectively to the
-                <code>numberOfChannels</code>, <code>length</code> and
+                <li> If the {{[[control thread state]]}} on the
+                {{OfflineAudioContext}} is {{AudioContextState/closed}}, reject
+                <var>promise</var> with {{InvalidStateError}} and abort these
+                steps.
+
+                <li> If the {{OfflineAudioContext}}'s
+                {{OfflineAudioContext/length}} is not <code>null</code> and
+                {{[[committed frames]]}} is greater than or equal to
+                {{OfflineAudioContext}}'s {{OfflineAudioContext/length}}, reject
+                <var>promise</var> with {{InvalidStateError}} and abort these
+                steps.
+
+                <li>Let <var>bufferLength</var> be a number initialized to the
+                value of the
+                {{OfflineAudioContext/startRendering(chunkSize)/chunkSize}}.
+
+                <ol>
+                    <li> If the {{OfflineAudioContext}}'s
+                    {{OfflineAudioContext/length}} is <code>null</code>:
+                    <ol> 
+                        <li> If
+                        {{OfflineAudioContext/startRendering(chunkSize)/chunkSize}}
+                        is <code>null</code>, set <var>bufferLength</var> to
+                        <a>render quantum size</a>.
+                    </ol>
+                    <li> Otherwise, if the {{OfflineAudioContext}}'s
+                    {{OfflineAudioContext/length}} is not <code>null</code>:
+                    <ol>
+                        <li> If
+                        {{OfflineAudioContext/startRendering(chunkSize)/chunkSize}}
+                        is not <code>null</code> and {{[[committed frames]]}} +
+                        {{OfflineAudioContext/startRendering(chunkSize)/chunkSize}}
+                        is less than the {{OfflineAudioContext}}'s
+                        {{OfflineAudioContext/length}}, set <var>bufferLength</var> to
+                        {{OfflineAudioContext/startRendering(chunkSize)/chunkSize}}.
+                        <li> Otherwise, set <var>bufferLength</var> to
+                        {{OfflineAudioContext/length}} - {{[[committed frames]]}}.
+                    </ol>
+                </ol>
+
+                <li>Let <var>bufferLength</var> be a number initialized to the
+                result of
+                <a lt="calculate the buffer length for offline rendering">
+                calculating the buffer length for offline rendering</a> given
+                the requested <code>chunkSize</code>.
+
+                <li> If <var>bufferLength</var> is not a multiple of
+                <a>render quantum size</a>, round it up to the next multiple of
+                the <a>render quantum size</a>.
+
+                <li>Create a new {{AudioBuffer}} <var>buffer</var>, with a number of
+                channels and sample rate equal respectively to the
+                <code>numberOfChannels</code> and
                 <code>sampleRate</code> values passed to this instance's
-                constructor in the <code>contextOptions</code> parameter.
-                Assign this buffer to an internal slot
-                <dfn attribute for="OfflineAudioContext">[[rendered buffer]]</dfn> in the {{OfflineAudioContext}}.
+                constructor in the <code>contextOptions</code> parameter;
+                and length equal to <var>bufferLength</var>.
 
                 <li>If an exception was thrown during the preceding
-                {{AudioBuffer}} constructor call, reject
-                <var>promise</var> with this exception.
+                {{AudioBuffer}} constructor call, reject <var>promise</var> with
+                this exception and return <var>promise</var>.
 
-                <li>Otherwise, in the case that the buffer was successfully
-                constructed, <a>begin offline rendering</a>.
+                <li>Set {{[[rendering started]]}} to <em>true</em>.
+
+                <li>Set {{[[committed frames]]}} to the sum of
+                {{[[committed frames]]}} and the <var>buffer</var>'s
+                {{AudioBuffer/length}}.
+
+                <li>Append <var>buffer</var> to {{[[rendered buffers]]}} and
+                <a>begin offline rendering</a> for <var>buffer</var>.
 
                 <li>Append <var>promise</var> to {{BaseAudioContext/[[pending promises]]}}.
 
@@ -2672,15 +2744,41 @@ Methods</h4>
             </ol>
         </div>
 
+        <div algorithm="calculate buffer length for offline rendering">
+            To <dfn dfn for>calculate the buffer length for offline rendering
+            </dfn> given a requested <var>chunkSize</var>, the following steps
+            MUST be performed on the <a>control thread</a>:
+            <ol>
+                <li> If the {{OfflineAudioContext}}'s
+                {{OfflineAudioContext/length}} is <code>null</code>:
+                <ol> 
+                    <li> If <var>chunkSize</var> is <code>null</code>, return
+                    the <a>render quantum size</a>.
+                    <li> Otherwise, return <var>chunkSize</var>.
+                </ol>
+                <li> Otherwise, if the {{OfflineAudioContext}}'s 
+                {{OfflineAudioContext/length}} is not <code>null</code>:
+                <ol>
+                    <li> If <var>chunkSize</var> is not <code>null</code> and
+                    {{[[committed frames]]}} + <var>chunkSize</var> is less than
+                    the {{OfflineAudioContext}}'s
+                    {{OfflineAudioContext/length}}, return <var>chunkSize</var>.
+                    <li> Otherwise, return
+                    {{OfflineAudioContext/length}} - {{[[committed frames]]}}.
+                </ol>
+            </ol>
+        </div>
+
         <div algorithm="begin offline rendering">
-            To <dfn dfn for>begin offline rendering</dfn>, the following steps MUST
-            happen on a <a>rendering thread</a> that is created for the
-            occasion.
+            To <dfn dfn for>begin offline rendering</dfn> for an {{AudioBuffer}}
+            <var>buffer</var>, the following steps MUST happen on a <a>rendering
+            thread</a> that is created for the occasion.
 
             <ol>
+                
                 <li>Given the current connections and scheduled changes, start
-                rendering <code>length</code> sample-frames of audio into
-                {{[[rendered buffer]]}}
+                rendering <var>buffer</var>'s {{AudioBuffer/length}}
+                sample-frames of audio into <var>buffer</var>.
 
                 <li>For every <a>render quantum</a>, check and
                 {{OfflineAudioContext/suspend()|suspend}}
@@ -2695,21 +2793,42 @@ Methods</h4>
 
                     <ol>
                         <li>Resolve the <var ignore>promise</var> created by {{startRendering()}}
-                        with {{[[rendered buffer]]}}.
+                        with <var>buffer</var>.
 
-                        <li>[=Queue a media element task=] to [=fire an event=] named
-                        {{OfflineAudioContext/complete}} at the {{OfflineAudioContext}} using
-                        {{OfflineAudioCompletionEvent}} whose `renderedBuffer` property is set to
-                        {{[[rendered buffer]]}}.
+                        <li>Remove the <var ignore>promise</var> from
+                        {{BaseAudioContext/[[pending promises]]}}.
+
+                        <li>Remove <var>buffer</var> from {{[[rendered buffers]]}}.
+
+                        <li>Set {{[[rendered frames]]}} to the sum of
+                        {{[[rendered frames]]}} and the {{AudioBuffer/length}}
+                        of <var>buffer</var>.
+
+                        <li> If {{OfflineAudioContext/length}} is not <code>null</code>:
+
+                        <ol>
+                            <li> If {{[[rendered frames]]}} is greater than or
+                            equal to {{OfflineAudioContext/length}},
+                            <a>Queue a control message</a> to close the
+                            {{OfflineAudioContext}}.
+
+                            <li> [=Queue a media element task=] to
+                            [=fire an event=] named
+                            {{OfflineAudioContext/complete}} at the
+                            {{OfflineAudioContext}} using
+                            {{OfflineAudioCompletionEvent}} whose
+                            `renderedBuffer` property is set to
+                            <var>buffer</var>.
+                        </ol>
 
                     </ol>
 
             </ol>
         </div>
 
-        <div>
-            <em>No parameters.</em>
-        </div>
+        <pre class=argumentdef for="OfflineAudioContext/startRendering(chunkSize)">
+            chunkSize: The number of sample-frames to render during this call.
+        </pre>
         <div>
             <em>Return type:</em> {{Promise}}&lt;{{AudioBuffer}}&gt;
         </div>
@@ -2804,6 +2923,71 @@ Methods</h4>
         <div>
             <em>Return type:</em> {{Promise}}&lt;{{undefined}}&gt;
         </div>
+    
+    : <dfn>close()</dfn>
+    ::
+        Closes the {{OfflineAudioContext}}. This will not automatically release
+        all {{AudioContext}}-created objects, but will suspend the progression
+        of the {{AudioContext}}'s {{BaseAudioContext/currentTime}}, and stop
+        processing audio data.
+
+        <div algorithm="OfflineAudioContext.close()">
+            <span class="synchronous">When close is called, execute these steps:</span>
+
+            1. If [=this=]'s [=relevant global object=]'s
+                [=associated Document=] is not [=fully active=] then return
+                [=a promise rejected with=] "{{InvalidStateError}}"
+                {{DOMException}}.
+
+            1. Let <var>promise</var> be a new Promise.
+
+            1. If the {{[[control thread state]]}} flag on the
+                {{OfflineAudioContext}} is <code>closed</code> reject the
+                promise with {{InvalidStateError}}, abort these steps,
+                returning <var>promise</var>.
+
+            1. Set the {{[[control thread state]]}} flag on the
+                {{OfflineAudioContext}} to <code>closed</code>.
+
+            1. <a>Queue a control message</a> to close the
+                {{OfflineAudioContext}}.
+
+            1. Return <em>promise</em>.
+        </div>
+
+        <div algorithm="run a control message to close an OfflineAudioContext">
+            Running a <a>control message</a> to close an {{OfflineAudioContext}}
+            means running these steps on the <a>rendering thread</a>:
+
+            1. Set the {{[[rendering thread state]]}} to <code>suspended</code>.
+                <div class="note">
+                    This will stop rendering.
+                </div>
+
+            1. If this <a>control message</a> is being run in a reaction to the
+                document being unloaded, abort this algorithm.
+                <div class="note">
+                    There is no need to notify the control thread in this case.
+                </div>
+
+            1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+                queue a media element task</a> to execute the following steps:
+
+                1. Resolve <em>promise</em>.
+                1. If the {{BaseAudioContext/state}} attribute of the
+                    {{OfflineAudioContext}} is not already
+                    "{{AudioContextState/closed}}":
+                        1. Set the {{BaseAudioContext/state}} attribute of the
+                            {{OfflineAudioContext}} to 
+                            "{{AudioContextState/closed}}".
+
+                    1. <a href="https://html.spec.whatwg.org/multipage/media.html#queue-a-media-element-task">
+                        queue a media element task</a> to
+                        <a spec="dom" lt="fire an event">fire an event</a> named
+                        {{BaseAudioContext/statechange}} at the
+                        {{OfflineAudioContext}}.
+        </div>
+
 </dl>
 
 <h4 dictionary id="OfflineAudioContextOptions">
@@ -2815,7 +2999,7 @@ This specifies the options to use in constructing an
 <xmp class="idl">
 dictionary OfflineAudioContextOptions {
     unsigned long numberOfChannels = 1;
-    required unsigned long length;
+    unsigned long? length = null;
     required float sampleRate;
     (AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
 };

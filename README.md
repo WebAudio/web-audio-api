@@ -1,6 +1,6 @@
 # Web Audio API 1.0 Spec
 
-[![Build Status](https://travis-ci.com/WebAudio/web-audio-api.svg?branch=main)](https://travis-ci.com/WebAudio/web-audio-api)
+[![Build Status](https://github.com/WebAudio/web-audio-api/actions/workflows/auto-publish.yml/badge.svg)](https://github.com/WebAudio/web-audio-api/actions/workflows/auto-publish.yml)
 
 <img src="images/webaudio-js.png" width="200px" alt="WebAudio">
 

@@ -20,7 +20,7 @@ specification. It can either be used via an HTTP API, or by running it locally.
 To use it via the HTTP API, run:
 
 ```
-curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F force=1 -F output=err -o err && cat err | sed -E 's/\\033\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g' | diff -u - expected-errs.txt
+curl https://api.csswg.org/bikeshed/ -F file=@index.bs -F output=err
 ```
 
 and preview your changes by doing: 

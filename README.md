@@ -1,6 +1,6 @@
 # Web Audio API 1.0 Spec
 
-[![Build Status](https://github.com/WebAudio/web-audio-api/actions/workflows/auto-publish.yml/badge.svg)](https://github.com/WebAudio/web-audio-api/actions/workflows/auto-publish.yml)
+[![Build Status](https://github.com/WebAudio/web-audio-api/actions/workflows/auto-publish.yml/badge.svg?branch=main&event=push)](https://github.com/WebAudio/web-audio-api/actions/workflows/auto-publish.yml)
 
 <img src="images/webaudio-js.png" width="200px" alt="WebAudio">
 

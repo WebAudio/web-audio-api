@@ -4,7 +4,7 @@ This repository contains the current Web Audio API _standard document_, develope
 
 If you're about to open an issue about a bug in a particular implementation, please file a ticket in the corresponding implementation bug tracker instead:
 
-- WebKit (Safari): https://bugs.webkit.org/enter_bug.cgi?product=WebKit&component=Web%20Audio (WebKit bugzilla account needed).
+- WebKit (Safari): https://bugs.webkit.org/enter_bug.cgi?product=WebKit&component=Web%20Audio (GitHub or WebKit Bugzilla account needed).
 - Blink (Chrome, Chromium, Electron apps, etc.): https://new.crbug.com/ (Google account needed).
 - Gecko (Firefox): https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Web%20Audio (GitHub or Mozilla Bugzilla account needed).
 

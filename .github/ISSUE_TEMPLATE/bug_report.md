@@ -1,7 +1,8 @@
 ---
 name: Bug Report
 about: Create a report to fix the specification.
-labels: Needs WG review, Untriaged
+title: ''
+labels: ["category: enhancement"]
 assignees: ''
 
 ---
@@ -14,17 +15,16 @@ If you need help on how to use WebAudio, ask on your favorite forum or consider 
 the [WebAudio Slack Channel](https://web-audio.slack.com/) (register [here](https://join.slack.com/t/web-audio/shared_invite/zt-3q3jencut-i1Z77wQrQCRo2hmZPTQkPA)) or
 [StackOverflow](https://stackoverflow.com/).
 
-If it's really an implementation bug, considering filing an issue for your browser at
+If it's really an implementation bug, consider filing an issue for your browser at:
 
-    * Safari (WebKit): https://bugs.webkit.org/enter_bug.cgi?product=WebKit&component=Web%20Audio (WebKit bugzilla account needed).
-    * Chrome (Blink): https://new.crbug.com/ (Google account needed).
-    * Firefox (Gecko): https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Web%20Audio (GitHub or Mozilla Bugzilla account needed).
+* Safari (WebKit): https://bugs.webkit.org/enter_bug.cgi?product=WebKit&component=Web%20Audio (GitHub or WebKit Bugzilla account needed).
+* Chrome (Blink): https://new.crbug.com/ (Google account needed).
+* Firefox (Gecko): https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Web%20Audio (GitHub or Mozilla Bugzilla account needed).
 
+**Where is it?**
 
-**Where Is It**
+Provide a link to where the problem is in the spec.
 
-Provide a link to where the problem is in the spec
+**Additional information**
 
-**Additional Information**
-
-Provide any additional information
+Provide any additional information.
